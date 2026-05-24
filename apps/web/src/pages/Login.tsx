@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { isAuthConfigured, loginWithDevToken, loginWithPassword } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
 import { HeroAnimation } from '../components/HeroAnimation.tsx';
+import { PasswordInput } from '../components/PasswordInput.tsx';
 
 export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
   const [email, setEmail] = useState('');
@@ -69,11 +70,9 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
                   Password dimenticata?
                 </Link>
               </div>
-              <input
+              <PasswordInput
                 id="password"
-                type="password"
                 autoComplete="current-password"
-                className="input"
                 required={isAuthConfigured()}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

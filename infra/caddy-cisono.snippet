@@ -5,10 +5,14 @@
 (cisono_web_prod_cors) {
 	@origin_app header Origin "https://app-cisono.xdevapp.it"
 	@origin_mobile header Origin "https://m-cisono.xdevapp.it"
+	@origin_localhost header Origin "http://localhost:5173"
+	@origin_localhost_alt header Origin "http://localhost:8082"
 	@options method OPTIONS
 	handle @options {
 		header @origin_app Access-Control-Allow-Origin "https://app-cisono.xdevapp.it"
 		header @origin_mobile Access-Control-Allow-Origin "https://m-cisono.xdevapp.it"
+		header @origin_localhost Access-Control-Allow-Origin "http://localhost:5173"
+		header @origin_localhost_alt Access-Control-Allow-Origin "http://localhost:8082"
 		header Access-Control-Allow-Methods "GET,POST,PUT,PATCH,DELETE,OPTIONS"
 		header Access-Control-Allow-Headers "Authorization,Content-Type,Idempotency-Key,X-Queued-Hours,apikey,X-Client-Info,X-Supabase-Api-Version"
 		header Access-Control-Allow-Credentials "true"
@@ -18,6 +22,8 @@
 	}
 	header @origin_app >Access-Control-Allow-Origin "https://app-cisono.xdevapp.it"
 	header @origin_mobile >Access-Control-Allow-Origin "https://m-cisono.xdevapp.it"
+	header @origin_localhost >Access-Control-Allow-Origin "http://localhost:5173"
+	header @origin_localhost_alt >Access-Control-Allow-Origin "http://localhost:8082"
 	header >Access-Control-Allow-Credentials "true"
 	header >Vary "Origin"
 }

@@ -119,6 +119,27 @@ select.input { background-color: white; }
 .table .nowrap { white-space: nowrap; }
 .table .num { font-variant-numeric: tabular-nums; }
 
+/* Password input with toggle ------------------------------------------- */
+.pw-wrap { position: relative; }
+.pw-wrap .input { padding-right: 2.5rem; }
+.pw-toggle {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: 0;
+  padding: 0.25rem;
+  border-radius: 6px;
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pw-toggle:hover { color: var(--color-primary); background: var(--color-surface-variant); }
+.pw-toggle:focus { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+
 /* Layout helpers ------------------------------------------------------- */
 .section-title { @apply text-lg font-semibold; color: var(--color-on-surface); }
 .page-title { @apply text-2xl font-bold tracking-tight; }
