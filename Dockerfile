@@ -10,6 +10,8 @@ WORKDIR /repo
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/shared ./packages/shared
 COPY apps/backend ./apps/backend
+# Email templates fetched by GoTrue at http://cisono-api:4000/templates/*.html.
+COPY gotrue-templates ./apps/backend/public/templates
 
 # Install full deps for tsx + zod + pg + jose etc.
 RUN npm ci --workspace=@cisono/backend --include-workspace-root

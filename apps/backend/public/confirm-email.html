@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Email confermata — ciSono</title>
+<style>
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#fffbf8; color:#1f1b16; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:1.5rem; }
+  .card { background:#fff; border-radius:16px; box-shadow:0 4px 24px rgba(0,0,0,0.06); max-width:420px; width:100%; padding:2rem; text-align:center; }
+  .brand { font-size:2rem; font-weight:800; color:#b25500; margin-bottom:0.25rem; }
+  h1 { font-size:1.25rem; margin:1rem 0 0.5rem; }
+  p { color:#514440; }
+  a.btn { display:inline-block; margin-top:1.25rem; padding:0.75rem 1.25rem; background:#b25500; color:#fff; border-radius:8px; text-decoration:none; font-weight:600; }
+  .err { color:#ba1a1a; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">ciSono</div>
+    <h1 id="title">Verifica in corso…</h1>
+    <p id="body">Un attimo.</p>
+    <a id="cta" class="btn" href="https://app-cisono.xdevapp.it/">Apri ciSono</a>
+  </div>
+<script>
+(function () {
+  var url = new URL(window.location.href);
+  var tokenHash = url.searchParams.get('token_hash');
+  var type = url.searchParams.get('type') || 'signup';
+
+  // GoTrue's /verify endpoint flips the email-confirmed flag AND issues
+  // an access_token in the fragment. For invites, this lands the user on
+  // reset-password.html via the recovery_url. For straight signup, we just
+  // show a success page here.
+  if (!tokenHash) {
+    document.getElementById('title').textContent = 'Link non valido';
+    document.getElementById('body').className = 'err';
+    document.getElementById('body').textContent = 'Il link è incompleto. Richiedi un nuovo invito.';
+    return;
+  }
+  var gotrueUrl = 'https://auth-cisono.xdevapp.it';
+  var redirectTo = type === 'invite' ? '/reset-password.html' : '/confirm-email.html';
+  // Caddy origin → GoTrue. Direct POST to /verify with redirect_to so GoTrue
+  // returns the token fragment on the static page that handles password.
+  fetch(gotrueUrl + '/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      type: type,
+      token: tokenHash,
+      redirect_to: window.location.origin + redirectTo
+    })
+  }).then(async function (r) {
+    var j = await r.json().catch(function () { return {}; });
+    if (j.access_token) {
+      // Invite confirmation completed — bounce to reset-password with token.
+      var qs = new URLSearchParams({
+        access_token: j.access_token,
+        refresh_token: j.refresh_token || '',
+        type: type
+      }).toString();
+      window.location.href = redirectTo + '#' + qs;
+    } else if (j.error_description || j.msg) {
+      document.getElementById('title').textContent = 'Verifica fallita';
+      document.getElementById('body').className = 'err';
+      document.getElementById('body').textContent = j.error_description || j.msg;
+    } else {
+      document.getElementById('title').textContent = 'Email confermata';
+      document.getElementById('body').textContent = 'Puoi accedere a ciSono.';
+    }
+  }).catch(function (e) {
+    document.getElementById('title').textContent = 'Errore';
+    document.getElementById('body').className = 'err';
+    document.getElementById('body').textContent = e.message;
+  });
+})();
+</script>
+</body>
+</html>

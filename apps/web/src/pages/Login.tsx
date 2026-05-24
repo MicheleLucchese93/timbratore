@@ -1,4 +1,5 @@
 import { type FormEvent, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { isAuthConfigured, loginWithDevToken, loginWithPassword } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
 
@@ -60,7 +61,12 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
 
             {isAuthConfigured() && (
               <div>
-                <label className="label" htmlFor="password">Password</label>
+                <div className="flex items-baseline justify-between">
+                  <label className="label" htmlFor="password">Password</label>
+                  <Link to="/forgot-password" className="text-xs font-medium" style={{ color: 'var(--color-primary)' }}>
+                    Password dimenticata?
+                  </Link>
+                </div>
                 <input
                   id="password"
                   type="password"

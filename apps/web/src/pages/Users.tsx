@@ -181,7 +181,7 @@ function InviteForm({ onClose, onInvited }: { onClose: () => void; onInvited: ()
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
       <form onSubmit={submit} className="card w-full max-w-md space-y-3">
         <h2 className="section-title">Invita utente</h2>
-        <p className="text-xs muted">Il backend crea la membership; in produzione GoTrue invia un'email d'invito.</p>
+        <p className="text-xs muted">Riceverà un'email per impostare la password e accedere.</p>
         <div>
           <label className="label">Email</label>
           <input type="email" className="input" required value={email} onChange={(e) => setEmail(e.target.value)} />

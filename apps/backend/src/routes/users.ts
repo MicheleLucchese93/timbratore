@@ -5,6 +5,11 @@ import { authenticate, requireAdmin, invalidateMembershipCache } from '../middle
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { ConflictError, NotFoundError, ValidationError } from '../errors/index.js';
+import { inviteUser } from '../lib/gotrue-admin.js';
+import { env } from '../env.js';
+import { createLogger } from '../lib/logger.js';
+
+const logger = createLogger('users');
 
 export const usersRouter = Router();
 usersRouter.use(authenticate);
@@ -70,12 +75,34 @@ usersRouter.post(
     let user = await client.query(`SELECT id, email FROM auth_users WHERE email = $1`, [inv.email]);
     let userId: string;
     if (user.rowCount === 0) {
-      const newId = uuidv4();
-      await client.query(
-        `INSERT INTO auth_users(id, email, created_at) VALUES ($1, $2, now())`,
-        [newId, inv.email]
-      );
-      userId = newId;
+      // Production: GoTrue's /invite creates auth.users + sends invite email.
+      // Local dev (no GoTrue reachable): fall back to direct insert.
+      if (env.NODE_ENV === 'production' || env.GOTRUE_URL.startsWith('http')) {
+        try {
+          const created = await inviteUser(inv.email, 'it');
+          userId = created.id;
+          await client.query(
+            `INSERT INTO auth_users(id, email, created_at) VALUES ($1, $2, now())
+             ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email`,
+            [userId, inv.email]
+          );
+        } catch (err) {
+          logger.warn({ err: (err as Error).message, email: inv.email }, 'GoTrue invite failed; falling back to mirror-only insert');
+          const newId = uuidv4();
+          await client.query(
+            `INSERT INTO auth_users(id, email, created_at) VALUES ($1, $2, now())`,
+            [newId, inv.email]
+          );
+          userId = newId;
+        }
+      } else {
+        const newId = uuidv4();
+        await client.query(
+          `INSERT INTO auth_users(id, email, created_at) VALUES ($1, $2, now())`,
+          [newId, inv.email]
+        );
+        userId = newId;
+      }
     } else {
       userId = user.rows[0].id;
     }

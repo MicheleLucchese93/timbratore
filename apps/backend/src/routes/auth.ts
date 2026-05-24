@@ -6,8 +6,41 @@ import { adminPool } from '../lib/admin-db.js';
 import { ok } from '../lib/api-response.js';
 import { ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
 import { asyncHandler } from '../lib/route-helpers.js';
+import { triggerRecovery, updatePassword } from '../lib/gotrue-admin.js';
 
 export const authRouter = Router();
+
+const Recover = z.object({ email: z.string().email() });
+
+authRouter.post(
+  '/recover',
+  asyncHandler(async (req, res) => {
+    const parse = Recover.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    // Always 200 — never leak whether the email is registered.
+    await triggerRecovery(parse.data.email);
+    ok(res, { sent: true });
+  })
+);
+
+const UpdatePassword = z.object({
+  access_token: z.string().min(20),
+  password: z.string().min(8),
+});
+
+authRouter.post(
+  '/update-password',
+  asyncHandler(async (req, res) => {
+    const parse = UpdatePassword.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    try {
+      await updatePassword(parse.data.access_token, parse.data.password);
+    } catch (err) {
+      throw new ValidationError((err as Error).message);
+    }
+    ok(res, { updated: true });
+  })
+);
 
 const DevLogin = z.object({ email: z.string().email() });
 

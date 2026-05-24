@@ -42,8 +42,11 @@ services:
       GOTRUE_MAILER_OTP_EXP: "3600"
       GOTRUE_MAILER_SUBJECTS_CONFIRMATION: '{{ if eq (.Data.language) "it" }}Conferma la registrazione su ciSono{{ else }}Confirm your ciSono signup{{ end }}'
       GOTRUE_MAILER_SUBJECTS_RECOVERY: '{{ if eq (.Data.language) "it" }}Reimposta la password ciSono{{ else }}Reset your ciSono password{{ end }}'
+      GOTRUE_MAILER_SUBJECTS_INVITE: '{{ if eq (.Data.language) "it" }}Sei stato invitato a ciSono{{ else }}You''ve been invited to ciSono{{ end }}'
       GOTRUE_MAILER_TEMPLATES_CONFIRMATION: "http://cisono-api:4000/templates/confirmation.html"
       GOTRUE_MAILER_TEMPLATES_RECOVERY: "http://cisono-api:4000/templates/recovery.html"
+      GOTRUE_MAILER_TEMPLATES_INVITE: "http://cisono-api:4000/templates/invite.html"
+      GOTRUE_MAILER_URLPATHS_INVITE: "/verify"
       GOTRUE_SMTP_HOST: "${SMTP_HOST}"
       GOTRUE_SMTP_PORT: "${SMTP_PORT}"
       GOTRUE_SMTP_USER: "${SMTP_USER}"

@@ -2,7 +2,9 @@ import { type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useSession } from '../store/session.ts';
 
-const navItems: Array<{ to: string; label: string }> = [
+interface NavItem { to: string; label: string }
+
+const adminNav: NavItem[] = [
   { to: '/', label: 'Dashboard' },
   { to: '/stamps', label: 'Timbrature' },
   { to: '/corrections', label: 'Correzioni' },
@@ -13,8 +15,15 @@ const navItems: Array<{ to: string; label: string }> = [
   { to: '/compliance', label: 'Conformità' },
 ];
 
+const userNav: NavItem[] = [
+  { to: '/', label: 'Dashboard' },
+  { to: '/me/stamps', label: 'Le mie timbrature' },
+  { to: '/me/corrections', label: 'Le mie richieste' },
+];
+
 export function Layout({ children }: { children: ReactNode }) {
   const { me, logout } = useSession();
+  const navItems = me?.user.role === 'admin' ? adminNav : userNav;
   return (
     <div className="min-h-screen flex flex-col bg-[color:var(--color-surface)]">
       <header
@@ -31,7 +40,11 @@ export function Layout({ children }: { children: ReactNode }) {
             <span className="hidden sm:inline opacity-80 truncate max-w-[14rem]">
               {me?.user.email}
             </span>
-            <button className="btn btn-ghost" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.4)' }} onClick={() => { void logout(); }}>
+            <button
+              className="btn btn-ghost"
+              style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.4)' }}
+              onClick={() => { void logout(); }}
+            >
               Esci
             </button>
           </div>
