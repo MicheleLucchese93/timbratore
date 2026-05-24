@@ -14,10 +14,12 @@ RUN npm ci --workspace=@cisono/web --include-workspace-root
 ARG VITE_API_URL=https://api-cisono.xdevapp.it
 ARG VITE_AUTH_URL=https://auth-cisono.xdevapp.it
 ARG VITE_CENTRIFUGO_URL=wss://ws-cisono.xdevapp.it/connection/websocket
+ARG VITE_GOOGLE_MAPS_API_KEY=
 
 ENV VITE_API_URL=$VITE_API_URL \
     VITE_AUTH_URL=$VITE_AUTH_URL \
-    VITE_CENTRIFUGO_URL=$VITE_CENTRIFUGO_URL
+    VITE_CENTRIFUGO_URL=$VITE_CENTRIFUGO_URL \
+    VITE_GOOGLE_MAPS_API_KEY=$VITE_GOOGLE_MAPS_API_KEY
 
 RUN npm run build --workspace=@cisono/web
 

@@ -113,6 +113,7 @@ services:
         VITE_API_URL: "https://api-cisono.xdevapp.it"
         VITE_AUTH_URL: "https://auth-cisono.xdevapp.it"
         VITE_CENTRIFUGO_URL: "wss://ws-cisono.xdevapp.it/connection/websocket"
+        VITE_GOOGLE_MAPS_API_KEY: "${VITE_GOOGLE_MAPS_API_KEY:-}"
     container_name: cisono-web
     restart: unless-stopped
     networks:
