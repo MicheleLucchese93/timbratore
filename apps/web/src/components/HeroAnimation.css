@@ -1,0 +1,197 @@
+.hero-anim {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 0% 0%, #d97706 0%, transparent 60%),
+    radial-gradient(120% 80% at 100% 100%, #92400e 0%, transparent 60%),
+    linear-gradient(135deg, #b25500 0%, #d97706 50%, #92400e 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-anim__bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 25% 30%, rgba(255, 255, 255, 0.18) 0%, transparent 35%),
+    radial-gradient(circle at 75% 80%, rgba(255, 255, 255, 0.10) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+.hero-anim__blob {
+  position: absolute;
+  filter: blur(36px);
+  pointer-events: none;
+}
+.hero-anim__blob--1 {
+  width: 60%;
+  top: -12%;
+  left: -10%;
+  animation: blob-drift-1 22s ease-in-out infinite alternate;
+}
+.hero-anim__blob--2 {
+  width: 55%;
+  bottom: -15%;
+  right: -8%;
+  animation: blob-drift-2 28s ease-in-out infinite alternate;
+}
+@keyframes blob-drift-1 {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(8%, 6%) scale(1.1); }
+}
+@keyframes blob-drift-2 {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-6%, -4%) scale(1.05); }
+}
+
+.hero-anim__content {
+  position: relative;
+  z-index: 1;
+  padding: 4rem 3rem;
+  max-width: 540px;
+}
+
+.hero-anim__brand {
+  font-size: 4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin: 0 0 1rem;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
+.hero-anim__payoff {
+  font-size: 1.4rem;
+  font-weight: 500;
+  line-height: 1.35;
+  opacity: 0.95;
+  margin: 0 0 3rem;
+  max-width: 24ch;
+}
+
+.hero-anim__stage {
+  position: relative;
+  height: 280px;
+  margin-top: 2rem;
+}
+
+/* Clock face — slight float */
+.hero-anim__clock {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 7.5rem;
+  height: 7.5rem;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.25));
+  animation: float-y 6s ease-in-out infinite;
+}
+
+.hero-anim__clock-hour {
+  transform-origin: 60px 60px;
+  animation: clock-hour 60s linear infinite;
+}
+.hero-anim__clock-minute {
+  transform-origin: 60px 60px;
+  animation: clock-minute 8s linear infinite;
+}
+@keyframes clock-hour {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes clock-minute {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+
+/* Stamp pills — slide-in + float loop */
+.hero-anim__pill {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(255, 255, 255, 0.96);
+  color: #1f1b16;
+  padding: 0.6rem 1rem 0.6rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  animation: pill-in 7.2s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+.hero-anim__pill-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--dot, #1e7a3a);
+}
+.hero-anim__pill-label { font-weight: 600; }
+.hero-anim__pill-time {
+  margin-left: 0.25rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: #b25500;
+}
+
+.hero-anim__pill--in    { top:  10px; left: 9rem; --dot: #1e7a3a; }
+.hero-anim__pill--break { top:  85px; left: 11rem; --dot: #a67700; }
+.hero-anim__pill--out   { top: 165px; left: 7rem; --dot: #514440; }
+
+@keyframes pill-in {
+  0%   { opacity: 0; transform: translate(-12px, 8px) scale(0.94); }
+  10%  { opacity: 1; transform: translate(0, 0) scale(1); }
+  60%  { opacity: 1; transform: translate(0, -4px) scale(1); }
+  85%  { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0.85; transform: translate(0, 4px) scale(0.98); }
+}
+
+/* GPS marker — pulsing ring at bottom right */
+.hero-anim__gps {
+  position: absolute;
+  bottom: 0;
+  right: 1.5rem;
+  width: 4rem;
+  height: 4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hero-anim__gps-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  animation: gps-pulse 2.4s ease-out infinite;
+}
+.hero-anim__gps-ring--delay { animation-delay: 1.2s; }
+.hero-anim__gps-pin {
+  position: relative;
+  width: 2.25rem;
+  height: 2.25rem;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3));
+}
+@keyframes gps-pulse {
+  0%   { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-anim__blob--1, .hero-anim__blob--2,
+  .hero-anim__clock, .hero-anim__clock-hour, .hero-anim__clock-minute,
+  .hero-anim__pill, .hero-anim__gps-ring {
+    animation: none;
+  }
+  .hero-anim__pill { opacity: 1; }
+}

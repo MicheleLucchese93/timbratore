@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api.ts';
+import { HeroAnimation } from '../components/HeroAnimation.tsx';
 
 export function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -19,10 +20,9 @@ export function ForgotPassword() {
 
   return (
     <main className="flex h-screen overflow-hidden bg-[color:var(--color-surface)]">
-      <div
-        className="hidden md:flex md:w-1/2 xl:w-3/5 items-center justify-center relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg,#b25500,#d97706,#92400e)' }}
-      />
+      <div className="hidden md:flex md:w-1/2 xl:w-3/5">
+        <HeroAnimation />
+      </div>
       <div className="flex flex-1 items-center justify-center px-4 py-6 sm:px-8">
         <div className="w-full max-w-md">
           <form onSubmit={submit} className="card space-y-4">
