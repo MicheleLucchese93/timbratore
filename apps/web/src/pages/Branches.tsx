@@ -1,5 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { api } from '../lib/api.ts';
+import { PlaceSearchInput, type PlaceDetail } from '../components/PlaceSearchInput.tsx';
+import { BranchMapPreview } from '../components/BranchMapPreview.tsx';
 
 interface Branch {
   id: string;
@@ -95,12 +97,28 @@ function BranchForm({
 }) {
   const [name, setName] = useState(initial?.name ?? '');
   const [address, setAddress] = useState(initial?.address ?? '');
-  const [lat, setLat] = useState(initial?.latitude?.toString() ?? '');
-  const [lng, setLng] = useState(initial?.longitude?.toString() ?? '');
+  const [lat, setLat] = useState<number | null>(initial?.latitude ?? null);
+  const [lng, setLng] = useState<number | null>(initial?.longitude ?? null);
   const [radius, setRadius] = useState(initial?.radius_m ?? 300);
   const [smartWorking, setSmartWorking] = useState(initial?.smart_working ?? false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  function handlePlace(detail: PlaceDetail) {
+    setAddress(detail.formatted_address ?? detail.description);
+    if (detail.geometry) {
+      setLat(detail.geometry.location.lat);
+      setLng(detail.geometry.location.lng);
+    }
+  }
+
+  function handleAddressChange(next: string) {
+    setAddress(next);
+    if (next.trim() === '') {
+      setLat(null);
+      setLng(null);
+    }
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -110,8 +128,8 @@ function BranchForm({
       const payload = {
         name,
         address: address || undefined,
-        latitude: lat ? Number(lat) : undefined,
-        longitude: lng ? Number(lng) : undefined,
+        latitude: lat ?? undefined,
+        longitude: lng ?? undefined,
         radius_m: Number(radius),
         smart_working: smartWorking,
       };
@@ -138,14 +156,15 @@ function BranchForm({
         </div>
         <div>
           <label className="label">Indirizzo</label>
-          <input
-            className="input"
+          <PlaceSearchInput
             value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="es. Piazza Venezia, 00187 Roma"
+            onChange={handleAddressChange}
+            onSelect={handlePlace}
+            placeholder="Cerca su Google Maps: es. Piazza Venezia, Roma"
+            disabled={smartWorking}
           />
           <p className="text-xs text-neutral-500 mt-1">
-            Se latitudine/longitudine vuote, prova a risolvere via geocoding (Nominatim).
+            Scrivi almeno 3 caratteri e seleziona un risultato per impostare le coordinate.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -159,16 +178,6 @@ function BranchForm({
         </div>
         {!smartWorking && (
           <>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label">Latitudine</label>
-                <input className="input" value={lat} onChange={(e) => setLat(e.target.value)} />
-              </div>
-              <div>
-                <label className="label">Longitudine</label>
-                <input className="input" value={lng} onChange={(e) => setLng(e.target.value)} />
-              </div>
-            </div>
             <div>
               <label className="label">Raggio (50–1500 m): {radius}m</label>
               <input
@@ -179,6 +188,19 @@ function BranchForm({
                 onChange={(e) => setRadius(Number(e.target.value))}
                 className="w-full"
               />
+            </div>
+            <div>
+              <label className="label">Anteprima</label>
+              <BranchMapPreview lat={lat} lng={lng} radiusM={radius} />
+              {lat !== null && lng !== null ? (
+                <p className="text-xs text-neutral-500 mt-1">
+                  {lat.toFixed(5)}, {lng.toFixed(5)} · tolleranza {radius}m
+                </p>
+              ) : (
+                <p className="text-xs text-neutral-500 mt-1">
+                  Seleziona un indirizzo per visualizzare la sede sulla mappa.
+                </p>
+              )}
             </div>
           </>
         )}
