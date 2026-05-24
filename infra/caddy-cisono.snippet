@@ -3,10 +3,12 @@
 #   docker exec gateway caddy reload --config /etc/caddy/Caddyfile
 
 (cisono_web_prod_cors) {
-	@origin_prod header Origin "https://app-cisono.xdevapp.it"
+	@origin_app header Origin "https://app-cisono.xdevapp.it"
+	@origin_mobile header Origin "https://m-cisono.xdevapp.it"
 	@options method OPTIONS
 	handle @options {
-		header @origin_prod Access-Control-Allow-Origin "https://app-cisono.xdevapp.it"
+		header @origin_app Access-Control-Allow-Origin "https://app-cisono.xdevapp.it"
+		header @origin_mobile Access-Control-Allow-Origin "https://m-cisono.xdevapp.it"
 		header Access-Control-Allow-Methods "GET,POST,PUT,PATCH,DELETE,OPTIONS"
 		header Access-Control-Allow-Headers "Authorization,Content-Type,Idempotency-Key,X-Queued-Hours,apikey,X-Client-Info,X-Supabase-Api-Version"
 		header Access-Control-Allow-Credentials "true"
@@ -14,7 +16,8 @@
 		header Vary "Origin, Access-Control-Request-Headers, Access-Control-Request-Method"
 		respond "" 204
 	}
-	header @origin_prod >Access-Control-Allow-Origin "https://app-cisono.xdevapp.it"
+	header @origin_app >Access-Control-Allow-Origin "https://app-cisono.xdevapp.it"
+	header @origin_mobile >Access-Control-Allow-Origin "https://m-cisono.xdevapp.it"
 	header >Access-Control-Allow-Credentials "true"
 	header >Vary "Origin"
 }
