@@ -3,6 +3,7 @@ import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import path from 'node:path';
 import { env } from './env.js';
 import { requestId } from './middleware/request-id.js';
 import { requestLogger } from './middleware/request-logger.js';
@@ -62,6 +63,12 @@ export function createApp(): Express {
     legacyHeaders: false,
   });
   app.use(limiter);
+
+  // Static helpers served same-origin so GoTrue invite / recovery links land here.
+  // publicDir resolves relative to the apps/backend working dir.
+  const publicDir = path.resolve(process.cwd(), 'public');
+  app.use(express.static(publicDir, { extensions: ['html'], maxAge: '5m' }));
+  app.use('/templates', express.static(path.join(publicDir, 'templates'), { extensions: ['html'] }));
 
   app.use('/health', healthRouter);
   app.use('/api/v1/auth', authRouter);
