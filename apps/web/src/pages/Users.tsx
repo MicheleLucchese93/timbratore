@@ -61,7 +61,7 @@ export function Users() {
 
   const usersCount = Number(usage?.active_users ?? 0);
   const adminsCount = Number(usage?.active_admins ?? 0);
-  const atUserLimit = usage && usersCount >= usage.max_users;
+  const atUserLimit = !!usage && usersCount >= usage.max_users;
 
   return (
     <div className="space-y-4">
