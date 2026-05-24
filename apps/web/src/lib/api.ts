@@ -1,5 +1,12 @@
 const TOKEN_KEY = 'cisono.token';
 
+// In dev, Vite proxies /api → http://localhost:4000. In prod, VITE_API_URL
+// is baked at build time (see apps/web/Dockerfile build args).
+const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+export function apiUrl(path: string): string {
+  return API_BASE && path.startsWith('/api') ? `${API_BASE}${path}` : path;
+}
+
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -29,7 +36,7 @@ export async function api<T = unknown>(
     headers.set('Content-Type', 'application/json');
     body = JSON.stringify(init.json);
   }
-  const res = await fetch(path, { ...init, headers, body });
+  const res = await fetch(apiUrl(path), { ...init, headers, body });
   const text = await res.text();
   let parsed: unknown = null;
   if (text) {

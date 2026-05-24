@@ -1,0 +1,127 @@
+services:
+  cisono-api:
+    build: .
+    container_name: cisono-api
+    restart: unless-stopped
+    env_file:
+      - apps/backend/.env.production
+    environment:
+      - PORT=4000
+      - NODE_ENV=production
+      - CENTRIFUGO_PROXY_SECRET=${CENTRIFUGO_CISONO_API_KEY}
+      # Pin issuer — gotrue-cisono mints with this exact value below.
+      - GOTRUE_JWT_ISSUER=https://auth-cisono.xdevapp.it
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - default
+      - gateway
+      - infra_internal
+
+  gotrue-cisono:
+    image: supabase/auth:v2.188.1
+    container_name: gotrue-cisono
+    restart: unless-stopped
+    environment:
+      GOTRUE_API_HOST: "0.0.0.0"
+      GOTRUE_API_PORT: "9999"
+      GOTRUE_DB_DRIVER: "postgres"
+      # gotrue_superadmin role owns the `auth` schema in cisono DB (pg-init).
+      GOTRUE_DB_DATABASE_URL: "postgres://gotrue_superadmin:${GOTRUE_PG_PASS}@postgres:5432/cisono?sslmode=disable"
+      GOTRUE_SITE_URL: "https://api-cisono.xdevapp.it"
+      GOTRUE_URI_ALLOW_LIST: "cisono://auth-callback,cisono://*,https://api-cisono.xdevapp.it/**,https://app-cisono.xdevapp.it/**"
+      GOTRUE_JWT_SECRET: "${CISONO_JWT_SECRET}"
+      GOTRUE_JWT_ISSUER: "https://auth-cisono.xdevapp.it"
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "false"
+      GOTRUE_MAILER_OTP_EXP: "3600"
+      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: '{{ if eq (.Data.language) "it" }}Conferma la registrazione su ciSono{{ else }}Confirm your ciSono signup{{ end }}'
+      GOTRUE_MAILER_SUBJECTS_RECOVERY: '{{ if eq (.Data.language) "it" }}Reimposta la password ciSono{{ else }}Reset your ciSono password{{ end }}'
+      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: "http://cisono-api:4000/templates/confirmation.html"
+      GOTRUE_MAILER_TEMPLATES_RECOVERY: "http://cisono-api:4000/templates/recovery.html"
+      GOTRUE_SMTP_HOST: "${SMTP_HOST}"
+      GOTRUE_SMTP_PORT: "${SMTP_PORT}"
+      GOTRUE_SMTP_USER: "${SMTP_USER}"
+      GOTRUE_SMTP_PASS: "${SMTP_PASS}"
+      GOTRUE_SMTP_ADMIN_EMAIL: "noreply@xdevapp.it"
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: "/verify"
+      GOTRUE_MAILER_URLPATHS_RECOVERY: "/verify"
+      GOTRUE_EXTERNAL_GOOGLE_ENABLED: "${CISONO_GOOGLE_ENABLED:-false}"
+      GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: "${CISONO_GOOGLE_CLIENT_ID:-}"
+      GOTRUE_EXTERNAL_GOOGLE_SECRET: "${CISONO_GOOGLE_SECRET:-}"
+      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: "https://auth-cisono.xdevapp.it/callback"
+      GOTRUE_EXTERNAL_APPLE_ENABLED: "${CISONO_APPLE_ENABLED:-false}"
+      # 1st = Service ID (web OAuth client_id), 2nd = iOS Bundle ID (native id-token aud).
+      GOTRUE_EXTERNAL_APPLE_CLIENT_ID: "${CISONO_APPLE_CLIENT_ID:-app.cisono.cisono.auth,app.cisono.cisono}"
+      GOTRUE_EXTERNAL_APPLE_SECRET: "${CISONO_APPLE_SECRET:-}"
+      GOTRUE_EXTERNAL_APPLE_REDIRECT_URI: "https://auth-cisono.xdevapp.it/callback"
+      GOTRUE_DISABLE_SIGNUP: "true"
+      GOTRUE_RATE_LIMIT_HEADER: "CF-Connecting-IP"
+      API_EXTERNAL_URL: "https://auth-cisono.xdevapp.it"
+    volumes:
+      - ./gotrue-templates:/templates:ro
+    networks:
+      - infra_internal
+      - gateway
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.50'
+
+  centrifugo-cisono:
+    image: centrifugo/centrifugo:v6
+    container_name: centrifugo-cisono
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        sed
+        -e "s|__HMAC_SECRET__|$$CENTRIFUGO_HMAC_SECRET|g"
+        -e "s|__API_KEY__|$$CENTRIFUGO_API_KEY|g"
+        -e "s|__PG_DSN__|$$CENTRIFUGO_PG_DSN|g"
+        /centrifugo/config.template.json > /tmp/config.json &&
+        centrifugo --config=/tmp/config.json
+    environment:
+      CENTRIFUGO_HMAC_SECRET: "${CENTRIFUGO_CISONO_HMAC_SECRET}"
+      CENTRIFUGO_API_KEY: "${CENTRIFUGO_CISONO_API_KEY}"
+      CENTRIFUGO_PG_DSN: "postgresql://app:${APP_PG_PASS}@postgres:5432/cisono"
+    volumes:
+      - ./centrifugo/config.json:/centrifugo/config.template.json:ro
+    networks:
+      - infra_internal
+      - gateway
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.50'
+
+  cisono-web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_URL: "https://api-cisono.xdevapp.it"
+        VITE_AUTH_URL: "https://auth-cisono.xdevapp.it"
+        VITE_CENTRIFUGO_URL: "wss://ws-cisono.xdevapp.it/connection/websocket"
+    container_name: cisono-web
+    restart: unless-stopped
+    networks:
+      - gateway
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.10'
+
+networks:
+  gateway:
+    external: true
+  infra_internal:
+    external: true

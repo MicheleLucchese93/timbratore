@@ -1,0 +1,36 @@
+{
+  "client": {
+    "token": { "hmac_secret_key": "__HMAC_SECRET__" },
+    "allowed_origins": [
+      "https://app-cisono.xdevapp.it"
+    ],
+    "proxy": {
+      "connect": {
+        "endpoint": "http://cisono-api:4000/api/v1/realtime/centrifugo/connect",
+        "http": { "static_headers": { "X-Centrifugo-Secret": "__API_KEY__" } }
+      }
+    }
+  },
+  "channel": {
+    "namespaces": [{ "name": "cisono" }],
+    "proxy": {
+      "subscribe": {
+        "endpoint": "http://cisono-api:4000/api/v1/realtime/centrifugo/subscribe",
+        "http": { "static_headers": { "X-Centrifugo-Secret": "__API_KEY__" } }
+      }
+    }
+  },
+  "http_api": { "key": "__API_KEY__" },
+  "consumers": [
+    {
+      "enabled": true,
+      "name": "postgresql",
+      "type": "postgresql",
+      "postgresql": {
+        "dsn": "__PG_DSN__",
+        "outbox_table_name": "centrifugo_outbox",
+        "num_partitions": 1
+      }
+    }
+  ]
+}

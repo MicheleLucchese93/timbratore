@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useState } from 'react';
-import { api, getToken } from '../lib/api.ts';
+import { api, getToken, apiUrl } from '../lib/api.ts';
 
 interface ExportJob {
   id: string;
@@ -43,7 +43,7 @@ export function Exports() {
   }
 
   async function download(j: ExportJob) {
-    const r = await fetch(`/api/v1/exports/${j.id}/download`, {
+    const r = await fetch(apiUrl(`/api/v1/exports/${j.id}/download`), {
       headers: { Authorization: `Bearer ${getToken()}` },
     });
     if (!r.ok) {

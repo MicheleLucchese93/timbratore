@@ -1,4 +1,4 @@
-import { getToken } from '../lib/api.ts';
+import { apiUrl, getToken } from '../lib/api.ts';
 
 const docs: Array<{ key: string; title: string; description: string }> = [
   { key: 'dpia', title: 'DPIA — Valutazione di impatto', description: 'Documento precompilato con i dati della tua azienda. Da rivedere con un consulente legale.' },
@@ -29,7 +29,7 @@ export function Compliance() {
                 e.preventDefault();
                 const token = getToken();
                 if (!token) return;
-                fetch(`/api/v1/compliance/${d.key}.html`, { headers: { Authorization: `Bearer ${token}` } })
+                fetch(apiUrl(`/api/v1/compliance/${d.key}.html`), { headers: { Authorization: `Bearer ${token}` } })
                   .then((r) => r.text())
                   .then((html) => {
                     const w = window.open('', '_blank');
