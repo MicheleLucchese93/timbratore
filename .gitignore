@@ -12,7 +12,10 @@ build/
 coverage/
 .DS_Store
 apps/backend/storage/
-apps/mobile/ios/
-apps/mobile/android/
+apps/mobile/ios/Pods/
+apps/mobile/ios/build/
+apps/mobile/android/.gradle/
+apps/mobile/android/build/
+apps/mobile/android/app/build/
 apps/mobile/.expo/
 .claude/launch.json

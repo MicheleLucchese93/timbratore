@@ -38,6 +38,5 @@ yarn-error.*
 
 example
 
-# generated native folders
-/ios
-/android
+# native folders committed (Bare workflow). Build artifacts ignored via
+# their own .gitignore files inside ios/ and android/.
