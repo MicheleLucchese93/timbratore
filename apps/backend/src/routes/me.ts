@@ -1,0 +1,56 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { authenticate } from '../middleware/auth.js';
+import { tenantHandler } from '../lib/route-helpers.js';
+import { ok } from '../lib/api-response.js';
+import { ValidationError } from '../errors/index.js';
+
+export const meRouter = Router();
+meRouter.use(authenticate);
+
+meRouter.get(
+  '/',
+  tenantHandler(async (req, res, client) => {
+    const tenant = await client.query(
+      `SELECT id, ragione_sociale, country, timezone, language, geofence_policy,
+              gps_accuracy_ceiling_m, mock_location_action, break_paid_threshold_min,
+              max_shift_hours, max_break_hours, disable_desktop_clock_in,
+              max_admins, max_users
+       FROM tenants
+       WHERE id = $1`,
+      [req.user!.tenantId]
+    );
+    const branches = await client.query(
+      `SELECT b.id, b.name, b.address, b.latitude, b.longitude, b.radius_m, b.smart_working
+       FROM branch_memberships bm
+       JOIN branches b ON b.id = bm.branch_id AND b.deleted_at IS NULL AND b.active = TRUE
+       WHERE bm.user_id = $1`,
+      [req.user!.id]
+    );
+    ok(res, {
+      user: { id: req.user!.id, email: req.user!.email, role: req.user!.role },
+      tenant: tenant.rows[0],
+      branches: branches.rows,
+    });
+  })
+);
+
+const PatchMe = z.object({
+  language: z.enum(['it', 'en']).optional(),
+});
+
+meRouter.patch(
+  '/',
+  tenantHandler(async (req, res, client) => {
+    const parse = PatchMe.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    if (parse.data.language) {
+      await client.query(
+        `INSERT INTO user_preferences(user_id, language) VALUES ($1, $2)
+         ON CONFLICT (user_id) DO UPDATE SET language = EXCLUDED.language`,
+        [req.user!.id, parse.data.language]
+      );
+    }
+    ok(res, { updated: true });
+  })
+);

@@ -1,0 +1,51 @@
+{
+  "app": {
+    "name": "ciSono",
+    "tagline": "Timbratura semplice per piccole imprese"
+  },
+  "common": {
+    "save": "Salva",
+    "cancel": "Annulla",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "confirm": "Conferma",
+    "loading": "Caricamento…",
+    "error_generic": "Si è verificato un errore"
+  },
+  "auth": {
+    "login_title": "Accedi a ciSono",
+    "email": "Email",
+    "password": "Password",
+    "sign_in": "Accedi",
+    "sign_in_with_google": "Accedi con Google",
+    "sign_in_with_apple": "Accedi con Apple",
+    "forgot_password": "Password dimenticata?",
+    "web_admin_only": "Il pannello web è riservato agli amministratori — usa l'app mobile per timbrare"
+  },
+  "stamp": {
+    "clock_in": "Timbra ingresso",
+    "clock_out": "Timbra uscita",
+    "break_start": "Inizia pausa",
+    "break_end": "Termina pausa",
+    "registered_at": "Timbratura registrata alle {{time}}",
+    "undo": "Annulla",
+    "out_of_geofence": "Sembri essere a {{distance}}m da {{branch}} — avvicinati e riprova"
+  },
+  "errors": {
+    "INVALID_TRANSITION": "Stato non valido per questa azione",
+    "DUPLICATE_TOO_FAST": "Hai già timbrato pochi secondi fa",
+    "OUT_OF_GEOFENCE": "Sei fuori dall'area consentita",
+    "MOCK_LOCATION_BLOCKED": "Posizione finta non consentita",
+    "GPS_ACCURACY_TOO_LOW": "Segnale GPS troppo debole",
+    "GPS_REQUIRED": "Posizione GPS richiesta per timbrare",
+    "CLOCK_SKEW": "L'orario del dispositivo non è allineato al server",
+    "UNDO_WINDOW_EXPIRED": "Finestra di annullamento scaduta",
+    "LIMIT_REACHED": "Limite del piano raggiunto",
+    "LAST_ADMIN": "Non puoi rimuovere l'ultimo amministratore",
+    "NO_ACTIVE_TENANT": "Nessuna azienda attiva associata al tuo account",
+    "UNAUTHORIZED": "Accesso non autorizzato",
+    "FORBIDDEN": "Operazione non consentita",
+    "NOT_FOUND": "Risorsa non trovata",
+    "VALIDATION": "Dati non validi"
+  }
+}

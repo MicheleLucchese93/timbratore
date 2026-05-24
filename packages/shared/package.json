@@ -1,0 +1,11 @@
+{
+  "name": "@cisono/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "echo 'no build (consumed as source)'",
+    "test": "echo 'no tests'"
+  }
+}

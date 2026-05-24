@@ -1,0 +1,26 @@
+{
+  "name": "cisono",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/backend",
+    "apps/web",
+    "apps/mobile",
+    "packages/shared"
+  ],
+  "scripts": {
+    "build": "npm run -ws --if-present build",
+    "test": "npm run -ws --if-present test",
+    "dev:backend": "npm run -w apps/backend dev",
+    "dev:web": "npm run -w apps/web dev",
+    "migrate": "npm run -w apps/backend migrate",
+    "seed": "npm run -w apps/backend seed"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/node": "^22.10.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

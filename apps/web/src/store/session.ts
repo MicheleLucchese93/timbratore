@@ -1,0 +1,55 @@
+import { create } from 'zustand';
+import { api, clearToken, getToken } from '../lib/api.ts';
+
+export interface MeResponse {
+  user: { id: string; email: string; role: 'admin' | 'user' };
+  tenant: {
+    id: string;
+    ragione_sociale: string;
+    language: 'it' | 'en';
+    timezone: string;
+    geofence_policy: 'lenient' | 'strict';
+    gps_accuracy_ceiling_m: number;
+    mock_location_action: 'allow' | 'flag' | 'block';
+    break_paid_threshold_min: number;
+    max_shift_hours: number;
+    max_break_hours: number;
+    disable_desktop_clock_in: boolean;
+    max_admins: number;
+    max_users: number;
+  };
+  branches: Array<{ id: string; name: string; address: string | null; latitude: number | null; longitude: number | null; radius_m: number; smart_working: boolean }>;
+}
+
+interface SessionState {
+  loading: boolean;
+  me: MeResponse | null;
+  error: string | null;
+  refresh: () => Promise<void>;
+  logout: () => void;
+}
+
+export const useSession = create<SessionState>((set) => ({
+  loading: !!getToken(),
+  me: null,
+  error: null,
+  async refresh() {
+    if (!getToken()) {
+      set({ loading: false, me: null });
+      return;
+    }
+    set({ loading: true, error: null });
+    try {
+      const me = await api<MeResponse>('/api/v1/me');
+      set({ loading: false, me });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'failed';
+      set({ loading: false, me: null, error: msg });
+      clearToken();
+    }
+  },
+  logout() {
+    clearToken();
+    set({ me: null, error: null });
+  },
+}));

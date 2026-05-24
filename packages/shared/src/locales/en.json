@@ -1,0 +1,51 @@
+{
+  "app": {
+    "name": "ciSono",
+    "tagline": "Simple clock-in for small companies"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "confirm": "Confirm",
+    "loading": "Loading…",
+    "error_generic": "Something went wrong"
+  },
+  "auth": {
+    "login_title": "Sign in to ciSono",
+    "email": "Email",
+    "password": "Password",
+    "sign_in": "Sign in",
+    "sign_in_with_google": "Sign in with Google",
+    "sign_in_with_apple": "Sign in with Apple",
+    "forgot_password": "Forgot password?",
+    "web_admin_only": "The web panel is admin-only — use the mobile app to clock in"
+  },
+  "stamp": {
+    "clock_in": "Clock in",
+    "clock_out": "Clock out",
+    "break_start": "Start break",
+    "break_end": "End break",
+    "registered_at": "Stamp recorded at {{time}}",
+    "undo": "Undo",
+    "out_of_geofence": "You appear to be {{distance}}m from {{branch}} — get closer and retry"
+  },
+  "errors": {
+    "INVALID_TRANSITION": "Invalid state for this action",
+    "DUPLICATE_TOO_FAST": "You just stamped a moment ago",
+    "OUT_OF_GEOFENCE": "You are outside the allowed area",
+    "MOCK_LOCATION_BLOCKED": "Mock location not allowed",
+    "GPS_ACCURACY_TOO_LOW": "GPS signal too weak",
+    "GPS_REQUIRED": "GPS location required to stamp",
+    "CLOCK_SKEW": "Device clock is not in sync with the server",
+    "UNDO_WINDOW_EXPIRED": "Undo window has expired",
+    "LIMIT_REACHED": "Plan limit reached",
+    "LAST_ADMIN": "Cannot remove the last admin",
+    "NO_ACTIVE_TENANT": "No active company linked to your account",
+    "UNAUTHORIZED": "Unauthorized",
+    "FORBIDDEN": "Forbidden",
+    "NOT_FOUND": "Not found",
+    "VALIDATION": "Invalid input"
+  }
+}
