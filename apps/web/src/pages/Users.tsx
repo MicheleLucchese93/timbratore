@@ -64,9 +64,12 @@ export function Users() {
   const atUserLimit = !!usage && usersCount >= usage.max_users;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Utenti</h1>
+    <div className="space-y-5">
+      <header className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="page-title">Utenti</h1>
+          <p className="muted text-sm mt-0.5">Gestisci ruoli, sedi e attivazione.</p>
+        </div>
         <button
           className="btn btn-primary"
           disabled={atUserLimit}
@@ -75,78 +78,80 @@ export function Users() {
         >
           Invita utente
         </button>
-      </div>
+      </header>
 
       {usage && (
-        <div className="card flex gap-6 text-sm">
+        <div className="card flex gap-6 text-sm flex-wrap">
           <div>
-            <span className="text-neutral-500">Utenti attivi: </span>
-            <strong>{usersCount}</strong> / {usage.max_users}
+            <span className="muted">Utenti attivi: </span>
+            <strong className="num">{usersCount}</strong> / {usage.max_users}
           </div>
           <div>
-            <span className="text-neutral-500">Amministratori: </span>
-            <strong>{adminsCount}</strong> / {usage.max_admins}
+            <span className="muted">Amministratori: </span>
+            <strong className="num">{adminsCount}</strong> / {usage.max_admins}
           </div>
         </div>
       )}
 
-      {err && <div className="card text-sm text-[color:var(--color-error)]">{err}</div>}
+      {err && <div className="card text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
 
-      <div className="card overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="text-left text-xs text-neutral-500 uppercase">
-            <tr>
-              <th className="py-2">Email</th>
-              <th className="py-2">Ruolo</th>
-              <th className="py-2">Stato</th>
-              <th className="py-2">Ultima timbratura</th>
-              <th className="py-2 text-right">Azioni</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((u) => (
-              <tr key={u.membership_id} className="border-t border-neutral-100">
-                <td className="py-2">{u.email}</td>
-                <td className="py-2">
-                  <select
-                    className="input py-1 text-xs"
-                    value={u.role}
-                    onChange={(e) => setRole(u, e.target.value as 'admin' | 'user')}
-                    disabled={u.user_id === me?.user.id && u.role === 'admin' && adminsCount === 1}
-                  >
-                    <option value="user">Utente</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </td>
-                <td className="py-2">
-                  {u.active ? (
-                    <span className="badge badge-ok">Attivo</span>
-                  ) : (
-                    <span className="badge badge-muted">Disattivato</span>
-                  )}
-                </td>
-                <td className="py-2 text-xs">
-                  {u.last_stamp_at ? new Date(u.last_stamp_at).toLocaleString('it-IT') : '—'}
-                </td>
-                <td className="py-2 text-right">
-                  <button className="btn btn-secondary text-xs" onClick={() => toggleActive(u)}>
-                    {u.active ? 'Disattiva' : 'Riattiva'}
-                  </button>
-                </td>
+      <div className="card p-0">
+        <div className="table-wrap">
+          <table className="table">
+            <colgroup>
+              <col />
+              <col style={{ width: '9rem' }} />
+              <col style={{ width: '7rem' }} />
+              <col style={{ width: '11rem' }} />
+              <col style={{ width: '8rem' }} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Ruolo</th>
+                <th>Stato</th>
+                <th>Ultima timbratura</th>
+                <th className="text-right">Azioni</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {list.map((u) => (
+                <tr key={u.membership_id}>
+                  <td className="truncate">{u.email}</td>
+                  <td>
+                    <select
+                      className="input"
+                      style={{ minHeight: '2rem', padding: '0 0.5rem', fontSize: '0.75rem' }}
+                      value={u.role}
+                      onChange={(e) => setRole(u, e.target.value as 'admin' | 'user')}
+                      disabled={u.user_id === me?.user.id && u.role === 'admin' && adminsCount === 1}
+                    >
+                      <option value="user">Utente</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </td>
+                  <td>
+                    {u.active
+                      ? <span className="badge badge-ok">Attivo</span>
+                      : <span className="badge badge-muted">Disattivato</span>}
+                  </td>
+                  <td className="text-xs num">{u.last_stamp_at ? new Date(u.last_stamp_at).toLocaleString('it-IT') : '—'}</td>
+                  <td>
+                    <div className="table-actions">
+                      <button className="btn btn-secondary btn-sm" onClick={() => toggleActive(u)}>
+                        {u.active ? 'Disattiva' : 'Riattiva'}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {showInvite && (
-        <InviteForm
-          onClose={() => setShowInvite(false)}
-          onInvited={async () => {
-            setShowInvite(false);
-            await load();
-          }}
-        />
+        <InviteForm onClose={() => setShowInvite(false)} onInvited={async () => { setShowInvite(false); await load(); }} />
       )}
     </div>
   );
@@ -175,19 +180,11 @@ function InviteForm({ onClose, onInvited }: { onClose: () => void; onInvited: ()
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
       <form onSubmit={submit} className="card w-full max-w-md space-y-3">
-        <h2 className="text-lg font-semibold">Invita utente</h2>
-        <p className="text-xs text-neutral-500">
-          In MVP l'utente viene creato direttamente. In produzione GoTrue invia l'email di invito.
-        </p>
+        <h2 className="section-title">Invita utente</h2>
+        <p className="text-xs muted">Il backend crea la membership; in produzione GoTrue invia un'email d'invito.</p>
         <div>
           <label className="label">Email</label>
-          <input
-            type="email"
-            className="input"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+          <input type="email" className="input" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
         <div>
           <label className="label">Ruolo</label>
@@ -196,12 +193,10 @@ function InviteForm({ onClose, onInvited }: { onClose: () => void; onInvited: ()
             <option value="admin">Amministratore</option>
           </select>
         </div>
-        {err && <div className="text-sm text-[color:var(--color-error)]">{err}</div>}
+        {err && <div className="rounded-md px-3 py-2 text-sm" style={{ background: '#fde4e4', color: 'var(--color-error)' }}>{err}</div>}
         <div className="flex gap-2 justify-end">
           <button type="button" className="btn btn-secondary" onClick={onClose}>Annulla</button>
-          <button type="submit" className="btn btn-primary" disabled={busy}>
-            {busy ? 'Invio…' : 'Invita'}
-          </button>
+          <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Invio…' : 'Invita'}</button>
         </div>
       </form>
     </div>

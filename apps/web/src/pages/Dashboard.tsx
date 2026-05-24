@@ -56,14 +56,14 @@ export function Dashboard() {
   if (!me) return null;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-end justify-between">
+    <div className="space-y-5">
+      <header className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
-          <p className="text-sm text-neutral-600">Stato in tempo reale dei tuoi dipendenti.</p>
+          <h1 className="page-title">Dashboard</h1>
+          <p className="muted text-sm mt-0.5">Stato in tempo reale dei tuoi dipendenti.</p>
         </div>
         <button className="btn btn-secondary" onClick={load}>Aggiorna</button>
-      </div>
+      </header>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Stat label="Utenti attivi" value={`${usage?.active_users ?? '–'} / ${usage?.max_users ?? '–'}`} />
@@ -122,7 +122,7 @@ export function Dashboard() {
                   </div>
                   <div className="text-xs text-neutral-500 mt-1">{p.justification}</div>
                 </div>
-                <a href="/corrections" className="btn btn-secondary text-sm">Apri</a>
+                <a href="/corrections" className="btn btn-secondary btn-sm">Apri</a>
               </li>
             ))}
           </ul>
@@ -134,9 +134,9 @@ export function Dashboard() {
 
 function Stat({ label, value, accent }: { label: string; value: string; accent?: 'warn' }) {
   return (
-    <div className={`card ${accent === 'warn' ? 'border-[color:var(--color-warning)]' : ''}`}>
-      <div className="text-xs text-neutral-500">{label}</div>
-      <div className="text-2xl font-semibold mt-1">{value}</div>
+    <div className="card" style={accent === 'warn' ? { borderColor: 'var(--color-warning)' } : undefined}>
+      <div className="text-xs muted uppercase tracking-wide">{label}</div>
+      <div className="text-3xl font-bold mt-1 num">{value}</div>
     </div>
   );
 }

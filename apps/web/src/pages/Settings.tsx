@@ -61,8 +61,11 @@ export function Settings() {
   if (!s) return <div className="card text-sm">Caricamento…</div>;
 
   return (
-    <form onSubmit={submit} className="space-y-4 max-w-2xl">
-      <h1 className="text-2xl font-semibold">Impostazioni</h1>
+    <form onSubmit={submit} className="space-y-5 max-w-2xl">
+      <header>
+        <h1 className="page-title">Impostazioni</h1>
+        <p className="muted text-sm mt-0.5">Configurazione della tua azienda.</p>
+      </header>
       {err && <div className="card text-sm text-[color:var(--color-error)]">{err}</div>}
       {msg && <div className="card text-sm text-[color:var(--color-success)]">{msg}</div>}
 

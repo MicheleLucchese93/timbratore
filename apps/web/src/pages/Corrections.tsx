@@ -41,14 +41,17 @@ export function Corrections() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Richieste di correzione</h1>
+    <div className="space-y-5">
+      <header className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="page-title">Correzioni</h1>
+          <p className="muted text-sm mt-0.5">Richieste dei dipendenti da approvare o rifiutare.</p>
+        </div>
         <select className="input max-w-xs" value={filter} onChange={(e) => setFilter(e.target.value as 'pending' | 'all')}>
           <option value="pending">Solo in attesa</option>
           <option value="all">Tutte</option>
         </select>
-      </div>
+      </header>
       {err && <div className="card text-sm text-[color:var(--color-error)]">{err}</div>}
       {list.length === 0 ? (
         <div className="card text-sm text-neutral-600">Nessuna richiesta.</div>
@@ -70,8 +73,8 @@ export function Corrections() {
                 </div>
                 {cr.status === 'pending' ? (
                   <div className="flex gap-2 shrink-0">
-                    <button className="btn btn-primary" onClick={() => approve(cr)}>Approva</button>
-                    <button className="btn btn-danger" onClick={() => reject(cr)}>Rifiuta</button>
+                    <button className="btn btn-primary btn-sm" onClick={() => approve(cr)}>Approva</button>
+                    <button className="btn btn-danger btn-sm" onClick={() => reject(cr)}>Rifiuta</button>
                   </div>
                 ) : (
                   <span className={`badge ${cr.status === 'approved' ? 'badge-ok' : cr.status === 'rejected' ? 'badge-err' : 'badge-muted'}`}>

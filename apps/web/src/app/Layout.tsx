@@ -16,42 +16,61 @@ const navItems: Array<{ to: string; label: string }> = [
 export function Layout({ children }: { children: ReactNode }) {
   const { me, logout } = useSession();
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="border-b" style={{ background: 'var(--color-primary)', color: 'white' }}>
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="font-bold text-xl tracking-tight">ciSono</div>
-            <div className="text-xs opacity-80">{me?.tenant.ragione_sociale}</div>
+    <div className="min-h-screen flex flex-col bg-[color:var(--color-surface)]">
+      <header
+        className="border-b shadow-sm"
+        style={{ background: 'var(--color-primary)', color: 'var(--color-on-primary)' }}
+      >
+        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="font-extrabold text-xl tracking-tight">ciSono</div>
+            <div className="hidden sm:block h-5 w-px bg-white/30" />
+            <div className="text-sm opacity-90 truncate">{me?.tenant.ragione_sociale}</div>
           </div>
           <div className="flex items-center gap-3 text-sm">
-            <span className="opacity-80">{me?.user.email}</span>
-            <button className="btn btn-secondary" onClick={logout}>Esci</button>
+            <span className="hidden sm:inline opacity-80 truncate max-w-[14rem]">
+              {me?.user.email}
+            </span>
+            <button className="btn btn-ghost" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.4)' }} onClick={() => { void logout(); }}>
+              Esci
+            </button>
           </div>
         </div>
       </header>
       <div className="flex-1 max-w-7xl w-full mx-auto px-6 py-6 grid grid-cols-12 gap-6">
-        <nav className="col-span-12 md:col-span-3 lg:col-span-2">
-          <ul className="space-y-1">
-            {navItems.map((n) => (
-              <li key={n.to}>
-                <NavLink
-                  to={n.to}
-                  end={n.to === '/'}
-                  className={({ isActive }) =>
-                    `block px-3 py-2 rounded-md text-sm ${
+        <aside className="col-span-12 md:col-span-3 lg:col-span-2">
+          <nav className="card card-tight">
+            <ul className="space-y-0.5">
+              {navItems.map((n) => (
+                <li key={n.to}>
+                  <NavLink
+                    to={n.to}
+                    end={n.to === '/'}
+                    className={({ isActive }) =>
+                      [
+                        'block px-3 py-2 rounded-md text-sm transition',
+                        isActive
+                          ? 'font-semibold'
+                          : 'hover:bg-[color:var(--color-surface)] text-[color:var(--color-on-surface-variant)]',
+                      ].join(' ')
+                    }
+                    style={({ isActive }) =>
                       isActive
-                        ? 'bg-[color:var(--color-primary-container)] text-[color:var(--color-on-primary-container)] font-medium'
-                        : 'hover:bg-neutral-100'
-                    }`
-                  }
-                >
-                  {n.label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <main className="col-span-12 md:col-span-9 lg:col-span-10">{children}</main>
+                        ? {
+                            background: 'var(--color-primary-container)',
+                            color: 'var(--color-on-primary-container)',
+                          }
+                        : undefined
+                    }
+                  >
+                    {n.label}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </aside>
+        <main className="col-span-12 md:col-span-9 lg:col-span-10 min-w-0">{children}</main>
       </div>
     </div>
   );

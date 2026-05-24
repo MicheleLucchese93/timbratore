@@ -19,39 +19,108 @@
 html, body, #root { height: 100%; }
 body { background: var(--color-surface); color: var(--color-on-surface); }
 
+/* Buttons --------------------------------------------------------------- */
 .btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-md font-medium text-sm px-4 py-2 transition;
+  @apply inline-flex items-center justify-center gap-2 rounded-md font-medium text-sm whitespace-nowrap transition select-none;
+  padding: 0.5rem 1rem;
+  min-height: 2.25rem;
+  line-height: 1.25rem;
 }
 .btn-primary {
   background: var(--color-primary);
   color: var(--color-on-primary);
 }
 .btn-primary:hover { filter: brightness(1.05); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary:disabled, .btn-secondary:disabled, .btn-danger:disabled {
+  opacity: 0.5; cursor: not-allowed; filter: none;
+}
 .btn-secondary {
   background: var(--color-surface-variant);
   color: var(--color-on-surface-variant);
+  border: 1px solid transparent;
 }
 .btn-secondary:hover { filter: brightness(0.97); }
-.btn-danger {
-  background: var(--color-error);
-  color: white;
-}
-.input {
-  @apply w-full rounded-md border px-3 py-2 text-sm;
-  border-color: var(--color-outline);
-  background: white;
-}
-.label { @apply text-sm font-medium block mb-1; color: var(--color-on-surface-variant); }
-.card {
-  @apply rounded-lg p-4 shadow-sm;
-  background: white;
+.btn-danger { background: var(--color-error); color: white; }
+.btn-danger:hover { filter: brightness(0.95); }
+.btn-ghost {
+  background: transparent;
+  color: var(--color-on-surface-variant);
   border: 1px solid var(--color-surface-variant);
 }
+.btn-ghost:hover { background: var(--color-surface-variant); }
+.btn-sm { font-size: 0.75rem; padding: 0.375rem 0.75rem; min-height: 1.875rem; }
+.btn-block { width: 100%; }
+
+/* Forms ----------------------------------------------------------------- */
+.input {
+  @apply w-full rounded-md text-sm;
+  border: 1px solid var(--color-outline);
+  background: white;
+  padding: 0.5rem 0.75rem;
+  min-height: 2.25rem;
+  outline: none;
+  color: var(--color-on-surface);
+}
+.input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(178, 85, 0, 0.18);
+}
+.input:disabled { background: var(--color-surface-variant); cursor: not-allowed; }
+select.input { background-color: white; }
+.label {
+  @apply text-xs font-semibold block mb-1 uppercase tracking-wide;
+  color: var(--color-on-surface-variant);
+  letter-spacing: 0.04em;
+}
+
+/* Cards ----------------------------------------------------------------- */
+.card {
+  @apply rounded-xl;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  padding: 1.25rem;
+}
+.card-tight { padding: 0.75rem 1rem; }
+
+/* Badges ---------------------------------------------------------------- */
 .badge {
-  @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap;
 }
 .badge-ok { background: #e8f3ec; color: var(--color-success); }
 .badge-warn { background: #fff3d1; color: var(--color-warning); }
 .badge-err { background: #fde4e4; color: var(--color-error); }
 .badge-muted { background: var(--color-surface-variant); color: var(--color-on-surface-variant); }
+
+/* Tables ---------------------------------------------------------------- */
+.table-wrap { @apply overflow-x-auto; }
+.table {
+  @apply w-full text-sm;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.table thead th {
+  @apply text-left text-xs uppercase tracking-wide font-semibold;
+  color: var(--color-on-surface-variant);
+  padding: 0.625rem 0.875rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-surface-variant);
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+}
+.table tbody td {
+  padding: 0.75rem 0.875rem;
+  border-bottom: 1px solid #f3f1ee;
+  vertical-align: middle;
+}
+.table tbody tr:hover td { background: #fdf8f2; }
+.table tbody tr:last-child td { border-bottom: 0; }
+.table-actions { @apply flex gap-2 justify-end; }
+.table .nowrap { white-space: nowrap; }
+.table .num { font-variant-numeric: tabular-nums; }
+
+/* Layout helpers ------------------------------------------------------- */
+.section-title { @apply text-lg font-semibold; color: var(--color-on-surface); }
+.page-title { @apply text-2xl font-bold tracking-tight; }
+.muted { color: var(--color-on-surface-variant); }
+.hairline { background: var(--color-surface-variant); height: 1px; width: 100%; }

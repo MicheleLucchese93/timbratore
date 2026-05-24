@@ -8,8 +8,11 @@ const docs: Array<{ key: string; title: string; description: string }> = [
 
 export function Compliance() {
   return (
-    <div className="space-y-4 max-w-3xl">
-      <h1 className="text-2xl font-semibold">Conformità</h1>
+    <div className="space-y-5 max-w-3xl">
+      <header>
+        <h1 className="page-title">Conformità</h1>
+        <p className="muted text-sm mt-0.5">Modelli precompilati per privacy e art. 4.</p>
+      </header>
       <p className="text-sm text-neutral-700">
         Modelli pre-compilati per gli adempimenti privacy e art. 4. <strong>Sono modelli</strong>: rivedili con il tuo legale prima della firma.
       </p>

@@ -1,20 +1,34 @@
-const TOKEN_KEY = 'cisono.token';
+const ACCESS_KEY = 'cisono.access_token';
+const REFRESH_KEY = 'cisono.refresh_token';
 
 // In dev, Vite proxies /api → http://localhost:4000. In prod, VITE_API_URL
 // is baked at build time (see apps/web/Dockerfile build args).
 const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+const AUTH_BASE = (import.meta.env.VITE_AUTH_URL ?? '').replace(/\/$/, '');
+
 export function apiUrl(path: string): string {
   return API_BASE && path.startsWith('/api') ? `${API_BASE}${path}` : path;
 }
+function authUrl(path: string): string {
+  if (!AUTH_BASE) {
+    throw Object.assign(new Error('VITE_AUTH_URL not configured'), { code: 'CONFIG' });
+  }
+  return `${AUTH_BASE}${path}`;
+}
 
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  return localStorage.getItem(ACCESS_KEY);
 }
-export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
+export function getRefreshToken(): string | null {
+  return localStorage.getItem(REFRESH_KEY);
 }
-export function clearToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
+export function setTokens(access: string, refresh: string): void {
+  localStorage.setItem(ACCESS_KEY, access);
+  localStorage.setItem(REFRESH_KEY, refresh);
+}
+export function clearTokens(): void {
+  localStorage.removeItem(ACCESS_KEY);
+  localStorage.removeItem(REFRESH_KEY);
 }
 
 export interface ApiError extends Error {
@@ -23,20 +37,52 @@ export interface ApiError extends Error {
   details?: unknown;
 }
 
+let refreshing: Promise<boolean> | null = null;
+async function refreshAccessToken(): Promise<boolean> {
+  if (refreshing) return refreshing;
+  const rt = getRefreshToken();
+  if (!rt || !AUTH_BASE) return false;
+  refreshing = (async () => {
+    try {
+      const r = await fetch(authUrl('/token?grant_type=refresh_token'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: rt }),
+      });
+      if (!r.ok) return false;
+      const body = (await r.json()) as { access_token: string; refresh_token: string };
+      setTokens(body.access_token, body.refresh_token);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      refreshing = null;
+    }
+  })();
+  return refreshing;
+}
+
 export async function api<T = unknown>(
   path: string,
   init: RequestInit & { json?: unknown } = {}
 ): Promise<T> {
-  const headers = new Headers(init.headers ?? {});
-  headers.set('Accept', 'application/json');
-  const token = getToken();
-  if (token) headers.set('Authorization', `Bearer ${token}`);
-  let body = init.body;
-  if (init.json !== undefined) {
-    headers.set('Content-Type', 'application/json');
-    body = JSON.stringify(init.json);
+  const exec = async (): Promise<Response> => {
+    const headers = new Headers(init.headers ?? {});
+    headers.set('Accept', 'application/json');
+    const token = getToken();
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    let body = init.body;
+    if (init.json !== undefined) {
+      headers.set('Content-Type', 'application/json');
+      body = JSON.stringify(init.json);
+    }
+    return fetch(apiUrl(path), { ...init, headers, body });
+  };
+  let res = await exec();
+  if (res.status === 401 && getRefreshToken()) {
+    const ok = await refreshAccessToken();
+    if (ok) res = await exec();
   }
-  const res = await fetch(apiUrl(path), { ...init, headers, body });
   const text = await res.text();
   let parsed: unknown = null;
   if (text) {
@@ -59,11 +105,60 @@ export async function api<T = unknown>(
   return parsed as T;
 }
 
-export async function devLogin(email: string): Promise<{ token: string; user: { id: string; email: string } }> {
-  const data = await api<{ token: string; user: { id: string; email: string } }>(
-    '/api/v1/auth/dev-token',
-    { method: 'POST', json: { email } }
-  );
-  setToken(data.token);
-  return data;
+export interface PasswordLoginResult {
+  access_token: string;
+  refresh_token: string;
+  user: { id: string; email: string };
+}
+
+export async function loginWithPassword(email: string, password: string): Promise<PasswordLoginResult> {
+  const r = await fetch(authUrl('/token?grant_type=password'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!r.ok) {
+    let parsed: { error_description?: string; msg?: string } = {};
+    try { parsed = await r.json(); } catch { /* ignore */ }
+    const err: ApiError = new Error(parsed.error_description ?? parsed.msg ?? 'Login failed');
+    err.status = r.status;
+    throw err;
+  }
+  const body = (await r.json()) as PasswordLoginResult;
+  setTokens(body.access_token, body.refresh_token);
+  return body;
+}
+
+export function isAuthConfigured(): boolean {
+  return !!AUTH_BASE;
+}
+
+// Dev fallback when GoTrue not provisioned. Backend mints HS256 directly.
+export async function loginWithDevToken(email: string): Promise<{ access_token: string; user: { id: string; email: string } }> {
+  const r = await fetch(apiUrl('/api/v1/auth/dev-token'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!r.ok) {
+    const err: ApiError = new Error('dev-token login failed');
+    err.status = r.status;
+    throw err;
+  }
+  const body = (await r.json()) as { data: { token: string; user: { id: string; email: string } } };
+  setTokens(body.data.token, body.data.token);
+  return { access_token: body.data.token, user: body.data.user };
+}
+
+export async function logout(): Promise<void> {
+  const rt = getRefreshToken();
+  clearTokens();
+  if (rt && AUTH_BASE) {
+    try {
+      await fetch(authUrl('/logout'), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${rt}` },
+      });
+    } catch { /* ignore */ }
+  }
 }

@@ -32,14 +32,15 @@ export function Branches() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Sedi</h1>
-        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
-          Nuova sede
-        </button>
-      </div>
-      {err && <div className="card text-sm text-[color:var(--color-error)]">{err}</div>}
+    <div className="space-y-5">
+      <header className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="page-title">Sedi</h1>
+          <p className="muted text-sm mt-0.5">Luoghi di lavoro. Smart working è una sede senza GPS.</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>Nuova sede</button>
+      </header>
+      {err && <div className="card text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
       <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {list.map((b) => (
           <li key={b.id} className="card">
@@ -57,9 +58,9 @@ export function Branches() {
                   )}
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button className="btn btn-secondary" onClick={() => setEditing(b)}>Modifica</button>
-                <button className="btn btn-danger" onClick={() => remove(b.id)}>Elimina</button>
+              <div className="flex gap-2 shrink-0">
+                <button className="btn btn-secondary btn-sm" onClick={() => setEditing(b)}>Modifica</button>
+                <button className="btn btn-danger btn-sm" onClick={() => remove(b.id)}>Elimina</button>
               </div>
             </div>
           </li>

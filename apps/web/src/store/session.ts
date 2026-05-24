@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api, clearToken, getToken } from '../lib/api.ts';
+import { api, getToken, logout as logoutAuth } from '../lib/api.ts';
 
 export interface MeResponse {
   user: { id: string; email: string; role: 'admin' | 'user' };
@@ -26,7 +26,7 @@ interface SessionState {
   me: MeResponse | null;
   error: string | null;
   refresh: () => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 export const useSession = create<SessionState>((set) => ({
@@ -45,11 +45,11 @@ export const useSession = create<SessionState>((set) => ({
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'failed';
       set({ loading: false, me: null, error: msg });
-      clearToken();
+      await logoutAuth();
     }
   },
-  logout() {
-    clearToken();
+  async logout() {
+    await logoutAuth();
     set({ me: null, error: null });
   },
 }));
