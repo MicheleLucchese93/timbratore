@@ -64,7 +64,8 @@
       "eas": {
         "projectId": "729f39a2-86a4-4bb6-ae03-21dad1922c34"
       },
-      "apiBaseUrl": "http://localhost:4000"
+      "apiBaseUrl": "https://api-cisono.xdevapp.it",
+      "authBaseUrl": "https://auth-cisono.xdevapp.it"
     },
     "owner": "micheel93-2"
   }

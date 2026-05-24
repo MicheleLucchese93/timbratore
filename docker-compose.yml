@@ -120,6 +120,20 @@ services:
           memory: 64M
           cpus: '0.10'
 
+  cisono-mobile-web:
+    build:
+      context: .
+      dockerfile: apps/mobile/Dockerfile
+    container_name: cisono-mobile-web
+    restart: unless-stopped
+    networks:
+      - gateway
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.10'
+
 networks:
   gateway:
     external: true

@@ -48,3 +48,10 @@ app-cisono.xdevapp.it {
 	import static_security_headers
 	reverse_proxy cisono-web:80
 }
+
+m-cisono.xdevapp.it {
+	import origin_tls
+	import access_log
+	import static_security_headers
+	reverse_proxy cisono-mobile-web:80
+}

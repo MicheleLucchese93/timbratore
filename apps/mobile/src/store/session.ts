@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api, clearToken, getToken } from '../lib/api';
+import { api, getToken, logout as logoutAuth } from '../lib/api';
 
 export interface Me {
   user: { id: string; email: string; role: 'admin' | 'user' };
@@ -27,12 +27,12 @@ export const useSession = create<SessionState>((set) => ({
       const me = await api<Me>('/api/v1/me');
       set({ me, loading: false });
     } catch {
-      await clearToken();
+      await logoutAuth();
       set({ me: null, loading: false });
     }
   },
   async logout() {
-    await clearToken();
+    await logoutAuth();
     set({ me: null });
   },
 }));
