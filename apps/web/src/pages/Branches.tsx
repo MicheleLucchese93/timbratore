@@ -47,11 +47,11 @@ export function Branches() {
       {err && <div className="card text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
       <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {list.map((b) => (
-          <li key={b.id} className="card">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="font-medium">{b.name}</div>
-                <div className="text-xs text-neutral-600">{b.address ?? '—'}</div>
+          <li key={b.id} className="card flex flex-col gap-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-medium truncate">{b.name}</div>
+                <div className="text-xs text-neutral-600 truncate">{b.address ?? '—'}</div>
                 <div className="text-xs text-neutral-500 mt-1">
                   {b.smart_working ? (
                     <span className="badge badge-muted">Smart working</span>
@@ -67,6 +67,15 @@ export function Branches() {
                 <button className="btn btn-danger btn-sm" onClick={() => remove(b.id)}>Elimina</button>
               </div>
             </div>
+            {!b.smart_working && b.latitude !== null && b.longitude !== null && (
+              <BranchMapPreview
+                lat={b.latitude}
+                lng={b.longitude}
+                radiusM={b.radius_m}
+                height={280}
+                interactive
+              />
+            )}
           </li>
         ))}
       </ul>

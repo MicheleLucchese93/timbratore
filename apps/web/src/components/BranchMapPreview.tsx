@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 
-const CONTAINER_STYLE = { width: '100%', height: '360px', borderRadius: '8px' };
 const FALLBACK_CENTER = { lat: 41.9028, lng: 12.4964 };
 
 const MAP_OPTIONS: google.maps.MapOptions = {
@@ -18,9 +17,11 @@ interface Props {
   lat: number | null;
   lng: number | null;
   radiusM: number;
+  height?: number | string;
+  interactive?: boolean;
 }
 
-export function BranchMapPreview({ lat, lng, radiusM }: Props) {
+export function BranchMapPreview({ lat, lng, radiusM, height = 360, interactive = true }: Props) {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
   if (!apiKey) {
     return (
@@ -29,7 +30,16 @@ export function BranchMapPreview({ lat, lng, radiusM }: Props) {
       </div>
     );
   }
-  return <MapInner apiKey={apiKey} lat={lat} lng={lng} radiusM={radiusM} />;
+  return (
+    <MapInner
+      apiKey={apiKey}
+      lat={lat}
+      lng={lng}
+      radiusM={radiusM}
+      height={height}
+      interactive={interactive}
+    />
+  );
 }
 
 function MapInner({
@@ -37,12 +47,21 @@ function MapInner({
   lat,
   lng,
   radiusM,
+  height,
+  interactive,
 }: {
   apiKey: string;
   lat: number | null;
   lng: number | null;
   radiusM: number;
+  height: number | string;
+  interactive: boolean;
 }) {
+  const containerStyle = {
+    width: '100%',
+    height: typeof height === 'number' ? `${height}px` : height,
+    borderRadius: '8px',
+  };
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: apiKey,
@@ -95,18 +114,31 @@ function MapInner({
   }
   if (!isLoaded) {
     return (
-      <div className="rounded-md bg-neutral-100 p-3 text-xs text-neutral-500" style={{ height: 360 }}>
+      <div
+        className="rounded-md bg-neutral-100 p-3 text-xs text-neutral-500"
+        style={containerStyle}
+      >
         Caricamento mappa…
       </div>
     );
   }
   const hasCoords = lat !== null && lng !== null;
+  const options: google.maps.MapOptions = interactive
+    ? MAP_OPTIONS
+    : {
+        ...MAP_OPTIONS,
+        gestureHandling: 'none',
+        zoomControl: false,
+        clickableIcons: false,
+        keyboardShortcuts: false,
+        disableDoubleClickZoom: true,
+      };
   return (
     <GoogleMap
-      mapContainerStyle={CONTAINER_STYLE}
+      mapContainerStyle={containerStyle}
       center={hasCoords ? { lat, lng } : FALLBACK_CENTER}
       zoom={hasCoords ? 15 : 5}
-      options={MAP_OPTIONS}
+      options={options}
       onLoad={(m) => {
         mapRef.current = m;
       }}

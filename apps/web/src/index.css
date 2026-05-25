@@ -100,24 +100,77 @@ select.input { background-color: white; }
   border-spacing: 0;
 }
 .table thead th {
-  @apply text-left text-xs uppercase tracking-wide font-semibold;
+  @apply text-xs uppercase font-semibold;
+  text-align: left;
   color: var(--color-on-surface-variant);
   padding: 0.625rem 0.875rem;
-  background: var(--color-surface);
+  background: color-mix(in oklab, var(--color-surface-variant) 55%, white);
   border-bottom: 1px solid var(--color-surface-variant);
   white-space: nowrap;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
+.table thead th.text-center { text-align: center; }
+.table thead th.text-right { text-align: right; }
 .table tbody td {
   padding: 0.75rem 0.875rem;
-  border-bottom: 1px solid #f3f1ee;
+  border-bottom: 1px solid color-mix(in oklab, var(--color-surface-variant) 60%, white);
   vertical-align: middle;
 }
-.table tbody tr:hover td { background: #fdf8f2; }
+.table tbody tr { transition: background 120ms ease; }
+.table tbody tr:hover td { background: color-mix(in oklab, var(--color-primary-container) 25%, white); }
+.table tbody tr.row-selected td { background: color-mix(in oklab, var(--color-primary-container) 45%, white); }
 .table tbody tr:last-child td { border-bottom: 0; }
-.table-actions { @apply flex gap-2 justify-end; }
+.table-actions { @apply flex gap-1 justify-end items-center; }
 .table .nowrap { white-space: nowrap; }
 .table .num { font-variant-numeric: tabular-nums; }
+
+/* Icon button used in action columns */
+.icon-btn {
+  @apply inline-flex items-center justify-center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.icon-btn:hover:not(:disabled) {
+  background: var(--color-surface-variant);
+  color: var(--color-on-surface);
+  border-color: var(--color-surface-variant);
+}
+.icon-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+.icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.icon-btn-danger { color: var(--color-error); }
+.icon-btn-danger:hover:not(:disabled) {
+  background: #fde4e4;
+  border-color: #fde4e4;
+  color: var(--color-error);
+}
+
+/* Bulk-action bar shown above a table when rows are selected */
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  background: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+  border-bottom: 1px solid color-mix(in oklab, var(--color-primary) 25%, transparent);
+  font-size: 0.8125rem;
+  flex-wrap: wrap;
+}
+.bulk-bar-actions { display: flex; gap: 0.375rem; flex-wrap: wrap; }
 
 /* Password input with toggle ------------------------------------------- */
 .pw-wrap { position: relative; }
@@ -583,9 +636,9 @@ select.input { background-color: white; }
 .app-content {
   flex: 1;
   padding: 1.5rem 2rem 2.5rem;
-  max-width: 1440px;
   width: 100%;
   margin: 0;
+  min-width: 0;
 }
 @media (max-width: 768px) {
   .app-content { padding: 3.5rem 1rem 1.25rem; }
@@ -682,7 +735,7 @@ select.input { background-color: white; }
   gap: 0.875rem;
 }
 @media (min-width: 768px) {
-  .stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 1080px; }
+  .stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 /* Status card (employee state) ------------------------------------- */

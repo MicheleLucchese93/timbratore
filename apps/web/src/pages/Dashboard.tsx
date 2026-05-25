@@ -29,12 +29,15 @@ interface PendingItem {
   justification: string;
 }
 
+type GroupMode = 'list' | 'by_branch';
+
 export function Dashboard() {
   const me = useSession((s) => s.me);
   const [usage, setUsage] = useState<Usage | null>(null);
   const [cards, setCards] = useState<UserCard[]>([]);
   const [pending, setPending] = useState<PendingItem[]>([]);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [groupMode, setGroupMode] = useState<GroupMode>('list');
 
   const load = useCallback(async () => {
     const [u, c, p] = await Promise.all([
@@ -96,43 +99,24 @@ export function Dashboard() {
       </section>
 
       <section>
-        <h2 className="section-title mb-3">Stato attuale</h2>
+        <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+          <h2 className="section-title">Stato attuale</h2>
+          <ViewToggle value={groupMode} onChange={setGroupMode} />
+        </div>
         {cards.length === 0 ? (
           <EmptyState
             icon={<IconUsers />}
             title="Nessun dipendente ancora"
             hint="Invita il primo collaboratore dalla sezione Utenti."
           />
-        ) : (
+        ) : groupMode === 'list' ? (
           <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {cards.map((c) => (
-              <li key={c.user_id} className="status-card">
-                <div className="status-card-head">
-                  <div className="status-card-identity">
-                    <div className="status-card-avatar" aria-hidden="true">
-                      {initialsFor(c.email)}
-                    </div>
-                    <div className="status-card-name" title={c.email}>{c.email}</div>
-                  </div>
-                  <StateBadge state={c.state} />
-                </div>
-                <div className="status-card-meta">
-                  {c.branch_name && <div>Sede: {c.branch_name}</div>}
-                  {c.last_event_at ? (
-                    <div>
-                      Ultimo evento: {labelEvent(c.last_event)} alle{' '}
-                      {new Date(c.last_event_at).toLocaleTimeString('it-IT', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </div>
-                  ) : (
-                    <div className="status-card-meta-empty">Nessuna attività oggi</div>
-                  )}
-                </div>
-              </li>
+              <UserStatusCard key={c.user_id} card={c} showBranch />
             ))}
           </ul>
+        ) : (
+          <BranchGroups cards={cards} />
         )}
       </section>
 
@@ -162,6 +146,153 @@ export function Dashboard() {
           </ul>
         )}
       </section>
+    </div>
+  );
+}
+
+function ViewToggle({
+  value,
+  onChange,
+}: {
+  value: GroupMode;
+  onChange: (v: GroupMode) => void;
+}) {
+  return (
+    <div
+      role="tablist"
+      style={{
+        display: 'inline-flex',
+        padding: '2px',
+        background: 'var(--color-surface-variant)',
+        borderRadius: '0.5rem',
+        gap: '2px',
+      }}
+    >
+      {(['list', 'by_branch'] as const).map((k) => {
+        const active = value === k;
+        return (
+          <button
+            key={k}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(k)}
+            style={{
+              padding: '0.25rem 0.75rem',
+              borderRadius: '0.375rem',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              background: active ? 'white' : 'transparent',
+              color: active ? 'var(--color-on-surface)' : 'var(--color-on-surface-variant)',
+              border: 0,
+              cursor: 'pointer',
+              boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+            }}
+          >
+            {k === 'list' ? 'Elenco' : 'Per sede'}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function UserStatusCard({ card, showBranch }: { card: UserCard; showBranch: boolean }) {
+  return (
+    <li className="status-card">
+      <div className="status-card-head">
+        <div className="status-card-identity">
+          <div className="status-card-avatar" aria-hidden="true">
+            {initialsFor(card.email)}
+          </div>
+          <div className="status-card-name" title={card.email}>
+            {card.email}
+          </div>
+        </div>
+        <StateBadge state={card.state} />
+      </div>
+      <div className="status-card-meta">
+        {showBranch && card.branch_name && <div>Sede: {card.branch_name}</div>}
+        {card.last_event_at ? (
+          <div>
+            Ultimo evento: {labelEvent(card.last_event)} alle{' '}
+            {new Date(card.last_event_at).toLocaleTimeString('it-IT', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </div>
+        ) : (
+          <div className="status-card-meta-empty">Nessuna attività oggi</div>
+        )}
+      </div>
+    </li>
+  );
+}
+
+function BranchGroups({ cards }: { cards: UserCard[] }) {
+  const present = cards.filter((c) => c.state !== 'nothing');
+  const off = cards.filter((c) => c.state === 'nothing');
+  const byBranch = new Map<string, UserCard[]>();
+  for (const c of present) {
+    const key = c.branch_name ?? '__none__';
+    if (!byBranch.has(key)) byBranch.set(key, []);
+    byBranch.get(key)!.push(c);
+  }
+  const branchKeys = Array.from(byBranch.keys()).sort((a, b) => {
+    if (a === '__none__') return 1;
+    if (b === '__none__') return -1;
+    return a.localeCompare(b, 'it');
+  });
+  return (
+    <div className="space-y-5">
+      {branchKeys.length === 0 && (
+        <EmptyState
+          icon={<IconMapPin />}
+          title="Nessuno presente"
+          hint="Nessun dipendente ha timbrato l'ingresso al momento."
+        />
+      )}
+      {branchKeys.map((key) => {
+        const group = byBranch.get(key)!;
+        const label = key === '__none__' ? 'Senza sede' : key;
+        return (
+          <div key={key}>
+            <div
+              className="flex items-center gap-2 mb-2"
+              style={{ color: 'var(--color-on-surface-variant)' }}
+            >
+              <IconMapPin />
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--color-on-surface)' }}>
+                {label}
+              </h3>
+              <span className="badge badge-muted">{group.length}</span>
+            </div>
+            <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {group.map((c) => (
+                <UserStatusCard key={c.user_id} card={c} showBranch={false} />
+              ))}
+            </ul>
+          </div>
+        );
+      })}
+      {off.length > 0 && (
+        <div>
+          <div
+            className="flex items-center gap-2 mb-2"
+            style={{ color: 'var(--color-on-surface-variant)' }}
+          >
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--color-on-surface)' }}>
+              Fuori servizio
+            </h3>
+            <span className="badge badge-muted">{off.length}</span>
+          </div>
+          <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {off.map((c) => (
+              <UserStatusCard key={c.user_id} card={c} showBranch={false} />
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

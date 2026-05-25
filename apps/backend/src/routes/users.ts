@@ -453,6 +453,67 @@ usersRouter.put(
   })
 );
 
+const BulkBranches = z.object({
+  user_ids: z.array(z.string().uuid()).min(1),
+  branch_ids: z.array(z.string().uuid()).min(1),
+  mode: z.enum(['add', 'remove']),
+});
+
+usersRouter.post(
+  '/branches/bulk',
+  requireAdmin,
+  tenantHandler(async (req, res, client) => {
+    const parse = BulkBranches.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const { user_ids, branch_ids, mode } = parse.data;
+
+    const validUsers = await client.query(
+      `SELECT user_id FROM memberships
+        WHERE user_id = ANY($1::uuid[])
+          AND tenant_id = current_setting('app.current_tenant_id')::uuid
+          AND deleted_at IS NULL`,
+      [user_ids]
+    );
+    if (validUsers.rowCount !== user_ids.length) {
+      throw new ValidationError('one or more user_ids invalid');
+    }
+
+    const validBranches = await client.query(
+      `SELECT id FROM branches
+        WHERE id = ANY($1::uuid[]) AND deleted_at IS NULL`,
+      [branch_ids]
+    );
+    if (validBranches.rowCount !== branch_ids.length) {
+      throw new ValidationError('one or more branch_ids invalid');
+    }
+
+    if (mode === 'add') {
+      await client.query(
+        `INSERT INTO branch_memberships(branch_id, user_id, tenant_id)
+         SELECT b.id, u.id, current_setting('app.current_tenant_id')::uuid
+           FROM UNNEST($1::uuid[]) AS u(id)
+           CROSS JOIN UNNEST($2::uuid[]) AS b(id)
+         ON CONFLICT DO NOTHING`,
+        [user_ids, branch_ids]
+      );
+    } else {
+      await client.query(
+        `DELETE FROM branch_memberships
+          WHERE tenant_id = current_setting('app.current_tenant_id')::uuid
+            AND user_id = ANY($1::uuid[])
+            AND branch_id = ANY($2::uuid[])`,
+        [user_ids, branch_ids]
+      );
+    }
+
+    for (const uid of user_ids) {
+      await emitAudit(client, `user.branches.bulk_${mode}`, uid, null, { branch_ids });
+      invalidateMembershipCache(uid);
+    }
+    ok(res, { user_ids, branch_ids, mode });
+  })
+);
+
 usersRouter.delete(
   '/:id',
   requireAdmin,
