@@ -54,13 +54,13 @@ ws-sonoqui.xdevapp.it {
 app-sonoqui.xdevapp.it {
 	import origin_tls
 	import access_log
-	import static_security_headers
+	import api_security_headers
 	reverse_proxy sonoqui-web:80
 }
 
 m-sonoqui.xdevapp.it {
 	import origin_tls
 	import access_log
-	import static_security_headers
+	import api_security_headers
 	reverse_proxy sonoqui-mobile-web:80
 }

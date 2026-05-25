@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
+  Keyboard,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -11,9 +14,24 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { loginWithPassword } from '../lib/api';
+import { apiBaseUrl, loginWithPassword } from '../lib/api';
 import { useSession } from '../store/session';
 import { color, space } from '@sonoqui/shared';
+
+const LOGO = require('../../assets/images/icon.png');
+
+function forgotPasswordUrl(): string {
+  // Mobile points at `api-<env>.xdevapp.it`; the web admin lives at
+  // `app-<env>.xdevapp.it`. Swap the host prefix and append `/forgot-password`.
+  try {
+    const u = new URL(apiBaseUrl());
+    u.hostname = u.hostname.replace(/^api-/, 'app-');
+    u.pathname = '/forgot-password';
+    return u.toString();
+  } catch {
+    return 'https://app-sonoqui.xdevapp.it/forgot-password';
+  }
+}
 
 export function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -23,7 +41,30 @@ export function LoginScreen() {
   const [emailFocus, setEmailFocus] = useState(false);
   const [pwdFocus, setPwdFocus] = useState(false);
   const [pwdVisible, setPwdVisible] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const refresh = useSession((s) => s.refresh);
+
+  // `keyboardWillShow`/`Hide` fire in lockstep with the iOS keyboard's own
+  // animation, so the brand block disappears and the form slides up in a
+  // single coordinated pass — no double-jump. On Android only the `Did`
+  // events are available, which is fine because Android resizes the layout
+  // instantly.
+  useEffect(() => {
+    const showEvt =
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt =
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvt, () =>
+      setKeyboardVisible(true)
+    );
+    const hideSub = Keyboard.addListener(hideEvt, () =>
+      setKeyboardVisible(false)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   async function submit() {
     if (busy) return;
@@ -47,6 +88,14 @@ export function LoginScreen() {
     }
   }
 
+  async function openForgot() {
+    try {
+      await Linking.openURL(forgotPasswordUrl());
+    } catch {
+      /* swallow — best-effort deep link */
+    }
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
@@ -58,13 +107,26 @@ export function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* Header: logo + brand stay rendered, but the logo + subtitle hide
+              while the keyboard is up so the form keeps a comfortable focal
+              centre instead of being squeezed against the top safe-area. */}
           <View style={styles.header}>
+            {!keyboardVisible ? (
+              <Image
+                source={LOGO}
+                style={styles.logo}
+                resizeMode="contain"
+                accessible={false}
+              />
+            ) : null}
             <Text style={styles.brand}>
-              ci<Text style={styles.brandAccent}>Sono</Text>
+              sono<Text style={styles.brandAccent}>Qui</Text>
             </Text>
-            <Text style={styles.subtitle}>
-              Una timbratura semplice. Per chi c&apos;è.
-            </Text>
+            {!keyboardVisible ? (
+              <Text style={styles.subtitle}>
+                Il tempo che lavori, semplice come dirlo.
+              </Text>
+            ) : null}
           </View>
 
           <View style={styles.form}>
@@ -94,7 +156,18 @@ export function LoginScreen() {
             </View>
 
             <View style={styles.fieldWrapper}>
-              <Text style={styles.label}>Password</Text>
+              <View style={styles.labelRow}>
+                <Text style={styles.label}>Password</Text>
+                <Pressable
+                  onPress={openForgot}
+                  hitSlop={8}
+                  accessibilityRole="link"
+                  accessibilityLabel="Password dimenticata"
+                  style={({ pressed }) => [pressed && styles.forgotPressed]}
+                >
+                  <Text style={styles.forgotText}>Password dimenticata?</Text>
+                </Pressable>
+              </View>
               <View style={[styles.inputShell, pwdFocus && styles.inputFocused]}>
                 <TextInput
                   style={styles.inputInShell}
@@ -149,9 +222,11 @@ export function LoginScreen() {
             </Pressable>
           </View>
 
-          <Text style={styles.hint}>
-            Non hai un account? Contatta l&apos;amministratore della tua azienda.
-          </Text>
+          {!keyboardVisible ? (
+            <Text style={styles.hint}>
+              Non hai un account? Contatta l&apos;amministratore della tua azienda.
+            </Text>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -171,6 +246,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: space.s8,
     marginBottom: space.s6,
+  },
+  logo: {
+    width: 84,
+    height: 84,
+    marginBottom: space.s3,
+    // Same background as the screen — icon PNG already has its own padding,
+    // so we don't tint it. Setting `backgroundColor` to `color.surface` keeps
+    // the rendered tile flush with the safe-area background even on devices
+    // that render transparent PNGs against the system window colour.
+    backgroundColor: color.surface,
   },
   brand: {
     fontSize: 48,
@@ -198,6 +283,18 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+  },
+  forgotText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: color.primary,
+    marginBottom: space.s2,
+  },
+  forgotPressed: { opacity: 0.6 },
   input: {
     backgroundColor: '#ffffff',
     color: color.onSurface,
