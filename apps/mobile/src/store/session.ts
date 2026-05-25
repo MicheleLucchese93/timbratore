@@ -2,7 +2,14 @@ import { create } from 'zustand';
 import { api, getToken, logout as logoutAuth } from '../lib/api';
 
 export interface Me {
-  user: { id: string; email: string; role: 'admin' | 'user' };
+  user: {
+    id: string;
+    email: string;
+    role: 'admin' | 'user';
+    first_name: string | null;
+    last_name: string | null;
+    display_name: string | null;
+  };
   tenant: { id: string; ragione_sociale: string; language: 'it' | 'en' };
   branches: Array<{ id: string; name: string; smart_working: boolean }>;
 }

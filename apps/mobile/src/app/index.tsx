@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { Redirect } from 'expo-router';
 import { useSession } from '../store/session';
 import { LoginScreen } from '../screens/LoginScreen';
-import { HomeScreen } from '../screens/HomeScreen';
 
 export default function Index() {
   const { me, loading, refresh } = useSession();
@@ -16,5 +16,6 @@ export default function Index() {
       </View>
     );
   }
-  return me ? <HomeScreen /> : <LoginScreen />;
+  if (me) return <Redirect href="/timbrature" />;
+  return <LoginScreen />;
 }

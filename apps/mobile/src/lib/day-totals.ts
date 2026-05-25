@@ -1,0 +1,77 @@
+import type { StampEventType } from '@sonoqui/shared';
+
+export interface DayStamp {
+  id: string;
+  event_type: StampEventType;
+  occurred_at: string;
+  branch_id: string | null;
+}
+
+export interface DayTotals {
+  workedMs: number;
+  breakMs: number;
+  firstInAt: string | null;
+  lastOutAt: string | null;
+  isOpen: boolean;
+}
+
+export function computeDayTotals(stamps: DayStamp[], now: Date = new Date()): DayTotals {
+  const sorted = [...stamps].sort(
+    (a, b) => new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime()
+  );
+  let workedMs = 0;
+  let breakMs = 0;
+  let inAt: Date | null = null;
+  let breakAt: Date | null = null;
+  let firstInAt: string | null = null;
+  let lastOutAt: string | null = null;
+  for (const s of sorted) {
+    const t = new Date(s.occurred_at);
+    switch (s.event_type) {
+      case 'clock_in':
+        if (!firstInAt) firstInAt = s.occurred_at;
+        inAt = t;
+        break;
+      case 'break_start':
+        if (inAt) {
+          workedMs += t.getTime() - inAt.getTime();
+          inAt = null;
+        }
+        breakAt = t;
+        break;
+      case 'break_end':
+        if (breakAt) {
+          breakMs += t.getTime() - breakAt.getTime();
+          breakAt = null;
+        }
+        inAt = t;
+        break;
+      case 'clock_out':
+        if (inAt) {
+          workedMs += t.getTime() - inAt.getTime();
+          inAt = null;
+        }
+        lastOutAt = s.occurred_at;
+        break;
+    }
+  }
+  const isOpen = inAt !== null || breakAt !== null;
+  if (inAt) workedMs += now.getTime() - inAt.getTime();
+  if (breakAt) breakMs += now.getTime() - breakAt.getTime();
+  return { workedMs, breakMs, firstInAt, lastOutAt, isOpen };
+}
+
+export function formatDuration(ms: number): string {
+  const totalMin = Math.max(0, Math.floor(ms / 60000));
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return `${h}h ${m.toString().padStart(2, '0')}m`;
+}
+
+export function isoDay(d: Date | string): string {
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  const y = dt.getFullYear();
+  const m = (dt.getMonth() + 1).toString().padStart(2, '0');
+  const day = dt.getDate().toString().padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}

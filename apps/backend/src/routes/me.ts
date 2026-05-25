@@ -26,6 +26,13 @@ meRouter.get(
        WHERE id = $1`,
       [req.user!.membershipId]
     );
+    const profile = await client.query(
+      `SELECT first_name, last_name, display_name
+       FROM auth_users
+       WHERE id = $1`,
+      [req.user!.id]
+    );
+    const p = profile.rows[0] ?? {};
     const branches = await client.query(
       `SELECT b.id, b.name, b.address, b.latitude, b.longitude, b.radius_m, b.smart_working,
               b.geofence_policy, b.gps_accuracy_ceiling_m
@@ -39,6 +46,9 @@ meRouter.get(
         id: req.user!.id,
         email: req.user!.email,
         role: req.user!.role,
+        first_name: p.first_name ?? null,
+        last_name: p.last_name ?? null,
+        display_name: p.display_name ?? null,
         disable_desktop_clock_in: membership.rows[0]?.disable_desktop_clock_in ?? true,
       },
       tenant: tenant.rows[0],

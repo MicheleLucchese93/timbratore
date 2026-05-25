@@ -6,6 +6,9 @@ export interface MeResponse {
     id: string;
     email: string;
     role: 'admin' | 'user';
+    first_name: string | null;
+    last_name: string | null;
+    display_name: string | null;
     disable_desktop_clock_in: boolean;
   };
   tenant: {
