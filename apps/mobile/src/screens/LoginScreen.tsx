@@ -4,7 +4,6 @@ import {
   Image,
   Keyboard,
   KeyboardAvoidingView,
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -14,24 +13,12 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { apiBaseUrl, loginWithPassword } from '../lib/api';
+import { router } from 'expo-router';
+import { loginWithPassword } from '../lib/api';
 import { useSession } from '../store/session';
 import { color, space } from '@sonoqui/shared';
 
 const LOGO = require('../../assets/images/icon.png');
-
-function forgotPasswordUrl(): string {
-  // Mobile points at `api-<env>.xdevapp.it`; the web admin lives at
-  // `app-<env>.xdevapp.it`. Swap the host prefix and append `/forgot-password`.
-  try {
-    const u = new URL(apiBaseUrl());
-    u.hostname = u.hostname.replace(/^api-/, 'app-');
-    u.pathname = '/forgot-password';
-    return u.toString();
-  } catch {
-    return 'https://app-sonoqui.xdevapp.it/forgot-password';
-  }
-}
 
 export function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -88,12 +75,11 @@ export function LoginScreen() {
     }
   }
 
-  async function openForgot() {
-    try {
-      await Linking.openURL(forgotPasswordUrl());
-    } catch {
-      /* swallow — best-effort deep link */
-    }
+  function openForgot() {
+    // In-app navigation mirrors Documents/Penno — no browser hop. The
+    // expo-router route file `app/forgot-password.tsx` mounts
+    // `ForgotPasswordScreen`, which calls `POST /api/v1/auth/recover`.
+    router.push('/forgot-password');
   }
 
   return (

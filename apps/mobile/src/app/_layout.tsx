@@ -8,6 +8,7 @@ export default function RootLayout() {
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#fffbf8' } }}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="forgot-password" options={{ animation: 'slide_from_right' }} />
       </Stack>
     </SafeAreaProvider>
   );

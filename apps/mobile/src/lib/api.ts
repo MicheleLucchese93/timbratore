@@ -148,6 +148,15 @@ export async function loginWithPassword(email: string, password: string): Promis
   return body;
 }
 
+export async function recoverPassword(email: string): Promise<void> {
+  // Backend `POST /api/v1/auth/recover` proxies GoTrue and always returns 200,
+  // so the caller can show a generic "email sent" message without leaking
+  // whether the address exists. We post raw because the user has no session
+  // yet (`api()` would attach a Bearer header that the backend ignores here,
+  // but the simpler shape keeps the call symmetrical with web's ForgotPassword).
+  await api('/api/v1/auth/recover', { method: 'POST', json: { email } });
+}
+
 export async function logout(): Promise<void> {
   const at = await getToken();
   await clearTokens();
