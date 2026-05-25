@@ -1,4 +1,4 @@
-package app.sonoqui.sonoqui
+package app.cisono.cisono
 
 import android.app.Application
 import android.content.res.Configuration

@@ -28,7 +28,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>sonoqui</string>
-				<string>app.sonoqui.sonoqui</string>
+				<string>app.cisono.cisono</string>
 			</array>
 		</dict>
 	</array>

@@ -60,7 +60,7 @@ services:
       GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: "https://auth-sonoqui.xdevapp.it/callback"
       GOTRUE_EXTERNAL_APPLE_ENABLED: "${SONOQUI_APPLE_ENABLED:-false}"
       # 1st = Service ID (web OAuth client_id), 2nd = iOS Bundle ID (native id-token aud).
-      GOTRUE_EXTERNAL_APPLE_CLIENT_ID: "${SONOQUI_APPLE_CLIENT_ID:-app.sonoqui.sonoqui.auth,app.sonoqui.sonoqui}"
+      GOTRUE_EXTERNAL_APPLE_CLIENT_ID: "${SONOQUI_APPLE_CLIENT_ID:-app.cisono.cisono.auth,app.cisono.cisono}"
       GOTRUE_EXTERNAL_APPLE_SECRET: "${SONOQUI_APPLE_SECRET:-}"
       GOTRUE_EXTERNAL_APPLE_REDIRECT_URI: "https://auth-sonoqui.xdevapp.it/callback"
       GOTRUE_DISABLE_SIGNUP: "true"

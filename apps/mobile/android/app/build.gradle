@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'app.sonoqui.sonoqui'
+    namespace 'app.cisono.cisono'
     defaultConfig {
-        applicationId 'app.sonoqui.sonoqui'
+        applicationId 'app.cisono.cisono'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
