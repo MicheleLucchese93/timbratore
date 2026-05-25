@@ -46,13 +46,23 @@ export async function generateExportFile(job: ExportJobRow): Promise<ExportResul
 }
 
 async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
-  // Pull all stamps in period for tenant, group by user+day, compute durations.
+  // Per-stamp paid-break threshold resolves through the user's active shift_template
+  // assignment at that date; falls back to 30 min when no shift is assigned.
   const rows = await pool.query(
     `SELECT s.user_id, s.event_type, s.occurred_at, s.deleted_at,
             COALESCE(au.email, s.user_id::text) AS email,
-            t.break_paid_threshold_min
+            COALESCE(
+              (SELECT st.paid_break_threshold_min
+                 FROM user_shift_assignments a
+                 JOIN shift_templates st ON st.id = a.shift_template_id
+                WHERE a.user_id = s.user_id
+                  AND a.valid_from <= s.occurred_at::date
+                  AND (a.valid_to IS NULL OR a.valid_to >= s.occurred_at::date)
+                ORDER BY a.valid_from DESC
+                LIMIT 1),
+              30
+            ) AS paid_break_threshold_min
      FROM stamps s
-     JOIN tenants t ON t.id = s.tenant_id
      LEFT JOIN auth_users au ON au.id = s.user_id
      WHERE s.tenant_id = $1
        AND s.occurred_at >= $2::date
@@ -61,15 +71,15 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
      ORDER BY s.user_id, s.occurred_at`,
     [job.tenant_id, job.period_from, job.period_to]
   );
-  type UserBucket = { email: string; thresholdMin: number; stamps: Array<{ event: string; at: Date }> };
+  type UserBucket = { email: string; stamps: Array<{ event: string; at: Date; threshold: number }> };
   const byUser = new Map<string, UserBucket>();
   for (const r of rows.rows) {
-    const u: UserBucket = byUser.get(r.user_id) ?? {
-      email: r.email,
-      thresholdMin: r.break_paid_threshold_min,
-      stamps: [],
-    };
-    u.stamps.push({ event: r.event_type, at: new Date(r.occurred_at) });
+    const u: UserBucket = byUser.get(r.user_id) ?? { email: r.email, stamps: [] };
+    u.stamps.push({
+      event: r.event_type,
+      at: new Date(r.occurred_at),
+      threshold: r.paid_break_threshold_min,
+    });
     byUser.set(r.user_id, u);
   }
   const out: UserAgg[] = [];
@@ -91,7 +101,7 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
         openBreak = s.at;
       } else if (s.event === 'break_end' && openBreak) {
         const minutes = Math.max(0, Math.round((s.at.getTime() - openBreak.getTime()) / 60000));
-        if (minutes <= u.thresholdMin) day.paid_break_minutes += minutes;
+        if (minutes <= s.threshold) day.paid_break_minutes += minutes;
         else day.unpaid_break_minutes += minutes;
         openClockIn = s.at;
         openBreak = null;

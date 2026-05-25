@@ -17,9 +17,6 @@ export interface MeResponse {
     language: 'it' | 'en';
     timezone: string;
     mock_location_action: 'allow' | 'flag' | 'block';
-    break_paid_threshold_min: number;
-    max_shift_hours: number;
-    max_break_hours: number;
     max_admins: number;
     max_users: number;
   };

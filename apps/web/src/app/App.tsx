@@ -11,7 +11,6 @@ import { Stamps } from '../pages/Stamps.tsx';
 import { Corrections } from '../pages/Corrections.tsx';
 import { Exports } from '../pages/Exports.tsx';
 import { Settings } from '../pages/Settings.tsx';
-import { Compliance } from '../pages/Compliance.tsx';
 import { Shifts } from '../pages/Shifts.tsx';
 import { Anomalies } from '../pages/Anomalies.tsx';
 import { MyStamps } from '../pages/MyStamps.tsx';
@@ -57,7 +56,6 @@ export function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/shifts" element={<Shifts />} />
           <Route path="/anomalies" element={<Anomalies />} />
-          <Route path="/compliance" element={<Compliance />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>

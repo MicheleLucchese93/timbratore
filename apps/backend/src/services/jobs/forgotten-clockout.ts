@@ -14,10 +14,19 @@ export async function forgottenClockoutReminder(): Promise<void> {
      candidates AS (
        SELECT l.id, l.tenant_id, l.user_id
        FROM latest l
-       JOIN tenants t ON t.id = l.tenant_id
+       LEFT JOIN LATERAL (
+         SELECT st.max_shift_hours
+           FROM user_shift_assignments a
+           JOIN shift_templates st ON st.id = a.shift_template_id
+          WHERE a.user_id = l.user_id
+            AND a.valid_from <= l.occurred_at::date
+            AND (a.valid_to IS NULL OR a.valid_to >= l.occurred_at::date)
+          ORDER BY a.valid_from DESC
+          LIMIT 1
+       ) u ON TRUE
        WHERE l.event_type IN ('clock_in','break_end')
          AND l.reminder_sent_at IS NULL
-         AND l.occurred_at < now() - (t.max_shift_hours || ' hours')::interval
+         AND l.occurred_at < now() - (COALESCE(u.max_shift_hours, 14) || ' hours')::interval
      )
      UPDATE stamps s
      SET reminder_sent_at = now()

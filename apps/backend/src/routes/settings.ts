@@ -15,9 +15,6 @@ const TenantSettings = z.object({
   timezone: z.string().optional(),
   language: z.enum(['it', 'en']).optional(),
   ccnl: z.string().nullable().optional(),
-  break_paid_threshold_min: z.number().int().min(0).max(240).optional(),
-  max_shift_hours: z.number().int().min(4).max(24).optional(),
-  max_break_hours: z.number().int().min(0).max(12).optional(),
 });
 
 settingsRouter.get(

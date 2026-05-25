@@ -16,6 +16,8 @@ interface ShiftTemplate {
   tolerance_out_min: number;
   expected_break_min_min: number;
   expected_break_max_min: number;
+  paid_break_threshold_min: number;
+  max_shift_hours: number;
   active: boolean;
   slots: Slot[];
 }
@@ -165,6 +167,8 @@ interface FormState {
   tolerance_out_min: number;
   expected_break_min_min: number;
   expected_break_max_min: number;
+  paid_break_threshold_min: number;
+  max_shift_hours: number;
   slots: Slot[];
 }
 
@@ -184,6 +188,8 @@ function ShiftForm({
     tolerance_out_min: initial?.tolerance_out_min ?? 10,
     expected_break_min_min: initial?.expected_break_min_min ?? 0,
     expected_break_max_min: initial?.expected_break_max_min ?? 90,
+    paid_break_threshold_min: initial?.paid_break_threshold_min ?? 30,
+    max_shift_hours: initial?.max_shift_hours ?? 14,
     slots: initial?.slots ?? [],
   });
   const [saving, setSaving] = useState(false);
@@ -217,6 +223,8 @@ function ShiftForm({
         tolerance_out_min: state.tolerance_out_min,
         expected_break_min_min: state.expected_break_min_min,
         expected_break_max_min: state.expected_break_max_min,
+        paid_break_threshold_min: state.paid_break_threshold_min,
+        max_shift_hours: state.max_shift_hours,
         slots: state.slots.map((s) => ({
           day_of_week: s.day_of_week,
           start_time: s.start_time,
@@ -326,6 +334,40 @@ function ShiftForm({
                     setState({ ...state, expected_break_max_min: Number(e.target.value) })
                   }
                 />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset className="border border-neutral-200 rounded p-3 space-y-2">
+            <legend className="text-sm font-medium px-1">Limiti e calcolo retributivo</legend>
+            <div className="grid grid-cols-2 gap-3">
+              <label>
+                <span className="label">Soglia pausa retribuita (min)</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={240}
+                  className="input"
+                  value={state.paid_break_threshold_min}
+                  onChange={(e) =>
+                    setState({ ...state, paid_break_threshold_min: Number(e.target.value) })
+                  }
+                />
+                <p className="text-xs text-neutral-500 mt-1">Pause sotto questa durata sono retribuite.</p>
+              </label>
+              <label>
+                <span className="label">Turno massimo (ore)</span>
+                <input
+                  type="number"
+                  min={4}
+                  max={24}
+                  className="input"
+                  value={state.max_shift_hours}
+                  onChange={(e) =>
+                    setState({ ...state, max_shift_hours: Number(e.target.value) })
+                  }
+                />
+                <p className="text-xs text-neutral-500 mt-1">Oltre questa durata scatta il promemoria di clock-out dimenticato.</p>
               </label>
             </div>
           </fieldset>

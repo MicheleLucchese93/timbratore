@@ -13,8 +13,7 @@ meRouter.get(
   tenantHandler(async (req, res, client) => {
     const tenant = await client.query(
       `SELECT id, ragione_sociale, country, timezone, language,
-              mock_location_action, break_paid_threshold_min,
-              max_shift_hours, max_break_hours,
+              mock_location_action,
               max_admins, max_users
        FROM tenants
        WHERE id = $1`,

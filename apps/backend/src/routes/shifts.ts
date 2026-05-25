@@ -45,6 +45,8 @@ const TemplateBody = z.object({
   tolerance_out_min: z.number().int().min(0).max(240).default(10),
   expected_break_min_min: z.number().int().min(0).max(480).default(0),
   expected_break_max_min: z.number().int().min(0).max(480).default(90),
+  paid_break_threshold_min: z.number().int().min(0).max(240).default(30),
+  max_shift_hours: z.number().int().min(4).max(24).default(14),
   slots: z.array(SlotSchema).default([]),
 });
 
@@ -84,7 +86,9 @@ shiftsRouter.get(
   tenantHandler(async (_req, res, client) => {
     const t = await client.query(
       `SELECT id, name, description, tolerance_in_min, tolerance_out_min,
-              expected_break_min_min, expected_break_max_min, active, created_at
+              expected_break_min_min, expected_break_max_min,
+              paid_break_threshold_min, max_shift_hours,
+              active, created_at
          FROM shift_templates
         WHERE deleted_at IS NULL
         ORDER BY name`
@@ -141,8 +145,9 @@ shiftsRouter.post(
     try {
       created = await client.query(
         `INSERT INTO shift_templates(tenant_id, name, description, tolerance_in_min, tolerance_out_min,
-                                     expected_break_min_min, expected_break_max_min)
-         VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, $4, $5, $6)
+                                     expected_break_min_min, expected_break_max_min,
+                                     paid_break_threshold_min, max_shift_hours)
+         VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING *`,
         [
           b.name,
@@ -151,6 +156,8 @@ shiftsRouter.post(
           b.tolerance_out_min,
           b.expected_break_min_min,
           b.expected_break_max_min,
+          b.paid_break_threshold_min,
+          b.max_shift_hours,
         ]
       );
     } catch (err) {

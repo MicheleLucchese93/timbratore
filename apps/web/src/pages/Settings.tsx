@@ -10,15 +10,7 @@ interface TenantSettings {
   language: 'it' | 'en';
   retention_years: number;
   mock_location_action: 'allow' | 'flag' | 'block';
-  break_paid_threshold_min: number;
-  max_shift_hours: number;
-  max_break_hours: number;
 }
-
-type EditableKey =
-  | 'break_paid_threshold_min'
-  | 'max_shift_hours'
-  | 'max_break_hours';
 
 type AutoSaveKey = 'timezone' | 'language';
 
@@ -37,15 +29,12 @@ const TIMEZONE_OPTIONS = [
 type Toast = { kind: 'ok' | 'err'; text: string } | null;
 
 export function Settings() {
-  const [original, setOriginal] = useState<TenantSettings | null>(null);
   const [s, setS] = useState<TenantSettings | null>(null);
   const [busy, setBusy] = useState(false);
-  const [editingKey, setEditingKey] = useState<EditableKey | null>(null);
   const [toast, setToast] = useState<Toast>(null);
 
   async function load() {
     const data = await api<TenantSettings>('/api/v1/settings');
-    setOriginal(data);
     setS(data);
   }
   useEffect(() => {
@@ -65,7 +54,6 @@ export function Settings() {
         method: 'PATCH',
         json: patch,
       });
-      setOriginal(updated);
       setS(updated);
       setToast({ kind: 'ok', text: 'Impostazione salvata.' });
       return true;
@@ -75,18 +63,6 @@ export function Settings() {
     } finally {
       setBusy(false);
     }
-  }
-
-  async function saveField(key: EditableKey) {
-    if (!s) return;
-    const ok = await patchSettings({ [key]: s[key] } as Partial<TenantSettings>);
-    if (ok) setEditingKey(null);
-  }
-
-  function cancelEdit(key: EditableKey) {
-    if (!original || !s) return;
-    setS({ ...s, [key]: original[key] });
-    setEditingKey(null);
   }
 
   async function autoSave<K extends AutoSaveKey>(key: K, value: TenantSettings[K]) {
@@ -99,10 +75,9 @@ export function Settings() {
 
   function onFormSubmit(e: FormEvent) {
     e.preventDefault();
-    if (editingKey) void saveField(editingKey);
   }
 
-  if (!s || !original) {
+  if (!s) {
     return (
       <div className="space-y-4 animate-pulse">
         <div className="h-8 w-48 bg-[color:var(--color-surface-variant)] rounded" />
@@ -111,9 +86,6 @@ export function Settings() {
       </div>
     );
   }
-
-  const lockOthers = (key: EditableKey) =>
-    editingKey !== null && editingKey !== key;
 
   return (
     <form onSubmit={onFormSubmit} className="max-w-5xl">
@@ -181,67 +153,6 @@ export function Settings() {
         </div>
       </SettingsRow>
 
-      <SettingsRow
-        icon={<IconClock />}
-        title="Turni e pause"
-        description="Limiti operativi e soglie usate da validazione e calcolo retributivo."
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <EditableField
-            label="Soglia pausa retribuita (min)"
-            editing={editingKey === 'break_paid_threshold_min'}
-            disabledEdit={busy || lockOthers('break_paid_threshold_min')}
-            busy={busy}
-            onEdit={() => setEditingKey('break_paid_threshold_min')}
-            onSave={() => saveField('break_paid_threshold_min')}
-            onCancel={() => cancelEdit('break_paid_threshold_min')}
-            hint="Pause sotto questa durata sono retribuite."
-          >
-            <input
-              type="number"
-              className="input"
-              value={s.break_paid_threshold_min}
-              disabled={editingKey !== 'break_paid_threshold_min'}
-              onChange={(e) => setS({ ...s, break_paid_threshold_min: Number(e.target.value) })}
-            />
-          </EditableField>
-          <EditableField
-            label="Turno massimo (ore)"
-            editing={editingKey === 'max_shift_hours'}
-            disabledEdit={busy || lockOthers('max_shift_hours')}
-            busy={busy}
-            onEdit={() => setEditingKey('max_shift_hours')}
-            onSave={() => saveField('max_shift_hours')}
-            onCancel={() => cancelEdit('max_shift_hours')}
-          >
-            <input
-              type="number"
-              className="input"
-              value={s.max_shift_hours}
-              disabled={editingKey !== 'max_shift_hours'}
-              onChange={(e) => setS({ ...s, max_shift_hours: Number(e.target.value) })}
-            />
-          </EditableField>
-          <EditableField
-            label="Pausa massima (ore)"
-            editing={editingKey === 'max_break_hours'}
-            disabledEdit={busy || lockOthers('max_break_hours')}
-            busy={busy}
-            onEdit={() => setEditingKey('max_break_hours')}
-            onSave={() => saveField('max_break_hours')}
-            onCancel={() => cancelEdit('max_break_hours')}
-          >
-            <input
-              type="number"
-              className="input"
-              value={s.max_break_hours}
-              disabled={editingKey !== 'max_break_hours'}
-              onChange={(e) => setS({ ...s, max_break_hours: Number(e.target.value) })}
-            />
-          </EditableField>
-        </div>
-      </SettingsRow>
-
       {toast && (
         <div className={`toast ${toast.kind === 'ok' ? 'toast-ok' : 'toast-err'}`} role="status">
           {toast.kind === 'ok' ? <IconCheck /> : <IconAlert />}
@@ -294,89 +205,12 @@ function Field({
   );
 }
 
-function EditableField({
-  label,
-  editing,
-  disabledEdit,
-  busy,
-  onEdit,
-  onSave,
-  onCancel,
-  hint,
-  children,
-}: {
-  label: string;
-  editing: boolean;
-  disabledEdit: boolean;
-  busy: boolean;
-  onEdit: () => void;
-  onSave: () => void;
-  onCancel: () => void;
-  hint?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="label">{label}</label>
-      <div className="field-edit">
-        <div className="field-edit-input">{children}</div>
-        <div className="field-edit-actions">
-          {editing ? (
-            <>
-              <button
-                type="button"
-                className="field-edit-btn field-edit-btn-primary"
-                onClick={onSave}
-                disabled={busy}
-                aria-label="Salva"
-                title="Salva"
-              >
-                <IconCheckSmall />
-              </button>
-              <button
-                type="button"
-                className="field-edit-btn"
-                onClick={onCancel}
-                disabled={busy}
-                aria-label="Annulla"
-                title="Annulla"
-              >
-                <IconX />
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              className="field-edit-btn"
-              onClick={onEdit}
-              disabled={disabledEdit}
-              aria-label="Modifica"
-              title="Modifica"
-            >
-              <IconPencil />
-            </button>
-          )}
-        </div>
-      </div>
-      {hint && <p className="field-hint">{hint}</p>}
-    </div>
-  );
-}
-
 /* Icons (inline, no dep) ------------------------------------------------ */
 function IconBuilding() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="4" y="3" width="16" height="18" rx="2" />
       <path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2M10 21v-3h4v3" />
-    </svg>
-  );
-}
-function IconClock() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" />
     </svg>
   );
 }
@@ -387,33 +221,11 @@ function IconCheck() {
     </svg>
   );
 }
-function IconCheckSmall() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
 function IconAlert() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-error)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="10" />
       <path d="M12 8v4M12 16h.01" />
-    </svg>
-  );
-}
-function IconPencil() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4Z" />
-    </svg>
-  );
-}
-function IconX() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M18 6 6 18M6 6l12 12" />
     </svg>
   );
 }

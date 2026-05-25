@@ -26,9 +26,6 @@ export interface Tenant {
   max_admins: number;
   max_users: number;
   mock_location_action: MockLocationAction;
-  break_paid_threshold_min: number;
-  max_shift_hours: number;
-  max_break_hours: number;
   deleted_at: string | null;
   created_at: string;
 }
@@ -106,6 +103,8 @@ export interface ShiftTemplate {
   tolerance_out_min: number;
   expected_break_min_min: number;
   expected_break_max_min: number;
+  paid_break_threshold_min: number;
+  max_shift_hours: number;
   active: boolean;
   deleted_at: string | null;
   created_at: string;
