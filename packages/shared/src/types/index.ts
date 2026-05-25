@@ -31,7 +31,6 @@ export interface Tenant {
   break_paid_threshold_min: number;
   max_shift_hours: number;
   max_break_hours: number;
-  disable_desktop_clock_in: boolean;
   deleted_at: string | null;
   created_at: string;
 }
@@ -42,6 +41,7 @@ export interface Membership {
   user_id: string;
   role: Role;
   active: boolean;
+  disable_desktop_clock_in: boolean;
   deleted_at: string | null;
   created_at: string;
 }

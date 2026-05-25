@@ -2,7 +2,12 @@ import { create } from 'zustand';
 import { api, getToken, logout as logoutAuth } from '../lib/api.ts';
 
 export interface MeResponse {
-  user: { id: string; email: string; role: 'admin' | 'user' };
+  user: {
+    id: string;
+    email: string;
+    role: 'admin' | 'user';
+    disable_desktop_clock_in: boolean;
+  };
   tenant: {
     id: string;
     ragione_sociale: string;
@@ -14,7 +19,6 @@ export interface MeResponse {
     break_paid_threshold_min: number;
     max_shift_hours: number;
     max_break_hours: number;
-    disable_desktop_clock_in: boolean;
     max_admins: number;
     max_users: number;
   };

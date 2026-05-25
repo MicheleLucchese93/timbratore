@@ -4,6 +4,7 @@ import { api } from '../lib/api.ts';
 interface TenantSettings {
   id: string;
   ragione_sociale: string;
+  partita_iva: string | null;
   country: string;
   timezone: string;
   language: 'it' | 'en';
@@ -14,124 +15,457 @@ interface TenantSettings {
   break_paid_threshold_min: number;
   max_shift_hours: number;
   max_break_hours: number;
-  disable_desktop_clock_in: boolean;
 }
 
+type EditableKey =
+  | 'gps_accuracy_ceiling_m'
+  | 'break_paid_threshold_min'
+  | 'max_shift_hours'
+  | 'max_break_hours';
+
+type AutoSaveKey = 'timezone' | 'language' | 'geofence_policy';
+
+const TIMEZONE_OPTIONS = [
+  'Europe/Rome',
+  'Europe/London',
+  'Europe/Paris',
+  'Europe/Madrid',
+  'Europe/Berlin',
+  'Europe/Lisbon',
+  'Europe/Athens',
+  'Europe/Zurich',
+  'UTC',
+];
+
+type Toast = { kind: 'ok' | 'err'; text: string } | null;
+
 export function Settings() {
+  const [original, setOriginal] = useState<TenantSettings | null>(null);
   const [s, setS] = useState<TenantSettings | null>(null);
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  const [editingKey, setEditingKey] = useState<EditableKey | null>(null);
+  const [toast, setToast] = useState<Toast>(null);
 
   async function load() {
-    setS(await api<TenantSettings>('/api/v1/settings'));
+    const data = await api<TenantSettings>('/api/v1/settings');
+    setOriginal(data);
+    setS(data);
   }
   useEffect(() => {
-    load().catch((e) => setErr(e.message));
+    load().catch((e) => setToast({ kind: 'err', text: e.message }));
   }, []);
 
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    if (!s) return;
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(id);
+  }, [toast]);
+
+  async function patchSettings(patch: Partial<TenantSettings>): Promise<boolean> {
     setBusy(true);
-    setMsg(null);
-    setErr(null);
     try {
-      await api('/api/v1/settings', { method: 'PATCH', json: {
-        ragione_sociale: s.ragione_sociale,
-        timezone: s.timezone,
-        language: s.language,
-        retention_years: s.retention_years,
-        geofence_policy: s.geofence_policy,
-        gps_accuracy_ceiling_m: s.gps_accuracy_ceiling_m,
-        mock_location_action: s.mock_location_action,
-        break_paid_threshold_min: s.break_paid_threshold_min,
-        max_shift_hours: s.max_shift_hours,
-        max_break_hours: s.max_break_hours,
-        disable_desktop_clock_in: s.disable_desktop_clock_in,
-      } });
-      setMsg('Impostazioni salvate.');
+      const updated = await api<TenantSettings>('/api/v1/settings', {
+        method: 'PATCH',
+        json: patch,
+      });
+      setOriginal(updated);
+      setS(updated);
+      setToast({ kind: 'ok', text: 'Impostazione salvata.' });
+      return true;
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setToast({ kind: 'err', text: e instanceof Error ? e.message : 'Errore di salvataggio' });
+      return false;
     } finally {
       setBusy(false);
     }
   }
 
-  if (!s) return <div className="card text-sm">Caricamento…</div>;
+  async function saveField(key: EditableKey) {
+    if (!s) return;
+    const ok = await patchSettings({ [key]: s[key] } as Partial<TenantSettings>);
+    if (ok) setEditingKey(null);
+  }
+
+  function cancelEdit(key: EditableKey) {
+    if (!original || !s) return;
+    setS({ ...s, [key]: original[key] });
+    setEditingKey(null);
+  }
+
+  async function autoSave<K extends AutoSaveKey>(key: K, value: TenantSettings[K]) {
+    if (!s) return;
+    const prev = s[key];
+    setS({ ...s, [key]: value });
+    const ok = await patchSettings({ [key]: value } as Partial<TenantSettings>);
+    if (!ok) setS((cur) => (cur ? { ...cur, [key]: prev } : cur));
+  }
+
+  function onFormSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (editingKey) void saveField(editingKey);
+  }
+
+  if (!s || !original) {
+    return (
+      <div className="space-y-4 animate-pulse">
+        <div className="h-8 w-48 bg-[color:var(--color-surface-variant)] rounded" />
+        <div className="h-4 w-72 bg-[color:var(--color-surface-variant)] rounded" />
+        <div className="card h-64" />
+      </div>
+    );
+  }
+
+  const lockOthers = (key: EditableKey) =>
+    editingKey !== null && editingKey !== key;
 
   return (
-    <form onSubmit={submit} className="space-y-5 max-w-2xl">
-      <header>
+    <form onSubmit={onFormSubmit} className="max-w-5xl">
+      <header className="mb-2">
         <h1 className="page-title">Impostazioni</h1>
-        <p className="muted text-sm mt-0.5">Configurazione della tua azienda.</p>
+        <p className="muted text-sm mt-1">Configurazione globale dell'azienda. Le modifiche si applicano a tutti gli utenti.</p>
       </header>
-      {err && <div className="card text-sm text-[color:var(--color-error)]">{err}</div>}
-      {msg && <div className="card text-sm text-[color:var(--color-success)]">{msg}</div>}
 
-      <Section title="Generali">
-        <Field label="Ragione sociale">
-          <input className="input" value={s.ragione_sociale} onChange={(e) => setS({ ...s, ragione_sociale: e.target.value })} />
-        </Field>
-        <Field label="Timezone">
-          <input className="input" value={s.timezone} onChange={(e) => setS({ ...s, timezone: e.target.value })} />
-        </Field>
-        <Field label="Lingua">
-          <select className="input" value={s.language} onChange={(e) => setS({ ...s, language: e.target.value as 'it' | 'en' })}>
-            <option value="it">Italiano</option>
-            <option value="en">English</option>
-          </select>
-        </Field>
-        <Field label="Conservazione (anni)">
-          <input type="number" min={1} max={10} className="input" value={s.retention_years} onChange={(e) => setS({ ...s, retention_years: Number(e.target.value) })} />
-        </Field>
-      </Section>
+      <div className="hairline my-6" />
 
-      <Section title="Timbrature">
-        <Field label="Politica geofence">
-          <select className="input" value={s.geofence_policy} onChange={(e) => setS({ ...s, geofence_policy: e.target.value as 'lenient' | 'strict' })}>
-            <option value="lenient">Permissiva (tolleranza accuracy)</option>
-            <option value="strict">Stretta</option>
-          </select>
-        </Field>
-        <Field label="Accuratezza GPS massima (m)">
-          <input type="number" className="input" value={s.gps_accuracy_ceiling_m} onChange={(e) => setS({ ...s, gps_accuracy_ceiling_m: Number(e.target.value) })} />
-        </Field>
-        <Field label="Mock location">
-          <select className="input" value={s.mock_location_action} onChange={(e) => setS({ ...s, mock_location_action: e.target.value as 'allow' | 'flag' | 'block' })}>
-            <option value="allow">Consenti</option>
-            <option value="flag">Segnala</option>
-            <option value="block">Blocca</option>
-          </select>
-        </Field>
-        <Field label="Soglia pausa retribuita (minuti)">
-          <input type="number" className="input" value={s.break_paid_threshold_min} onChange={(e) => setS({ ...s, break_paid_threshold_min: Number(e.target.value) })} />
-        </Field>
-        <Field label="Turno massimo (ore)">
-          <input type="number" className="input" value={s.max_shift_hours} onChange={(e) => setS({ ...s, max_shift_hours: Number(e.target.value) })} />
-        </Field>
-        <Field label="Pausa massima (ore)">
-          <input type="number" className="input" value={s.max_break_hours} onChange={(e) => setS({ ...s, max_break_hours: Number(e.target.value) })} />
-        </Field>
-        <div className="flex items-center gap-2 col-span-full">
-          <input id="ddci" type="checkbox" checked={s.disable_desktop_clock_in} onChange={(e) => setS({ ...s, disable_desktop_clock_in: e.target.checked })} />
-          <label htmlFor="ddci" className="text-sm">Disabilita timbratura dal web (solo mobile)</label>
+      <SettingsRow
+        icon={<IconBuilding />}
+        title="Anagrafica e localizzazione"
+        description="Dati base dell'azienda e lingua di sistema. La ragione sociale e la partita IVA sono impostate al provisioning del tenant."
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Field label="Ragione sociale">
+            <input
+              className="input"
+              value={s.ragione_sociale}
+              readOnly
+              disabled
+            />
+            <p className="field-hint">Solo lettura. Modificabile dal provider.</p>
+          </Field>
+          <Field label="Partita IVA">
+            <input
+              className="input"
+              value={s.partita_iva ?? ''}
+              readOnly
+              disabled
+              placeholder="—"
+            />
+            <p className="field-hint">Solo lettura. Modificabile dal provider.</p>
+          </Field>
+          <Field label="Timezone">
+            <select
+              className="input"
+              value={s.timezone}
+              disabled={busy}
+              onChange={(e) => void autoSave('timezone', e.target.value)}
+            >
+              {!TIMEZONE_OPTIONS.includes(s.timezone) && (
+                <option value={s.timezone}>{s.timezone}</option>
+              )}
+              {TIMEZONE_OPTIONS.map((tz) => (
+                <option key={tz} value={tz}>
+                  {tz}
+                </option>
+              ))}
+            </select>
+            <p className="field-hint">Influenza i fusi nei report.</p>
+          </Field>
+          <Field label="Lingua interfaccia">
+            <select
+              className="input"
+              value={s.language}
+              disabled={busy}
+              onChange={(e) => void autoSave('language', e.target.value as 'it' | 'en')}
+            >
+              <option value="it">Italiano</option>
+              <option value="en">English</option>
+            </select>
+          </Field>
         </div>
-      </Section>
+      </SettingsRow>
 
-      <button className="btn btn-primary" disabled={busy} type="submit">{busy ? 'Salvataggio…' : 'Salva'}</button>
+      <SettingsRow
+        icon={<IconMapPin />}
+        title="Geofencing e GPS"
+        description="Regole di rilevamento della posizione al momento della timbratura. La tolleranza (raggio) si imposta per singola sede."
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Field label="Politica geofence">
+            <select
+              className="input"
+              value={s.geofence_policy}
+              disabled={busy}
+              onChange={(e) =>
+                void autoSave('geofence_policy', e.target.value as 'lenient' | 'strict')
+              }
+            >
+              <option value="lenient">Permissiva (tollera accuracy)</option>
+              <option value="strict">Stretta</option>
+            </select>
+            <p className="field-hint">Permissiva: accetta entro <em>raggio + accuracy</em>. Stretta: solo entro il raggio.</p>
+          </Field>
+          <EditableField
+            label="Accuratezza GPS massima (m)"
+            editing={editingKey === 'gps_accuracy_ceiling_m'}
+            disabledEdit={busy || lockOthers('gps_accuracy_ceiling_m')}
+            busy={busy}
+            onEdit={() => setEditingKey('gps_accuracy_ceiling_m')}
+            onSave={() => saveField('gps_accuracy_ceiling_m')}
+            onCancel={() => cancelEdit('gps_accuracy_ceiling_m')}
+            hint="Sopra questa soglia la timbratura è respinta."
+          >
+            <input
+              type="number"
+              className="input"
+              value={s.gps_accuracy_ceiling_m}
+              disabled={editingKey !== 'gps_accuracy_ceiling_m'}
+              onChange={(e) => setS({ ...s, gps_accuracy_ceiling_m: Number(e.target.value) })}
+            />
+          </EditableField>
+        </div>
+      </SettingsRow>
+
+      <SettingsRow
+        icon={<IconClock />}
+        title="Turni e pause"
+        description="Limiti operativi e soglie usate da validazione e calcolo retributivo."
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <EditableField
+            label="Soglia pausa retribuita (min)"
+            editing={editingKey === 'break_paid_threshold_min'}
+            disabledEdit={busy || lockOthers('break_paid_threshold_min')}
+            busy={busy}
+            onEdit={() => setEditingKey('break_paid_threshold_min')}
+            onSave={() => saveField('break_paid_threshold_min')}
+            onCancel={() => cancelEdit('break_paid_threshold_min')}
+            hint="Pause sotto questa durata sono retribuite."
+          >
+            <input
+              type="number"
+              className="input"
+              value={s.break_paid_threshold_min}
+              disabled={editingKey !== 'break_paid_threshold_min'}
+              onChange={(e) => setS({ ...s, break_paid_threshold_min: Number(e.target.value) })}
+            />
+          </EditableField>
+          <EditableField
+            label="Turno massimo (ore)"
+            editing={editingKey === 'max_shift_hours'}
+            disabledEdit={busy || lockOthers('max_shift_hours')}
+            busy={busy}
+            onEdit={() => setEditingKey('max_shift_hours')}
+            onSave={() => saveField('max_shift_hours')}
+            onCancel={() => cancelEdit('max_shift_hours')}
+          >
+            <input
+              type="number"
+              className="input"
+              value={s.max_shift_hours}
+              disabled={editingKey !== 'max_shift_hours'}
+              onChange={(e) => setS({ ...s, max_shift_hours: Number(e.target.value) })}
+            />
+          </EditableField>
+          <EditableField
+            label="Pausa massima (ore)"
+            editing={editingKey === 'max_break_hours'}
+            disabledEdit={busy || lockOthers('max_break_hours')}
+            busy={busy}
+            onEdit={() => setEditingKey('max_break_hours')}
+            onSave={() => saveField('max_break_hours')}
+            onCancel={() => cancelEdit('max_break_hours')}
+          >
+            <input
+              type="number"
+              className="input"
+              value={s.max_break_hours}
+              disabled={editingKey !== 'max_break_hours'}
+              onChange={(e) => setS({ ...s, max_break_hours: Number(e.target.value) })}
+            />
+          </EditableField>
+        </div>
+      </SettingsRow>
+
+      {toast && (
+        <div className={`toast ${toast.kind === 'ok' ? 'toast-ok' : 'toast-err'}`} role="status">
+          {toast.kind === 'ok' ? <IconCheck /> : <IconAlert />}
+          <span>{toast.text}</span>
+        </div>
+      )}
     </form>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function SettingsRow({
+  icon,
+  title,
+  description,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
   return (
-    <fieldset className="card space-y-3">
-      <legend className="text-sm font-semibold uppercase tracking-wide text-neutral-500">{title}</legend>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{children}</div>
-    </fieldset>
+    <section className="settings-row">
+      <div className="settings-row-head">
+        <h3>
+          <span className="text-[color:var(--color-primary)]">{icon}</span>
+          {title}
+        </h3>
+        <p>{description}</p>
+      </div>
+      <div className="settings-row-body">{children}</div>
+    </section>
   );
 }
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><label className="label">{label}</label>{children}</div>;
+
+function Field({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <label className="label">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function EditableField({
+  label,
+  editing,
+  disabledEdit,
+  busy,
+  onEdit,
+  onSave,
+  onCancel,
+  hint,
+  children,
+}: {
+  label: string;
+  editing: boolean;
+  disabledEdit: boolean;
+  busy: boolean;
+  onEdit: () => void;
+  onSave: () => void;
+  onCancel: () => void;
+  hint?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="label">{label}</label>
+      <div className="field-edit">
+        <div className="field-edit-input">{children}</div>
+        <div className="field-edit-actions">
+          {editing ? (
+            <>
+              <button
+                type="button"
+                className="field-edit-btn field-edit-btn-primary"
+                onClick={onSave}
+                disabled={busy}
+                aria-label="Salva"
+                title="Salva"
+              >
+                <IconCheckSmall />
+              </button>
+              <button
+                type="button"
+                className="field-edit-btn"
+                onClick={onCancel}
+                disabled={busy}
+                aria-label="Annulla"
+                title="Annulla"
+              >
+                <IconX />
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="field-edit-btn"
+              onClick={onEdit}
+              disabled={disabledEdit}
+              aria-label="Modifica"
+              title="Modifica"
+            >
+              <IconPencil />
+            </button>
+          )}
+        </div>
+      </div>
+      {hint && <p className="field-hint">{hint}</p>}
+    </div>
+  );
+}
+
+/* Icons (inline, no dep) ------------------------------------------------ */
+function IconBuilding() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2M10 21v-3h4v3" />
+    </svg>
+  );
+}
+function IconMapPin() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+function IconClock() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+function IconCheck() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+function IconCheckSmall() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+function IconAlert() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-error)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 8v4M12 16h.01" />
+    </svg>
+  );
+}
+function IconPencil() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+function IconX() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  );
 }

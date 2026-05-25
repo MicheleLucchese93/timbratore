@@ -61,9 +61,10 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
      ORDER BY s.user_id, s.occurred_at`,
     [job.tenant_id, job.period_from, job.period_to]
   );
-  const byUser = new Map<string, { email: string; thresholdMin: number; stamps: Array<{ event: string; at: Date }> }>();
+  type UserBucket = { email: string; thresholdMin: number; stamps: Array<{ event: string; at: Date }> };
+  const byUser = new Map<string, UserBucket>();
   for (const r of rows.rows) {
-    const u = byUser.get(r.user_id) ?? {
+    const u: UserBucket = byUser.get(r.user_id) ?? {
       email: r.email,
       thresholdMin: r.break_paid_threshold_min,
       stamps: [],

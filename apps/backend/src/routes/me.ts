@@ -14,11 +14,17 @@ meRouter.get(
     const tenant = await client.query(
       `SELECT id, ragione_sociale, country, timezone, language, geofence_policy,
               gps_accuracy_ceiling_m, mock_location_action, break_paid_threshold_min,
-              max_shift_hours, max_break_hours, disable_desktop_clock_in,
+              max_shift_hours, max_break_hours,
               max_admins, max_users
        FROM tenants
        WHERE id = $1`,
       [req.user!.tenantId]
+    );
+    const membership = await client.query(
+      `SELECT disable_desktop_clock_in
+       FROM memberships
+       WHERE id = $1`,
+      [req.user!.membershipId]
     );
     const branches = await client.query(
       `SELECT b.id, b.name, b.address, b.latitude, b.longitude, b.radius_m, b.smart_working
@@ -28,7 +34,12 @@ meRouter.get(
       [req.user!.id]
     );
     ok(res, {
-      user: { id: req.user!.id, email: req.user!.email, role: req.user!.role },
+      user: {
+        id: req.user!.id,
+        email: req.user!.email,
+        role: req.user!.role,
+        disable_desktop_clock_in: membership.rows[0]?.disable_desktop_clock_in ?? true,
+      },
       tenant: tenant.rows[0],
       branches: branches.rows,
     });

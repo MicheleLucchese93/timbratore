@@ -1,8 +1,8 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { v4 as uuidv4 } from 'uuid';
-import { pool, withTenantRLS } from '../lib/db.ts';
-import { adminPool } from '../lib/admin-db.ts';
+import { pool, withTenantRLS } from '../lib/db.js';
+import { adminPool } from '../lib/admin-db.js';
 
 interface Seed {
   tenantId: string;

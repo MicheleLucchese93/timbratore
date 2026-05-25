@@ -9,19 +9,17 @@ export const settingsRouter = Router();
 settingsRouter.use(authenticate);
 settingsRouter.use(requireAdmin);
 
+// ragione_sociale, partita_iva, retention_years and mock_location_action are
+// provisioned at tenant creation and are not editable from the app.
 const TenantSettings = z.object({
-  ragione_sociale: z.string().min(1).max(200).optional(),
   timezone: z.string().optional(),
   language: z.enum(['it', 'en']).optional(),
   ccnl: z.string().nullable().optional(),
-  retention_years: z.number().int().min(1).max(10).optional(),
   geofence_policy: z.enum(['lenient', 'strict']).optional(),
   gps_accuracy_ceiling_m: z.number().int().min(10).max(2000).optional(),
-  mock_location_action: z.enum(['allow', 'flag', 'block']).optional(),
   break_paid_threshold_min: z.number().int().min(0).max(240).optional(),
   max_shift_hours: z.number().int().min(4).max(24).optional(),
   max_break_hours: z.number().int().min(0).max(12).optional(),
-  disable_desktop_clock_in: z.boolean().optional(),
 });
 
 settingsRouter.get(

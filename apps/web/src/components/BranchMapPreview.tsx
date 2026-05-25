@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 
-const CONTAINER_STYLE = { width: '100%', height: '220px', borderRadius: '8px' };
+const CONTAINER_STYLE = { width: '100%', height: '360px', borderRadius: '8px' };
 const FALLBACK_CENTER = { lat: 41.9028, lng: 12.4964 };
 
 const MAP_OPTIONS: google.maps.MapOptions = {
@@ -95,7 +95,7 @@ function MapInner({
   }
   if (!isLoaded) {
     return (
-      <div className="rounded-md bg-neutral-100 p-3 text-xs text-neutral-500" style={{ height: 220 }}>
+      <div className="rounded-md bg-neutral-100 p-3 text-xs text-neutral-500" style={{ height: 360 }}>
         Caricamento mappa…
       </div>
     );

@@ -78,7 +78,7 @@ adminStampsRouter.patch(
       `UPDATE stamps SET ${set.join(', ')} WHERE id = $${i} RETURNING *`,
       values
     );
-    await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_update', req.params.id!, before.rows[0], r.rows[0]);
+    await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_update', String(req.params.id), before.rows[0], r.rows[0]);
     ok(res, r.rows[0]);
   })
 );
@@ -101,7 +101,7 @@ adminStampsRouter.delete(
       [parse.data.deletion_reason, req.params.id]
     );
     if (r.rowCount === 0) throw new NotFoundError('stamp');
-    await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_delete', req.params.id!, r.rows[0], null);
+    await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_delete', String(req.params.id), r.rows[0], null);
     ok(res, { deleted: true });
   })
 );

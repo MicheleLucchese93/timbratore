@@ -8,6 +8,7 @@ interface UserRow {
   email: string;
   role: 'admin' | 'user';
   active: boolean;
+  disable_desktop_clock_in: boolean;
   created_at: string;
   last_stamp_at: string | null;
 }
@@ -24,6 +25,7 @@ export function Users() {
   const [list, setList] = useState<UserRow[]>([]);
   const [usage, setUsage] = useState<Usage | null>(null);
   const [showInvite, setShowInvite] = useState(false);
+  const [confirmDeactivate, setConfirmDeactivate] = useState<UserRow | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   async function load() {
@@ -55,6 +57,26 @@ export function Users() {
       await api(`/api/v1/users/${u.user_id}`, { method: 'PATCH', json: { role } });
       await load();
     } catch (e) {
+      setErr(e instanceof Error ? e.message : 'errore');
+    }
+  }
+
+  async function setWebDisabled(u: UserRow, disable_desktop_clock_in: boolean) {
+    const prev = u.disable_desktop_clock_in;
+    setList((cur) =>
+      cur.map((row) => (row.user_id === u.user_id ? { ...row, disable_desktop_clock_in } : row))
+    );
+    try {
+      await api(`/api/v1/users/${u.user_id}`, {
+        method: 'PATCH',
+        json: { disable_desktop_clock_in },
+      });
+    } catch (e) {
+      setList((cur) =>
+        cur.map((row) =>
+          row.user_id === u.user_id ? { ...row, disable_desktop_clock_in: prev } : row
+        )
+      );
       setErr(e instanceof Error ? e.message : 'errore');
     }
   }
@@ -102,6 +124,7 @@ export function Users() {
               <col />
               <col style={{ width: '9rem' }} />
               <col style={{ width: '7rem' }} />
+              <col style={{ width: '10rem' }} />
               <col style={{ width: '11rem' }} />
               <col style={{ width: '8rem' }} />
             </colgroup>
@@ -110,8 +133,11 @@ export function Users() {
                 <th>Email</th>
                 <th>Ruolo</th>
                 <th>Stato</th>
+                <th title="Se attivo, l'utente non può timbrare dal web — solo dall'app mobile.">
+                  Timbratura web
+                </th>
                 <th>Ultima timbratura</th>
-                <th className="text-right">Azioni</th>
+                <th className="text-center">Azioni</th>
               </tr>
             </thead>
             <tbody>
@@ -135,10 +161,30 @@ export function Users() {
                       ? <span className="badge badge-ok">Attivo</span>
                       : <span className="badge badge-muted">Disattivato</span>}
                   </td>
+                  <td>
+                    <label className="switch" title="Disabilita timbratura dal web per questo utente">
+                      <input
+                        type="checkbox"
+                        checked={u.disable_desktop_clock_in}
+                        onChange={(e) => setWebDisabled(u, e.target.checked)}
+                      />
+                      <span className="switch-track">
+                        <span className="switch-thumb" />
+                      </span>
+                      <span className="text-xs">
+                        {u.disable_desktop_clock_in ? 'Disabilitata' : 'Abilitata'}
+                      </span>
+                    </label>
+                  </td>
                   <td className="text-xs num">{u.last_stamp_at ? new Date(u.last_stamp_at).toLocaleString('it-IT') : '—'}</td>
                   <td>
-                    <div className="table-actions">
-                      <button className="btn btn-secondary btn-sm" onClick={() => toggleActive(u)}>
+                    <div className="flex justify-center">
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => (u.active ? setConfirmDeactivate(u) : toggleActive(u))}
+                        disabled={u.user_id === me?.user.id}
+                        title={u.user_id === me?.user.id ? 'Non puoi disattivare il tuo account' : ''}
+                      >
                         {u.active ? 'Disattiva' : 'Riattiva'}
                       </button>
                     </div>
@@ -152,6 +198,38 @@ export function Users() {
 
       {showInvite && (
         <InviteForm onClose={() => setShowInvite(false)} onInvited={async () => { setShowInvite(false); await load(); }} />
+      )}
+
+      {confirmDeactivate && (
+        <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
+          <div className="card w-full max-w-md space-y-3">
+            <h2 className="section-title">Disattivare utente?</h2>
+            <p className="text-sm muted">
+              L'utente <strong>{confirmDeactivate.email}</strong> non potrà più accedere finché non sarà
+              riattivato. L'azione è reversibile.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setConfirmDeactivate(null)}
+              >
+                Annulla
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={async () => {
+                  const target = confirmDeactivate;
+                  setConfirmDeactivate(null);
+                  await toggleActive(target);
+                }}
+              >
+                Disattiva
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

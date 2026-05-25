@@ -7,7 +7,7 @@ export type TenantHandler = (
   req: Request,
   res: Response,
   client: PoolClient
-) => Promise<void>;
+) => Promise<unknown>;
 
 export function tenantHandler(fn: TenantHandler) {
   return (req: Request, res: Response, next: NextFunction): void => {
@@ -21,7 +21,7 @@ export function tenantHandler(fn: TenantHandler) {
 export type AsyncHandler = (
   req: Request,
   res: Response
-) => Promise<void> | void;
+) => Promise<unknown> | unknown;
 
 export function asyncHandler(fn: AsyncHandler) {
   return (req: Request, res: Response, next: NextFunction): void => {

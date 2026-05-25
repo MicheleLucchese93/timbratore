@@ -20,6 +20,7 @@ usersRouter.get(
   tenantHandler(async (_req, res, client) => {
     const r = await client.query(
       `SELECT m.id AS membership_id, m.user_id, m.role, m.active, m.created_at,
+              m.disable_desktop_clock_in,
               COALESCE(au.email, m.user_id::text) AS email,
               (SELECT MAX(occurred_at) FROM stamps s
                 WHERE s.user_id = m.user_id AND s.deleted_at IS NULL) AS last_stamp_at
@@ -172,8 +173,8 @@ usersRouter.post(
       [req.params.id]
     );
     if (r.rowCount === 0) throw new NotFoundError('user');
-    await emitAudit(client, 'user.deactivate', req.params.id!, null, null);
-    invalidateMembershipCache(req.params.id);
+    await emitAudit(client, 'user.deactivate', String(req.params.id), null, null);
+    invalidateMembershipCache(String(req.params.id));
     ok(res, { deactivated: true });
   })
 );
@@ -189,14 +190,15 @@ usersRouter.post(
       [req.params.id]
     );
     if (r.rowCount === 0) throw new NotFoundError('user');
-    await emitAudit(client, 'user.reactivate', req.params.id!, null, null);
-    invalidateMembershipCache(req.params.id);
+    await emitAudit(client, 'user.reactivate', String(req.params.id), null, null);
+    invalidateMembershipCache(String(req.params.id));
     ok(res, { reactivated: true });
   })
 );
 
 const PatchUser = z.object({
   role: z.enum(['admin', 'user']).optional(),
+  disable_desktop_clock_in: z.boolean().optional(),
 });
 
 usersRouter.patch(
@@ -218,14 +220,20 @@ usersRouter.patch(
       }
     }
     const r = await client.query(
-      `UPDATE memberships SET role = COALESCE($2, role)
+      `UPDATE memberships
+       SET role = COALESCE($2, role),
+           disable_desktop_clock_in = COALESCE($3, disable_desktop_clock_in)
        WHERE user_id = $1 AND deleted_at IS NULL
        RETURNING *`,
-      [req.params.id, parse.data.role ?? null]
+      [
+        req.params.id,
+        parse.data.role ?? null,
+        parse.data.disable_desktop_clock_in ?? null,
+      ]
     );
     if (r.rowCount === 0) throw new NotFoundError('user');
-    await emitAudit(client, 'user.update', req.params.id!, null, parse.data);
-    invalidateMembershipCache(req.params.id);
+    await emitAudit(client, 'user.update', String(req.params.id), null, parse.data);
+    invalidateMembershipCache(String(req.params.id));
     ok(res, r.rows[0]);
   })
 );

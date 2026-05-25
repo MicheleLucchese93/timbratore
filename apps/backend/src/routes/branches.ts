@@ -102,7 +102,7 @@ branchesRouter.patch(
       `UPDATE branches SET ${updates.join(', ')} WHERE id = $${i} RETURNING *`,
       values
     );
-    await emitAudit(client, 'branch.update', req.params.id!, before.rows[0], r.rows[0]);
+    await emitAudit(client, 'branch.update', String(req.params.id), before.rows[0], r.rows[0]);
     ok(res, r.rows[0]);
   })
 );
@@ -118,7 +118,7 @@ branchesRouter.delete(
       [req.params.id]
     );
     if (r.rowCount === 0) throw new NotFoundError('branch');
-    await emitAudit(client, 'branch.delete', req.params.id!, r.rows[0], null);
+    await emitAudit(client, 'branch.delete', String(req.params.id), r.rows[0], null);
     ok(res, { deleted: true });
   })
 );

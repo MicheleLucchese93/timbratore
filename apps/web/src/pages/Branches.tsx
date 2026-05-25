@@ -148,64 +148,78 @@ function BranchForm({
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
-      <form onSubmit={submit} className="card w-full max-w-lg space-y-3 max-h-[90vh] overflow-auto">
+      <form
+        onSubmit={submit}
+        className="card w-full max-w-5xl max-h-[90vh] flex flex-col gap-4"
+      >
         <h2 className="text-lg font-semibold">{initial ? 'Modifica sede' : 'Nuova sede'}</h2>
-        <div>
-          <label className="label">Nome</label>
-          <input className="input" required value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div>
-          <label className="label">Indirizzo</label>
-          <PlaceSearchInput
-            value={address}
-            onChange={handleAddressChange}
-            onSelect={handlePlace}
-            placeholder="Cerca su Google Maps: es. Piazza Venezia, Roma"
-            disabled={smartWorking}
-          />
-          <p className="text-xs text-neutral-500 mt-1">
-            Scrivi almeno 3 caratteri e seleziona un risultato per impostare le coordinate.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            id="sw"
-            type="checkbox"
-            checked={smartWorking}
-            onChange={(e) => setSmartWorking(e.target.checked)}
-          />
-          <label htmlFor="sw" className="text-sm">Smart working (timbratura senza GPS)</label>
-        </div>
-        {!smartWorking && (
-          <>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
             <div>
-              <label className="label">Raggio (50–1500 m): {radius}m</label>
+              <label className="label">Nome</label>
               <input
-                type="range"
-                min={50}
-                max={1500}
-                value={radius}
-                onChange={(e) => setRadius(Number(e.target.value))}
-                className="w-full"
+                className="input"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
               />
             </div>
             <div>
+              <label className="label">Indirizzo</label>
+              <PlaceSearchInput
+                value={address}
+                onChange={handleAddressChange}
+                onSelect={handlePlace}
+                placeholder="Cerca su Google Maps: es. Piazza Venezia, Roma"
+                disabled={smartWorking}
+              />
+              <p className="text-xs text-neutral-500 mt-1">
+                Scrivi almeno 3 caratteri e seleziona un risultato per impostare le coordinate.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                id="sw"
+                type="checkbox"
+                checked={smartWorking}
+                onChange={(e) => setSmartWorking(e.target.checked)}
+              />
+              <label htmlFor="sw" className="text-sm">
+                Smart working (timbratura senza GPS)
+              </label>
+            </div>
+            {!smartWorking && (
+              <div>
+                <label className="label">Raggio (50–1500 m): {radius}m</label>
+                <input
+                  type="range"
+                  min={50}
+                  max={1500}
+                  value={radius}
+                  onChange={(e) => setRadius(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+            )}
+          </div>
+          {!smartWorking && (
+            <div className="flex flex-col">
               <label className="label">Anteprima</label>
               <BranchMapPreview lat={lat} lng={lng} radiusM={radius} />
               {lat !== null && lng !== null ? (
-                <p className="text-xs text-neutral-500 mt-1">
+                <p className="text-xs text-neutral-500 mt-2">
                   {lat.toFixed(5)}, {lng.toFixed(5)} · tolleranza {radius}m
                 </p>
               ) : (
-                <p className="text-xs text-neutral-500 mt-1">
+                <p className="text-xs text-neutral-500 mt-2">
                   Seleziona un indirizzo per visualizzare la sede sulla mappa.
                 </p>
               )}
             </div>
-          </>
-        )}
+          )}
+        </div>
         {err && <div className="text-sm text-[color:var(--color-error)]">{err}</div>}
-        <div className="flex gap-2 justify-end pt-2">
+        <div className="flex gap-2 justify-end pt-2 mt-auto">
           <button type="button" className="btn btn-secondary" onClick={onClose}>Annulla</button>
           <button type="submit" className="btn btn-primary" disabled={busy}>
             {busy ? 'Salvataggio…' : 'Salva'}
