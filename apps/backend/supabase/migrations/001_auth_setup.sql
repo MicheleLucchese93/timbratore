@@ -1,4 +1,4 @@
--- Cisono — auth setup + RLS scaffolding.
+-- SonoQui — auth setup + RLS scaffolding.
 -- Idempotent. Re-running on populated DB is a no-op.
 
 CREATE SCHEMA IF NOT EXISTS auth;

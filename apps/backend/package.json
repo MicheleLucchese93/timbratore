@@ -1,5 +1,5 @@
 {
-  "name": "@cisono/backend",
+  "name": "@sonoqui/backend",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.687.0",
     "@aws-sdk/s3-request-presigner": "^3.687.0",
-    "@cisono/shared": "*",
+    "@sonoqui/shared": "*",
     "compression": "^1.7.5",
     "cors": "^2.8.5",
     "docx": "^9.6.1",

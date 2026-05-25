@@ -6,7 +6,7 @@ interface QueuedStamp {
   enqueued_at: number;
 }
 
-const WEB_KEY = 'cisono.pending_stamps';
+const WEB_KEY = 'sonoqui.pending_stamps';
 
 function load(): QueuedStamp[] {
   if (typeof localStorage === 'undefined') return [];

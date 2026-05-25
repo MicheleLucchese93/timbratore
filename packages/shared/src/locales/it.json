@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "ciSono",
+    "name": "sonoQui",
     "tagline": "Timbratura semplice per piccole imprese"
   },
   "common": {
@@ -13,7 +13,7 @@
     "error_generic": "Si è verificato un errore"
   },
   "auth": {
-    "login_title": "Accedi a ciSono",
+    "login_title": "Accedi a sonoQui",
     "email": "Email",
     "password": "Password",
     "sign_in": "Accedi",

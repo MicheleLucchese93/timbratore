@@ -53,7 +53,7 @@ const Env = z.object({
   R2_BUCKET: z.string().optional(),
   R2_ACCESS_KEY_ID: z.string().optional(),
   R2_SECRET_ACCESS_KEY: z.string().optional(),
-  NOMINATIM_USER_AGENT: z.string().default('Cisono/0.1'),
+  NOMINATIM_USER_AGENT: z.string().default('SonoQui/0.1'),
   GOOGLE_MAPS_API_KEY: z.string().optional(),
   CENTRIFUGO_API_URL: z.string().optional(),
   CENTRIFUGO_API_KEY: z.string().optional(),

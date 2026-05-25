@@ -1,4 +1,4 @@
-# Cisono
+# SonoQui
 
 Mobile-first GPS attendance app for small Italian SMEs (≤20 employees).
 
@@ -21,7 +21,7 @@ Prereqs: Node 22+, Postgres 16+ (running locally on 5432).
 
 ```
 npm install
-createdb cisono_dev
+createdb sonoqui_dev
 npm run migrate
 npm run seed
 npm run dev:backend   # http://localhost:4000

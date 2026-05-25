@@ -1,7 +1,7 @@
 {
-  "name": "ciSono — Admin",
-  "short_name": "ciSono",
-  "description": "Pannello admin per la gestione presenze ciSono.",
+  "name": "sonoQui — Admin",
+  "short_name": "sonoQui",
+  "description": "Pannello admin per la gestione presenze sonoQui.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#fffbf8",

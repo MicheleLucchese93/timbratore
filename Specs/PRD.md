@@ -1,8 +1,8 @@
-# Cisono — Product Requirements Document
+# SonoQui — Product Requirements Document
 
 **Status:** Draft v0.2
 **Date:** 2026-05-24
-**Product name locked:** Cisono ("ci sono" = "I'm here / I'm in"). Domains to grab: `cisono.app`, `cisono.io` (both free as of verification); `cisono.com` to backorder; `cisono.it` via broker post-traction. UIBM TM filing class 9+42 in flight.
+**Product name locked:** SonoQui ("ci sono" = "I'm here / I'm in"). Domains to grab: `sonoqui.app`, `sonoqui.io` (both free as of verification); `sonoqui.com` to backorder; `sonoqui.it` via broker post-traction. UIBM TM filing class 9+42 in flight.
 **Companion documents:** [BOILERPLATE_ARCHITECTURE.md](BOILERPLATE_ARCHITECTURE.md) (pinned tech stack and platform conventions — non-negotiable; this PRD must respect it)
 
 ---
@@ -17,7 +17,7 @@ The last section (§14, Q&A) lists the questions the product owner needs to deci
 
 ## 1. Vision and one-sentence pitch
 
-**Cisono is a mobile-first, GPS-verified attendance app for very small Italian and EU companies (under 20 employees) that ships with Italian labour-law compliance built in and costs no more than a few euros per active user per month, with no hardware required and no base fee. The name is the natural Italian roll-call answer — "ci sono" = "I'm here / I'm in" — uttered by the employee as the stamp is taken.**
+**SonoQui is a mobile-first, GPS-verified attendance app for very small Italian and EU companies (under 20 employees) that ships with Italian labour-law compliance built in and costs no more than a few euros per active user per month, with no hardware required and no base fee. The name is the natural Italian roll-call answer — "ci sono" = "I'm here / I'm in" — uttered by the employee as the stamp is taken.**
 
 The product replaces paper timesheets and Excel-based attendance tracking with a phone-only workflow: an employee opens the app at their workplace, the app confirms they are within a configurable geofence around an authorised branch (default tolerance 300m), and a stamp is recorded. Administrators provision branches and users from a web dashboard, fix forgotten stamps with an audit trail, and export monthly attendance data in commercialista-ready XLSX or in JSON.
 
@@ -55,7 +55,7 @@ The product is a focused timbratore tool (not a full HR suite), which keeps scop
 
 ### 3.3 Positioning statement
 
-> *Per piccole imprese italiane (1–20 dipendenti) che vogliono smettere di usare carta ed Excel per le timbrature, **Cisono** è un'app mobile e web che verifica con il GPS che il dipendente sia in azienda al momento della timbratura, è conforme allo Statuto dei Lavoratori e al GDPR fin dalla prima installazione, e costa **pochi euro al mese per dipendente attivo, senza costi fissi**. A differenza di Jibble, Connecteam o Buddy Punch, Cisono è pensato fin dall'inizio per il contesto italiano: CCNL pre-configurati, esportazioni XLSX pronte per il commercialista, modello DPIA scaricabile, hosting europeo. Apri l'app, sei al tuo posto di lavoro, tocca il pulsante: **ci sono**.*
+> *Per piccole imprese italiane (1–20 dipendenti) che vogliono smettere di usare carta ed Excel per le timbrature, **SonoQui** è un'app mobile e web che verifica con il GPS che il dipendente sia in azienda al momento della timbratura, è conforme allo Statuto dei Lavoratori e al GDPR fin dalla prima installazione, e costa **pochi euro al mese per dipendente attivo, senza costi fissi**. A differenza di Jibble, Connecteam o Buddy Punch, SonoQui è pensato fin dall'inizio per il contesto italiano: CCNL pre-configurati, esportazioni XLSX pronte per il commercialista, modello DPIA scaricabile, hosting europeo. Apri l'app, sei al tuo posto di lavoro, tocca il pulsante: **ci sono**.*
 
 ### 3.4 Competitive landscape (summary; full analysis in §11)
 
@@ -100,7 +100,7 @@ The product is a focused timbratore tool (not a full HR suite), which keeps scop
 
 - **Age 55, handles payroll for ~40 small clients.** Uses TeamSystem and Zucchetti Software paghe.
 - Receives attendance data from clients in every imaginable format: WhatsApp photos of paper agendas, malformed Excel files, free-form emails ("Giulia ha lavorato 6 ore lunedì, 8 martedì...").
-- Will recommend Cisono to his clients if and only if the monthly export is clean, predictable, and reads correctly into his payroll software in one paste or one import.
+- Will recommend SonoQui to his clients if and only if the monthly export is clean, predictable, and reads correctly into his payroll software in one paste or one import.
 - Antonio is not a buyer but he is a powerful evangelist. The XLSX format must satisfy him.
 
 ---
@@ -109,7 +109,7 @@ The product is a focused timbratore tool (not a full HR suite), which keeps scop
 
 ### 5.1 Admin onboarding (Marco, first hour)
 
-1. Marco visits `cisono.app` from his desktop, clicks "Crea il tuo account aziendale gratis".
+1. Marco visits `sonoqui.app` from his desktop, clicks "Crea il tuo account aziendale gratis".
 2. Form: ragione sociale, partita IVA (optional in v1), email, password, accept Terms + Privacy.
 3. GoTrue creates the user, sends a confirmation email (Italian template). Marco confirms.
 4. He logs in. The dashboard is empty. A wizard prompts:
@@ -125,7 +125,7 @@ The product is a focused timbratore tool (not a full HR suite), which keeps scop
 
 ### 5.2 Employee first-time use (Giulia, first shift)
 
-1. Giulia receives an email: "Marco ti ha invitato su Cisono — Bar Centrale". Tap link.
+1. Giulia receives an email: "Marco ti ha invitato su SonoQui — Bar Centrale". Tap link.
 2. Browser opens a landing page: "Installa l'app" (Android: Play Store link; iOS: App Store link; "Continua nel browser" PWA fallback).
 3. She installs the native app (Expo-built RN, distributed through stores).
 4. App opens to a login screen. She sets her password (the invite link contains a one-time GoTrue token).
@@ -288,7 +288,7 @@ The product is a focused timbratore tool (not a full HR suite), which keeps scop
 | FR-S-01 | Tenant settings: name, country, timezone, language default, retention policy (years, default 5), geofence strictness (lenient/strict), GPS accuracy ceiling, mock-location action (allow/flag/block), break classification rules. | Must | |
 | FR-S-02 | User settings: language, notification preferences (email/push toggle per channel). | Must | |
 | FR-S-03 | Branch settings: name, address, lat/lng, radius, active, smart-working flag. | Must | |
-| FR-S-04 | A "Compliance" section in admin settings exposes: privacy notice link (PDF generator), DPIA template (PDF generator with company data filled in), Art. 4 (Statuto dei Lavoratori) checklist. These are non-binding aids — Cisono is not a legal service — but they materially reduce friction for the customer. | Must | Italian-market differentiator. |
+| FR-S-04 | A "Compliance" section in admin settings exposes: privacy notice link (PDF generator), DPIA template (PDF generator with company data filled in), Art. 4 (Statuto dei Lavoratori) checklist. These are non-binding aids — SonoQui is not a legal service — but they materially reduce friction for the customer. | Must | Italian-market differentiator. |
 | FR-S-05 | An "API & integrations" section: API key (per tenant, scoped to read/write), webhook URL for stamp events (v1.5). Used for integration with the tenant's own systems and for commercialista tools. | Should | v1 ships API key + read-only API; webhooks v1.5. |
 
 ---
@@ -426,28 +426,28 @@ JSON exports are the integration path for the tenant's own systems (commercialis
 
 ## 8. Legal and compliance
 
-This section defines what Cisono commits to as a product. **It is not legal advice for the tenant.** Tenants remain responsible for their own compliance with applicable law.
+This section defines what SonoQui commits to as a product. **It is not legal advice for the tenant.** Tenants remain responsible for their own compliance with applicable law.
 
 ### 8.1 GDPR posture
 
-- **Lawful basis** for processing employee location data at the punch moment: Art. 6(1)(b) GDPR (necessary for the performance of the employment contract) and Art. 6(1)(f) (legitimate interest in verifying attendance), with the tenant as data controller and Cisono as data processor. A standard Data Processing Agreement (DPA) is offered to every tenant, signable in-app at signup.
+- **Lawful basis** for processing employee location data at the punch moment: Art. 6(1)(b) GDPR (necessary for the performance of the employment contract) and Art. 6(1)(f) (legitimate interest in verifying attendance), with the tenant as data controller and SonoQui as data processor. A standard Data Processing Agreement (DPA) is offered to every tenant, signable in-app at signup.
 - **No special-category data** (Art. 9): no biometrics, no facial recognition, no fingerprints, no health data. Selfies are **not** stored in v1 (explicitly out of scope to avoid biometric-grey-zone risk).
 - **Data minimisation:** GPS coordinates of stamps are minimised over time. Raw lat/lng kept ≤90 days; thereafter only `branch_id` retained (the lat/lng is removed by a scheduled job).
 - **Right of access, rectification, erasure, portability:** all GDPR rights respected. Self-service in v1 for export (right of access + portability). Erasure requests honoured within 30 days, with the lawful exception of stamp records that the tenant must retain for labour-law purposes (in which case the stamp is anonymised, not deleted).
-- **Data Protection Impact Assessment (DPIA):** Cisono ships a pre-filled DPIA template that the tenant downloads from the dashboard, signed by their DPO if they have one or by the titolare otherwise. The template is reviewed by an Italian privacy lawyer (one-off engagement before launch). **This is a marketing asset, not legal advice.**
+- **Data Protection Impact Assessment (DPIA):** SonoQui ships a pre-filled DPIA template that the tenant downloads from the dashboard, signed by their DPO if they have one or by the titolare otherwise. The template is reviewed by an Italian privacy lawyer (one-off engagement before launch). **This is a marketing asset, not legal advice.**
 - **Sub-processors:** the boilerplate's external dependencies (Cloudflare R2, Brevo SMTP, Expo Push) are listed as sub-processors in the DPA. EU data residency where available (R2 in EU; Brevo IT/FR).
 
 ### 8.2 Italian-specific compliance
 
-- **Art. 4 Statuto dei Lavoratori (Law 300/1970):** Cisono is a tool from which monitoring can derive. The tenant must either (a) have a workplace union representation (RSA/RSU) and reach a written agreement on its use, or (b) request authorisation from the Ispettorato Nazionale del Lavoro (INL) before deploying. Cisono ships a printable Art. 4 checklist + a sample union agreement + a sample INL request template, generated with the tenant's data pre-filled.
-- **No continuous tracking:** the app never accesses location outside of an explicit user-initiated clock event. This is an architectural commitment, surfaced prominently in the privacy notice template and on the Trust page on `cisono.app`.
+- **Art. 4 Statuto dei Lavoratori (Law 300/1970):** SonoQui is a tool from which monitoring can derive. The tenant must either (a) have a workplace union representation (RSA/RSU) and reach a written agreement on its use, or (b) request authorisation from the Ispettorato Nazionale del Lavoro (INL) before deploying. SonoQui ships a printable Art. 4 checklist + a sample union agreement + a sample INL request template, generated with the tenant's data pre-filled.
+- **No continuous tracking:** the app never accesses location outside of an explicit user-initiated clock event. This is an architectural commitment, surfaced prominently in the privacy notice template and on the Trust page on `sonoqui.app`.
 - **Retention:** stamps retained for 5 years by default (aligned with Libro Unico del Lavoro retention and the 5-year prescrizione for wage claims). Configurable up to 10 years (for tenants who want to retain longer in light of INPS contribution disputes). After retention period, stamps are hard-deleted by a scheduled job.
 - **CCNL awareness:** v1 ships a single global break classification (configurable). v1.5 ships pre-configured templates for the most common CCNLs: turismo, commercio, metalmeccanici (artigianato + industria), edilizia, cooperative sociali, pubblici esercizi. The PRD does not commit to legal accuracy of these templates — they are convenience defaults that the tenant validates.
 - **CJEU compliance (CCOO v. Deutsche Bank, 2019):** the stamping system is objective (GPS + timestamp + audit log), reliable (durable across app restarts, server-side validation), and accessible (employee can view own stamps anytime). Compliance is structural.
 
 ### 8.3 Data residency
 
-All Cisono data (Postgres, R2, backups, logs) is hosted in the European Economic Area:
+All SonoQui data (Postgres, R2, backups, logs) is hosted in the European Economic Area:
 
 - Postgres on OVH (Roubaix, France) or Aruba (Bergamo, Italy).
 - Cloudflare R2 with EU jurisdiction binding.
@@ -490,11 +490,11 @@ Not in v1: no enterprise plan, no per-tenant custom contracts, no on-premise. We
 
 ## 10. Architecture alignment notes
 
-This section documents the deltas between the boilerplate (`BOILERPLATE_ARCHITECTURE.md`) and what Cisono needs.
+This section documents the deltas between the boilerplate (`BOILERPLATE_ARCHITECTURE.md`) and what SonoQui needs.
 
 ### 10.1 Multi-tenant RLS extension
 
-The boilerplate's `withRLS(userId, fn)` sets `app.current_user_id` per transaction. Cisono adds a second GUC:
+The boilerplate's `withRLS(userId, fn)` sets `app.current_user_id` per transaction. SonoQui adds a second GUC:
 
 ```sql
 -- In apps/backend/src/lib/db.ts (extension to existing withRLS)
@@ -705,7 +705,7 @@ Add `expo-location` to `apps/mobile/package.json` (boilerplate doesn't include i
 
 Permissions in `app.config.ts`:
 
-- iOS: `infoPlist.NSLocationWhenInUseUsageDescription = "Cisono usa il GPS al momento della timbratura per verificare che tu sia in azienda. Non tracciamo mai la tua posizione in background."`
+- iOS: `infoPlist.NSLocationWhenInUseUsageDescription = "SonoQui usa il GPS al momento della timbratura per verificare che tu sia in azienda. Non tracciamo mai la tua posizione in background."`
 - Android: `permissions: ["ACCESS_FINE_LOCATION"]` (do NOT add `ACCESS_BACKGROUND_LOCATION`).
 
 Mock-location detection: candidate library is `react-native-turbo-mock-location-detector` (community-maintained, Expo-config-plugin-compatible). Vet during the v1 spike; if Expo SDK 55 compatibility is shaky, fall back to a minimal native module shipped via Expo prebuild.
@@ -804,7 +804,7 @@ Two new node-cron jobs (slot into existing scheduler service):
 
 ### 11.2 The Time Relax fine as a marketing artifact
 
-The €50K fine issued by the Garante in March 2025 to Time Relax (Italian smart-working monitoring tool) for "unlawful surveillance" is recent, public, and visible to every Italian SME owner. Our Trust page leads with: "Cisono registra la posizione **solo nell'istante della timbratura** — mai prima, mai dopo, mai in background. Lo abbiamo progettato così per non incorrere nelle sanzioni che hanno colpito altri strumenti di rilevazione presenze." Cite the Garante press release. This is a defensive positioning that becomes offensive.
+The €50K fine issued by the Garante in March 2025 to Time Relax (Italian smart-working monitoring tool) for "unlawful surveillance" is recent, public, and visible to every Italian SME owner. Our Trust page leads with: "SonoQui registra la posizione **solo nell'istante della timbratura** — mai prima, mai dopo, mai in background. Lo abbiamo progettato così per non incorrere nelle sanzioni che hanno colpito altri strumenti di rilevazione presenze." Cite the Garante press release. This is a defensive positioning that becomes offensive.
 
 ### 11.3 The "active user" billing model as a marketing artifact
 
@@ -1000,7 +1000,7 @@ This section is the most important part of the document. Each item is a question
 - *Recommendation:* yes, but v1.5. Antonio the commercialista is our most powerful evangelist. 20% recurring commission on tenants he refers. Build the program after we have a polished product to refer.
 
 **Q47 ⚠ load-bearing. Branding: product name.**
-- *Decision (2026-05-24):* **Cisono** ("ci sono" = "I'm here / I'm in"). Picked from a 24-candidate brand audit covering domain availability across `.app/.it/.io/.com`, Apple App Store + Google Play exact-name and category-collision searches, Italian trademark quick checks, and Italian-SME-owner comprehension test. Cisono won because it is (a) an everyday Italian roll-call answer that requires zero explanation to the Marco-the-bar-owner persona, (b) the only finalist where both `.app` and `.io` are unregistered at standard-registrar pricing as of verification, and (c) had zero same-vertical app-store collisions and no Italian trademark conflict in software classes 9 + 42. Disqualified alternatives: Eccomi (live competitor on eccomi.io — EFFEFFE SRL Foggia + Gruppo VéGé TM), Presente (Smart Time / Bunker360 collision), Pronto (ProntoPro Italian brand giant), Subito (Subito.it top-3 Italian consumer brand), Appello (ApPello EU fintech + Skello adjacency), Meridiana (HR-Meridiana direct competitor + meridianatime.ch), Klepsi (clean sweep but coined Greek-root word fails the "instantly understandable" brief). Domains to lock in P0-4 (see DEV_BACKLOG): `cisono.app` at Cloudflare Registrar (~$14/yr), `cisono.io` at Porkbun (~$35/yr), backorder on `cisono.com` (Chinese parking), broker offer on `cisono.it` (held by Puglia.com flipper — expect €1.5k–5k ask; skip for v1, pursue post-traction). UIBM word-mark filing in classes 9 (software product) + 42 (SaaS) within 30 days of domain registration to lock Italian priority (~€280).
+- *Decision (2026-05-24):* **SonoQui** ("ci sono" = "I'm here / I'm in"). Picked from a 24-candidate brand audit covering domain availability across `.app/.it/.io/.com`, Apple App Store + Google Play exact-name and category-collision searches, Italian trademark quick checks, and Italian-SME-owner comprehension test. SonoQui won because it is (a) an everyday Italian roll-call answer that requires zero explanation to the Marco-the-bar-owner persona, (b) the only finalist where both `.app` and `.io` are unregistered at standard-registrar pricing as of verification, and (c) had zero same-vertical app-store collisions and no Italian trademark conflict in software classes 9 + 42. Disqualified alternatives: Eccomi (live competitor on eccomi.io — EFFEFFE SRL Foggia + Gruppo VéGé TM), Presente (Smart Time / Bunker360 collision), Pronto (ProntoPro Italian brand giant), Subito (Subito.it top-3 Italian consumer brand), Appello (ApPello EU fintech + Skello adjacency), Meridiana (HR-Meridiana direct competitor + meridianatime.ch), Klepsi (clean sweep but coined Greek-root word fails the "instantly understandable" brief). Domains to lock in P0-4 (see DEV_BACKLOG): `sonoqui.app` at Cloudflare Registrar (~$14/yr), `sonoqui.io` at Porkbun (~$35/yr), backorder on `sonoqui.com` (Chinese parking), broker offer on `sonoqui.it` (held by Puglia.com flipper — expect €1.5k–5k ask; skip for v1, pursue post-traction). UIBM word-mark filing in classes 9 (software product) + 42 (SaaS) within 30 days of domain registration to lock Italian priority (~€280).
 
 **Q48 ○ small. Visual brand: bold/playful (Connecteam-style) or sober/professional (Personio-style)?**
 - *Recommendation:* sober/professional with a single warm accent colour. Marco the bar owner is more responsive to "looks like serious software" than to playful illustrations. The brand should feel like Stripe or Notion, not like Slack. Mobile end-user UI can be slightly playful (it's a one-button app). Admin UI is sober.
@@ -1013,7 +1013,7 @@ This section is the most important part of the document. Each item is a question
 **Q50 ○ small. Geocoding provider: Nominatim/OSM or paid (MapTiler/Mapbox)?**
 - *Recommendation:* Nominatim with the polite-use User-Agent and 1 req/sec self-imposed limit. At our scale (≤1000 tenants, each creating ≤5 branches over a year — so <100 geocoding requests per day), Nominatim is comfortably within fair-use. Fallback to MapTiler if Nominatim hits limits.
 
-**Q51 ⚠ load-bearing. ORM exception. The boilerplate forbids ORMs. Does Cisono have any code path that wants one?**
+**Q51 ⚠ load-bearing. ORM exception. The boilerplate forbids ORMs. Does SonoQui have any code path that wants one?**
 - *Recommendation:* no — comply with the boilerplate. Raw SQL via `pg.PoolClient` everywhere. The repository pattern (`apps/backend/src/repositories/pg/`) is fine for our model. If the team finds itself writing repetitive CRUD, the answer is shared helper functions in `lib/db.ts`, not Prisma.
 
 **Q52 ○ small. Database migrations: any non-idempotent migration needed?**
@@ -1030,7 +1030,7 @@ This section is the most important part of the document. Each item is a question
 
 ### Q&A — Risks I want to surface
 
-**Q56 ⚠ load-bearing risk.** **Italian Art. 4 compliance is a tenant obligation, not ours, but tenants who deploy us without doing the union/INL step are exposed.** We ship templates, but we cannot guarantee tenants use them. The risk to Cisono is reputational ("Garante fined a Cisono customer"). Mitigation: prominent in-product warnings, the DPIA/Art. 4 template flow, a publicly-readable "Customer Compliance Guide" on the website. We are not the lawyer; we are the tool. Surface this expectation clearly in the TOS. *Recommend: legal review before launch confirms our liability stops at "tool provider" status.*
+**Q56 ⚠ load-bearing risk.** **Italian Art. 4 compliance is a tenant obligation, not ours, but tenants who deploy us without doing the union/INL step are exposed.** We ship templates, but we cannot guarantee tenants use them. The risk to SonoQui is reputational ("Garante fined a SonoQui customer"). Mitigation: prominent in-product warnings, the DPIA/Art. 4 template flow, a publicly-readable "Customer Compliance Guide" on the website. We are not the lawyer; we are the tool. Surface this expectation clearly in the TOS. *Recommend: legal review before launch confirms our liability stops at "tool provider" status.*
 
 **Q57 ⚠ load-bearing risk.** **App Store review may reject employee-monitoring apps.** Mitigation: rigorous privacy posture (no continuous tracking, clear permission justification, easy account deletion). Budget 2–3 review rounds. If rejected, we have a fallback PWA path via the RN-Web target.
 
@@ -1038,7 +1038,7 @@ This section is the most important part of the document. Each item is a question
 
 **Q59 ⚠ load-bearing risk.** **Self-hosted single-VM deployment has a true uptime ceiling around 99.5%.** Mitigation: be honest in marketing (don't sell 99.9%). If a tenant requests a higher SLA, talk to them about enterprise tier (v2). For Marco the bar owner, 99.5% is fine.
 
-**Q60 ⚠ load-bearing risk.** **GPS spoofing on rooted Android can defeat the geofence.** Mitigation: we ship mock-location detection (native plugin), but it is best-effort. For v1, we are honest in marketing: "Cisono non è progettato per prevenire frodi sofisticate. Per chi richiede anti-frode di livello enterprise, vedere v2 con verifica fotografica e cross-check sensori." Selfie at clock-in (v1.5) materially changes the spoofing equation. Pricing implication: don't market this as a fraud-prevention product; market it as a digitalisation product. Fraud detection is upsell territory.
+**Q60 ⚠ load-bearing risk.** **GPS spoofing on rooted Android can defeat the geofence.** Mitigation: we ship mock-location detection (native plugin), but it is best-effort. For v1, we are honest in marketing: "SonoQui non è progettato per prevenire frodi sofisticate. Per chi richiede anti-frode di livello enterprise, vedere v2 con verifica fotografica e cross-check sensori." Selfie at clock-in (v1.5) materially changes the spoofing equation. Pricing implication: don't market this as a fraud-prevention product; market it as a digitalisation product. Fraud detection is upsell territory.
 
 **Q61 ⚠ load-bearing risk.** **The boilerplate is brand new to the team; the velocity assumption (v1 in Q3 2026 = ~4 months from PRD approval) is contingent on the team being comfortable with the boilerplate's specific shape (Express 5 raw pg, custom DI container, self-hosted GoTrue, Centrifugo outbox, etc.).** Mitigation: 2-week "boilerplate onboarding" sprint where the team builds a throwaway feature on the boilerplate before we start v1 work. If the team finds friction, adjust the timeline.
 
@@ -1079,7 +1079,7 @@ This section is the most important part of the document. Each item is a question
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-05-21 | Claude | Initial draft. |
-| 0.2 | 2026-05-24 | Claude | Product name locked: Cisono. Q47 resolved with brand-audit decision rationale. All "Timbratore" brand references replaced; `timbratore.app` → `cisono.app`. Italian iOS permission string updated. PRD-level domain/TM acquisition plan added in header. |
+| 0.2 | 2026-05-24 | Claude | Product name locked: SonoQui. Q47 resolved with brand-audit decision rationale. All "Timbratore" brand references replaced; `timbratore.app` → `sonoqui.app`. Italian iOS permission string updated. PRD-level domain/TM acquisition plan added in header. |
 
 ---
 

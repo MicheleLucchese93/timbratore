@@ -8,12 +8,12 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/shared ./packages/shared
 COPY apps/web ./apps/web
 
-RUN npm ci --workspace=@cisono/web --include-workspace-root
+RUN npm ci --workspace=@sonoqui/web --include-workspace-root
 
 # Production env vars baked at build time. Override with --build-arg.
-ARG VITE_API_URL=https://api-cisono.xdevapp.it
-ARG VITE_AUTH_URL=https://auth-cisono.xdevapp.it
-ARG VITE_CENTRIFUGO_URL=wss://ws-cisono.xdevapp.it/connection/websocket
+ARG VITE_API_URL=https://api-sonoqui.xdevapp.it
+ARG VITE_AUTH_URL=https://auth-sonoqui.xdevapp.it
+ARG VITE_CENTRIFUGO_URL=wss://ws-sonoqui.xdevapp.it/connection/websocket
 ARG VITE_GOOGLE_MAPS_API_KEY=
 
 ENV VITE_API_URL=$VITE_API_URL \
@@ -21,7 +21,7 @@ ENV VITE_API_URL=$VITE_API_URL \
     VITE_CENTRIFUGO_URL=$VITE_CENTRIFUGO_URL \
     VITE_GOOGLE_MAPS_API_KEY=$VITE_GOOGLE_MAPS_API_KEY
 
-RUN npm run build --workspace=@cisono/web
+RUN npm run build --workspace=@sonoqui/web
 
 FROM nginx:1.29-alpine
 COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf

@@ -57,7 +57,7 @@ export function MyDashboard() {
           </div>
         </div>
         <p className="text-sm muted max-w-md">
-          Per timbrare usa l'app mobile su <a href="https://m-cisono.xdevapp.it" style={{ color: 'var(--color-primary)' }} className="font-medium">m-cisono.xdevapp.it</a>.
+          Per timbrare usa l'app mobile su <a href="https://m-sonoqui.xdevapp.it" style={{ color: 'var(--color-primary)' }} className="font-medium">m-sonoqui.xdevapp.it</a>.
         </p>
       </section>
 

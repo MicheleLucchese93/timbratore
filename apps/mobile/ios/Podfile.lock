@@ -1,9 +1,7 @@
 PODS:
-  - EXApplication (7.0.8):
+  - EXApplication (56.0.3):
     - ExpoModulesCore
   - EXConstants (56.0.15):
-    - ExpoModulesCore
-  - EXNotifications (0.32.17):
     - ExpoModulesCore
   - Expo (56.0.4):
     - ExpoModulesCore
@@ -49,7 +47,7 @@ PODS:
     - ExpoModulesCore
   - ExpoLinking (56.0.11):
     - ExpoModulesCore
-  - ExpoLocation (19.0.8):
+  - ExpoLocation (56.0.13):
     - ExpoModulesCore
   - ExpoLogBox (56.0.12):
     - React-Core
@@ -88,14 +86,16 @@ PODS:
     - ExpoModulesJSI
     - ExpoModulesWorklets
     - RNWorklets
+  - ExpoNotifications (56.0.13):
+    - ExpoModulesCore
   - ExpoRouter (56.2.6):
     - ExpoModulesCore
     - RNScreens
-  - ExpoSecureStore (15.0.8):
+  - ExpoSecureStore (56.0.4):
     - ExpoModulesCore
   - ExpoSplashScreen (56.0.10):
     - ExpoModulesCore
-  - ExpoSQLite (16.0.10):
+  - ExpoSQLite (56.0.4):
     - ExpoModulesCore
   - ExpoSymbols (56.0.5):
     - ExpoModulesCore
@@ -2205,7 +2205,6 @@ PODS:
 DEPENDENCIES:
   - EXApplication (from `../../../node_modules/expo-application/ios`)
   - EXConstants (from `../../../node_modules/expo-constants/ios`)
-  - EXNotifications (from `../../../node_modules/expo-notifications/ios`)
   - Expo (from `../../../node_modules/expo`)
   - ExpoAsset (from `../../../node_modules/expo-asset/ios`)
   - ExpoDevice (from `../../../node_modules/expo-device/ios`)
@@ -2216,12 +2215,13 @@ DEPENDENCIES:
   - ExpoImage (from `../../../node_modules/expo-image/ios/ExpoImage.podspec`)
   - ExpoKeepAwake (from `../../../node_modules/expo-keep-awake/ios`)
   - ExpoLinking (from `../../../node_modules/expo-linking/ios`)
-  - ExpoLocation (from `../../../node_modules/expo-location/ios`)
+  - ExpoLocation (from `../../../node_modules/expo-location/ios/ExpoLocation.podspec`)
   - "ExpoLogBox (from `../../../node_modules/@expo/log-box`)"
   - ExpoModulesCore (from `../../../node_modules/expo-modules-core/ExpoModulesCore.podspec`)
   - ExpoModulesJSI (from `../../../node_modules/expo-modules-jsi/apple`)
   - ExpoModulesWorklets (from `../../../node_modules/expo-modules-core/ExpoModulesWorklets.podspec`)
   - ExpoModulesWorkletsAdapter (from `../../../node_modules/expo-modules-core`)
+  - ExpoNotifications (from `../../../node_modules/expo-notifications/ios`)
   - ExpoRouter (from `../../../node_modules/expo-router/ios`)
   - ExpoSecureStore (from `../../../node_modules/expo-secure-store/ios`)
   - ExpoSplashScreen (from `../../../node_modules/expo-splash-screen/ios`)
@@ -2317,8 +2317,6 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/expo-application/ios"
   EXConstants:
     :path: "../../../node_modules/expo-constants/ios"
-  EXNotifications:
-    :path: "../../../node_modules/expo-notifications/ios"
   Expo:
     :path: "../../../node_modules/expo"
   ExpoAsset:
@@ -2340,7 +2338,7 @@ EXTERNAL SOURCES:
   ExpoLinking:
     :path: "../../../node_modules/expo-linking/ios"
   ExpoLocation:
-    :path: "../../../node_modules/expo-location/ios"
+    :podspec: "../../../node_modules/expo-location/ios/ExpoLocation.podspec"
   ExpoLogBox:
     :path: "../../../node_modules/@expo/log-box"
   ExpoModulesCore:
@@ -2351,6 +2349,8 @@ EXTERNAL SOURCES:
     :podspec: "../../../node_modules/expo-modules-core/ExpoModulesWorklets.podspec"
   ExpoModulesWorkletsAdapter:
     :path: "../../../node_modules/expo-modules-core"
+  ExpoNotifications:
+    :path: "../../../node_modules/expo-notifications/ios"
   ExpoRouter:
     :path: "../../../node_modules/expo-router/ios"
   ExpoSecureStore:
@@ -2530,9 +2530,8 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  EXApplication: 1e98d4b1dccdf30627f92917f4b2c5a53c330e5f
+  EXApplication: e6040c92edc5522accd62852342e6b14742d42c0
   EXConstants: 7ad8cebfd251d7275fa2e3878ad0ad64552937e1
-  EXNotifications: c67e92b9fdfe785ff9dbdc5f4c0ff935de357da7
   Expo: c705adbda900eb7e5d2b4d378ae82b254d9e1e05
   ExpoAsset: 98f83c25d558707659dd6b117adcc03104dd287b
   ExpoDevice: f527f8bbefa6efa12f8ef63e9038dd1d5d903697
@@ -2543,22 +2542,23 @@ SPEC CHECKSUMS:
   ExpoImage: 3f44073bf450afdb87333f9671ffe7b9bfa5f70e
   ExpoKeepAwake: 359c47a1d9ccc3a3c519bca6e39562cce230c5bb
   ExpoLinking: 63319fd84bfa6d2ba4b565fc2af1947c65281478
-  ExpoLocation: d5b61cb4970fa982e39ca94246a206a0c3b812ca
+  ExpoLocation: 60630ca1a329177b57113644e1f06ad96aa305be
   ExpoLogBox: 7aa03244fe5eeced5129e4ec7ad5bd9a3994378e
-  ExpoModulesCore: 081a443bc9c0abf8783bde4002eb34fa79b5837c
+  ExpoModulesCore: 1e599fe1f769d428fd64a0b76097341fde151db0
   ExpoModulesJSI: f25a013ea9a79904bdd535e4bea0872e155cde09
   ExpoModulesWorklets: 5349d7281651a11e0a5d14f32db8bb47e32c2ff4
   ExpoModulesWorkletsAdapter: 5916329001093e070f1bbab2d9c4d9b79d1b09ab
+  ExpoNotifications: d44bcad88060b913143633e0aee2d331a2dc6f05
   ExpoRouter: ec5c793ef2a5ade5ecbd3097831c7b9411ed43be
-  ExpoSecureStore: d32f751874a2ceb5aaeebeb3578e165c1ba2b24a
+  ExpoSecureStore: f1bd083c1b7b8d4142013ffcc0082d377d9f49f4
   ExpoSplashScreen: 3fe3a57d56d7242a9109d9714a6f9fa1e256538b
-  ExpoSQLite: 7eedbe476870a5f18d6b89c817c4ac6f299830ad
+  ExpoSQLite: 38a35f67bbb3370d9bb859aa65d106909c4e3b19
   ExpoSymbols: f83c91f2897d37102b98b9224c603095630be9d0
   ExpoSystemUI: 8f4fb641c6a6ebe2a01dda0fbd3fdd952ab5823a
   ExpoUI: b8da9e23eb4cef30e4797bc6de102a9178e6cd2b
   ExpoWebBrowser: 6e3d90e3fe1952d21a8494872b1e1a485cd50e2f
   FBLazyVector: 24e62c765683b8d89006a88a2c8f5cf019f0074d
-  hermes-engine: b8cb73636dfe1f085c2dd76e0b14947cf7cc49c5
+  hermes-engine: 638adcc06d46d86ef097c72bfcd2120e63dcded8
   RCTDeprecation: a4c521821fab57cbb125b36effe84d897d0dfa12
   RCTRequired: 9f3a7e5645d4bc3f551593de7550bb66ab6e42bc
   RCTSwiftUI: 239ed2eb9e73de5a6f518810630f0c95e01c8702
@@ -2567,7 +2567,7 @@ SPEC CHECKSUMS:
   React: e2dc35338068bbd299c66f043ae0d7f25de8499e
   React-callinvoker: 28b25d21b124c26cebaea713ba7d801b9351dc48
   React-Core: 02ed7d2ffb70437bdf2aba074a13078a7b0b9ff0
-  React-Core-prebuilt: cbb9f42511d89b843d6c38195ae04254ed6c7ed8
+  React-Core-prebuilt: ac82afebce27f6318c2851065e918fbebe987a16
   React-CoreModules: b3a5a42dadcde3b5d47b325bd912eb2ced89e146
   React-cxxreact: fe8f88dda044e5905e99a00f41b7a874c3908716
   React-debug: 92944dc4d89f56d640e75498266cbde557a48189
@@ -2630,7 +2630,7 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: 25c9c516839be2c5e3d3344f95dc7da5f7e63fc2
   ReactCodegen: dfe41c3f92bdf782bcf9b2c9d7c12cb9cfd82cb7
   ReactCommon: 7dfc3250793bf36cf221096ff59e1179e13eef7f
-  ReactNativeDependencies: e29602af790891bb718ae201d424709182bc2256
+  ReactNativeDependencies: 397803dc162e1fb556562c44b9605a48a35f8ed6
   RNCMaskedView: eb2b2e538afa907f05a5848a1a1ac26092e6fec9
   RNGestureHandler: 2ff61eac036eaf89f6818bf4ed9c39771a17d134
   RNReanimated: 07fe6682b1d90b9d536540614562850503c63dbb

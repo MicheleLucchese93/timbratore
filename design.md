@@ -1,10 +1,10 @@
-# ciSono — Design System
+# sonoQui — Design System
 
 Single source of truth for product UI. Web (Tailwind v4 + Material-3 tokens) and mobile (React Native StyleSheet via `packages/shared/design`) consume the same scale.
 
 ## 1. Brand
 
-- **Name in product copy:** `ciSono` (lowercase `c`, capital `S`, rest lowercase). Never `CiSono`, never `Cisono` in user-facing strings. Marketing tagline: _"Una timbratura semplice. Per chi c'è."_
+- **Name in product copy:** `sonoQui` (lowercase `c`, capital `S`, rest lowercase). Never `CiSono`, never `SonoQui` in user-facing strings. Marketing tagline: _"Una timbratura semplice. Per chi c'è."_
 - **Logo placeholder:** word-mark only in v1, no separate icon. Letter pair `ciS` accented in primary; rest in on-surface.
 - **Tone of voice:** Italian-first, second-person plural ("voi" only in legal docs; "tu" in app). Avoid English jargon ("login" → "accedi", "submit" → "invia").
 

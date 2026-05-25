@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Email confermata — ciSono</title>
+<title>Email confermata — sonoQui</title>
 <style>
   body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#fffbf8; color:#1f1b16; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:1.5rem; }
   .card { background:#fff; border-radius:16px; box-shadow:0 4px 24px rgba(0,0,0,0.06); max-width:420px; width:100%; padding:2rem; text-align:center; }
@@ -16,10 +16,10 @@
 </head>
 <body>
   <div class="card">
-    <div class="brand">ciSono</div>
+    <div class="brand">sonoQui</div>
     <h1 id="title">Verifica in corso…</h1>
     <p id="body">Un attimo.</p>
-    <a id="cta" class="btn" href="https://app-cisono.xdevapp.it/">Apri ciSono</a>
+    <a id="cta" class="btn" href="https://app-sonoqui.xdevapp.it/">Apri sonoQui</a>
   </div>
 <script>
 (function () {
@@ -37,7 +37,7 @@
     document.getElementById('body').textContent = 'Il link è incompleto. Richiedi un nuovo invito.';
     return;
   }
-  var gotrueUrl = 'https://auth-cisono.xdevapp.it';
+  var gotrueUrl = 'https://auth-sonoqui.xdevapp.it';
   var redirectTo = type === 'invite' ? '/reset-password.html' : '/confirm-email.html';
   // Caddy origin → GoTrue. Direct POST to /verify with redirect_to so GoTrue
   // returns the token fragment on the static page that handles password.
@@ -65,7 +65,7 @@
       document.getElementById('body').textContent = j.error_description || j.msg;
     } else {
       document.getElementById('title').textContent = 'Email confermata';
-      document.getElementById('body').textContent = 'Puoi accedere a ciSono.';
+      document.getElementById('body').textContent = 'Puoi accedere a sonoQui.';
     }
   }).catch(function (e) {
     document.getElementById('title').textContent = 'Errore';

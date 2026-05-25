@@ -27,7 +27,7 @@ export function renderDpiaHtml(tenant: { ragione_sociale: string; country: strin
 <li>Nessun tracciamento continuo della posizione; nessun riconoscimento facciale</li></ul>
 <h2>7. Diritti dell'interessato</h2>
 <p>Accesso, rettifica, cancellazione tramite l'app o richiesta scritta al titolare.</p>
-<p style="margin-top:3rem;font-size:0.9rem;color:#666"><em>Modello generato da ciSono. Da rivedere e personalizzare con il proprio DPO o legale prima della firma.</em></p>
+<p style="margin-top:3rem;font-size:0.9rem;color:#666"><em>Modello generato da sonoQui. Da rivedere e personalizzare con il proprio DPO o legale prima della firma.</em></p>
 </body></html>`;
 }
 
@@ -38,10 +38,10 @@ export function renderPrivacyNoticeHtml(tenant: { ragione_sociale: string; count
 <body>
 <h1>Informativa sul trattamento dei dati personali (art. 13 GDPR)</h1>
 <p><strong>Titolare:</strong> ${escapeHtml(tenant.ragione_sociale)} (${escapeHtml(tenant.country)})</p>
-<p><strong>Responsabile del trattamento:</strong> Archiva Group — ciSono.</p>
-<p>I dati raccolti tramite l'app ciSono sono utilizzati esclusivamente per la rilevazione presenze. La posizione GPS è acquisita solo al momento della timbratura e mai in background.</p>
+<p><strong>Responsabile del trattamento:</strong> Archiva Group — sonoQui.</p>
+<p>I dati raccolti tramite l'app sonoQui sono utilizzati esclusivamente per la rilevazione presenze. La posizione GPS è acquisita solo al momento della timbratura e mai in background.</p>
 <p>L'interessato può esercitare i propri diritti contattando il titolare oppure scrivendo a <code>privacy@${tenant.ragione_sociale.toLowerCase().replace(/[^a-z0-9]+/g, '')}.it</code>.</p>
-<p style="margin-top:3rem;font-size:0.9rem;color:#666"><em>Modello generato da ciSono — da personalizzare con il proprio referente legale.</em></p>
+<p style="margin-top:3rem;font-size:0.9rem;color:#666"><em>Modello generato da sonoQui — da personalizzare con il proprio referente legale.</em></p>
 </body></html>`;
 }
 
@@ -52,7 +52,7 @@ export function renderArt4ChecklistHtml(tenant: { ragione_sociale: string }): st
 <body>
 <h1>Checklist art. 4 Statuto dei Lavoratori — ${escapeHtml(tenant.ragione_sociale)}</h1>
 <p>Passi consigliati per adempiere all'art. 4 L. 300/1970 quando si introduce un sistema di rilevazione presenze.</p>
-<div class="check">☐ Verificare se l'attività rientra fra gli strumenti di lavoro (comma 2) — Cisono lo è.</div>
+<div class="check">☐ Verificare se l'attività rientra fra gli strumenti di lavoro (comma 2) — SonoQui lo è.</div>
 <div class="check">☐ Predisporre informativa preventiva ai lavoratori sulle modalità d'uso.</div>
 <div class="check">☐ Predisporre accordo aziendale con RSA/RSU (se presenti) oppure istanza all'Ispettorato Territoriale del Lavoro.</div>
 <div class="check">☐ Conservare copia firmata di accordo o autorizzazione.</div>

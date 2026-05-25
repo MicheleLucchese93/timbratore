@@ -2,8 +2,8 @@ import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-const ACCESS_KEY = 'cisono.access_token';
-const REFRESH_KEY = 'cisono.refresh_token';
+const ACCESS_KEY = 'sonoqui.access_token';
+const REFRESH_KEY = 'sonoqui.refresh_token';
 
 function extra(): { apiBaseUrl?: string; authBaseUrl?: string } {
   return (Constants.expoConfig?.extra as { apiBaseUrl?: string; authBaseUrl?: string } | undefined) ?? {};
@@ -149,13 +149,13 @@ export async function loginWithPassword(email: string, password: string): Promis
 }
 
 export async function logout(): Promise<void> {
-  const rt = await getRefreshToken();
+  const at = await getToken();
   await clearTokens();
-  if (rt && authBaseUrl()) {
+  if (at && authBaseUrl()) {
     try {
       await fetch(`${authBaseUrl()}/logout`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${rt}` },
+        headers: { Authorization: `Bearer ${at}` },
       });
     } catch { /* ignore */ }
   }

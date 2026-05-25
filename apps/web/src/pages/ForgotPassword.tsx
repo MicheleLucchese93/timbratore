@@ -27,7 +27,7 @@ export function ForgotPassword() {
         <div className="w-full max-w-md">
           <form onSubmit={submit} className="card space-y-4">
             <div className="text-center mb-2">
-              <div className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--color-primary)' }}>ciSono</div>
+              <div className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--color-primary)' }}>sonoQui</div>
               <p className="mt-1 text-sm text-neutral-600">Password dimenticata</p>
             </div>
 

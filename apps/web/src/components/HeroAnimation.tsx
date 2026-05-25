@@ -12,7 +12,7 @@ export function HeroAnimation() {
       </svg>
 
       <div className="hero-anim__content">
-        <h1 className="hero-anim__brand">ciSono</h1>
+        <h1 className="hero-anim__brand">sonoQui</h1>
         <p className="hero-anim__payoff">Il tempo che lavori, semplice come dirlo.</p>
 
         <div className="hero-anim__stage">

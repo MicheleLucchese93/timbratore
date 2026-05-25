@@ -11,10 +11,10 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/shared ./packages/shared
 COPY apps/mobile ./apps/mobile
 
-RUN npm ci --workspace=@cisono/mobile --include-workspace-root
+RUN npm ci --workspace=@sonoqui/mobile --include-workspace-root
 
 # Expo web export → static bundle in /repo/apps/mobile/dist.
-RUN npx --workspace=@cisono/mobile expo export --platform web --output-dir dist
+RUN npx --workspace=@sonoqui/mobile expo export --platform web --output-dir dist
 
 FROM nginx:1.29-alpine
 COPY apps/mobile/nginx.conf /etc/nginx/conf.d/default.conf

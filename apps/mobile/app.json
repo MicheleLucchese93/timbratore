@@ -1,22 +1,23 @@
 {
   "expo": {
-    "name": "ciSono",
+    "name": "sonoQui",
     "slug": "traduttore",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "cisono",
+    "scheme": "sonoqui",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
-      "bundleIdentifier": "app.cisono.cisono",
+      "bundleIdentifier": "app.sonoqui.sonoqui",
       "supportsTablet": false,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "ciSono usa la posizione SOLO al momento della timbratura per verificare che tu sia presso la sede di lavoro. La posizione NON viene mai tracciata in background. ciSono uses your location ONLY at clock-in to verify you are at the work site. Location is NEVER tracked in the background."
+        "NSLocationWhenInUseUsageDescription": "sonoQui usa la posizione SOLO al momento della timbratura per verificare che tu sia presso la sede di lavoro. La posizione NON viene mai tracciata in background. sonoQui uses your location ONLY at clock-in to verify you are at the work site. Location is NEVER tracked in the background.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "app.cisono.cisono",
+      "package": "app.sonoqui.sonoqui",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -43,7 +44,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "ciSono usa la posizione SOLO al momento della timbratura."
+          "locationAlwaysAndWhenInUsePermission": "sonoQui usa la posizione SOLO al momento della timbratura."
         }
       ],
       [
@@ -53,7 +54,9 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 96
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -64,8 +67,8 @@
       "eas": {
         "projectId": "729f39a2-86a4-4bb6-ae03-21dad1922c34"
       },
-      "apiBaseUrl": "https://api-cisono.xdevapp.it",
-      "authBaseUrl": "https://auth-cisono.xdevapp.it"
+      "apiBaseUrl": "https://api-sonoqui.xdevapp.it",
+      "authBaseUrl": "https://auth-sonoqui.xdevapp.it"
     },
     "owner": "micheel93-2"
   }

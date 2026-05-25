@@ -1,5 +1,5 @@
 {
-  "name": "@cisono/web",
+  "name": "@sonoqui/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "preview": "vite preview --port 4173"
   },
   "dependencies": {
-    "@cisono/shared": "*",
+    "@sonoqui/shared": "*",
     "@react-google-maps/api": "^2.20.8",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

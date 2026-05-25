@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.6
-# Backend (cisono-api) — node:24-alpine with tsx runtime.
+# Backend (sonoqui-api) — node:24-alpine with tsx runtime.
 # Reason: workspace shared/ exposes .ts directly; tsc build would need
 # project refs or a pre-build step. tsx at runtime keeps the image build
 # trivially correct (Penno uses tsc; revisit if startup time matters).
@@ -10,11 +10,11 @@ WORKDIR /repo
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/shared ./packages/shared
 COPY apps/backend ./apps/backend
-# Email templates fetched by GoTrue at http://cisono-api:4000/templates/*.html.
+# Email templates fetched by GoTrue at http://sonoqui-api:4000/templates/*.html.
 COPY gotrue-templates ./apps/backend/public/templates
 
 # Install full deps for tsx + zod + pg + jose etc.
-RUN npm ci --workspace=@cisono/backend --include-workspace-root
+RUN npm ci --workspace=@sonoqui/backend --include-workspace-root
 
 ENV NODE_ENV=production
 EXPOSE 4000

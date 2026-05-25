@@ -12,7 +12,7 @@ let nativeDb: ReturnType<typeof openNativeDb> | null = null;
 function openNativeDb() {
   // Lazy-require so web bundle doesn't pull SQLite.
   const SQLite = require('expo-sqlite');
-  const db = SQLite.openDatabaseSync('cisono.db');
+  const db = SQLite.openDatabaseSync('sonoqui.db');
   db.execSync(`CREATE TABLE IF NOT EXISTS pending_stamps (
     idempotency_key TEXT PRIMARY KEY,
     payload TEXT NOT NULL,
@@ -28,7 +28,7 @@ function db() {
   return nativeDb!;
 }
 
-const WEB_KEY = 'cisono.pending_stamps';
+const WEB_KEY = 'sonoqui.pending_stamps';
 
 function loadWeb(): QueuedStamp[] {
   if (typeof localStorage === 'undefined') return [];

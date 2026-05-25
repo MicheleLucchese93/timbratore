@@ -1,5 +1,5 @@
-const ACCESS_KEY = 'cisono.access_token';
-const REFRESH_KEY = 'cisono.refresh_token';
+const ACCESS_KEY = 'sonoqui.access_token';
+const REFRESH_KEY = 'sonoqui.refresh_token';
 
 // In dev, Vite proxies /api → http://localhost:4000. In prod, VITE_API_URL
 // is baked at build time (see apps/web/Dockerfile build args).

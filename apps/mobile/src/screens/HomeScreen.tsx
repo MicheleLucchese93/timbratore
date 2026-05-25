@@ -5,10 +5,10 @@ import { useSession } from '../store/session';
 import { api } from '../lib/api';
 import { acquireLocation } from '../lib/acquire-location';
 import { enqueueStamp, drainQueue } from '../lib/offline-queue';
-import { stateFromLastEvent } from '@cisono/shared';
-import type { StampEventType } from '@cisono/shared';
-import { Badge, Button, Card, Heading } from '@cisono/shared/src/design/native';
-import { color, space } from '@cisono/shared';
+import { stateFromLastEvent } from '@sonoqui/shared';
+import type { StampEventType } from '@sonoqui/shared';
+import { Badge, Button, Card, Heading } from '@sonoqui/shared/src/design/native';
+import { color, space } from '@sonoqui/shared';
 
 interface CurrentState {
   state: 'nothing' | 'clocked_in' | 'on_break';
@@ -205,6 +205,7 @@ function humanError(err: unknown): string {
     case 'MOCK_LOCATION_BLOCKED': return 'Posizione finta non consentita.';
     case 'LOCATION_PERMISSION_DENIED': return 'Permesso posizione negato. Vai alle Impostazioni.';
     case 'ACQUISITION_TIMEOUT': return 'GPS non disponibile. Spostati all\'aperto e riprova.';
+    case 'WEB_CLOCK_IN_DISABLED': return 'Timbratura da web non consentita per questo utente.';
     default: return e.message ?? 'Errore sconosciuto.';
   }
 }

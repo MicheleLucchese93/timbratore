@@ -1,6 +1,6 @@
-# Cisono — Development Backlog (v1 MVP)
+# SonoQui — Development Backlog (v1 MVP)
 
-**Status:** v0.2, updated 2026-05-24 from [PRD.md](PRD.md) v0.2 + [BOILERPLATE_ARCHITECTURE.md](BOILERPLATE_ARCHITECTURE.md). Product name now locked: **Cisono**.
+**Status:** v0.2, updated 2026-05-24 from [PRD.md](PRD.md) v0.2 + [BOILERPLATE_ARCHITECTURE.md](BOILERPLATE_ARCHITECTURE.md). Product name now locked: **SonoQui**.
 **Owner:** Archiva Group product development.
 **Target launch:** Q3 2026 (closed beta first; see Phase 9).
 
@@ -35,10 +35,10 @@ The phases are not strict gates: many run in parallel. The "depends on" graph is
 
 | # | Task | Owner | DoD |
 |---|---|---|---|
-| P0-1 | Clone boilerplate repo into a new `cisono` repo. Run boilerplate's local-dev bootstrap. Confirm web/mobile/API/Astro all build clean. | INFRA + BE | All four workspaces build; `apps/backend/src/index.ts` boots; `apps/web` Vite dev server serves; `apps/mobile` Expo dev client runs on a physical Android + iOS device. |
+| P0-1 | Clone boilerplate repo into a new `sonoqui` repo. Run boilerplate's local-dev bootstrap. Confirm web/mobile/API/Astro all build clean. | INFRA + BE | All four workspaces build; `apps/backend/src/index.ts` boots; `apps/web` Vite dev server serves; `apps/mobile` Expo dev client runs on a physical Android + iOS device. |
 | P0-2 | Provision staging OVH VM + Postgres + Caddy + Cloudflare DNS per boilerplate §infra. Deploy a hello-world API to confirm the deploy chain. | INFRA | `api-staging.<root>` returns `/health/ready` = 200; Caddy serves over the Cloudflare Origin Cert. |
 | P0-3 | **Boilerplate onboarding sprint (2 weeks).** Each engineer builds one throwaway end-to-end feature on the boilerplate (e.g., a "notes" CRUD with RLS + a mobile screen + a web admin view) to surface friction with: `withRLS`, the DI container, the GoTrue/Centrifugo wiring, the migration policy. Output: a "Lessons learnt" page in the team wiki + a list of conventions to formalise. | All engineers | One PR per engineer merged; written-up lessons; no blockers raised against the boilerplate. (PRD Q61.) |
-| P0-4 | **Product name locked: Cisono** (PRD Q47, resolved 2026-05-24). Execute: (a) buy `cisono.app` at Cloudflare Registrar (~$14/yr) and `cisono.io` at Porkbun (~$35/yr); (b) backorder `cisono.com` via DropCatch (Chinese-registrar parked); (c) broker offer for `cisono.it` via Sedo to Domain Profit Srl / Puglia.com — walk-away at €2.5k, defer to post-traction if needed; (d) file UIBM word-mark application classes 9 (downloadable software) + 42 (SaaS) within 30 days of domain purchase (~€280); (e) create App Store Connect record `Cisono`, Play Console record `Cisono`, Expo project slug `cisono`. | PM | All four steps logged with receipts/IDs; domains resolve; UIBM filing receipt obtained; store records visible. |
+| P0-4 | **Product name locked: SonoQui** (PRD Q47, resolved 2026-05-24). Execute: (a) buy `sonoqui.app` at Cloudflare Registrar (~$14/yr) and `sonoqui.io` at Porkbun (~$35/yr); (b) backorder `sonoqui.com` via DropCatch (Chinese-registrar parked); (c) broker offer for `sonoqui.it` via Sedo to Domain Profit Srl / Puglia.com — walk-away at €2.5k, defer to post-traction if needed; (d) file UIBM word-mark application classes 9 (downloadable software) + 42 (SaaS) within 30 days of domain purchase (~€280); (e) create App Store Connect record `SonoQui`, Play Console record `SonoQui`, Expo project slug `sonoqui`. | PM | All four steps logged with receipts/IDs; domains resolve; UIBM filing receipt obtained; store records visible. |
 | P0-5 | Legal engagement: retain an Italian internet lawyer for TOS / privacy notice / DPA / DPIA template review. Brief them on the no-continuous-tracking commitment and the Art. 4 templating goal. | PM + LEGAL | Engagement letter signed; first deliverables (TOS draft, privacy notice draft) targeted within 6 weeks. (PRD §8.5, Q32.) |
 | P0-6 | Brevo paid tier (€19/mo, 20k emails/mo) provisioned. SPF/DKIM/DMARC configured on the chosen sending domain. Inbox-placement check via mail-tester.com. | INFRA | mail-tester.com score ≥9/10 from a test send. (PRD Q62.) |
 
@@ -276,7 +276,7 @@ Runs in parallel with Phase 2 once Phase 1 done.
 - **Depends on:** none.
 - **DoD:**
   - `apps/backend/src/services/geocoding.ts` exposes `forwardGeocode(address) -> { lat, lng, components }`.
-  - Uses Nominatim public endpoint with a respectful User-Agent (`Cisono/1.0 (https://cisono.app)`), 1 req/sec rate limit (token-bucket in-process), 5s timeout.
+  - Uses Nominatim public endpoint with a respectful User-Agent (`SonoQui/1.0 (https://sonoqui.app)`), 1 req/sec rate limit (token-bucket in-process), 5s timeout.
   - Result cached in Postgres `geocode_cache(address_hash, result jsonb, created_at)` for 90 days.
   - Provider abstraction allows swapping to MapTiler later: env var `GEOCODER=nominatim|maptiler`.
   - Falls back gracefully (returns 503 with `GEOCODING_UNAVAILABLE` on Nominatim failure; the admin UI then allows manual lat/lng entry).
@@ -1001,7 +1001,7 @@ Recommended parallelism: 1 WEB engineer; can run in parallel with mobile (Phase 
 - **Depends on:** TASK-CMP-01..05, TASK-RET-01..03.
 - **DoD:**
   - TOS, privacy notice, DPA, sub-processor list, compliance PDFs reviewed and signed off by the engaged Italian lawyer.
-  - Liability clause limits Cisono to "tool provider" per Q56.
+  - Liability clause limits SonoQui to "tool provider" per Q56.
 - **Owner:** PM + LEGAL.
 - **Estimate:** M.
 
@@ -1085,4 +1085,4 @@ This is ~12 sprints (24 weeks ≈ 6 months) of focused work for a team of ~4 eng
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-05-24 | Claude (derived from PRD v0.1) | Initial backlog. |
-| 0.2 | 2026-05-24 | Claude | Product name locked to Cisono. P0-1 repo name → `cisono`. P0-4 fully expanded with concrete domain + UIBM + store-record actions. Nominatim User-Agent updated. Title + status reflect new name. |
+| 0.2 | 2026-05-24 | Claude | Product name locked to SonoQui. P0-1 repo name → `sonoqui`. P0-4 fully expanded with concrete domain + UIBM + store-record actions. Nominatim User-Agent updated. Title + status reflect new name. |

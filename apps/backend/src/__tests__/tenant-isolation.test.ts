@@ -19,7 +19,7 @@ async function seedTenant(slug: string): Promise<Seed> {
   );
   await adminPool.query(
     `INSERT INTO auth_users(id, email) VALUES ($1, $2)`,
-    [userId, `test-${slug}-${Date.now()}@cisono.local`]
+    [userId, `test-${slug}-${Date.now()}@sonoqui.local`]
   );
   await adminPool.query(
     `INSERT INTO memberships(tenant_id, user_id, role) VALUES ($1, $2, 'admin')`,

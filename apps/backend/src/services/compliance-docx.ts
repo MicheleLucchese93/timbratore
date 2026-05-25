@@ -36,7 +36,7 @@ function disclaimer(text: string): Paragraph {
 
 export async function renderDpiaDocx(tenant: Tenant): Promise<Buffer> {
   const doc = new Document({
-    creator: 'ciSono',
+    creator: 'sonoQui',
     title: `DPIA — ${tenant.ragione_sociale}`,
     sections: [
       {
@@ -73,7 +73,7 @@ export async function renderDpiaDocx(tenant: Tenant): Promise<Buffer> {
           bullet('Nessun tracciamento continuo della posizione; nessun riconoscimento facciale'),
           h2('7. Diritti dell\'interessato'),
           p('Accesso, rettifica, cancellazione tramite l\'app o richiesta scritta al titolare.'),
-          disclaimer('Modello generato da ciSono. Da rivedere e personalizzare con il proprio DPO o legale prima della firma.'),
+          disclaimer('Modello generato da sonoQui. Da rivedere e personalizzare con il proprio DPO o legale prima della firma.'),
         ],
       },
     ],
@@ -84,7 +84,7 @@ export async function renderDpiaDocx(tenant: Tenant): Promise<Buffer> {
 export async function renderPrivacyNoticeDocx(tenant: { ragione_sociale: string; country: string }): Promise<Buffer> {
   const domain = tenant.ragione_sociale.toLowerCase().replace(/[^a-z0-9]+/g, '');
   const doc = new Document({
-    creator: 'ciSono',
+    creator: 'sonoQui',
     title: `Informativa privacy — ${tenant.ragione_sociale}`,
     sections: [
       {
@@ -96,11 +96,11 @@ export async function renderPrivacyNoticeDocx(tenant: { ragione_sociale: string;
           ),
           p(
             new TextRun({ text: 'Responsabile del trattamento: ', bold: true }),
-            new TextRun('Archiva Group — ciSono.')
+            new TextRun('Archiva Group — sonoQui.')
           ),
-          p('I dati raccolti tramite l\'app ciSono sono utilizzati esclusivamente per la rilevazione presenze. La posizione GPS è acquisita solo al momento della timbratura e mai in background.'),
+          p('I dati raccolti tramite l\'app sonoQui sono utilizzati esclusivamente per la rilevazione presenze. La posizione GPS è acquisita solo al momento della timbratura e mai in background.'),
           p(`L'interessato può esercitare i propri diritti contattando il titolare oppure scrivendo a privacy@${domain}.it.`),
-          disclaimer('Modello generato da ciSono — da personalizzare con il proprio referente legale.'),
+          disclaimer('Modello generato da sonoQui — da personalizzare con il proprio referente legale.'),
         ],
       },
     ],
@@ -110,14 +110,14 @@ export async function renderPrivacyNoticeDocx(tenant: { ragione_sociale: string;
 
 export async function renderArt4ChecklistDocx(tenant: { ragione_sociale: string }): Promise<Buffer> {
   const doc = new Document({
-    creator: 'ciSono',
+    creator: 'sonoQui',
     title: `Checklist Art. 4 — ${tenant.ragione_sociale}`,
     sections: [
       {
         children: [
           h1(`Checklist art. 4 Statuto dei Lavoratori — ${tenant.ragione_sociale}`),
           p('Passi consigliati per adempiere all\'art. 4 L. 300/1970 quando si introduce un sistema di rilevazione presenze.'),
-          check('Verificare se l\'attività rientra fra gli strumenti di lavoro (comma 2) — Cisono lo è.'),
+          check('Verificare se l\'attività rientra fra gli strumenti di lavoro (comma 2) — SonoQui lo è.'),
           check('Predisporre informativa preventiva ai lavoratori sulle modalità d\'uso.'),
           check('Predisporre accordo aziendale con RSA/RSU (se presenti) oppure istanza all\'Ispettorato Territoriale del Lavoro.'),
           check('Conservare copia firmata di accordo o autorizzazione.'),

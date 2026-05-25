@@ -6,7 +6,7 @@ import { ok } from '../lib/api-response.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
 import { idempotencyMiddleware } from '../middleware/idempotency.js';
 import { computeCurrentState, evaluateStamp } from '../services/stamp-service.js';
-import type { StampEventType } from '@cisono/shared';
+import type { StampEventType } from '@sonoqui/shared';
 
 export const stampsRouter = Router();
 stampsRouter.use(authenticate);

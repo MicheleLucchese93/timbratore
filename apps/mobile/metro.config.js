@@ -19,7 +19,7 @@ config.resolver.nodeModulesPaths = [
 config.resolver.disableHierarchicalLookup = true;
 config.resolver.unstable_enablePackageExports = false;
 
-// Map `.js` suffix to `.ts`/`.tsx` when source is in @cisono/shared workspace.
+// Map `.js` suffix to `.ts`/`.tsx` when source is in @sonoqui/shared workspace.
 const sharedRoot = path.resolve(workspaceRoot, 'packages/shared');
 const originalResolve = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {

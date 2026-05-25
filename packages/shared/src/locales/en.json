@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "ciSono",
+    "name": "sonoQui",
     "tagline": "Simple clock-in for small companies"
   },
   "common": {
@@ -13,7 +13,7 @@
     "error_generic": "Something went wrong"
   },
   "auth": {
-    "login_title": "Sign in to ciSono",
+    "login_title": "Sign in to sonoQui",
     "email": "Email",
     "password": "Password",
     "sign_in": "Sign in",

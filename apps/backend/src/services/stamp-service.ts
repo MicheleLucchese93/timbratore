@@ -4,8 +4,8 @@ import {
   stateFromLastEvent,
   withinGeofence,
   distanceMeters,
-} from '@cisono/shared';
-import type { StampEventType, GeofencePolicy, MockLocationAction } from '@cisono/shared';
+} from '@sonoqui/shared';
+import type { StampEventType, GeofencePolicy, MockLocationAction } from '@sonoqui/shared';
 import { ConflictError, ValidationError, ForbiddenError } from '../errors/index.js';
 
 export interface StampInputBody {

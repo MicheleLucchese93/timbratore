@@ -2,20 +2,20 @@
   "client": {
     "token": { "hmac_secret_key": "__HMAC_SECRET__" },
     "allowed_origins": [
-      "https://app-cisono.xdevapp.it"
+      "https://app-sonoqui.xdevapp.it"
     ],
     "proxy": {
       "connect": {
-        "endpoint": "http://cisono-api:4000/api/v1/realtime/centrifugo/connect",
+        "endpoint": "http://sonoqui-api:4000/api/v1/realtime/centrifugo/connect",
         "http": { "static_headers": { "X-Centrifugo-Secret": "__API_KEY__" } }
       }
     }
   },
   "channel": {
-    "namespaces": [{ "name": "cisono" }],
+    "namespaces": [{ "name": "sonoqui" }],
     "proxy": {
       "subscribe": {
-        "endpoint": "http://cisono-api:4000/api/v1/realtime/centrifugo/subscribe",
+        "endpoint": "http://sonoqui-api:4000/api/v1/realtime/centrifugo/subscribe",
         "http": { "static_headers": { "X-Centrifugo-Secret": "__API_KEY__" } }
       }
     }

@@ -17,8 +17,8 @@ async function main(): Promise<void> {
     await pool.end();
     return;
   }
-  const adminId = await ensureUser('admin@demo.cisono.local');
-  const userId = await ensureUser('mario.rossi@demo.cisono.local');
+  const adminId = await ensureUser('admin@demo.sonoqui.local');
+  const userId = await ensureUser('mario.rossi@demo.sonoqui.local');
   const t = await pool.query(
     `INSERT INTO tenants(ragione_sociale, language, max_admins, max_users)
      VALUES ('Demo Bar Centrale Srl', 'it', 2, 10) RETURNING id`
@@ -41,7 +41,7 @@ async function main(): Promise<void> {
     [branchId, adminId, tenantId, userId]
   );
   // eslint-disable-next-line no-console
-  console.log(JSON.stringify({ tenant_id: tenantId, admin: { id: adminId, email: 'admin@demo.cisono.local' }, user: { id: userId, email: 'mario.rossi@demo.cisono.local' }, branch_id: branchId }, null, 2));
+  console.log(JSON.stringify({ tenant_id: tenantId, admin: { id: adminId, email: 'admin@demo.sonoqui.local' }, user: { id: userId, email: 'mario.rossi@demo.sonoqui.local' }, branch_id: branchId }, null, 2));
   await pool.end();
 }
 
