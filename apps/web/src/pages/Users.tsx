@@ -29,6 +29,20 @@ interface BranchOption {
   name: string;
 }
 
+interface ShiftTemplateOption {
+  id: string;
+  name: string;
+}
+
+interface ShiftAssignmentRow {
+  id: string;
+  user_id: string;
+  shift_template_id: string;
+  valid_from: string;
+  valid_to: string | null;
+  template_name: string | null;
+}
+
 interface ImportResult {
   processed: number;
   created: number;
@@ -36,20 +50,21 @@ interface ImportResult {
   reactivated: number;
 }
 
-function fullName(u: { first_name: string | null; last_name: string | null; display_name: string | null }): string {
-  if (u.display_name && u.display_name.trim()) return u.display_name.trim();
-  return [u.first_name, u.last_name].map((s) => (s ?? '').trim()).filter(Boolean).join(' ');
-}
-
 export function Users() {
   const me = useSession((s) => s.me);
   const [list, setList] = useState<UserRow[]>([]);
   const [usage, setUsage] = useState<Usage | null>(null);
   const [branches, setBranches] = useState<BranchOption[]>([]);
+  const [shiftTemplates, setShiftTemplates] = useState<ShiftTemplateOption[]>([]);
+  const [shiftAssignments, setShiftAssignments] = useState<ShiftAssignmentRow[]>([]);
+  const [shiftEditor, setShiftEditor] = useState<UserRow | null>(null);
   const [showInvite, setShowInvite] = useState(false);
   const [confirmDeactivate, setConfirmDeactivate] = useState<UserRow | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<UserRow | null>(null);
   const [branchEditor, setBranchEditor] = useState<UserRow | null>(null);
+  const [userEditor, setUserEditor] = useState<UserRow | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkMode, setBulkMode] = useState<'add' | 'remove' | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
@@ -64,6 +79,30 @@ export function Users() {
     setUsage(u);
     setList(l);
     setBranches(b);
+    // Shifts endpoints may not yet be deployed — tolerate failure.
+    const [stRes, saRes] = await Promise.allSettled([
+      api<ShiftTemplateOption[]>('/api/v1/shifts/templates'),
+      api<ShiftAssignmentRow[]>('/api/v1/shifts/assignments'),
+    ]);
+    setShiftTemplates(stRes.status === 'fulfilled' ? stRes.value : []);
+    setShiftAssignments(saRes.status === 'fulfilled' ? saRes.value : []);
+  }
+
+  async function saveShift(
+    u: UserRow,
+    shift_template_id: string | null,
+    valid_from: string
+  ) {
+    try {
+      await api('/api/v1/shifts/assignments', {
+        method: 'POST',
+        json: { user_id: u.user_id, shift_template_id, valid_from },
+      });
+      setShiftEditor(null);
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'errore');
+    }
   }
   useEffect(() => {
     load().catch((e) => setErr(e.message));
@@ -96,6 +135,48 @@ export function Users() {
         method: 'PUT',
         json: { branch_ids },
       });
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'errore');
+    }
+  }
+
+  async function bulkBranches(branch_ids: string[], mode: 'add' | 'remove') {
+    try {
+      await api(`/api/v1/users/branches/bulk`, {
+        method: 'POST',
+        json: { user_ids: Array.from(selectedIds), branch_ids, mode },
+      });
+      setSelectedIds(new Set());
+      setBulkMode(null);
+      const verb = mode === 'add' ? 'assegnate' : 'rimosse';
+      const n = branch_ids.length;
+      setInfo(`${n} ${n === 1 ? 'sede' : 'sedi'} ${verb} a ${selectedIds.size} utenti.`);
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'errore');
+    }
+  }
+
+  function toggleSelected(id: string) {
+    setSelectedIds((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleSelectAll() {
+    const selectable = list.map((u) => u.user_id);
+    setSelectedIds((cur) => {
+      if (selectable.every((id) => cur.has(id))) return new Set();
+      return new Set(selectable);
+    });
+  }
+
+  async function saveUser(u: UserRow, patch: { first_name?: string | null; last_name?: string | null }) {
+    try {
+      await api(`/api/v1/users/${u.user_id}`, { method: 'PATCH', json: patch });
       await load();
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'errore');
@@ -271,26 +352,74 @@ export function Users() {
       )}
 
       <div className="card p-0">
+        {selectedIds.size > 0 && (
+          <div className="bulk-bar">
+            <div>
+              <strong>{selectedIds.size}</strong>{' '}
+              {selectedIds.size === 1 ? 'utente selezionato' : 'utenti selezionati'}
+            </div>
+            <div className="bulk-bar-actions">
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setBulkMode('add')}
+              >
+                Assegna sedi
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setBulkMode('remove')}
+              >
+                Rimuovi sedi
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setSelectedIds(new Set())}
+              >
+                Annulla
+              </button>
+            </div>
+          </div>
+        )}
         <div className="table-wrap">
           <table className="table">
             <colgroup>
+              <col style={{ width: '2.5rem' }} />
+              <col />
               <col />
               <col />
               <col style={{ width: '9rem' }} />
               <col style={{ width: '7rem' }} />
               <col style={{ width: '9rem' }} />
               <col style={{ width: '10rem' }} />
+              <col style={{ width: '10rem' }} />
               <col style={{ width: '11rem' }} />
-              <col style={{ width: '7rem' }} />
+              <col style={{ width: '9rem' }} />
             </colgroup>
             <thead>
               <tr>
+                <th className="text-center">
+                  <input
+                    type="checkbox"
+                    aria-label="Seleziona tutti"
+                    checked={
+                      list.length > 0 && list.every((u) => selectedIds.has(u.user_id))
+                    }
+                    onChange={toggleSelectAll}
+                  />
+                </th>
                 <th>Email</th>
                 <th>Nome</th>
+                <th>Cognome</th>
                 <th>Ruolo</th>
                 <th>Stato</th>
                 <th title="Sedi assegnate. Senza almeno una sede l'utente non può timbrare.">
                   Sedi
+                </th>
+                <th title="Orario di lavoro assegnato all'utente. Usato per calcolare le anomalie.">
+                  Orario
                 </th>
                 <th title="Se attivo, l'utente non può timbrare dal web — solo dall'app mobile.">
                   Timbratura web
@@ -301,9 +430,21 @@ export function Users() {
             </thead>
             <tbody>
               {list.map((u) => (
-                <tr key={u.membership_id}>
+                <tr
+                  key={u.membership_id}
+                  className={selectedIds.has(u.user_id) ? 'row-selected' : undefined}
+                >
+                  <td className="text-center">
+                    <input
+                      type="checkbox"
+                      aria-label={`Seleziona ${u.email}`}
+                      checked={selectedIds.has(u.user_id)}
+                      onChange={() => toggleSelected(u.user_id)}
+                    />
+                  </td>
                   <td className="truncate">{u.email}</td>
-                  <td className="truncate muted">{fullName(u) || '—'}</td>
+                  <td className="truncate muted">{u.first_name?.trim() || '—'}</td>
+                  <td className="truncate muted">{u.last_name?.trim() || '—'}</td>
                   <td>
                     <select
                       className="input"
@@ -334,6 +475,27 @@ export function Users() {
                     </button>
                   </td>
                   <td>
+                    {(() => {
+                      const a = shiftAssignments.find(
+                        (x) => x.user_id === u.user_id && x.valid_to === null
+                      );
+                      return (
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => setShiftEditor(u)}
+                          title="Assegna o cambia orario"
+                        >
+                          {a?.template_name ? (
+                            a.template_name
+                          ) : (
+                            <span style={{ color: 'var(--color-error)' }}>Nessuno · Assegna</span>
+                          )}
+                        </button>
+                      );
+                    })()}
+                  </td>
+                  <td>
                     <label className="switch" title="Disabilita timbratura dal web per questo utente">
                       <input
                         type="checkbox"
@@ -351,6 +513,11 @@ export function Users() {
                   <td className="text-xs num">{u.last_stamp_at ? new Date(u.last_stamp_at).toLocaleString('it-IT') : '—'}</td>
                   <td>
                     <div className="flex justify-center gap-1">
+                      <IconButton
+                        kind="edit"
+                        title="Modifica nome / cognome"
+                        onClick={() => setUserEditor(u)}
+                      />
                       <IconButton
                         kind={u.active ? 'deactivate' : 'reactivate'}
                         disabled={u.user_id === me?.user.id}
@@ -467,6 +634,293 @@ export function Users() {
           }}
         />
       )}
+
+      {bulkMode && (
+        <BulkBranchesDialog
+          mode={bulkMode}
+          count={selectedIds.size}
+          branches={branches}
+          onClose={() => setBulkMode(null)}
+          onConfirm={(ids) => bulkBranches(ids, bulkMode)}
+        />
+      )}
+
+      {userEditor && (
+        <UserEditor
+          user={userEditor}
+          onClose={() => setUserEditor(null)}
+          onSave={async (patch) => {
+            const target = userEditor;
+            setUserEditor(null);
+            await saveUser(target, patch);
+          }}
+        />
+      )}
+
+      {shiftEditor && (
+        <ShiftAssignEditor
+          user={shiftEditor}
+          templates={shiftTemplates}
+          current={
+            shiftAssignments.find(
+              (a) => a.user_id === shiftEditor.user_id && a.valid_to === null
+            ) ?? null
+          }
+          onClose={() => setShiftEditor(null)}
+          onSave={(templateId, validFrom) => saveShift(shiftEditor, templateId, validFrom)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ShiftAssignEditor({
+  user,
+  templates,
+  current,
+  onClose,
+  onSave,
+}: {
+  user: UserRow;
+  templates: ShiftTemplateOption[];
+  current: ShiftAssignmentRow | null;
+  onClose: () => void;
+  onSave: (templateId: string | null, validFrom: string) => Promise<void> | void;
+}) {
+  const [templateId, setTemplateId] = useState<string>(current?.shift_template_id ?? '');
+  const [validFrom, setValidFrom] = useState<string>(
+    new Date().toISOString().slice(0, 10)
+  );
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setErr(null);
+    try {
+      await onSave(templateId || null, validFrom);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'errore');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50"
+      onClick={onClose}
+    >
+      <form
+        onSubmit={submit}
+        onClick={(e) => e.stopPropagation()}
+        className="card w-full max-w-md space-y-4"
+      >
+        <h2 className="text-lg font-semibold">Orario di {user.display_name || user.email}</h2>
+
+        <div>
+          <label className="label">Orario</label>
+          <select
+            className="input"
+            value={templateId}
+            onChange={(e) => setTemplateId(e.target.value)}
+          >
+            <option value="">— Nessuno —</option>
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+          {templates.length === 0 && (
+            <p className="text-xs text-neutral-500 mt-1">
+              Nessun orario configurato. Vai in <strong>Orari</strong> per crearne uno.
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label className="label">Valido dal</label>
+          <input
+            type="date"
+            className="input"
+            value={validFrom}
+            onChange={(e) => setValidFrom(e.target.value)}
+          />
+          <p className="text-xs text-neutral-500 mt-1">
+            L'assegnazione precedente verrà chiusa al giorno prima di questa data.
+          </p>
+        </div>
+
+        {err && (
+          <div className="text-sm" style={{ color: 'var(--color-error)' }}>
+            {err}
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
+            Annulla
+          </button>
+          <button type="submit" className="btn btn-primary" disabled={busy}>
+            {busy ? 'Salvataggio…' : 'Salva'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function UserEditor({
+  user,
+  onClose,
+  onSave,
+}: {
+  user: UserRow;
+  onClose: () => void;
+  onSave: (patch: { first_name: string | null; last_name: string | null }) => Promise<void> | void;
+}) {
+  const [firstName, setFirstName] = useState(user.first_name ?? '');
+  const [lastName, setLastName] = useState(user.last_name ?? '');
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await onSave({
+        first_name: firstName.trim() || null,
+        last_name: lastName.trim() || null,
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
+      <form onSubmit={submit} className="card w-full max-w-md space-y-3">
+        <h2 className="section-title">Modifica utente</h2>
+        <p className="text-xs muted">
+          {user.email} — l'email non è modificabile.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="label">Nome</label>
+            <input
+              type="text"
+              className="input"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              autoComplete="given-name"
+              maxLength={80}
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="label">Cognome</label>
+            <input
+              type="text"
+              className="input"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              autoComplete="family-name"
+              maxLength={80}
+            />
+          </div>
+        </div>
+        <div className="flex gap-2 justify-end pt-1">
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
+            Annulla
+          </button>
+          <button type="submit" className="btn btn-primary" disabled={busy}>
+            {busy ? 'Salvataggio…' : 'Salva'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function BulkBranchesDialog({
+  mode,
+  count,
+  branches,
+  onClose,
+  onConfirm,
+}: {
+  mode: 'add' | 'remove';
+  count: number;
+  branches: BranchOption[];
+  onClose: () => void;
+  onConfirm: (ids: string[]) => Promise<void> | void;
+}) {
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const title = mode === 'add' ? 'Assegna sedi' : 'Rimuovi sedi';
+  const verb = mode === 'add' ? 'aggiunte' : 'rimosse';
+  return (
+    <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
+      <div className="card w-full max-w-md space-y-3">
+        <h2 className="section-title">{title}</h2>
+        <p className="text-xs muted">
+          Le sedi selezionate verranno {verb} a {count} {count === 1 ? 'utente' : 'utenti'}.
+          {mode === 'add'
+            ? ' Le assegnazioni esistenti restano invariate.'
+            : ' Le altre assegnazioni restano invariate.'}
+        </p>
+        {branches.length === 0 ? (
+          <p className="text-sm" style={{ color: 'var(--color-error)' }}>
+            Nessuna sede disponibile.
+          </p>
+        ) : (
+          <ul
+            className="space-y-2 max-h-72 overflow-auto"
+            style={{ paddingLeft: 0, listStyle: 'none' }}
+          >
+            {branches.map((b) => (
+              <li key={b.id}>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={picked.has(b.id)}
+                    onChange={() =>
+                      setPicked((cur) => {
+                        const next = new Set(cur);
+                        if (next.has(b.id)) next.delete(b.id);
+                        else next.add(b.id);
+                        return next;
+                      })
+                    }
+                  />
+                  <span>{b.name}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="flex gap-2 justify-end">
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
+            Annulla
+          </button>
+          <button
+            type="button"
+            className={mode === 'remove' ? 'btn btn-danger' : 'btn btn-primary'}
+            disabled={busy || picked.size === 0}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await onConfirm(Array.from(picked));
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? 'Salvataggio…' : mode === 'add' ? 'Assegna' : 'Rimuovi'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -477,7 +931,7 @@ function IconButton({
   disabled,
   title,
 }: {
-  kind: 'deactivate' | 'reactivate' | 'delete';
+  kind: 'edit' | 'deactivate' | 'reactivate' | 'delete';
   onClick: () => void;
   disabled?: boolean;
   title?: string;
@@ -490,13 +944,14 @@ function IconButton({
       disabled={disabled}
       title={title}
       aria-label={title}
-      className="btn btn-ghost btn-sm"
-      style={{
-        padding: '0.375rem',
-        minWidth: '2rem',
-        color: danger ? 'var(--color-error)' : undefined,
-      }}
+      className={`icon-btn ${danger ? 'icon-btn-danger' : ''}`.trim()}
     >
+      {kind === 'edit' && (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
+        </svg>
+      )}
       {kind === 'deactivate' && (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />

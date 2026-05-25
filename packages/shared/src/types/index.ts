@@ -86,6 +86,69 @@ export interface Stamp {
   created_at: string;
 }
 
+export type IsoDayOfWeek = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+export interface ShiftTemplateSlot {
+  id: string;
+  shift_template_id: string;
+  tenant_id: string;
+  day_of_week: IsoDayOfWeek;
+  start_time: string;
+  end_time: string;
+}
+
+export interface ShiftTemplate {
+  id: string;
+  tenant_id: string;
+  name: string;
+  description: string | null;
+  tolerance_in_min: number;
+  tolerance_out_min: number;
+  expected_break_min_min: number;
+  expected_break_max_min: number;
+  active: boolean;
+  deleted_at: string | null;
+  created_at: string;
+  slots?: ShiftTemplateSlot[];
+}
+
+export interface UserShiftAssignment {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  shift_template_id: string;
+  valid_from: string;
+  valid_to: string | null;
+  created_at: string;
+  template_name?: string;
+}
+
+export type ShiftAnomalyKind =
+  | 'missing_clock_in'
+  | 'missing_clock_out'
+  | 'late_clock_in'
+  | 'early_clock_out'
+  | 'worked_on_rest_day'
+  | 'break_too_short'
+  | 'break_too_long';
+
+export interface ShiftAnomaly {
+  date: string;
+  user_id: string;
+  user_email: string;
+  user_display_name: string | null;
+  shift_template_id: string | null;
+  shift_template_name: string | null;
+  kind: ShiftAnomalyKind;
+  expected_start_at: string | null;
+  expected_end_at: string | null;
+  actual_start_at: string | null;
+  actual_end_at: string | null;
+  delta_minutes: number | null;
+  break_total_min: number | null;
+  details: string | null;
+}
+
 export interface CorrectionRequest {
   id: string;
   tenant_id: string;

@@ -24,6 +24,7 @@ import { complianceRouter } from './routes/compliance.js';
 import { appVersionRouter } from './routes/app-version.js';
 import { dashboardRouter } from './routes/dashboard.js';
 import { placesRouter } from './routes/places.js';
+import { shiftsRouter } from './routes/shifts.js';
 
 export function createApp(): Express {
   const app = express();
@@ -86,6 +87,7 @@ export function createApp(): Express {
   app.use('/api/v1/app-version', appVersionRouter);
   app.use('/api/v1/dashboard', dashboardRouter);
   app.use('/api/v1/places', placesRouter);
+  app.use('/api/v1/shifts', shiftsRouter);
 
   app.use(errorHandler);
   return app;
