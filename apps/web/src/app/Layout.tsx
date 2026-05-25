@@ -78,7 +78,9 @@ export function Layout({ children }: { children: ReactNode }) {
           />
           {!collapsed && (
             <div className="sidebar-brand-text">
-              <div className="sidebar-brand-name">sonoQui</div>
+              <div className="sidebar-brand-name">
+                sono<span style={{ color: 'var(--color-on-primary-container)' }}>Qui</span>
+              </div>
               <div className="sidebar-brand-tenant" title={me?.tenant.ragione_sociale}>
                 {me?.tenant.ragione_sociale}
               </div>

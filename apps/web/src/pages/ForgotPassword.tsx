@@ -26,8 +26,17 @@ export function ForgotPassword() {
       <div className="flex flex-1 items-center justify-center px-4 py-6 sm:px-8">
         <div className="w-full max-w-md">
           <form onSubmit={submit} className="card space-y-4">
-            <div className="text-center mb-2">
-              <div className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--color-primary)' }}>sonoQui</div>
+            <div className="text-center mb-2 flex flex-col items-center">
+              <img
+                src="/icon-192.png"
+                alt=""
+                aria-hidden="true"
+                className="mb-3 h-16 w-16"
+                style={{ background: 'var(--color-surface)' }}
+              />
+              <div className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--color-primary)' }}>
+                sono<span style={{ color: 'var(--color-on-primary-container)' }}>Qui</span>
+              </div>
               <p className="mt-1 text-sm text-neutral-600">Password dimenticata</p>
             </div>
 

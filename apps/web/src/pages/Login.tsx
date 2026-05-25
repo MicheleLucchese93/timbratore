@@ -40,9 +40,18 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
       <div className="flex flex-1 items-center justify-center overflow-y-auto px-4 py-6 sm:px-8">
         <div className="w-full max-w-md">
           <form onSubmit={submit} className="card space-y-4">
-            <div className="text-center mb-2">
+            <div className="text-center mb-2 flex flex-col items-center">
+              {/* Logo on top, same surface background as the rest of the
+                  card — mirrors the mobile login layout. */}
+              <img
+                src="/icon-192.png"
+                alt=""
+                aria-hidden="true"
+                className="mb-3 h-16 w-16"
+                style={{ background: 'var(--color-surface)' }}
+              />
               <div className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--color-primary)' }}>
-                sonoQui
+                sono<span style={{ color: 'var(--color-on-primary-container)' }}>Qui</span>
               </div>
               <p className="mt-1 text-sm text-neutral-600">
                 Il tempo che lavori, semplice come dirlo.
