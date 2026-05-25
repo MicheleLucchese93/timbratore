@@ -56,41 +56,69 @@ export function Dashboard() {
   if (!me) return null;
 
   return (
-    <div className="space-y-5">
-      <header className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="page-title">Dashboard</h1>
-          <p className="muted text-sm mt-0.5">Stato in tempo reale dei tuoi dipendenti.</p>
+    <div className="space-y-6">
+      <header className="page-header">
+        <div className="page-header-title">
+          <h1>Dashboard</h1>
+          <p>Stato in tempo reale dei tuoi dipendenti.</p>
         </div>
-        <button className="btn btn-secondary" onClick={load}>Aggiorna</button>
+        <div className="page-header-actions">
+          <button className="btn btn-secondary" onClick={load}>
+            <IconRefresh /> Aggiorna
+          </button>
+        </div>
       </header>
 
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Stat label="Utenti attivi" value={`${usage?.active_users ?? '–'} / ${usage?.max_users ?? '–'}`} />
-        <Stat label="Amministratori" value={`${usage?.active_admins ?? '–'} / ${usage?.max_admins ?? '–'}`} />
-        <Stat label="Sedi" value={String(usage?.branches_count ?? '–')} />
-        <Stat
+      <section className="stat-grid">
+        <StatCard
+          label="Utenti attivi"
+          value={String(usage?.active_users ?? '–')}
+          suffix={`/ ${usage?.max_users ?? '–'}`}
+          icon={<IconUsers />}
+        />
+        <StatCard
+          label="Amministratori"
+          value={String(usage?.active_admins ?? '–')}
+          suffix={`/ ${usage?.max_admins ?? '–'}`}
+          icon={<IconShield />}
+        />
+        <StatCard
+          label="Sedi"
+          value={String(usage?.branches_count ?? '–')}
+          icon={<IconMapPin />}
+        />
+        <StatCard
           label="Da approvare"
           value={String(pending.length)}
+          icon={<IconInbox />}
           accent={pending.length > 0 ? 'warn' : undefined}
         />
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold mb-3">Stato attuale</h2>
+        <h2 className="section-title mb-3">Stato attuale</h2>
         {cards.length === 0 ? (
-          <div className="card text-sm text-neutral-600">Nessun dipendente ancora.</div>
+          <EmptyState
+            icon={<IconUsers />}
+            title="Nessun dipendente ancora"
+            hint="Invita il primo collaboratore dalla sezione Utenti."
+          />
         ) : (
           <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {cards.map((c) => (
-              <li key={c.user_id} className="card">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="font-medium">{c.email}</div>
+              <li key={c.user_id} className="status-card">
+                <div className="status-card-head">
+                  <div className="status-card-identity">
+                    <div className="status-card-avatar" aria-hidden="true">
+                      {initialsFor(c.email)}
+                    </div>
+                    <div className="status-card-name" title={c.email}>{c.email}</div>
+                  </div>
                   <StateBadge state={c.state} />
                 </div>
-                <div className="text-xs text-neutral-600 space-y-0.5">
+                <div className="status-card-meta">
                   {c.branch_name && <div>Sede: {c.branch_name}</div>}
-                  {c.last_event_at && (
+                  {c.last_event_at ? (
                     <div>
                       Ultimo evento: {labelEvent(c.last_event)} alle{' '}
                       {new Date(c.last_event_at).toLocaleTimeString('it-IT', {
@@ -98,6 +126,8 @@ export function Dashboard() {
                         minute: '2-digit',
                       })}
                     </div>
+                  ) : (
+                    <div className="status-card-meta-empty">Nessuna attività oggi</div>
                   )}
                 </div>
               </li>
@@ -107,9 +137,13 @@ export function Dashboard() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold mb-3">Da approvare</h2>
+        <h2 className="section-title mb-3">Da approvare</h2>
         {pending.length === 0 ? (
-          <div className="card text-sm text-neutral-600">Nessuna richiesta in coda.</div>
+          <EmptyState
+            icon={<IconInbox />}
+            title="Nessuna richiesta in coda"
+            hint="Le richieste di correzione dei dipendenti compariranno qui."
+          />
         ) : (
           <ul className="space-y-2">
             {pending.map((p) => (
@@ -132,11 +166,29 @@ export function Dashboard() {
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: string; accent?: 'warn' }) {
+function StatCard({
+  label,
+  value,
+  suffix,
+  icon,
+  accent,
+}: {
+  label: string;
+  value: string;
+  suffix?: string;
+  icon: React.ReactNode;
+  accent?: 'warn';
+}) {
   return (
-    <div className="card" style={accent === 'warn' ? { borderColor: 'var(--color-warning)' } : undefined}>
-      <div className="text-xs muted uppercase tracking-wide">{label}</div>
-      <div className="text-3xl font-bold mt-1 num">{value}</div>
+    <div className={`stat-card ${accent === 'warn' ? 'stat-card-warn' : ''}`}>
+      <div className="stat-card-icon">{icon}</div>
+      <div className="stat-card-body">
+        <div className="stat-card-label">{label}</div>
+        <div className="stat-card-value">
+          {value}
+          {suffix && <span className="stat-card-value-muted"> {suffix}</span>}
+        </div>
+      </div>
     </div>
   );
 }
@@ -147,6 +199,31 @@ function StateBadge({ state }: { state: UserCard['state'] }) {
   return <span className="badge badge-muted">Fuori servizio</span>;
 }
 
+function EmptyState({
+  icon,
+  title,
+  hint,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  hint?: string;
+}) {
+  return (
+    <div className="empty-state">
+      <div className="empty-state-icon">{icon}</div>
+      <div className="empty-state-title">{title}</div>
+      {hint && <div className="empty-state-hint">{hint}</div>}
+    </div>
+  );
+}
+
+function initialsFor(email: string): string {
+  const local = email.split('@')[0] ?? '';
+  const parts = local.split(/[._-]/).filter(Boolean);
+  const letters = parts.slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('');
+  return letters || local.slice(0, 2).toUpperCase() || '?';
+}
+
 function labelEvent(e: string | null): string {
   switch (e) {
     case 'clock_in': return 'Ingresso';
@@ -155,4 +232,59 @@ function labelEvent(e: string | null): string {
     case 'break_end': return 'Fine pausa';
     default: return '–';
   }
+}
+
+/* Icons -------------------------------------------------------------- */
+const I = {
+  width: 18,
+  height: 18,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+  'aria-hidden': true,
+};
+function IconUsers() {
+  return (
+    <svg {...I}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+function IconShield() {
+  return (
+    <svg {...I}>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+    </svg>
+  );
+}
+function IconMapPin() {
+  return (
+    <svg {...I}>
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+function IconInbox() {
+  return (
+    <svg {...I}>
+      <path d="M22 12h-6l-2 3h-4l-2-3H2" />
+      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z" />
+    </svg>
+  );
+}
+function IconRefresh() {
+  return (
+    <svg {...I} width={16} height={16}>
+      <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+      <path d="M3 21v-5h5" />
+    </svg>
+  );
 }

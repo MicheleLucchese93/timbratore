@@ -1,6 +1,8 @@
-import { Router } from 'express';
+import { Router, raw } from 'express';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import ExcelJS from 'exceljs';
+import type { PoolClient } from 'pg';
 import { authenticate, requireAdmin, invalidateMembershipCache } from '../middleware/auth.js';
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
@@ -14,6 +16,40 @@ const logger = createLogger('users');
 export const usersRouter = Router();
 usersRouter.use(authenticate);
 
+function buildDisplayName(first?: string | null, last?: string | null): string | null {
+  const v = [first, last].map((s) => (s ?? '').trim()).filter(Boolean).join(' ');
+  return v || null;
+}
+
+interface TenantLimits {
+  max_admins: number;
+  max_users: number;
+}
+
+interface MembershipCounts {
+  admins: number;
+  total: number;
+}
+
+async function fetchLimits(
+  client: PoolClient
+): Promise<{ limits: TenantLimits; counts: MembershipCounts }> {
+  const tenant = await client.query(
+    `SELECT max_admins, max_users FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid`
+  );
+  const counts = await client.query(
+    `SELECT
+       COUNT(*) FILTER (WHERE role = 'admin' AND deleted_at IS NULL) AS admins,
+       COUNT(*) FILTER (WHERE deleted_at IS NULL) AS total
+     FROM memberships
+     WHERE tenant_id = current_setting('app.current_tenant_id')::uuid`
+  );
+  return {
+    limits: tenant.rows[0],
+    counts: { admins: Number(counts.rows[0].admins), total: Number(counts.rows[0].total) },
+  };
+}
+
 usersRouter.get(
   '/',
   requireAdmin,
@@ -22,8 +58,16 @@ usersRouter.get(
       `SELECT m.id AS membership_id, m.user_id, m.role, m.active, m.created_at,
               m.disable_desktop_clock_in,
               COALESCE(au.email, m.user_id::text) AS email,
+              au.first_name, au.last_name, au.display_name,
               (SELECT MAX(occurred_at) FROM stamps s
-                WHERE s.user_id = m.user_id AND s.deleted_at IS NULL) AS last_stamp_at
+                WHERE s.user_id = m.user_id AND s.deleted_at IS NULL) AS last_stamp_at,
+              COALESCE(
+                (SELECT array_agg(bm.branch_id)
+                   FROM branch_memberships bm
+                  WHERE bm.user_id = m.user_id
+                    AND bm.tenant_id = current_setting('app.current_tenant_id')::uuid),
+                ARRAY[]::uuid[]
+              ) AS branch_ids
        FROM memberships m
        LEFT JOIN auth_users au ON au.id = m.user_id
        WHERE m.deleted_at IS NULL
@@ -33,11 +77,160 @@ usersRouter.get(
   })
 );
 
+const NameField = z
+  .string()
+  .trim()
+  .max(80)
+  .transform((v) => (v.length === 0 ? null : v))
+  .nullable();
+
 const Invite = z.object({
   email: z.string().email(),
+  first_name: NameField.optional(),
+  last_name: NameField.optional(),
   role: z.enum(['admin', 'user']).default('user'),
   branch_ids: z.array(z.string().uuid()).optional(),
 });
+
+interface InviteInput {
+  email: string;
+  role: 'admin' | 'user';
+  first_name?: string | null;
+  last_name?: string | null;
+  branch_ids?: string[];
+}
+
+interface InviteOutcome {
+  user_id: string;
+  email: string;
+  membership: Record<string, unknown>;
+  created_user: boolean;
+  added_member: boolean;
+  was_active_already: boolean;
+}
+
+async function ensureAuthUser(
+  client: PoolClient,
+  email: string,
+  first_name?: string | null,
+  last_name?: string | null
+): Promise<{ userId: string; created: boolean }> {
+  const existing = await client.query(
+    `SELECT id, first_name, last_name FROM auth_users WHERE email = $1`,
+    [email]
+  );
+  if (existing.rowCount && existing.rows[0]) {
+    const row = existing.rows[0];
+    const userId = row.id as string;
+    const nextFirst = first_name === undefined ? row.first_name : first_name;
+    const nextLast = last_name === undefined ? row.last_name : last_name;
+    const display = buildDisplayName(nextFirst, nextLast);
+    if (first_name !== undefined || last_name !== undefined) {
+      await client.query(
+        `UPDATE auth_users
+            SET first_name = $2,
+                last_name = $3,
+                display_name = $4
+          WHERE id = $1`,
+        [userId, nextFirst, nextLast, display]
+      );
+    }
+    return { userId, created: false };
+  }
+
+  const display = buildDisplayName(first_name, last_name);
+  let userId: string;
+  if (env.NODE_ENV === 'production' || env.GOTRUE_URL.startsWith('http')) {
+    try {
+      const created = await inviteUser(email, 'it');
+      userId = created.id;
+    } catch (err) {
+      logger.warn(
+        { err: (err as Error).message, email },
+        'GoTrue invite failed; falling back to mirror-only insert'
+      );
+      userId = uuidv4();
+    }
+  } else {
+    userId = uuidv4();
+  }
+  await client.query(
+    `INSERT INTO auth_users(id, email, first_name, last_name, display_name, created_at)
+     VALUES ($1, $2, $3, $4, $5, now())
+     ON CONFLICT (id) DO UPDATE
+       SET email = EXCLUDED.email,
+           first_name = COALESCE(EXCLUDED.first_name, auth_users.first_name),
+           last_name = COALESCE(EXCLUDED.last_name, auth_users.last_name),
+           display_name = COALESCE(EXCLUDED.display_name, auth_users.display_name)`,
+    [userId, email, first_name ?? null, last_name ?? null, display]
+  );
+  return { userId, created: true };
+}
+
+async function performInvite(client: PoolClient, inv: InviteInput): Promise<InviteOutcome> {
+  const { userId, created } = await ensureAuthUser(
+    client,
+    inv.email,
+    inv.first_name,
+    inv.last_name
+  );
+  const existing = await client.query(
+    `SELECT id, active, deleted_at FROM memberships
+     WHERE tenant_id = current_setting('app.current_tenant_id')::uuid AND user_id = $1`,
+    [userId]
+  );
+  let membership: Record<string, unknown>;
+  let addedMember: boolean;
+  let wasActiveAlready = false;
+  if (existing.rowCount && existing.rows[0]) {
+    const ex = existing.rows[0];
+    if (ex.active && !ex.deleted_at) {
+      const upd = await client.query(
+        `UPDATE memberships SET role = $1 WHERE id = $2 RETURNING *`,
+        [inv.role, ex.id]
+      );
+      membership = upd.rows[0];
+      addedMember = false;
+      wasActiveAlready = true;
+    } else {
+      const upd = await client.query(
+        `UPDATE memberships
+         SET role = $1, active = TRUE, deleted_at = NULL
+         WHERE id = $2 RETURNING *`,
+        [inv.role, ex.id]
+      );
+      membership = upd.rows[0];
+      addedMember = true;
+    }
+  } else {
+    const ins = await client.query(
+      `INSERT INTO memberships(tenant_id, user_id, role)
+       VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2)
+       RETURNING *`,
+      [userId, inv.role]
+    );
+    membership = ins.rows[0];
+    addedMember = true;
+  }
+  if (inv.branch_ids) {
+    for (const bId of inv.branch_ids) {
+      await client.query(
+        `INSERT INTO branch_memberships(branch_id, user_id, tenant_id)
+         VALUES ($1, $2, current_setting('app.current_tenant_id')::uuid)
+         ON CONFLICT DO NOTHING`,
+        [bId, userId]
+      );
+    }
+  }
+  return {
+    user_id: userId,
+    email: inv.email,
+    membership,
+    created_user: created,
+    added_member: addedMember,
+    was_active_already: wasActiveAlready,
+  };
+}
 
 usersRouter.post(
   '/invite',
@@ -46,107 +239,47 @@ usersRouter.post(
     const parse = Invite.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     const inv = parse.data;
-    const tenant = await client.query(
-      `SELECT max_admins, max_users FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid`
-    );
-    const counts = await client.query(
-      `SELECT
-         COUNT(*) FILTER (WHERE role = 'admin' AND active AND deleted_at IS NULL) AS admins,
-         COUNT(*) FILTER (WHERE active AND deleted_at IS NULL) AS total
-       FROM memberships
-       WHERE tenant_id = current_setting('app.current_tenant_id')::uuid`
-    );
-    const tRow = tenant.rows[0];
-    const cRow = counts.rows[0];
-    const isAdminInvite = inv.role === 'admin';
-    if (Number(cRow.total) >= tRow.max_users) {
+    const { limits, counts } = await fetchLimits(client);
+    if (counts.total >= limits.max_users) {
       throw new ConflictError(
-        `User limit reached: ${cRow.total}/${tRow.max_users}`,
+        `User limit reached: ${counts.total}/${limits.max_users}`,
         'LIMIT_REACHED',
-        { kind: 'users', current: Number(cRow.total), limit: tRow.max_users }
+        { kind: 'users', current: counts.total, limit: limits.max_users }
       );
     }
-    if (isAdminInvite && Number(cRow.admins) >= tRow.max_admins) {
+    if (inv.role === 'admin' && counts.admins >= limits.max_admins) {
       throw new ConflictError(
-        `Admin limit reached: ${cRow.admins}/${tRow.max_admins}`,
+        `Admin limit reached: ${counts.admins}/${limits.max_admins}`,
         'LIMIT_REACHED',
-        { kind: 'admins', current: Number(cRow.admins), limit: tRow.max_admins }
+        { kind: 'admins', current: counts.admins, limit: limits.max_admins }
       );
     }
-    let user = await client.query(`SELECT id, email FROM auth_users WHERE email = $1`, [inv.email]);
-    let userId: string;
-    if (user.rowCount === 0) {
-      // Production: GoTrue's /invite creates auth.users + sends invite email.
-      // Local dev (no GoTrue reachable): fall back to direct insert.
-      if (env.NODE_ENV === 'production' || env.GOTRUE_URL.startsWith('http')) {
-        try {
-          const created = await inviteUser(inv.email, 'it');
-          userId = created.id;
-          await client.query(
-            `INSERT INTO auth_users(id, email, created_at) VALUES ($1, $2, now())
-             ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email`,
-            [userId, inv.email]
-          );
-        } catch (err) {
-          logger.warn({ err: (err as Error).message, email: inv.email }, 'GoTrue invite failed; falling back to mirror-only insert');
-          const newId = uuidv4();
-          await client.query(
-            `INSERT INTO auth_users(id, email, created_at) VALUES ($1, $2, now())`,
-            [newId, inv.email]
-          );
-          userId = newId;
-        }
-      } else {
-        const newId = uuidv4();
-        await client.query(
-          `INSERT INTO auth_users(id, email, created_at) VALUES ($1, $2, now())`,
-          [newId, inv.email]
-        );
-        userId = newId;
-      }
-    } else {
-      userId = user.rows[0].id;
-    }
-    const existing = await client.query(
-      `SELECT id, active, deleted_at FROM memberships
-       WHERE tenant_id = current_setting('app.current_tenant_id')::uuid AND user_id = $1`,
-      [userId]
-    );
-    let membership;
-    if (existing.rowCount && existing.rows[0]) {
-      const ex = existing.rows[0];
-      if (ex.active && !ex.deleted_at) {
+
+    const existingUser = await client.query(`SELECT id FROM auth_users WHERE email = $1`, [
+      inv.email,
+    ]);
+    if (existingUser.rowCount) {
+      const m = await client.query(
+        `SELECT active, deleted_at FROM memberships
+         WHERE tenant_id = current_setting('app.current_tenant_id')::uuid AND user_id = $1`,
+        [existingUser.rows[0].id]
+      );
+      if (m.rowCount && m.rows[0].active && !m.rows[0].deleted_at) {
         throw new ConflictError('User already a member of this tenant', 'CONFLICT');
       }
-      const upd = await client.query(
-        `UPDATE memberships
-         SET role = $1, active = TRUE, deleted_at = NULL
-         WHERE id = $2 RETURNING *`,
-        [inv.role, ex.id]
-      );
-      membership = upd.rows[0];
-    } else {
-      const ins = await client.query(
-        `INSERT INTO memberships(tenant_id, user_id, role)
-         VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2)
-         RETURNING *`,
-        [userId, inv.role]
-      );
-      membership = ins.rows[0];
     }
-    if (inv.branch_ids) {
-      for (const bId of inv.branch_ids) {
-        await client.query(
-          `INSERT INTO branch_memberships(branch_id, user_id, tenant_id)
-           VALUES ($1, $2, current_setting('app.current_tenant_id')::uuid)
-           ON CONFLICT DO NOTHING`,
-          [bId, userId]
-        );
-      }
-    }
-    await emitAudit(client, 'user.invite', userId, null, { email: inv.email, role: inv.role });
-    invalidateMembershipCache(userId);
-    ok(res, { user_id: userId, email: inv.email, membership }, 201);
+
+    const outcome = await performInvite(client, inv);
+    await emitAudit(client, 'user.invite', outcome.user_id, null, {
+      email: inv.email,
+      role: inv.role,
+    });
+    invalidateMembershipCache(outcome.user_id);
+    ok(
+      res,
+      { user_id: outcome.user_id, email: inv.email, membership: outcome.membership },
+      201
+    );
   })
 );
 
@@ -199,6 +332,8 @@ usersRouter.post(
 const PatchUser = z.object({
   role: z.enum(['admin', 'user']).optional(),
   disable_desktop_clock_in: z.boolean().optional(),
+  first_name: NameField.optional(),
+  last_name: NameField.optional(),
 });
 
 usersRouter.patch(
@@ -232,6 +367,24 @@ usersRouter.patch(
       ]
     );
     if (r.rowCount === 0) throw new NotFoundError('user');
+
+    if (parse.data.first_name !== undefined || parse.data.last_name !== undefined) {
+      const cur = await client.query(
+        `SELECT first_name, last_name FROM auth_users WHERE id = $1`,
+        [req.params.id]
+      );
+      const curRow = cur.rows[0] ?? { first_name: null, last_name: null };
+      const newFirst =
+        parse.data.first_name !== undefined ? parse.data.first_name : curRow.first_name;
+      const newLast =
+        parse.data.last_name !== undefined ? parse.data.last_name : curRow.last_name;
+      const display = buildDisplayName(newFirst, newLast);
+      await client.query(
+        `UPDATE auth_users SET first_name = $2, last_name = $3, display_name = $4 WHERE id = $1`,
+        [req.params.id, newFirst, newLast, display]
+      );
+    }
+
     await emitAudit(client, 'user.update', String(req.params.id), null, parse.data);
     invalidateMembershipCache(String(req.params.id));
     ok(res, r.rows[0]);
@@ -254,8 +407,308 @@ usersRouter.get(
   })
 );
 
+const SetBranches = z.object({ branch_ids: z.array(z.string().uuid()) });
+
+usersRouter.put(
+  '/:id/branches',
+  requireAdmin,
+  tenantHandler(async (req, res, client) => {
+    const parse = SetBranches.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const membership = await client.query(
+      `SELECT 1 FROM memberships
+        WHERE user_id = $1
+          AND tenant_id = current_setting('app.current_tenant_id')::uuid
+          AND deleted_at IS NULL`,
+      [req.params.id]
+    );
+    if (membership.rowCount === 0) throw new NotFoundError('user');
+    if (parse.data.branch_ids.length > 0) {
+      const valid = await client.query(
+        `SELECT id FROM branches
+          WHERE id = ANY($1::uuid[]) AND deleted_at IS NULL`,
+        [parse.data.branch_ids]
+      );
+      if (valid.rowCount !== parse.data.branch_ids.length) {
+        throw new ValidationError('one or more branch_ids invalid');
+      }
+    }
+    await client.query(
+      `DELETE FROM branch_memberships
+        WHERE user_id = $1
+          AND tenant_id = current_setting('app.current_tenant_id')::uuid`,
+      [req.params.id]
+    );
+    for (const bId of parse.data.branch_ids) {
+      await client.query(
+        `INSERT INTO branch_memberships(branch_id, user_id, tenant_id)
+         VALUES ($1, $2, current_setting('app.current_tenant_id')::uuid)`,
+        [bId, req.params.id]
+      );
+    }
+    await emitAudit(client, 'user.set_branches', String(req.params.id), null, {
+      branch_ids: parse.data.branch_ids,
+    });
+    ok(res, { branch_ids: parse.data.branch_ids });
+  })
+);
+
+usersRouter.delete(
+  '/:id',
+  requireAdmin,
+  tenantHandler(async (req, res, client) => {
+    if (req.params.id === req.user!.id) {
+      throw new ConflictError('Cannot delete your own account', 'SELF_DELETE');
+    }
+    const target = await client.query(
+      `SELECT role FROM memberships
+        WHERE user_id = $1
+          AND tenant_id = current_setting('app.current_tenant_id')::uuid
+          AND deleted_at IS NULL`,
+      [req.params.id]
+    );
+    if (target.rowCount === 0) throw new NotFoundError('user');
+    if (target.rows[0].role === 'admin') {
+      const others = await client.query(
+        `SELECT COUNT(*) AS n FROM memberships
+          WHERE role = 'admin'
+            AND deleted_at IS NULL
+            AND tenant_id = current_setting('app.current_tenant_id')::uuid
+            AND user_id != $1`,
+        [req.params.id]
+      );
+      if (Number(others.rows[0].n) === 0) {
+        throw new ConflictError('Cannot delete last admin', 'LAST_ADMIN');
+      }
+    }
+    await client.query(
+      `DELETE FROM branch_memberships
+        WHERE user_id = $1
+          AND tenant_id = current_setting('app.current_tenant_id')::uuid`,
+      [req.params.id]
+    );
+    const r = await client.query(
+      `UPDATE memberships
+          SET deleted_at = now(), active = FALSE
+        WHERE user_id = $1
+          AND tenant_id = current_setting('app.current_tenant_id')::uuid
+          AND deleted_at IS NULL
+        RETURNING *`,
+      [req.params.id]
+    );
+    if (r.rowCount === 0) throw new NotFoundError('user');
+    await emitAudit(client, 'user.delete', String(req.params.id), null, null);
+    invalidateMembershipCache(String(req.params.id));
+    ok(res, { deleted: true });
+  })
+);
+
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const EXPORT_COLUMNS: Array<{ header: string; key: string; width: number }> = [
+  { header: 'Email', key: 'email', width: 32 },
+  { header: 'Nome', key: 'first_name', width: 18 },
+  { header: 'Cognome', key: 'last_name', width: 22 },
+  { header: 'Ruolo', key: 'role', width: 12 },
+  { header: 'Stato', key: 'stato', width: 14 },
+  { header: 'Ultima timbratura', key: 'last_stamp_at', width: 22 },
+];
+
+usersRouter.get(
+  '/export.xlsx',
+  requireAdmin,
+  tenantHandler(async (_req, res, client) => {
+    const r = await client.query(
+      `SELECT m.role, m.active,
+              COALESCE(au.email, m.user_id::text) AS email,
+              au.first_name, au.last_name,
+              (SELECT MAX(occurred_at) FROM stamps s
+                WHERE s.user_id = m.user_id AND s.deleted_at IS NULL) AS last_stamp_at
+         FROM memberships m
+         LEFT JOIN auth_users au ON au.id = m.user_id
+        WHERE m.deleted_at IS NULL
+        ORDER BY au.last_name NULLS LAST, au.first_name NULLS LAST, au.email`
+    );
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Utenti');
+    ws.columns = EXPORT_COLUMNS;
+    ws.getRow(1).font = { bold: true };
+    for (const row of r.rows) {
+      ws.addRow({
+        email: row.email,
+        first_name: row.first_name ?? '',
+        last_name: row.last_name ?? '',
+        role: row.role === 'admin' ? 'admin' : 'utente',
+        stato: row.active ? 'attivo' : 'disattivato',
+        last_stamp_at: row.last_stamp_at
+          ? new Date(row.last_stamp_at).toISOString()
+          : '',
+      });
+    }
+    const buf = (await wb.xlsx.writeBuffer()) as ArrayBuffer;
+    const today = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', XLSX_MIME);
+    res.setHeader('Content-Disposition', `attachment; filename="utenti_${today}.xlsx"`);
+    res.send(Buffer.from(buf));
+  })
+);
+
+interface ImportRow {
+  rowNumber: number;
+  email: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  role: 'admin' | 'user';
+}
+
+function normalizeRole(raw: unknown): 'admin' | 'user' | null {
+  if (raw === null || raw === undefined) return 'user';
+  const v = String(raw).trim().toLowerCase();
+  if (v === '') return 'user';
+  if (v === 'admin' || v === 'amministratore') return 'admin';
+  if (v === 'user' || v === 'utente') return 'user';
+  return null;
+}
+
+function cellString(cell: ExcelJS.Cell): string {
+  const v = cell.value;
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'string') return v.trim();
+  if (typeof v === 'number') return String(v);
+  if (typeof v === 'object') {
+    const o = v as unknown as Record<string, unknown>;
+    if ('text' in o) return String(o.text ?? '').trim();
+    if ('richText' in o) {
+      const parts = o.richText as Array<{ text: string }>;
+      return parts.map((p) => p.text).join('').trim();
+    }
+  }
+  return String(v).trim();
+}
+
+async function parseSheet(buf: Buffer): Promise<ImportRow[]> {
+  const wb = new ExcelJS.Workbook();
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await wb.xlsx.load(buf as any);
+  } catch (e) {
+    throw new ValidationError(
+      `Impossibile leggere il file Excel: ${(e as Error).message}`
+    );
+  }
+  const ws = wb.worksheets[0];
+  if (!ws) throw new ValidationError('Foglio Excel vuoto');
+
+  const header = ws.getRow(1);
+  const idx: Record<string, number> = {};
+  header.eachCell((cell, col) => {
+    const key = cellString(cell).toLowerCase();
+    if (key) idx[key] = col;
+  });
+  const colEmail = idx['email'];
+  if (!colEmail) {
+    throw new ValidationError('Colonna "email" mancante nella prima riga');
+  }
+  const colNome = idx['nome'];
+  const colCognome = idx['cognome'];
+  const colRuolo = idx['ruolo'];
+
+  const rows: ImportRow[] = [];
+  const errors: Array<{ row: number; message: string }> = [];
+  const seen = new Set<string>();
+  const lastRow = ws.actualRowCount;
+  for (let i = 2; i <= lastRow; i += 1) {
+    const r = ws.getRow(i);
+    const email = cellString(r.getCell(colEmail)).toLowerCase();
+    if (!email) continue;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.push({ row: i, message: `Email non valida: "${email}"` });
+      continue;
+    }
+    if (seen.has(email)) {
+      errors.push({ row: i, message: `Email duplicata nel foglio: ${email}` });
+      continue;
+    }
+    seen.add(email);
+    const ruoloRaw = colRuolo ? cellString(r.getCell(colRuolo)) : '';
+    const role = normalizeRole(ruoloRaw);
+    if (role === null) {
+      errors.push({ row: i, message: `Ruolo non riconosciuto: "${ruoloRaw}"` });
+      continue;
+    }
+    const first = colNome ? cellString(r.getCell(colNome)) : '';
+    const last = colCognome ? cellString(r.getCell(colCognome)) : '';
+    rows.push({
+      rowNumber: i,
+      email,
+      first_name: first || null,
+      last_name: last || null,
+      role,
+    });
+  }
+  if (errors.length > 0) {
+    throw new ValidationError('Errori nel file Excel', { errors });
+  }
+  return rows;
+}
+
+usersRouter.post(
+  '/import',
+  requireAdmin,
+  raw({ type: '*/*', limit: '5mb' }),
+  tenantHandler(async (req, res, client) => {
+    const body = req.body;
+    if (!Buffer.isBuffer(body) || body.length === 0) {
+      throw new ValidationError('File Excel mancante');
+    }
+    const rows = await parseSheet(body);
+    if (rows.length === 0) {
+      ok(res, { processed: 0, created: 0, updated: 0, reactivated: 0 });
+      return;
+    }
+
+    let created = 0;
+    let updated = 0;
+    let reactivated = 0;
+    for (const row of rows) {
+      const outcome = await performInvite(client, {
+        email: row.email,
+        role: row.role,
+        first_name: row.first_name === null ? undefined : row.first_name,
+        last_name: row.last_name === null ? undefined : row.last_name,
+      });
+      if (outcome.was_active_already) updated += 1;
+      else if (outcome.created_user) created += 1;
+      else reactivated += 1;
+      await emitAudit(client, 'user.import', outcome.user_id, null, {
+        email: row.email,
+        role: row.role,
+        row: row.rowNumber,
+      });
+      invalidateMembershipCache(outcome.user_id);
+    }
+
+    const { limits, counts } = await fetchLimits(client);
+    if (counts.total > limits.max_users) {
+      throw new ConflictError(
+        `User limit reached: ${counts.total}/${limits.max_users}`,
+        'LIMIT_REACHED',
+        { kind: 'users', current: counts.total, limit: limits.max_users }
+      );
+    }
+    if (counts.admins > limits.max_admins) {
+      throw new ConflictError(
+        `Admin limit reached: ${counts.admins}/${limits.max_admins}`,
+        'LIMIT_REACHED',
+        { kind: 'admins', current: counts.admins, limit: limits.max_admins }
+      );
+    }
+
+    ok(res, { processed: rows.length, created, updated, reactivated });
+  })
+);
+
 async function emitAudit(
-  client: import('pg').PoolClient,
+  client: PoolClient,
   action: string,
   resourceId: string,
   before: unknown,
