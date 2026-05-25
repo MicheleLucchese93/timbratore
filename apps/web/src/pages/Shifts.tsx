@@ -242,7 +242,7 @@ function ShiftForm({
       onClick={onClose}
     >
       <div
-        className="card w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+        className="card w-full max-w-4xl max-h-[95vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <form onSubmit={submit} className="space-y-4">
@@ -330,59 +330,69 @@ function ShiftForm({
             </div>
           </fieldset>
 
-          <fieldset className="border border-neutral-200 rounded p-3 space-y-2">
+          <fieldset className="border border-neutral-200 rounded p-3">
             <legend className="text-sm font-medium px-1">Settimana</legend>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-neutral-500 mb-2">
               Aggiungi più fasce nello stesso giorno per i turni spezzati (es. 09:00–13:00 + 14:00–18:00).
             </p>
-            {DAYS.map((d) => {
-              const daySlots = state.slots
-                .map((s, idx) => ({ s, idx }))
-                .filter(({ s }) => s.day_of_week === d.iso);
-              return (
-                <div key={d.iso} className="flex items-start gap-3 py-1">
-                  <div className="w-24 text-sm font-medium pt-1">{d.label}</div>
-                  <div className="flex-1 space-y-1">
-                    {daySlots.length === 0 && (
-                      <div className="text-xs text-neutral-400 italic">riposo</div>
-                    )}
-                    {daySlots.map(({ s, idx }) => (
-                      <div key={idx} className="flex items-center gap-2 text-sm">
-                        <input
-                          type="time"
-                          className="input"
-                          style={{ width: 110 }}
-                          value={s.start_time}
-                          onChange={(e) => updateSlot(idx, { start_time: e.target.value })}
-                        />
-                        <span>–</span>
-                        <input
-                          type="time"
-                          className="input"
-                          style={{ width: 110 }}
-                          value={s.end_time}
-                          onChange={(e) => updateSlot(idx, { end_time: e.target.value })}
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => removeSlot(idx)}
+            <div className="divide-y divide-neutral-100">
+              {DAYS.map((d) => {
+                const daySlots = state.slots
+                  .map((s, idx) => ({ s, idx }))
+                  .filter(({ s }) => s.day_of_week === d.iso);
+                return (
+                  <div
+                    key={d.iso}
+                    className="flex items-center gap-3 py-2 flex-wrap"
+                  >
+                    <div className="w-20 text-sm font-medium shrink-0">{d.label}</div>
+                    <div className="flex items-center gap-2 flex-wrap flex-1">
+                      {daySlots.length === 0 && (
+                        <span className="text-xs text-neutral-400 italic mr-2">riposo</span>
+                      )}
+                      {daySlots.map(({ s, idx }) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-1 bg-neutral-50 border border-neutral-200 rounded px-1.5 py-0.5"
                         >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => addSlot(d.iso)}
-                    >
-                      + fascia
-                    </button>
+                          <input
+                            type="time"
+                            className="input"
+                            style={{ width: 92, padding: '0.2rem 0.4rem', minHeight: 0 }}
+                            value={s.start_time}
+                            onChange={(e) => updateSlot(idx, { start_time: e.target.value })}
+                          />
+                          <span className="text-neutral-400">–</span>
+                          <input
+                            type="time"
+                            className="input"
+                            style={{ width: 92, padding: '0.2rem 0.4rem', minHeight: 0 }}
+                            value={s.end_time}
+                            onChange={(e) => updateSlot(idx, { end_time: e.target.value })}
+                          />
+                          <button
+                            type="button"
+                            className="text-neutral-400 hover:text-red-600 ml-1 leading-none"
+                            style={{ fontSize: '1.1rem' }}
+                            onClick={() => removeSlot(idx)}
+                            aria-label="Rimuovi fascia"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => addSlot(d.iso)}
+                      >
+                        + fascia
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </fieldset>
 
           {err && (
