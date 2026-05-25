@@ -15,8 +15,6 @@ const TenantSettings = z.object({
   timezone: z.string().optional(),
   language: z.enum(['it', 'en']).optional(),
   ccnl: z.string().nullable().optional(),
-  geofence_policy: z.enum(['lenient', 'strict']).optional(),
-  gps_accuracy_ceiling_m: z.number().int().min(10).max(2000).optional(),
   break_paid_threshold_min: z.number().int().min(0).max(240).optional(),
   max_shift_hours: z.number().int().min(4).max(24).optional(),
   max_break_hours: z.number().int().min(0).max(12).optional(),
@@ -69,10 +67,10 @@ settingsRouter.get(
       `SELECT
          (SELECT COUNT(*) FROM memberships
             WHERE tenant_id = current_setting('app.current_tenant_id')::uuid
-              AND active AND deleted_at IS NULL) AS active_users,
+              AND deleted_at IS NULL) AS active_users,
          (SELECT COUNT(*) FROM memberships
             WHERE tenant_id = current_setting('app.current_tenant_id')::uuid
-              AND role='admin' AND active AND deleted_at IS NULL) AS active_admins,
+              AND role='admin' AND deleted_at IS NULL) AS active_admins,
          (SELECT max_users FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid) AS max_users,
          (SELECT max_admins FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid) AS max_admins,
          (SELECT COUNT(*) FROM branches

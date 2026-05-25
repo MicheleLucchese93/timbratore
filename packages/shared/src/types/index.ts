@@ -25,8 +25,6 @@ export interface Tenant {
   retention_years: number;
   max_admins: number;
   max_users: number;
-  geofence_policy: GeofencePolicy;
-  gps_accuracy_ceiling_m: number;
   mock_location_action: MockLocationAction;
   break_paid_threshold_min: number;
   max_shift_hours: number;
@@ -56,6 +54,8 @@ export interface Branch {
   longitude: number | null;
   radius_m: number;
   smart_working: boolean;
+  geofence_policy: GeofencePolicy;
+  gps_accuracy_ceiling_m: number;
   timezone: string | null;
   active: boolean;
   ordering: number;

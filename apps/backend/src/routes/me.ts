@@ -12,8 +12,8 @@ meRouter.get(
   '/',
   tenantHandler(async (req, res, client) => {
     const tenant = await client.query(
-      `SELECT id, ragione_sociale, country, timezone, language, geofence_policy,
-              gps_accuracy_ceiling_m, mock_location_action, break_paid_threshold_min,
+      `SELECT id, ragione_sociale, country, timezone, language,
+              mock_location_action, break_paid_threshold_min,
               max_shift_hours, max_break_hours,
               max_admins, max_users
        FROM tenants
@@ -27,7 +27,8 @@ meRouter.get(
       [req.user!.membershipId]
     );
     const branches = await client.query(
-      `SELECT b.id, b.name, b.address, b.latitude, b.longitude, b.radius_m, b.smart_working
+      `SELECT b.id, b.name, b.address, b.latitude, b.longitude, b.radius_m, b.smart_working,
+              b.geofence_policy, b.gps_accuracy_ceiling_m
        FROM branch_memberships bm
        JOIN branches b ON b.id = bm.branch_id AND b.deleted_at IS NULL AND b.active = TRUE
        WHERE bm.user_id = $1`,

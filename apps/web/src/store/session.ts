@@ -13,8 +13,6 @@ export interface MeResponse {
     ragione_sociale: string;
     language: 'it' | 'en';
     timezone: string;
-    geofence_policy: 'lenient' | 'strict';
-    gps_accuracy_ceiling_m: number;
     mock_location_action: 'allow' | 'flag' | 'block';
     break_paid_threshold_min: number;
     max_shift_hours: number;
@@ -22,7 +20,17 @@ export interface MeResponse {
     max_admins: number;
     max_users: number;
   };
-  branches: Array<{ id: string; name: string; address: string | null; latitude: number | null; longitude: number | null; radius_m: number; smart_working: boolean }>;
+  branches: Array<{
+    id: string;
+    name: string;
+    address: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    radius_m: number;
+    smart_working: boolean;
+    geofence_policy: 'lenient' | 'strict';
+    gps_accuracy_ceiling_m: number;
+  }>;
 }
 
 interface SessionState {

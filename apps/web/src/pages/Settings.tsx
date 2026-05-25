@@ -9,8 +9,6 @@ interface TenantSettings {
   timezone: string;
   language: 'it' | 'en';
   retention_years: number;
-  geofence_policy: 'lenient' | 'strict';
-  gps_accuracy_ceiling_m: number;
   mock_location_action: 'allow' | 'flag' | 'block';
   break_paid_threshold_min: number;
   max_shift_hours: number;
@@ -18,12 +16,11 @@ interface TenantSettings {
 }
 
 type EditableKey =
-  | 'gps_accuracy_ceiling_m'
   | 'break_paid_threshold_min'
   | 'max_shift_hours'
   | 'max_break_hours';
 
-type AutoSaveKey = 'timezone' | 'language' | 'geofence_policy';
+type AutoSaveKey = 'timezone' | 'language';
 
 const TIMEZONE_OPTIONS = [
   'Europe/Rome',
@@ -181,47 +178,6 @@ export function Settings() {
               <option value="en">English</option>
             </select>
           </Field>
-        </div>
-      </SettingsRow>
-
-      <SettingsRow
-        icon={<IconMapPin />}
-        title="Geofencing e GPS"
-        description="Regole di rilevamento della posizione al momento della timbratura. La tolleranza (raggio) si imposta per singola sede."
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Field label="Politica geofence">
-            <select
-              className="input"
-              value={s.geofence_policy}
-              disabled={busy}
-              onChange={(e) =>
-                void autoSave('geofence_policy', e.target.value as 'lenient' | 'strict')
-              }
-            >
-              <option value="lenient">Permissiva (tollera accuracy)</option>
-              <option value="strict">Stretta</option>
-            </select>
-            <p className="field-hint">Permissiva: accetta entro <em>raggio + accuracy</em>. Stretta: solo entro il raggio.</p>
-          </Field>
-          <EditableField
-            label="Accuratezza GPS massima (m)"
-            editing={editingKey === 'gps_accuracy_ceiling_m'}
-            disabledEdit={busy || lockOthers('gps_accuracy_ceiling_m')}
-            busy={busy}
-            onEdit={() => setEditingKey('gps_accuracy_ceiling_m')}
-            onSave={() => saveField('gps_accuracy_ceiling_m')}
-            onCancel={() => cancelEdit('gps_accuracy_ceiling_m')}
-            hint="Sopra questa soglia la timbratura è respinta."
-          >
-            <input
-              type="number"
-              className="input"
-              value={s.gps_accuracy_ceiling_m}
-              disabled={editingKey !== 'gps_accuracy_ceiling_m'}
-              onChange={(e) => setS({ ...s, gps_accuracy_ceiling_m: Number(e.target.value) })}
-            />
-          </EditableField>
         </div>
       </SettingsRow>
 
@@ -413,14 +369,6 @@ function IconBuilding() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="4" y="3" width="16" height="18" rx="2" />
       <path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2M10 21v-3h4v3" />
-    </svg>
-  );
-}
-function IconMapPin() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-      <circle cx="12" cy="10" r="3" />
     </svg>
   );
 }

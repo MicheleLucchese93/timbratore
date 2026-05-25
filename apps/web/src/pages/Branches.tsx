@@ -11,6 +11,8 @@ interface Branch {
   longitude: number | null;
   radius_m: number;
   smart_working: boolean;
+  geofence_policy: 'lenient' | 'strict';
+  gps_accuracy_ceiling_m: number;
   active: boolean;
 }
 
@@ -101,6 +103,12 @@ function BranchForm({
   const [lng, setLng] = useState<number | null>(initial?.longitude ?? null);
   const [radius, setRadius] = useState(initial?.radius_m ?? 300);
   const [smartWorking, setSmartWorking] = useState(initial?.smart_working ?? false);
+  const [geofencePolicy, setGeofencePolicy] = useState<'lenient' | 'strict'>(
+    initial?.geofence_policy ?? 'lenient'
+  );
+  const [accuracyCeiling, setAccuracyCeiling] = useState(
+    initial?.gps_accuracy_ceiling_m ?? 100
+  );
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -132,6 +140,8 @@ function BranchForm({
         longitude: lng ?? undefined,
         radius_m: Number(radius),
         smart_working: smartWorking,
+        geofence_policy: geofencePolicy,
+        gps_accuracy_ceiling_m: Number(accuracyCeiling),
       };
       if (initial) {
         await api(`/api/v1/branches/${initial.id}`, { method: 'PATCH', json: payload });
@@ -189,17 +199,49 @@ function BranchForm({
               </label>
             </div>
             {!smartWorking && (
-              <div>
-                <label className="label">Raggio (50–1500 m): {radius}m</label>
-                <input
-                  type="range"
-                  min={50}
-                  max={1500}
-                  value={radius}
-                  onChange={(e) => setRadius(Number(e.target.value))}
-                  className="w-full"
-                />
-              </div>
+              <>
+                <div>
+                  <label className="label">Raggio (50–1500 m): {radius}m</label>
+                  <input
+                    type="range"
+                    min={50}
+                    max={1500}
+                    value={radius}
+                    onChange={(e) => setRadius(Number(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <label className="label">Politica geofence</label>
+                  <select
+                    className="input"
+                    value={geofencePolicy}
+                    onChange={(e) =>
+                      setGeofencePolicy(e.target.value as 'lenient' | 'strict')
+                    }
+                  >
+                    <option value="lenient">Permissiva (tollera accuracy)</option>
+                    <option value="strict">Stretta</option>
+                  </select>
+                  <p className="text-xs text-neutral-500 mt-1">
+                    Permissiva: accetta entro <em>raggio + accuracy</em>. Stretta: solo entro il raggio.
+                  </p>
+                </div>
+                <div>
+                  <label className="label">Accuratezza GPS massima (m)</label>
+                  <input
+                    type="number"
+                    className="input"
+                    min={10}
+                    max={2000}
+                    value={accuracyCeiling}
+                    onChange={(e) => setAccuracyCeiling(Number(e.target.value))}
+                  />
+                  <p className="text-xs text-neutral-500 mt-1">
+                    Sopra questa soglia la timbratura è respinta.
+                  </p>
+                </div>
+              </>
             )}
           </div>
           {!smartWorking && (

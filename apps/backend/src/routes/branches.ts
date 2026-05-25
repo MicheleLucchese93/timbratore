@@ -16,6 +16,8 @@ const CreateBranch = z.object({
   longitude: z.number().gte(-180).lte(180).optional(),
   radius_m: z.number().int().gte(50).lte(1500).default(300),
   smart_working: z.boolean().default(false),
+  geofence_policy: z.enum(['lenient', 'strict']).default('lenient'),
+  gps_accuracy_ceiling_m: z.number().int().gte(10).lte(2000).default(100),
   timezone: z.string().optional(),
   ordering: z.number().int().default(0),
 });
@@ -25,7 +27,8 @@ branchesRouter.get(
   tenantHandler(async (_req, res, client) => {
     const r = await client.query(
       `SELECT id, name, address, address_components, latitude, longitude, radius_m,
-              smart_working, timezone, active, ordering, created_at
+              smart_working, geofence_policy, gps_accuracy_ceiling_m,
+              timezone, active, ordering, created_at
        FROM branches
        WHERE deleted_at IS NULL
        ORDER BY ordering, name`
@@ -68,10 +71,12 @@ branchesRouter.post(
     }
     const r = await client.query(
       `INSERT INTO branches(tenant_id, name, address, address_components, latitude, longitude,
-                            radius_m, smart_working, timezone, ordering)
-       VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, $4, $5, $6, $7, $8, $9)
+                            radius_m, smart_working, geofence_policy, gps_accuracy_ceiling_m,
+                            timezone, ordering)
+       VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
-      [b.name, b.address ?? null, components, lat, lng, b.radius_m, b.smart_working, b.timezone ?? null, b.ordering]
+      [b.name, b.address ?? null, components, lat, lng, b.radius_m, b.smart_working,
+       b.geofence_policy, b.gps_accuracy_ceiling_m, b.timezone ?? null, b.ordering]
     );
     await emitAudit(client, 'branch.create', r.rows[0].id, null, r.rows[0]);
     ok(res, r.rows[0], 201);
