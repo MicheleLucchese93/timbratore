@@ -32,7 +32,6 @@ export function ForgotPassword() {
                 alt=""
                 aria-hidden="true"
                 className="mb-3 h-16 w-16"
-                style={{ background: 'var(--color-surface)' }}
               />
               <div className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--color-primary)' }}>
                 sono<span style={{ color: 'var(--color-on-primary-container)' }}>Qui</span>

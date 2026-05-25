@@ -43,12 +43,14 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
             <div className="text-center mb-2 flex flex-col items-center">
               {/* Logo on top, same surface background as the rest of the
                   card — mirrors the mobile login layout. */}
+              {/* No explicit background — the form card is already `white`,
+                  and the icon PNG ships with its own opaque tile, so they
+                  blend without a visible seam. */}
               <img
                 src="/icon-192.png"
                 alt=""
                 aria-hidden="true"
                 className="mb-3 h-16 w-16"
-                style={{ background: 'var(--color-surface)' }}
               />
               <div className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--color-primary)' }}>
                 sono<span style={{ color: 'var(--color-on-primary-container)' }}>Qui</span>
