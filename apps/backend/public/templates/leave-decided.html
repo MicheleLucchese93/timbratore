@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="{{ if eq .language "it" }}it{{ else }}en{{ end }}">
+<head>
+<meta charset="utf-8">
+<title>{{ if eq .language "it" }}Esito richiesta — sonoQui{{ else }}Request outcome — sonoQui{{ end }}</title>
+</head>
+<body style="font-family:Helvetica,Arial,sans-serif;max-width:560px;margin:2rem auto;padding:0 1rem;line-height:1.55;color:#1f1b16">
+{{ if eq .language "it" }}
+<h2 style="color:#b25500;margin:0 0 12px">Richiesta {{ .DecisionVerb }}</h2>
+<p>La tua richiesta di <strong>{{ .TypeLabel }}</strong> è stata <strong>{{ .DecisionVerb }}</strong>.</p>
+<table cellpadding="6" cellspacing="0" style="border-collapse:collapse;margin:12px 0">
+  <tr><td style="color:#666">Tipo</td><td>{{ .TypeLabel }}</td></tr>
+  <tr><td style="color:#666">Periodo</td><td>{{ .Range }}</td></tr>
+  <tr><td style="color:#666">Ore</td><td>{{ .DurationHours }}</td></tr>
+  {{ if eq .HasReason "1" }}<tr><td style="color:#666">Motivo</td><td>{{ .Reason }}</td></tr>{{ else }}{{ end }}
+  {{ if eq .HasApprover "1" }}<tr><td style="color:#666">Decisa da</td><td>{{ .ApproverName }}</td></tr>{{ else }}{{ end }}
+</table>
+<p style="color:#666;font-size:12px">sonoQui — gestione presenze per piccole imprese.</p>
+{{ else }}
+<h2 style="color:#b25500;margin:0 0 12px">Request {{ .DecisionVerb }}</h2>
+<p>Your <strong>{{ .TypeLabel }}</strong> request has been <strong>{{ .DecisionVerb }}</strong>.</p>
+<table cellpadding="6" cellspacing="0" style="border-collapse:collapse;margin:12px 0">
+  <tr><td style="color:#666">Type</td><td>{{ .TypeLabel }}</td></tr>
+  <tr><td style="color:#666">Period</td><td>{{ .Range }}</td></tr>
+  <tr><td style="color:#666">Hours</td><td>{{ .DurationHours }}</td></tr>
+  {{ if eq .HasReason "1" }}<tr><td style="color:#666">Reason</td><td>{{ .Reason }}</td></tr>{{ else }}{{ end }}
+  {{ if eq .HasApprover "1" }}<tr><td style="color:#666">Decided by</td><td>{{ .ApproverName }}</td></tr>{{ else }}{{ end }}
+</table>
+<p style="color:#666;font-size:12px">sonoQui — simple attendance for small businesses.</p>
+{{ end }}
+</body>
+</html>

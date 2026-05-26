@@ -1,6 +1,7 @@
 import nodemailer, { type Transporter } from 'nodemailer';
 import { env } from '../env.js';
 import { createLogger } from './logger.js';
+import { renderTemplate, escapeHtml, stripHeader } from './template-renderer.js';
 
 const logger = createLogger('mailer');
 
@@ -18,18 +19,7 @@ function transporter(): Transporter | null {
   return cached;
 }
 
-export function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-export function stripHeader(s: string): string {
-  return s.replace(/[\r\n]/g, ' ').slice(0, 998);
-}
+export { escapeHtml, stripHeader };
 
 export interface MailInput {
   to: string;
@@ -61,34 +51,68 @@ export async function sendMail(input: MailInput): Promise<boolean> {
   }
 }
 
-/* ----- Leave-related email templates (Italian) ----- */
+/* ----- Leave-related email templates ----- */
 
-function wrap(subject: string, bodyHtml: string): string {
-  return `<!doctype html><html><body style="font-family:system-ui,sans-serif;color:#111">
-<h2 style="margin:0 0 12px">${escapeHtml(subject)}</h2>
-${bodyHtml}
-<p style="margin-top:24px;color:#666;font-size:12px">SonoQui — gestione presenze</p>
-</body></html>`;
+const TYPE_LABEL: Record<string, { it: string; en: string }> = {
+  ferie: { it: 'Ferie', en: 'Holiday' },
+  permessi: { it: 'Permesso', en: 'Time off' },
+  malattia: { it: 'Malattia', en: 'Sick leave' },
+};
+
+const SUBJECTS = {
+  submitted: {
+    it: (label: string, who: string) =>
+      `[sonoQui] Nuova richiesta di ${label.toLowerCase()} — ${who}`,
+    en: (label: string, who: string) =>
+      `[sonoQui] New ${label.toLowerCase()} request — ${who}`,
+  },
+  decided: {
+    it: (label: string, verb: string) =>
+      `[sonoQui] Richiesta di ${label.toLowerCase()} ${verb}`,
+    en: (label: string, verb: string) =>
+      `[sonoQui] ${label} request ${verb}`,
+  },
+  cancellationRequested: {
+    it: (label: string, who: string) =>
+      `[sonoQui] ${who} chiede di annullare ${label.toLowerCase()}`,
+    en: (label: string, who: string) =>
+      `[sonoQui] ${who} is cancelling ${label.toLowerCase()}`,
+  },
+  cancellationDecided: {
+    it: (label: string, verb: string) =>
+      `[sonoQui] Annullamento ${label.toLowerCase()} ${verb}`,
+    en: (label: string, verb: string) =>
+      `[sonoQui] ${label} cancellation ${verb}`,
+  },
+} as const;
+
+function decisionVerb(decision: 'approved' | 'rejected', language: 'it' | 'en'): string {
+  if (language === 'it') return decision === 'approved' ? 'approvata' : 'rifiutata';
+  return decision === 'approved' ? 'approved' : 'rejected';
 }
 
-function fmtRange(fromIso: string, toIso: string, type: string): string {
+function cancellationVerb(accepted: boolean, language: 'it' | 'en'): string {
+  if (language === 'it') return accepted ? 'accettato' : 'rifiutato';
+  return accepted ? 'accepted' : 'rejected';
+}
+
+function fmtRange(fromIso: string, toIso: string, type: string, language: 'it' | 'en'): string {
   const from = new Date(fromIso);
   const to = new Date(toIso);
   const sameDay = from.toDateString() === to.toDateString();
+  const locale = language === 'it' ? 'it-IT' : 'en-GB';
   const dOpts: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
   const tOpts: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
   if (type === 'permessi' && sameDay) {
-    return `${from.toLocaleDateString('it-IT', dOpts)} ${from.toLocaleTimeString('it-IT', tOpts)}–${to.toLocaleTimeString('it-IT', tOpts)}`;
+    return `${from.toLocaleDateString(locale, dOpts)} ${from.toLocaleTimeString(locale, tOpts)}–${to.toLocaleTimeString(locale, tOpts)}`;
   }
-  if (sameDay) return from.toLocaleDateString('it-IT', dOpts);
-  return `${from.toLocaleDateString('it-IT', dOpts)} → ${to.toLocaleDateString('it-IT', dOpts)}`;
+  if (sameDay) return from.toLocaleDateString(locale, dOpts);
+  return `${from.toLocaleDateString(locale, dOpts)} → ${to.toLocaleDateString(locale, dOpts)}`;
 }
 
-const TYPE_LABEL: Record<string, string> = {
-  ferie: 'Ferie',
-  permessi: 'Permesso',
-  malattia: 'Malattia',
-};
+function actionUrl(): string {
+  return env.WEB_PUBLIC_URL.replace(/\/$/, '') + '/leaves';
+}
 
 export interface LeaveMailPayload {
   type: string;
@@ -98,28 +122,42 @@ export interface LeaveMailPayload {
   requester_name: string;
   approver_name?: string;
   reason?: string;
+  language?: 'it' | 'en';
 }
 
-export function buildSubmittedMail(p: LeaveMailPayload): { subject: string; text: string; html: string } {
-  const label = TYPE_LABEL[p.type] ?? p.type;
-  const range = fmtRange(p.from_ts, p.to_ts, p.type);
-  const subject = `[SonoQui] Nuova richiesta di ${label.toLowerCase()} — ${p.requester_name}`;
+function labelFor(type: string, language: 'it' | 'en'): string {
+  return TYPE_LABEL[type]?.[language] ?? type;
+}
+
+export function buildSubmittedMail(p: LeaveMailPayload): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const language = p.language ?? 'it';
+  const label = labelFor(p.type, language);
+  const range = fmtRange(p.from_ts, p.to_ts, p.type, language);
+  const subject = SUBJECTS.submitted[language](label, p.requester_name);
   const text =
-    `${p.requester_name} ha inviato una richiesta di ${label.toLowerCase()}.\n` +
-    `Periodo: ${range}\n` +
-    `Ore: ${p.duration_hours}\n` +
-    (p.reason ? `Note: ${p.reason}\n` : '') +
-    `\nAccedi all'app per approvare o rifiutare.`;
-  const html = wrap(
-    subject,
-    `<p><strong>${escapeHtml(p.requester_name)}</strong> ha inviato una richiesta di <strong>${escapeHtml(label)}</strong>.</p>
-     <ul>
-       <li>Periodo: ${escapeHtml(range)}</li>
-       <li>Ore: ${p.duration_hours}</li>
-       ${p.reason ? `<li>Note: ${escapeHtml(p.reason)}</li>` : ''}
-     </ul>
-     <p>Accedi all'app per approvare o rifiutare.</p>`
-  );
+    language === 'it'
+      ? `${p.requester_name} ha inviato una richiesta di ${label.toLowerCase()}.\n` +
+        `Periodo: ${range}\nOre: ${p.duration_hours}\n` +
+        (p.reason ? `Note: ${p.reason}\n` : '') +
+        `\nAccedi a sonoQui per approvare o rifiutare.`
+      : `${p.requester_name} submitted a ${label.toLowerCase()} request.\n` +
+        `Period: ${range}\nHours: ${p.duration_hours}\n` +
+        (p.reason ? `Note: ${p.reason}\n` : '') +
+        `\nOpen sonoQui to approve or reject.`;
+  const html = renderTemplate('leave-submitted.html', {
+    language,
+    TypeLabel: label,
+    RequesterName: p.requester_name,
+    Range: range,
+    DurationHours: String(p.duration_hours),
+    HasNote: p.reason ? '1' : '0',
+    Note: p.reason ?? '',
+    ActionUrl: actionUrl(),
+  });
   return { subject, text, html };
 }
 
@@ -128,50 +166,65 @@ export function buildDecidedMail(
   decision: 'approved' | 'rejected',
   rejectionReason?: string
 ): { subject: string; text: string; html: string } {
-  const label = TYPE_LABEL[p.type] ?? p.type;
-  const range = fmtRange(p.from_ts, p.to_ts, p.type);
-  const action = decision === 'approved' ? 'approvata' : 'rifiutata';
-  const subject = `[SonoQui] Richiesta di ${label.toLowerCase()} ${action}`;
-  const reasonLine = decision === 'rejected' && rejectionReason
-    ? `Motivo: ${rejectionReason}\n` : '';
+  const language = p.language ?? 'it';
+  const label = labelFor(p.type, language);
+  const range = fmtRange(p.from_ts, p.to_ts, p.type, language);
+  const verb = decisionVerb(decision, language);
+  const subject = SUBJECTS.decided[language](label, verb);
+  const reasonLine =
+    decision === 'rejected' && rejectionReason
+      ? (language === 'it' ? `Motivo: ${rejectionReason}\n` : `Reason: ${rejectionReason}\n`)
+      : '';
+  const approverLine = p.approver_name
+    ? (language === 'it' ? `Decisa da: ${p.approver_name}\n` : `Decided by: ${p.approver_name}\n`)
+    : '';
   const text =
-    `La tua richiesta di ${label.toLowerCase()} è stata ${action}.\n` +
-    `Periodo: ${range}\n` +
-    `Ore: ${p.duration_hours}\n` +
-    reasonLine +
-    (p.approver_name ? `Decisa da: ${p.approver_name}\n` : '');
-  const html = wrap(
-    subject,
-    `<p>La tua richiesta di <strong>${escapeHtml(label)}</strong> è stata <strong>${action}</strong>.</p>
-     <ul>
-       <li>Periodo: ${escapeHtml(range)}</li>
-       <li>Ore: ${p.duration_hours}</li>
-       ${decision === 'rejected' && rejectionReason ? `<li>Motivo: ${escapeHtml(rejectionReason)}</li>` : ''}
-       ${p.approver_name ? `<li>Decisa da: ${escapeHtml(p.approver_name)}</li>` : ''}
-     </ul>`
-  );
+    language === 'it'
+      ? `La tua richiesta di ${label.toLowerCase()} è stata ${verb}.\n` +
+        `Periodo: ${range}\nOre: ${p.duration_hours}\n${reasonLine}${approverLine}`
+      : `Your ${label.toLowerCase()} request has been ${verb}.\n` +
+        `Period: ${range}\nHours: ${p.duration_hours}\n${reasonLine}${approverLine}`;
+  const html = renderTemplate('leave-decided.html', {
+    language,
+    TypeLabel: label,
+    Range: range,
+    DurationHours: String(p.duration_hours),
+    DecisionVerb: verb,
+    HasReason: decision === 'rejected' && rejectionReason ? '1' : '0',
+    Reason: rejectionReason ?? '',
+    HasApprover: p.approver_name ? '1' : '0',
+    ApproverName: p.approver_name ?? '',
+  });
   return { subject, text, html };
 }
 
-export function buildCancellationRequestedMail(
-  p: LeaveMailPayload
-): { subject: string; text: string; html: string } {
-  const label = TYPE_LABEL[p.type] ?? p.type;
-  const range = fmtRange(p.from_ts, p.to_ts, p.type);
-  const subject = `[SonoQui] ${p.requester_name} chiede di annullare ${label.toLowerCase()}`;
+export function buildCancellationRequestedMail(p: LeaveMailPayload): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const language = p.language ?? 'it';
+  const label = labelFor(p.type, language);
+  const range = fmtRange(p.from_ts, p.to_ts, p.type, language);
+  const subject = SUBJECTS.cancellationRequested[language](label, p.requester_name);
   const text =
-    `${p.requester_name} ha richiesto l'annullamento di una richiesta di ${label.toLowerCase()} già approvata.\n` +
-    `Periodo: ${range}\n` +
-    (p.reason ? `Motivo: ${p.reason}\n` : '');
-  const html = wrap(
-    subject,
-    `<p><strong>${escapeHtml(p.requester_name)}</strong> chiede l'annullamento di una richiesta già approvata.</p>
-     <ul>
-       <li>Tipo: ${escapeHtml(label)}</li>
-       <li>Periodo: ${escapeHtml(range)}</li>
-       ${p.reason ? `<li>Motivo: ${escapeHtml(p.reason)}</li>` : ''}
-     </ul>`
-  );
+    language === 'it'
+      ? `${p.requester_name} chiede l'annullamento di una richiesta di ${label.toLowerCase()} già approvata.\n` +
+        `Periodo: ${range}\n` +
+        (p.reason ? `Motivo: ${p.reason}\n` : '')
+      : `${p.requester_name} is asking to cancel an approved ${label.toLowerCase()} request.\n` +
+        `Period: ${range}\n` +
+        (p.reason ? `Reason: ${p.reason}\n` : '');
+  const html = renderTemplate('leave-cancellation-requested.html', {
+    language,
+    TypeLabel: label,
+    RequesterName: p.requester_name,
+    Range: range,
+    DurationHours: String(p.duration_hours),
+    HasReason: p.reason ? '1' : '0',
+    Reason: p.reason ?? '',
+    ActionUrl: actionUrl(),
+  });
   return { subject, text, html };
 }
 
@@ -179,20 +232,21 @@ export function buildCancellationDecidedMail(
   p: LeaveMailPayload,
   accepted: boolean
 ): { subject: string; text: string; html: string } {
-  const label = TYPE_LABEL[p.type] ?? p.type;
-  const range = fmtRange(p.from_ts, p.to_ts, p.type);
-  const verb = accepted ? 'accettato' : 'rifiutato';
-  const subject = `[SonoQui] Annullamento ${label.toLowerCase()} ${verb}`;
+  const language = p.language ?? 'it';
+  const label = labelFor(p.type, language);
+  const range = fmtRange(p.from_ts, p.to_ts, p.type, language);
+  const verb = cancellationVerb(accepted, language);
+  const subject = SUBJECTS.cancellationDecided[language](label, verb);
   const text =
-    `La tua richiesta di annullamento è stata ${verb}.\n` +
-    `Tipo: ${label}\nPeriodo: ${range}\n`;
-  const html = wrap(
-    subject,
-    `<p>La tua richiesta di annullamento è stata <strong>${verb}</strong>.</p>
-     <ul>
-       <li>Tipo: ${escapeHtml(label)}</li>
-       <li>Periodo: ${escapeHtml(range)}</li>
-     </ul>`
-  );
+    language === 'it'
+      ? `La tua richiesta di annullamento è stata ${verb}.\nTipo: ${label}\nPeriodo: ${range}\n`
+      : `Your cancellation request has been ${verb}.\nType: ${label}\nPeriod: ${range}\n`;
+  const html = renderTemplate('leave-cancellation-decided.html', {
+    language,
+    TypeLabel: label,
+    Range: range,
+    DurationHours: String(p.duration_hours),
+    DecisionVerb: verb,
+  });
   return { subject, text, html };
 }
