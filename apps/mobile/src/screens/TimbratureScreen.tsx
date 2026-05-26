@@ -446,14 +446,9 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 4,
   },
-  heroTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-    gap: 24,
-  },
-  heroTopCol: { alignItems: 'center' },
-  heroTopColRight: { alignItems: 'center' },
+  heroTopRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  heroTopCol: { flex: 1, alignItems: 'center' },
+  heroTopColRight: { flex: 1, alignItems: 'center' },
   heroLabel: {
     fontSize: 11,
     fontWeight: '600',
