@@ -103,8 +103,6 @@ export interface ShiftTemplate {
   tolerance_out_min: number;
   expected_break_min_min: number;
   expected_break_max_min: number;
-  paid_break_threshold_min: number;
-  max_shift_hours: number;
   active: boolean;
   deleted_at: string | null;
   created_at: string;
