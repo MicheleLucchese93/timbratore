@@ -22,6 +22,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="timbrature" options={{ title: 'Timbrature' }} />
       <Tabs.Screen name="storico" options={{ title: 'Storico' }} />
       <Tabs.Screen name="correzioni" options={{ title: 'Correzioni' }} />
+      <Tabs.Screen name="richieste" options={{ title: 'Richieste' }} />
       <Tabs.Screen name="profilo" options={{ title: 'Profilo' }} />
     </Tabs>
   );

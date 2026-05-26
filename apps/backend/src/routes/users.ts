@@ -354,6 +354,22 @@ usersRouter.patch(
         throw new ConflictError('Cannot demote last admin', 'LAST_ADMIN');
       }
     }
+    if (parse.data.role === 'admin') {
+      const cur = await client.query(
+        `SELECT role FROM memberships WHERE user_id = $1 AND deleted_at IS NULL`,
+        [req.params.id]
+      );
+      if (cur.rowCount && cur.rows[0].role !== 'admin') {
+        const { limits, counts } = await fetchLimits(client);
+        if (counts.admins >= limits.max_admins) {
+          throw new ConflictError(
+            `Admin limit reached: ${counts.admins}/${limits.max_admins}`,
+            'LIMIT_REACHED',
+            { kind: 'admins', current: counts.admins, limit: limits.max_admins }
+          );
+        }
+      }
+    }
     const r = await client.query(
       `UPDATE memberships
        SET role = COALESCE($2, role),
@@ -765,6 +781,81 @@ usersRouter.post(
     }
 
     ok(res, { processed: rows.length, created, updated, reactivated });
+  })
+);
+
+/* ----------------------- Leave approvers ----------------------- */
+
+const SetApprovers = z.object({ approver_user_ids: z.array(z.string().uuid()) });
+
+usersRouter.get(
+  '/:id/approvers',
+  tenantHandler(async (req, res, client) => {
+    if (req.user!.role !== 'admin' && req.params.id !== req.user!.id) {
+      throw new ConflictError('forbidden', 'FORBIDDEN');
+    }
+    const r = await client.query(
+      `SELECT la.approver_user_id AS user_id,
+              COALESCE(au.email, la.approver_user_id::text) AS email,
+              au.display_name, m.role
+         FROM leave_approvers la
+         LEFT JOIN auth_users au ON au.id = la.approver_user_id
+         LEFT JOIN memberships m
+           ON m.user_id = la.approver_user_id
+          AND m.tenant_id = current_setting('app.current_tenant_id')::uuid
+          AND m.deleted_at IS NULL
+        WHERE la.user_id = $1
+        ORDER BY au.display_name NULLS LAST, au.email`,
+      [req.params.id]
+    );
+    ok(res, r.rows);
+  })
+);
+
+usersRouter.put(
+  '/:id/approvers',
+  requireAdmin,
+  tenantHandler(async (req, res, client) => {
+    const parse = SetApprovers.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const userId = req.params.id;
+    const ids = Array.from(new Set(parse.data.approver_user_ids)).filter((x) => x !== userId);
+
+    const member = await client.query(
+      `SELECT 1 FROM memberships
+        WHERE user_id = $1
+          AND tenant_id = current_setting('app.current_tenant_id')::uuid
+          AND deleted_at IS NULL`,
+      [userId]
+    );
+    if (member.rowCount === 0) throw new NotFoundError('user');
+
+    if (ids.length > 0) {
+      const valid = await client.query(
+        `SELECT user_id FROM memberships
+          WHERE user_id = ANY($1::uuid[])
+            AND tenant_id = current_setting('app.current_tenant_id')::uuid
+            AND active = TRUE
+            AND deleted_at IS NULL`,
+        [ids]
+      );
+      if (valid.rowCount !== ids.length) {
+        throw new ValidationError('uno o più approver non sono membri attivi del tenant');
+      }
+    }
+
+    await client.query(`DELETE FROM leave_approvers WHERE user_id = $1`, [userId]);
+    for (const aid of ids) {
+      await client.query(
+        `INSERT INTO leave_approvers(tenant_id, user_id, approver_user_id)
+         VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2)`,
+        [userId, aid]
+      );
+    }
+    await emitAudit(client, 'user.set_approvers', String(userId), null, {
+      approver_user_ids: ids,
+    });
+    ok(res, { approver_user_ids: ids });
   })
 );
 

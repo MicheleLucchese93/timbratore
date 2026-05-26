@@ -13,6 +13,7 @@ import { Exports } from '../pages/Exports.tsx';
 import { Settings } from '../pages/Settings.tsx';
 import { Shifts } from '../pages/Shifts.tsx';
 import { Anomalies } from '../pages/Anomalies.tsx';
+import { Leaves } from '../pages/Leaves.tsx';
 import { MyStamps } from '../pages/MyStamps.tsx';
 import { MyDashboard } from '../pages/MyDashboard.tsx';
 
@@ -56,6 +57,7 @@ export function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/shifts" element={<Shifts />} />
           <Route path="/anomalies" element={<Anomalies />} />
+          <Route path="/leaves" element={<Leaves />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>

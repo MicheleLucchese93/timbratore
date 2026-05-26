@@ -12,6 +12,7 @@ const adminNav: NavItem[] = [
   { to: '/branches', label: 'Sedi', icon: <IconMapPin /> },
   { to: '/shifts', label: 'Orari', icon: <IconClock /> },
   { to: '/anomalies', label: 'Anomalie', icon: <IconAlert /> },
+  { to: '/leaves', label: 'Ferie & Permessi', icon: <IconCalendar /> },
   { to: '/exports', label: 'Esportazioni', icon: <IconDownload /> },
   { to: '/settings', label: 'Impostazioni', icon: <IconCog /> },
 ];
@@ -271,6 +272,16 @@ function IconLogout() {
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
       <path d="M16 17l5-5-5-5" />
       <path d="M21 12H9" />
+    </svg>
+  );
+}
+function IconCalendar() {
+  return (
+    <svg {...ICON_PROPS}>
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
     </svg>
   );
 }

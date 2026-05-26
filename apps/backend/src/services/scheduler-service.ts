@@ -5,6 +5,7 @@ import { cleanupOldGps } from './jobs/cleanup-old-gps.js';
 import { cleanupExpiredIdempotency } from './jobs/cleanup-idempotency.js';
 import { forgottenClockoutReminder } from './jobs/forgotten-clockout.js';
 import { retentionEnforcement } from './jobs/retention-enforcement.js';
+import { leaveYearlyRollover } from './jobs/leave-yearly-rollover.js';
 
 const logger = createLogger('scheduler');
 
@@ -49,6 +50,14 @@ class SchedulerService {
       cron.schedule(
         '0 2 * * 0',
         () => safeRun('retention_enforcement', retentionEnforcement),
+        { timezone: 'Europe/Rome' }
+      )
+    );
+    // Jan 1 00:30 Europe/Rome — roll over leave quotas with residual carry-in.
+    this.jobs.push(
+      cron.schedule(
+        '30 0 1 1 *',
+        () => safeRun('leave_yearly_rollover', leaveYearlyRollover),
         { timezone: 'Europe/Rome' }
       )
     );

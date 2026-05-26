@@ -26,6 +26,11 @@ interface DayAgg {
   paid_break_minutes: number;
   unpaid_break_minutes: number;
   overtime_minutes: number;
+  ferie_minutes: number;
+  permessi_minutes: number;
+  malattia_minutes: number;
+  /** Marker: 'F' full-day ferie, 'P' partial permesso, 'M' malattia. Null otherwise. */
+  leave_marker: 'F' | 'P' | 'M' | null;
 }
 
 interface UserAgg {
@@ -37,6 +42,9 @@ interface UserAgg {
   unpaid_break_minutes_total: number;
   overtime_minutes_total: number;
   worked_days: number;
+  ferie_minutes_total: number;
+  permessi_minutes_total: number;
+  malattia_minutes_total: number;
 }
 
 interface ShiftConfig {
@@ -78,6 +86,7 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
   );
 
   const shiftByUser = await loadShiftConfigs(job);
+  const leavesByUserDay = await loadLeavesPerDay(job);
 
   type UserBucket = { email: string; stamps: Array<{ event: string; at: Date }> };
   const byUser = new Map<string, UserBucket>();
@@ -85,6 +94,16 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
     const u: UserBucket = byUser.get(r.user_id) ?? { email: r.email, stamps: [] };
     u.stamps.push({ event: r.event_type, at: new Date(r.occurred_at) });
     byUser.set(r.user_id, u);
+  }
+  // Ensure users that only have leave (no stamps) still appear in the export.
+  for (const userId of leavesByUserDay.keys()) {
+    if (!byUser.has(userId)) {
+      const meta = await pool.query(
+        `SELECT COALESCE(au.email, $1::text) AS email FROM auth_users au WHERE au.id = $1`,
+        [userId]
+      );
+      byUser.set(userId, { email: meta.rows[0]?.email ?? userId, stamps: [] });
+    }
   }
 
   const out: UserAgg[] = [];
@@ -103,6 +122,10 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
           paid_break_minutes: 0,
           unpaid_break_minutes: 0,
           overtime_minutes: 0,
+          ferie_minutes: 0,
+          permessi_minutes: 0,
+          malattia_minutes: 0,
+          leave_marker: null,
           firstIn: null,
           lastOut: null,
         };
@@ -125,6 +148,31 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
         openClockIn = null;
       }
       days.set(dayKey, day);
+    }
+
+    // Merge leave hours per day for this user.
+    const userLeaves = leavesByUserDay.get(userId);
+    if (userLeaves) {
+      for (const [dayKey, leave] of userLeaves) {
+        const day =
+          days.get(dayKey) ?? {
+            day: dayKey,
+            worked_minutes: 0,
+            paid_break_minutes: 0,
+            unpaid_break_minutes: 0,
+            overtime_minutes: 0,
+            ferie_minutes: 0,
+            permessi_minutes: 0,
+            malattia_minutes: 0,
+            leave_marker: null,
+            firstIn: null,
+            lastOut: null,
+          };
+        day.ferie_minutes = (day.ferie_minutes ?? 0) + leave.ferie;
+        day.permessi_minutes = (day.permessi_minutes ?? 0) + leave.permessi;
+        day.malattia_minutes = (day.malattia_minutes ?? 0) + leave.malattia;
+        days.set(dayKey, day);
+      }
     }
 
     // Apply shift-driven breach deductions + overtime calc per day.
@@ -164,13 +212,26 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
     }
 
     const dayList = [...days.values()]
-      .map((d) => ({
-        day: d.day,
-        worked_minutes: d.worked_minutes,
-        paid_break_minutes: d.paid_break_minutes,
-        unpaid_break_minutes: d.unpaid_break_minutes,
-        overtime_minutes: d.overtime_minutes,
-      }))
+      .map((d): DayAgg => {
+        const ferie = d.ferie_minutes ?? 0;
+        const permessi = d.permessi_minutes ?? 0;
+        const malattia = d.malattia_minutes ?? 0;
+        let marker: 'F' | 'P' | 'M' | null = null;
+        if (malattia > 0) marker = 'M';
+        else if (ferie > 0 && d.worked_minutes === 0) marker = 'F';
+        else if (permessi > 0) marker = 'P';
+        return {
+          day: d.day,
+          worked_minutes: d.worked_minutes,
+          paid_break_minutes: d.paid_break_minutes,
+          unpaid_break_minutes: d.unpaid_break_minutes,
+          overtime_minutes: d.overtime_minutes,
+          ferie_minutes: ferie,
+          permessi_minutes: permessi,
+          malattia_minutes: malattia,
+          leave_marker: marker,
+        };
+      })
       .sort((a, b) => a.day.localeCompare(b.day));
 
     out.push({
@@ -181,10 +242,79 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
       paid_break_minutes_total: sum(dayList.map((d) => d.paid_break_minutes)),
       unpaid_break_minutes_total: sum(dayList.map((d) => d.unpaid_break_minutes)),
       overtime_minutes_total: sum(dayList.map((d) => d.overtime_minutes)),
+      ferie_minutes_total: sum(dayList.map((d) => d.ferie_minutes)),
+      permessi_minutes_total: sum(dayList.map((d) => d.permessi_minutes)),
+      malattia_minutes_total: sum(dayList.map((d) => d.malattia_minutes)),
       worked_days: dayList.filter((d) => d.worked_minutes > 0).length,
     });
   }
   return out;
+}
+
+interface DayLeaveBucket {
+  ferie: number;
+  permessi: number;
+  malattia: number;
+}
+
+async function loadLeavesPerDay(
+  job: ExportJobRow
+): Promise<Map<string, Map<string, DayLeaveBucket>>> {
+  // approved + cancellation_pending count as "user is out" for export purposes.
+  const r = await pool.query(
+    `SELECT lr.user_id, lr.type, lr.from_ts, lr.to_ts, lr.duration_hours
+       FROM leave_requests lr
+      WHERE lr.tenant_id = $1
+        AND lr.status IN ('approved','cancellation_pending')
+        AND lr.to_ts >  $2::date
+        AND lr.from_ts < ($3::date + INTERVAL '1 day')`,
+    [job.tenant_id, job.period_from, job.period_to]
+  );
+  const result = new Map<string, Map<string, DayLeaveBucket>>();
+  if (r.rowCount === 0) return result;
+
+  const periodFrom = new Date(job.period_from + 'T00:00:00Z');
+  const periodTo = new Date(job.period_to + 'T23:59:59Z');
+
+  for (const row of r.rows) {
+    const from = new Date(row.from_ts);
+    const to = new Date(row.to_ts);
+    const userMap = result.get(row.user_id) ?? new Map<string, DayLeaveBucket>();
+
+    const clipFrom = from < periodFrom ? periodFrom : from;
+    const clipTo = to > periodTo ? periodTo : to;
+
+    if (row.type === 'permessi') {
+      // single-day, distribute minutes precisely
+      const dayKey = clipFrom.toISOString().slice(0, 10);
+      const minutes = Math.max(0, Math.round((clipTo.getTime() - clipFrom.getTime()) / 60000));
+      const bucket = userMap.get(dayKey) ?? { ferie: 0, permessi: 0, malattia: 0 };
+      bucket.permessi += minutes;
+      userMap.set(dayKey, bucket);
+    } else {
+      // ferie / malattia: span multiple days. Distribute duration_hours evenly
+      // across the inclusive day count — close enough for payroll display.
+      const days: string[] = [];
+      const cur = new Date(clipFrom);
+      cur.setUTCHours(12, 0, 0, 0);
+      const end = new Date(clipTo);
+      end.setUTCHours(12, 0, 0, 0);
+      while (cur.getTime() <= end.getTime()) {
+        days.push(cur.toISOString().slice(0, 10));
+        cur.setUTCDate(cur.getUTCDate() + 1);
+      }
+      if (days.length === 0) continue;
+      const perDayMin = Math.round((Number(row.duration_hours) * 60) / days.length);
+      for (const d of days) {
+        const bucket = userMap.get(d) ?? { ferie: 0, permessi: 0, malattia: 0 };
+        if (row.type === 'ferie') bucket.ferie += perDayMin;
+        else bucket.malattia += perDayMin;
+        userMap.set(d, bucket);
+      }
+    }
+    result.set(row.user_id, userMap);
+  }
+  return result;
 }
 
 async function loadShiftConfigs(job: ExportJobRow): Promise<Map<string, ShiftConfig>> {
@@ -286,6 +416,9 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
     { header: 'Ore straordinarie', key: 'overtime', width: 18 },
     { header: 'Pausa retribuita', key: 'paid', width: 18 },
     { header: 'Pausa non retribuita', key: 'unpaid', width: 22 },
+    { header: 'Ore ferie', key: 'ferie', width: 12 },
+    { header: 'Ore permessi', key: 'permessi', width: 14 },
+    { header: 'Ore malattia', key: 'malattia', width: 14 },
     { header: 'Giorni lavorati', key: 'days', width: 18 },
   ];
   for (const u of data) {
@@ -295,6 +428,9 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
       overtime: u.overtime_minutes_total / 60,
       paid: u.paid_break_minutes_total / 60,
       unpaid: u.unpaid_break_minutes_total / 60,
+      ferie: u.ferie_minutes_total / 60,
+      permessi: u.permessi_minutes_total / 60,
+      malattia: u.malattia_minutes_total / 60,
       days: u.worked_days,
     });
   }
@@ -311,16 +447,24 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
     const ws = wb.addWorksheet(candidate);
     ws.columns = [
       { header: 'Giorno', key: 'day', width: 14 },
+      { header: 'Marker', key: 'marker', width: 8 },
       { header: 'Ore lavorate', key: 'worked', width: 14 },
       { header: 'Ore straordinarie', key: 'overtime', width: 18 },
+      { header: 'Ore ferie', key: 'ferie', width: 12 },
+      { header: 'Ore permessi', key: 'permessi', width: 14 },
+      { header: 'Ore malattia', key: 'malattia', width: 14 },
       { header: 'Pausa retribuita (min)', key: 'paid', width: 22 },
       { header: 'Pausa non retribuita (min)', key: 'unpaid', width: 26 },
     ];
     for (const d of u.days) {
       ws.addRow({
         day: d.day,
+        marker: d.leave_marker ?? '',
         worked: d.worked_minutes / 60,
         overtime: d.overtime_minutes / 60,
+        ferie: d.ferie_minutes / 60,
+        permessi: d.permessi_minutes / 60,
+        malattia: d.malattia_minutes / 60,
         paid: d.paid_break_minutes,
         unpaid: d.unpaid_break_minutes,
       });

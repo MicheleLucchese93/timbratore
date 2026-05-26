@@ -24,6 +24,8 @@ import { appVersionRouter } from './routes/app-version.js';
 import { dashboardRouter } from './routes/dashboard.js';
 import { placesRouter } from './routes/places.js';
 import { shiftsRouter } from './routes/shifts.js';
+import { leavesRouter } from './routes/leaves.js';
+import { leaveQuotasRouter } from './routes/leave-quotas.js';
 
 export function createApp(): Express {
   const app = express();
@@ -86,6 +88,8 @@ export function createApp(): Express {
   app.use('/api/v1/dashboard', dashboardRouter);
   app.use('/api/v1/places', placesRouter);
   app.use('/api/v1/shifts', shiftsRouter);
+  app.use('/api/v1/leaves', leavesRouter);
+  app.use('/api/v1/leave-quotas', leaveQuotasRouter);
 
   app.use(errorHandler);
   return app;

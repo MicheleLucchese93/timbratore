@@ -58,6 +58,7 @@ export function Users() {
   const [shiftTemplates, setShiftTemplates] = useState<ShiftTemplateOption[]>([]);
   const [shiftAssignments, setShiftAssignments] = useState<ShiftAssignmentRow[]>([]);
   const [shiftEditor, setShiftEditor] = useState<UserRow | null>(null);
+  const [approverEditor, setApproverEditor] = useState<UserRow | null>(null);
   const [showInvite, setShowInvite] = useState(false);
   const [confirmDeactivate, setConfirmDeactivate] = useState<UserRow | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<UserRow | null>(null);
@@ -280,6 +281,7 @@ export function Users() {
   const usersCount = Number(usage?.active_users ?? 0);
   const adminsCount = Number(usage?.active_admins ?? 0);
   const atUserLimit = !!usage && usersCount >= usage.max_users;
+  const atAdminLimit = !!usage && adminsCount >= usage.max_admins;
 
   return (
     <div className="space-y-5">
@@ -396,6 +398,7 @@ export function Users() {
               <col style={{ width: '10rem' }} />
               <col style={{ width: '10rem' }} />
               <col style={{ width: '11rem' }} />
+              <col style={{ width: '10rem' }} />
               <col style={{ width: '9rem' }} />
             </colgroup>
             <thead>
@@ -423,6 +426,9 @@ export function Users() {
                 </th>
                 <th title="Se attivo, l'utente non può timbrare dal web — solo dall'app mobile.">
                   Timbratura web
+                </th>
+                <th title="Chi può approvare le richieste di ferie/permessi di questo utente.">
+                  Approvatori
                 </th>
                 <th>Ultima timbratura</th>
                 <th className="text-center">Azioni</th>
@@ -452,9 +458,16 @@ export function Users() {
                       value={u.role}
                       onChange={(e) => setRole(u, e.target.value as 'admin' | 'user')}
                       disabled={u.user_id === me?.user.id && u.role === 'admin' && adminsCount === 1}
+                      title={
+                        atAdminLimit && u.role !== 'admin'
+                          ? `Limite admin raggiunto (${adminsCount}/${usage?.max_admins})`
+                          : undefined
+                      }
                     >
                       <option value="user">Utente</option>
-                      <option value="admin">Admin</option>
+                      <option value="admin" disabled={atAdminLimit && u.role !== 'admin'}>
+                        Admin
+                      </option>
                     </select>
                   </td>
                   <td>
@@ -509,6 +522,16 @@ export function Users() {
                         {u.disable_desktop_clock_in ? 'Disabilitata' : 'Abilitata'}
                       </span>
                     </label>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setApproverEditor(u)}
+                      title="Configura chi può approvare ferie/permessi di questo utente"
+                    >
+                      Modifica
+                    </button>
                   </td>
                   <td className="text-xs num">{u.last_stamp_at ? new Date(u.last_stamp_at).toLocaleString('it-IT') : '—'}</td>
                   <td>
@@ -670,6 +693,125 @@ export function Users() {
           onSave={(templateId, validFrom) => saveShift(shiftEditor, templateId, validFrom)}
         />
       )}
+
+      {approverEditor && (
+        <ApproverEditor
+          user={approverEditor}
+          allUsers={list.filter((u) => u.user_id !== approverEditor.user_id && u.active)}
+          onClose={() => setApproverEditor(null)}
+          onSaved={() => setApproverEditor(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ApproverEditor({
+  user,
+  allUsers,
+  onClose,
+  onSaved,
+}: {
+  user: UserRow;
+  allUsers: UserRow[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await api<Array<{ user_id: string }>>(
+          `/api/v1/users/${user.user_id}/approvers`
+        );
+        setSelected(new Set(r.map((row) => row.user_id)));
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : 'errore');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [user.user_id]);
+
+  function toggle(id: string) {
+    setSelected((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function save() {
+    setBusy(true);
+    setErr(null);
+    try {
+      await api(`/api/v1/users/${user.user_id}/approvers`, {
+        method: 'PUT',
+        json: { approver_user_ids: Array.from(selected) },
+      });
+      onSaved();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'errore');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
+      <div className="card w-full max-w-md space-y-3">
+        <h2 className="section-title">
+          Approvatori di {user.display_name || user.email}
+        </h2>
+        <p className="text-xs muted">
+          Solo gli utenti selezionati possono approvare ferie/permessi di questo dipendente.
+          Vince il primo che decide.
+        </p>
+        {loading ? (
+          <div className="text-sm muted">Caricamento…</div>
+        ) : allUsers.length === 0 ? (
+          <p className="text-sm" style={{ color: 'var(--color-error)' }}>
+            Nessun altro utente attivo disponibile.
+          </p>
+        ) : (
+          <ul
+            className="space-y-2 max-h-72 overflow-auto"
+            style={{ paddingLeft: 0, listStyle: 'none' }}
+          >
+            {allUsers.map((u) => (
+              <li key={u.user_id}>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(u.user_id)}
+                    onChange={() => toggle(u.user_id)}
+                  />
+                  <span>{u.display_name || u.email}</span>
+                  <span className="muted text-xs">
+                    {u.role === 'admin' ? '(admin)' : '(utente)'}
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
+        {err && (
+          <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>
+        )}
+        <div className="flex gap-2 justify-end">
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
+            Annulla
+          </button>
+          <button type="button" className="btn btn-primary" onClick={save} disabled={busy}>
+            {busy ? 'Salvataggio…' : 'Salva'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

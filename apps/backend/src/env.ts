@@ -58,6 +58,11 @@ const Env = z.object({
   CENTRIFUGO_API_URL: z.string().optional(),
   CENTRIFUGO_API_KEY: z.string().optional(),
   CENTRIFUGO_PROXY_SECRET: z.string().optional(),
+  SMTP_HOST: z.string().default('smtp-relay.brevo.com'),
+  SMTP_PORT: z.coerce.number().default(587),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
 });
 
 export const env = Env.parse(process.env);
