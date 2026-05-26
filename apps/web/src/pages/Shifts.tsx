@@ -16,6 +16,11 @@ interface ShiftTemplate {
   tolerance_out_min: number;
   expected_break_min_min: number;
   expected_break_max_min: number;
+  extraordinary_threshold_min: 1 | 15 | 30;
+  count_extraordinary: boolean;
+  tolerance_in_breach_deduct_min: number;
+  tolerance_out_breach_deduct_min: number;
+  tolerance_break_breach_deduct_min: number;
   active: boolean;
   slots: Slot[];
 }
@@ -165,6 +170,11 @@ interface FormState {
   tolerance_out_min: number;
   expected_break_min_min: number;
   expected_break_max_min: number;
+  extraordinary_threshold_min: 1 | 15 | 30;
+  count_extraordinary: boolean;
+  tolerance_in_breach_deduct_min: number;
+  tolerance_out_breach_deduct_min: number;
+  tolerance_break_breach_deduct_min: number;
   slots: Slot[];
 }
 
@@ -184,6 +194,11 @@ function ShiftForm({
     tolerance_out_min: initial?.tolerance_out_min ?? 10,
     expected_break_min_min: initial?.expected_break_min_min ?? 0,
     expected_break_max_min: initial?.expected_break_max_min ?? 90,
+    extraordinary_threshold_min: initial?.extraordinary_threshold_min ?? 15,
+    count_extraordinary: initial?.count_extraordinary ?? false,
+    tolerance_in_breach_deduct_min: initial?.tolerance_in_breach_deduct_min ?? 0,
+    tolerance_out_breach_deduct_min: initial?.tolerance_out_breach_deduct_min ?? 0,
+    tolerance_break_breach_deduct_min: initial?.tolerance_break_breach_deduct_min ?? 0,
     slots: initial?.slots ?? [],
   });
   const [saving, setSaving] = useState(false);
@@ -217,6 +232,11 @@ function ShiftForm({
         tolerance_out_min: state.tolerance_out_min,
         expected_break_min_min: state.expected_break_min_min,
         expected_break_max_min: state.expected_break_max_min,
+        extraordinary_threshold_min: state.extraordinary_threshold_min,
+        count_extraordinary: state.count_extraordinary,
+        tolerance_in_breach_deduct_min: state.tolerance_in_breach_deduct_min,
+        tolerance_out_breach_deduct_min: state.tolerance_out_breach_deduct_min,
+        tolerance_break_breach_deduct_min: state.tolerance_break_breach_deduct_min,
         slots: state.slots.map((s) => ({
           day_of_week: s.day_of_week,
           start_time: s.start_time,
@@ -326,6 +346,90 @@ function ShiftForm({
                     setState({ ...state, expected_break_max_min: Number(e.target.value) })
                   }
                 />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset className="border border-neutral-200 rounded p-3 space-y-2">
+            <legend className="text-sm font-medium px-1">Penalità tolleranza (minuti)</legend>
+            <p className="text-xs text-neutral-500 mb-2">
+              Minuti sottratti dal tempo lavorato quando la tolleranza è superata.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <label>
+                <span className="label">Entrata oltre tolleranza</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={240}
+                  className="input"
+                  value={state.tolerance_in_breach_deduct_min}
+                  onChange={(e) =>
+                    setState({ ...state, tolerance_in_breach_deduct_min: Number(e.target.value) })
+                  }
+                />
+              </label>
+              <label>
+                <span className="label">Uscita oltre tolleranza</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={240}
+                  className="input"
+                  value={state.tolerance_out_breach_deduct_min}
+                  onChange={(e) =>
+                    setState({ ...state, tolerance_out_breach_deduct_min: Number(e.target.value) })
+                  }
+                />
+              </label>
+              <label>
+                <span className="label">Pausa oltre tolleranza</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={240}
+                  className="input"
+                  value={state.tolerance_break_breach_deduct_min}
+                  onChange={(e) =>
+                    setState({ ...state, tolerance_break_breach_deduct_min: Number(e.target.value) })
+                  }
+                />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset className="border border-neutral-200 rounded p-3 space-y-2">
+            <legend className="text-sm font-medium px-1">Straordinario</legend>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <label>
+                <span className="label">Soglia oltre orario (minuti)</span>
+                <select
+                  className="input"
+                  value={state.extraordinary_threshold_min}
+                  onChange={(e) =>
+                    setState({
+                      ...state,
+                      extraordinary_threshold_min: Number(e.target.value) as 1 | 15 | 30,
+                    })
+                  }
+                >
+                  <option value={1}>1 minuto</option>
+                  <option value={15}>15 minuti</option>
+                  <option value={30}>30 minuti</option>
+                </select>
+                <p className="text-xs text-neutral-500 mt-1">
+                  Oltre l'orario previsto + questa soglia, il tempo eccedente è contato come straordinario.
+                </p>
+              </label>
+              <label className="flex items-center gap-2 mt-6 md:mt-0 md:self-end">
+                <input
+                  type="checkbox"
+                  checked={state.count_extraordinary}
+                  onChange={(e) =>
+                    setState({ ...state, count_extraordinary: e.target.checked })
+                  }
+                />
+                <span className="text-sm">Considera le ore straordinarie</span>
               </label>
             </div>
           </fieldset>

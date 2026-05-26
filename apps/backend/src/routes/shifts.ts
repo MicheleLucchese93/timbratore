@@ -45,6 +45,13 @@ const TemplateBody = z.object({
   tolerance_out_min: z.number().int().min(0).max(240).default(10),
   expected_break_min_min: z.number().int().min(0).max(480).default(0),
   expected_break_max_min: z.number().int().min(0).max(480).default(90),
+  extraordinary_threshold_min: z
+    .union([z.literal(1), z.literal(15), z.literal(30)])
+    .default(15),
+  count_extraordinary: z.boolean().default(false),
+  tolerance_in_breach_deduct_min: z.number().int().min(0).max(240).default(0),
+  tolerance_out_breach_deduct_min: z.number().int().min(0).max(240).default(0),
+  tolerance_break_breach_deduct_min: z.number().int().min(0).max(240).default(0),
   slots: z.array(SlotSchema).default([]),
 });
 
@@ -84,7 +91,11 @@ shiftsRouter.get(
   tenantHandler(async (_req, res, client) => {
     const t = await client.query(
       `SELECT id, name, description, tolerance_in_min, tolerance_out_min,
-              expected_break_min_min, expected_break_max_min, active, created_at
+              expected_break_min_min, expected_break_max_min,
+              extraordinary_threshold_min, count_extraordinary,
+              tolerance_in_breach_deduct_min, tolerance_out_breach_deduct_min,
+              tolerance_break_breach_deduct_min,
+              active, created_at
          FROM shift_templates
         WHERE deleted_at IS NULL
         ORDER BY name`
@@ -141,8 +152,11 @@ shiftsRouter.post(
     try {
       created = await client.query(
         `INSERT INTO shift_templates(tenant_id, name, description, tolerance_in_min, tolerance_out_min,
-                                     expected_break_min_min, expected_break_max_min)
-         VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, $4, $5, $6)
+                                     expected_break_min_min, expected_break_max_min,
+                                     extraordinary_threshold_min, count_extraordinary,
+                                     tolerance_in_breach_deduct_min, tolerance_out_breach_deduct_min,
+                                     tolerance_break_breach_deduct_min)
+         VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          RETURNING *`,
         [
           b.name,
@@ -151,6 +165,11 @@ shiftsRouter.post(
           b.tolerance_out_min,
           b.expected_break_min_min,
           b.expected_break_max_min,
+          b.extraordinary_threshold_min,
+          b.count_extraordinary,
+          b.tolerance_in_breach_deduct_min,
+          b.tolerance_out_breach_deduct_min,
+          b.tolerance_break_breach_deduct_min,
         ]
       );
     } catch (err) {

@@ -103,6 +103,11 @@ export interface ShiftTemplate {
   tolerance_out_min: number;
   expected_break_min_min: number;
   expected_break_max_min: number;
+  extraordinary_threshold_min: 1 | 15 | 30;
+  count_extraordinary: boolean;
+  tolerance_in_breach_deduct_min: number;
+  tolerance_out_breach_deduct_min: number;
+  tolerance_break_breach_deduct_min: number;
   active: boolean;
   deleted_at: string | null;
   created_at: string;
