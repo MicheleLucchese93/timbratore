@@ -20,7 +20,8 @@ import { enqueueStamp, drainQueue } from '../lib/offline-queue';
 import { stateFromLastEvent } from '@sonoqui/shared';
 import type { StampEventType } from '@sonoqui/shared';
 import { color, space, type as t } from '@sonoqui/shared';
-import { computeDayTotals, formatDuration, isoDay, type DayStamp } from '../lib/day-totals';
+import { formatDuration, isoDay, type DayStamp } from '../lib/day-totals';
+import { computeCountedDay, type ActiveAssignment } from '../lib/counted-day';
 import { AppHeader } from '../components/AppHeader';
 
 interface CurrentState {
@@ -49,6 +50,7 @@ export function TimbratureScreen() {
   const { me } = useSession();
   const [state, setState] = useState<CurrentState | null>(null);
   const [todayStamps, setTodayStamps] = useState<DayStamp[]>([]);
+  const [assignment, setAssignment] = useState<ActiveAssignment | null>(null);
   const [working, setWorking] = useState<StampEventType | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [now, setNow] = useState(() => new Date());
@@ -72,12 +74,14 @@ export function TimbratureScreen() {
   const fetchAll = useCallback(async () => {
     const today = isoDay(new Date());
     try {
-      const [s, list] = await Promise.all([
+      const [s, list, a] = await Promise.all([
         api<CurrentState>('/api/v1/stamps/me/current-state'),
         api<DayStamp[]>(`/api/v1/stamps/me?from=${today}&to=${today}`),
+        api<ActiveAssignment | null>('/api/v1/shifts/assignments/me').catch(() => null),
       ]);
       setState(s);
       setTodayStamps(list);
+      setAssignment(a);
     } catch {
       /* ignore */
     }
@@ -170,7 +174,7 @@ export function TimbratureScreen() {
   const currentState = state?.state ?? stateFromLastEvent(null);
   const branchLocked = currentState !== 'nothing';
   const lockedBranchId = branchLocked ? openShiftBranchId(todayStamps) : null;
-  const totals = computeDayTotals(todayStamps, now);
+  const totals = computeCountedDay(todayStamps, assignment, now);
 
   useEffect(() => {
     if (branchLocked && lockedBranchId && selectedBranchId !== lockedBranchId) {
@@ -206,8 +210,18 @@ export function TimbratureScreen() {
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         <View style={styles.heroCard}>
-          <Text style={styles.heroLabel}>Lavorate oggi</Text>
-          <Text style={styles.heroAmount}>{formatDuration(totals.workedMs)}</Text>
+          <View style={styles.heroTopRow}>
+            <View style={styles.heroTopCol}>
+              <Text style={styles.heroLabel}>Ore lavorate</Text>
+              <Text style={styles.heroAmount}>{formatDuration(totals.workedMs)}</Text>
+            </View>
+            <View style={styles.heroTopColRight}>
+              <Text style={styles.heroLabel}>Ore conteggiate</Text>
+              <Text style={styles.heroAmount}>
+                {assignment ? formatDuration(totals.countedTotalMs) : '—'}
+              </Text>
+            </View>
+          </View>
           <View style={styles.heroDivider} />
           <View style={styles.heroRow}>
             <HeroStat label="Entrata" value={totals.firstInAt ? formatTime(totals.firstInAt) : '—'} />
@@ -432,22 +446,23 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 4,
   },
+  heroTopRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  heroTopCol: { flex: 1, alignItems: 'flex-start' },
+  heroTopColRight: { flex: 1, alignItems: 'flex-end' },
   heroLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
     color: 'rgba(255,255,255,0.75)',
-    textAlign: 'center',
   },
   heroAmount: {
-    fontSize: 44,
+    fontSize: 32,
     fontWeight: '700',
     color: color.onPrimary,
-    textAlign: 'center',
     marginTop: 4,
     fontVariant: ['tabular-nums'],
-    letterSpacing: -1,
+    letterSpacing: -0.5,
   },
   heroDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.15)', marginVertical: 16 },
   heroRow: { flexDirection: 'row', alignItems: 'center' },

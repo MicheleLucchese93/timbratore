@@ -289,7 +289,10 @@ shiftsRouter.get(
       `SELECT a.id, a.user_id, a.shift_template_id, a.valid_from, a.valid_to,
               st.name AS template_name,
               st.tolerance_in_min, st.tolerance_out_min,
-              st.expected_break_min_min, st.expected_break_max_min
+              st.expected_break_min_min, st.expected_break_max_min,
+              st.extraordinary_threshold_min, st.count_extraordinary,
+              st.tolerance_in_breach_deduct_min, st.tolerance_out_breach_deduct_min,
+              st.tolerance_break_breach_deduct_min
          FROM user_shift_assignments a
          JOIN shift_templates st ON st.id = a.shift_template_id
         WHERE a.user_id = $1

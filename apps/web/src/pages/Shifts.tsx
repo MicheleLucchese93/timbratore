@@ -35,6 +35,10 @@ const DAYS = [
   { iso: 7, label: 'Domenica' },
 ];
 
+// Allowed penalty deduction values (minutes). Coarse buckets aligned to typical
+// CCNL rounding rules so admins pick rather than typing arbitrary numbers.
+const PENALTY_OPTIONS = [0, 15, 30, 60] as const;
+
 export function Shifts() {
   const [list, setList] = useState<ShiftTemplate[]>([]);
   const [editing, setEditing] = useState<ShiftTemplate | null>(null);
@@ -101,6 +105,9 @@ export function Shifts() {
                   Tolleranza entrata ±{t.tolerance_in_min}min · uscita ±{t.tolerance_out_min}min ·
                   pausa {t.expected_break_min_min}–{t.expected_break_max_min}min
                 </div>
+                <div className="text-xs text-neutral-500 mt-0.5">
+                  Totale settimanale: {formatWeeklyTotal(t.slots)}
+                </div>
               </div>
               <div className="flex gap-2 shrink-0">
                 <button className="btn btn-secondary btn-sm" onClick={() => setEditing(t)}>
@@ -137,6 +144,21 @@ export function Shifts() {
       )}
     </div>
   );
+}
+
+function formatWeeklyTotal(slots: Slot[]): string {
+  let totalMin = 0;
+  for (const s of slots) {
+    const [sh, sm] = s.start_time.split(':').map(Number);
+    const [eh, em] = s.end_time.split(':').map(Number);
+    if (sh === undefined || sm === undefined || eh === undefined || em === undefined) continue;
+    const start = sh * 60 + sm;
+    const end = eh * 60 + em;
+    if (end > start) totalMin += end - start;
+  }
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return `${h}h ${m.toString().padStart(2, '0')}m`;
 }
 
 function WeeklyPreview({ slots }: { slots: Slot[] }) {
@@ -358,51 +380,70 @@ function ShiftForm({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <label>
                 <span className="label">Entrata oltre tolleranza</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={240}
+                <select
                   className="input"
                   value={state.tolerance_in_breach_deduct_min}
                   onChange={(e) =>
                     setState({ ...state, tolerance_in_breach_deduct_min: Number(e.target.value) })
                   }
-                />
+                >
+                  {PENALTY_OPTIONS.map((v) => (
+                    <option key={v} value={v}>
+                      {v === 0 ? 'Nessuna penalità' : `${v} minuti`}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label>
                 <span className="label">Uscita oltre tolleranza</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={240}
+                <select
                   className="input"
                   value={state.tolerance_out_breach_deduct_min}
                   onChange={(e) =>
                     setState({ ...state, tolerance_out_breach_deduct_min: Number(e.target.value) })
                   }
-                />
+                >
+                  {PENALTY_OPTIONS.map((v) => (
+                    <option key={v} value={v}>
+                      {v === 0 ? 'Nessuna penalità' : `${v} minuti`}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label>
                 <span className="label">Pausa oltre tolleranza</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={240}
+                <select
                   className="input"
                   value={state.tolerance_break_breach_deduct_min}
                   onChange={(e) =>
                     setState({ ...state, tolerance_break_breach_deduct_min: Number(e.target.value) })
                   }
-                />
+                >
+                  {PENALTY_OPTIONS.map((v) => (
+                    <option key={v} value={v}>
+                      {v === 0 ? 'Nessuna penalità' : `${v} minuti`}
+                    </option>
+                  ))}
+                </select>
               </label>
             </div>
           </fieldset>
 
-          <fieldset className="border border-neutral-200 rounded p-3 space-y-2">
+          <fieldset className="border border-neutral-200 rounded p-3 space-y-3">
             <legend className="text-sm font-medium px-1">Straordinario</legend>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <label>
-                <span className="label">Soglia oltre orario (minuti)</span>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={state.count_extraordinary}
+                onChange={(e) =>
+                  setState({ ...state, count_extraordinary: e.target.checked })
+                }
+              />
+              <span className="text-sm">Considera le ore straordinarie in questo orario</span>
+            </label>
+            {state.count_extraordinary && (
+              <label className="block">
+                <span className="label">Soglia oltre orario previsto</span>
                 <select
                   className="input"
                   value={state.extraordinary_threshold_min}
@@ -421,17 +462,7 @@ function ShiftForm({
                   Oltre l'orario previsto + questa soglia, il tempo eccedente è contato come straordinario.
                 </p>
               </label>
-              <label className="flex items-center gap-2 mt-6 md:mt-0 md:self-end">
-                <input
-                  type="checkbox"
-                  checked={state.count_extraordinary}
-                  onChange={(e) =>
-                    setState({ ...state, count_extraordinary: e.target.checked })
-                  }
-                />
-                <span className="text-sm">Considera le ore straordinarie</span>
-              </label>
-            </div>
+            )}
           </fieldset>
 
           <fieldset className="border border-neutral-200 rounded p-3">
