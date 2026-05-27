@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
-import { DataGrid, type GridColDef } from '@mui/x-data-grid';
+import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 
@@ -1188,7 +1188,9 @@ function TemplatesDataGrid({
         headerName: 'Riferimento annuo',
         width: 160,
         type: 'number',
-        renderCell: (p) => <span className="num text-xs">{p.row.hours_default}h</span>,
+        renderCell: (p: GridRenderCellParams<Template>) => (
+          <span className="num text-xs">{p.row.hours_default}h</span>
+        ),
       },
       {
         field: 'accrual',
@@ -1196,8 +1198,10 @@ function TemplatesDataGrid({
         flex: 1.2,
         minWidth: 240,
         sortable: false,
-        valueGetter: (_v, row) => fmtAccrual(row),
-        renderCell: (p) => <span className="text-xs">{fmtAccrual(p.row)}</span>,
+        valueGetter: (_v: unknown, row: Template) => fmtAccrual(row),
+        renderCell: (p: GridRenderCellParams<Template>) => (
+          <span className="text-xs">{fmtAccrual(p.row)}</span>
+        ),
       },
       {
         field: 'active',
@@ -1206,7 +1210,7 @@ function TemplatesDataGrid({
         type: 'boolean',
         align: 'left',
         headerAlign: 'left',
-        renderCell: (p) =>
+        renderCell: (p: GridRenderCellParams<Template>) =>
           p.row.active ? (
             <span className="badge badge-ok">Attivo</span>
           ) : (
@@ -1219,7 +1223,7 @@ function TemplatesDataGrid({
         width: 180,
         sortable: false,
         filterable: false,
-        renderCell: (p) => (
+        renderCell: (p: GridRenderCellParams<Template>) => (
           <div className="flex gap-1">
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => onEdit(p.row)}>
               Modifica
@@ -1238,7 +1242,7 @@ function TemplatesDataGrid({
     <DataGrid<Template>
       rows={rows}
       columns={columns}
-      getRowId={(r) => r.id}
+      getRowId={(r: Template) => r.id}
       sx={dataGridSx}
       {...dataGridDefaults}
     />
