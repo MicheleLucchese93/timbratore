@@ -908,7 +908,7 @@ function RequestsDataGrid({
         headerName: 'Utente',
         flex: 1.2,
         minWidth: 180,
-        valueGetter: (_v, row) => row.user_display_name || row.user_email,
+        valueGetter: (_v: unknown, row: LeaveRequest) => row.user_display_name || row.user_email,
       },
       {
         field: 'type',
@@ -920,7 +920,7 @@ function RequestsDataGrid({
           { value: 'permessi', label: 'Permesso' },
           { value: 'malattia', label: 'Malattia' },
         ],
-        renderCell: (p) => TYPE_LABEL[p.row.type],
+        renderCell: (p: GridRenderCellParams<LeaveRequest>) => TYPE_LABEL[p.row.type],
       },
       {
         field: 'period',
@@ -928,8 +928,8 @@ function RequestsDataGrid({
         flex: 1.2,
         minWidth: 200,
         sortable: false,
-        valueGetter: (_v, row) => row.from_ts,
-        renderCell: (p) => (
+        valueGetter: (_v: unknown, row: LeaveRequest) => row.from_ts,
+        renderCell: (p: GridRenderCellParams<LeaveRequest>) => (
           <span className="text-xs">{fmtRange(p.row.from_ts, p.row.to_ts, p.row.type)}</span>
         ),
       },
@@ -948,7 +948,7 @@ function RequestsDataGrid({
           value: k,
           label: STATUS_LABEL[k],
         })),
-        renderCell: (p) => (
+        renderCell: (p: GridRenderCellParams<LeaveRequest>) => (
           <span className={`badge ${badgeForStatus(p.row.status)}`}>
             {STATUS_LABEL[p.row.status]}
           </span>
@@ -960,7 +960,7 @@ function RequestsDataGrid({
         flex: 1.2,
         minWidth: 200,
         sortable: false,
-        valueGetter: (_v, row) =>
+        valueGetter: (_v: unknown, row: LeaveRequest) =>
           [
             row.inps_protocol ? `INPS: ${row.inps_protocol}` : '',
             row.user_note ?? '',
@@ -969,7 +969,7 @@ function RequestsDataGrid({
           ]
             .filter(Boolean)
             .join(' · '),
-        renderCell: (p) => {
+        renderCell: (p: GridRenderCellParams<LeaveRequest>) => {
           const r = p.row;
           return (
             <div className="text-xs">
@@ -992,8 +992,8 @@ function RequestsDataGrid({
         headerName: 'Decisa da',
         flex: 0.8,
         minWidth: 140,
-        valueGetter: (_v, row) => row.decided_by_display_name || row.decided_by_email || '',
-        renderCell: (p) => <span className="text-xs">{p.value || '—'}</span>,
+        valueGetter: (_v: unknown, row: LeaveRequest) => row.decided_by_display_name || row.decided_by_email || '',
+        renderCell: (p: GridRenderCellParams<LeaveRequest>) => <span className="text-xs">{p.value || '—'}</span>,
       },
       {
         field: 'actions',
@@ -1001,7 +1001,7 @@ function RequestsDataGrid({
         width: 220,
         sortable: false,
         filterable: false,
-        renderCell: (p) => {
+        renderCell: (p: GridRenderCellParams<LeaveRequest>) => {
           const r = p.row;
           return (
             <div className="flex gap-1 flex-wrap">
@@ -1062,7 +1062,7 @@ function RequestsDataGrid({
     <DataGrid<LeaveRequest>
       rows={rows}
       columns={columns}
-      getRowId={(r) => r.id}
+      getRowId={(r: LeaveRequest) => r.id}
       sx={dataGridSx}
       {...dataGridDefaults}
     />
@@ -1089,15 +1089,15 @@ function QuotasDataGrid({
         headerName: 'Utente',
         flex: 1.2,
         minWidth: 200,
-        valueGetter: (_v, row) => row.user.display_name || row.user.email,
+        valueGetter: (_v: unknown, row: QuotaRow) => row.user.display_name || row.user.email,
       },
       {
         field: 'ferie_balance',
         headerName: 'Saldo ferie',
         width: 160,
         sortable: true,
-        valueGetter: (_v, row) => (row.ferie ? balance(row.ferie) : null),
-        renderCell: (p) => (
+        valueGetter: (_v: unknown, row: QuotaRow) => (row.ferie ? balance(row.ferie) : null),
+        renderCell: (p: GridRenderCellParams<QuotaRow>) => (
           <button
             type="button"
             className="btn btn-ghost btn-sm"
@@ -1113,8 +1113,8 @@ function QuotasDataGrid({
         flex: 1,
         minWidth: 200,
         sortable: false,
-        valueGetter: (_v, row) => (row.ferie ? fmtAccrual(row.ferie) : ''),
-        renderCell: (p) => (
+        valueGetter: (_v: unknown, row: QuotaRow) => (row.ferie ? fmtAccrual(row.ferie) : ''),
+        renderCell: (p: GridRenderCellParams<QuotaRow>) => (
           <span className="text-xs muted">{p.row.ferie ? fmtAccrual(p.row.ferie) : '—'}</span>
         ),
       },
@@ -1123,8 +1123,8 @@ function QuotasDataGrid({
         headerName: 'Saldo permessi',
         width: 170,
         sortable: true,
-        valueGetter: (_v, row) => (row.permessi ? balance(row.permessi) : null),
-        renderCell: (p) => (
+        valueGetter: (_v: unknown, row: QuotaRow) => (row.permessi ? balance(row.permessi) : null),
+        renderCell: (p: GridRenderCellParams<QuotaRow>) => (
           <button
             type="button"
             className="btn btn-ghost btn-sm"
@@ -1140,8 +1140,8 @@ function QuotasDataGrid({
         flex: 1,
         minWidth: 200,
         sortable: false,
-        valueGetter: (_v, row) => (row.permessi ? fmtAccrual(row.permessi) : ''),
-        renderCell: (p) => (
+        valueGetter: (_v: unknown, row: QuotaRow) => (row.permessi ? fmtAccrual(row.permessi) : ''),
+        renderCell: (p: GridRenderCellParams<QuotaRow>) => (
           <span className="text-xs muted">{p.row.permessi ? fmtAccrual(p.row.permessi) : '—'}</span>
         ),
       },
@@ -1153,7 +1153,7 @@ function QuotasDataGrid({
     <DataGrid<QuotaRow>
       rows={grid}
       columns={columns}
-      getRowId={(r) => r.user.user_id}
+      getRowId={(r: QuotaRow) => r.user.user_id}
       sx={dataGridSx}
       {...dataGridDefaults}
     />
@@ -1181,7 +1181,7 @@ function TemplatesDataGrid({
           { value: 'ferie', label: 'Ferie' },
           { value: 'permessi', label: 'Permessi' },
         ],
-        renderCell: (p) => (p.row.type === 'ferie' ? 'Ferie' : 'Permessi'),
+        renderCell: (p: GridRenderCellParams<Template>) => (p.row.type === 'ferie' ? 'Ferie' : 'Permessi'),
       },
       {
         field: 'hours_default',
