@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { authenticate, requireAdmin } from '../middleware/auth.js';
+import type { PoolClient } from 'pg';
+import { authenticate } from '../middleware/auth.js';
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
-import { ConflictError, NotFoundError, ValidationError } from '../errors/index.js';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
 
 export const correctionRequestsRouter = Router();
 correctionRequestsRouter.use(authenticate);
@@ -49,24 +50,84 @@ correctionRequestsRouter.post(
   })
 );
 
+const SELECT_CORRECTION = `
+  SELECT cr.*,
+         COALESCE(au.email, cr.user_id::text) AS user_email,
+         au.display_name AS user_display_name,
+         os.event_type     AS original_event_type,
+         os.occurred_at    AS original_occurred_at,
+         os.branch_id      AS original_branch_id,
+         ob.name           AS original_branch_name,
+         cb.name           AS claimed_branch_name
+    FROM correction_requests cr
+    LEFT JOIN auth_users au ON au.id = cr.user_id
+    LEFT JOIN stamps os     ON os.id = cr.original_stamp_id
+    LEFT JOIN branches ob   ON ob.id = os.branch_id
+    LEFT JOIN branches cb   ON cb.id = cr.claimed_branch_id`;
+
 correctionRequestsRouter.get(
   '/',
   tenantHandler(async (req, res, client) => {
     const status = req.query.status ? String(req.query.status) : null;
-    let sql = `SELECT cr.*, COALESCE(au.email, cr.user_id::text) AS user_email
-               FROM correction_requests cr
-               LEFT JOIN auth_users au ON au.id = cr.user_id
-               WHERE ($1::text IS NULL OR cr.status = $1)`;
+    const where: string[] = ['($1::text IS NULL OR cr.status = $1)'];
     const params: unknown[] = [status];
     if (req.user!.role !== 'admin') {
       params.push(req.user!.id);
-      sql += ` AND cr.user_id = $${params.length}`;
+      where.push(
+        `(cr.user_id = $${params.length}
+          OR EXISTS (
+            SELECT 1 FROM correction_approvers ca
+             WHERE ca.user_id = cr.user_id
+               AND ca.approver_user_id = $${params.length}
+          ))`
+      );
     }
-    sql += ' ORDER BY cr.created_at DESC LIMIT 500';
+    const sql = `${SELECT_CORRECTION}
+       WHERE ${where.join(' AND ')}
+       ORDER BY cr.created_at DESC
+       LIMIT 500`;
     const r = await client.query(sql, params);
     ok(res, r.rows);
   })
 );
+
+async function hasAnyApprover(client: PoolClient, requesterId: string): Promise<boolean> {
+  const r = await client.query(
+    `SELECT 1 FROM correction_approvers WHERE user_id = $1 LIMIT 1`,
+    [requesterId]
+  );
+  return (r.rowCount ?? 0) > 0;
+}
+
+async function isApprover(
+  client: PoolClient,
+  approverId: string,
+  requesterId: string
+): Promise<boolean> {
+  const r = await client.query(
+    `SELECT 1 FROM correction_approvers WHERE user_id = $1 AND approver_user_id = $2`,
+    [requesterId, approverId]
+  );
+  return (r.rowCount ?? 0) > 0;
+}
+
+async function assertCanDecide(
+  client: PoolClient,
+  approverId: string,
+  approverRole: 'admin' | 'user',
+  requesterId: string
+): Promise<void> {
+  const configured = await hasAnyApprover(client, requesterId);
+  if (configured) {
+    if (!(await isApprover(client, approverId, requesterId))) {
+      throw new ForbiddenError('non sei un approvatore di questo utente');
+    }
+    return;
+  }
+  if (approverRole !== 'admin') {
+    throw new ForbiddenError('nessun approvatore configurato; solo gli admin possono decidere');
+  }
+}
 
 const ApproveBody = z.object({
   override: z
@@ -81,17 +142,19 @@ const ApproveBody = z.object({
 
 correctionRequestsRouter.post(
   '/:id/approve',
-  requireAdmin,
   tenantHandler(async (req, res, client) => {
     const parse = ApproveBody.safeParse(req.body ?? {});
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    // FOR UPDATE so concurrent approvers serialise on the row — first-to-commit wins.
     const cr = await client.query(
-      `SELECT * FROM correction_requests WHERE id = $1`,
+      `SELECT * FROM correction_requests WHERE id = $1 FOR UPDATE`,
       [req.params.id]
     );
     if (cr.rowCount === 0) throw new NotFoundError('correction request');
     const row = cr.rows[0];
     if (row.status !== 'pending') throw new ConflictError('Already resolved', 'CONFLICT');
+
+    await assertCanDecide(client, req.user!.id, req.user!.role, row.user_id);
 
     await client.query(`SELECT set_config('app.change_reason', $1, true)`, [
       `correction_approved:${req.params.id}`,
@@ -130,19 +193,28 @@ correctionRequestsRouter.post(
 
 correctionRequestsRouter.post(
   '/:id/reject',
-  requireAdmin,
   tenantHandler(async (req, res, client) => {
     const note = z.object({ resolution_note: z.string().max(500).optional() }).safeParse(req.body ?? {});
     if (!note.success) throw new ValidationError('invalid body', note.error.flatten());
+
+    // FOR UPDATE so concurrent approvers serialise — first-to-commit wins.
+    const cr = await client.query(
+      `SELECT user_id, status FROM correction_requests WHERE id = $1 FOR UPDATE`,
+      [req.params.id]
+    );
+    if (cr.rowCount === 0) throw new NotFoundError('correction request');
+    if (cr.rows[0].status !== 'pending') throw new ConflictError('Already resolved', 'CONFLICT');
+
+    await assertCanDecide(client, req.user!.id, req.user!.role, cr.rows[0].user_id);
+
     const r = await client.query(
       `UPDATE correction_requests
        SET status = 'rejected', resolved_by = current_setting('app.current_user_id')::uuid,
            resolved_at = now(), resolution_note = $1
-       WHERE id = $2 AND status = 'pending'
+       WHERE id = $2
        RETURNING *`,
       [note.data.resolution_note ?? null, req.params.id]
     );
-    if (r.rowCount === 0) throw new NotFoundError('correction request');
     ok(res, r.rows[0]);
   })
 );

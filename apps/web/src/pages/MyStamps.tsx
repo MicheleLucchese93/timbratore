@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
+import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 
 interface Stamp {
   id: string;
@@ -12,18 +14,66 @@ interface Stamp {
 
 export function MyStamps() {
   const [list, setList] = useState<Stamp[]>([]);
-  const [from, setFrom] = useState(() => isoNDaysAgo(30));
-  const [to, setTo] = useState(() => isoToday());
 
   async function load() {
     const params = new URLSearchParams();
-    if (from) params.set('from', from);
-    if (to) params.set('to', to);
+    params.set('from', isoNDaysAgo(90));
+    params.set('to', isoToday());
     setList(await api<Stamp[]>(`/api/v1/stamps/me?${params}`));
   }
   useEffect(() => {
     load().catch(() => {});
-  }, [from, to]);
+  }, []);
+
+  const columns = useMemo<GridColDef<Stamp>[]>(
+    () => [
+      {
+        field: 'occurred_at',
+        headerName: 'Quando',
+        width: 180,
+        type: 'dateTime',
+        valueGetter: (_v, row) => new Date(row.occurred_at),
+        renderCell: (p) => (
+          <span className="text-xs num">{(p.value as Date).toLocaleString('it-IT')}</span>
+        ),
+      },
+      {
+        field: 'event_type',
+        headerName: 'Evento',
+        width: 150,
+        type: 'singleSelect',
+        valueOptions: [
+          { value: 'clock_in', label: 'Ingresso' },
+          { value: 'clock_out', label: 'Uscita' },
+          { value: 'break_start', label: 'Inizio pausa' },
+          { value: 'break_end', label: 'Fine pausa' },
+        ],
+        renderCell: (p) => (
+          <span className={`badge ${badgeOf(p.row.event_type)}`}>{labelEvent(p.row.event_type)}</span>
+        ),
+      },
+      {
+        field: 'source',
+        headerName: 'Origine',
+        width: 120,
+        type: 'singleSelect',
+        valueOptions: [
+          { value: 'employee_app', label: 'app' },
+          { value: 'employee_correction', label: 'correz.' },
+          { value: 'admin_manual', label: 'admin' },
+        ],
+        renderCell: (p) => <span className="badge badge-muted">{sourceLabel(p.row.source)}</span>,
+      },
+      {
+        field: 'notes',
+        headerName: 'Note',
+        flex: 1,
+        minWidth: 200,
+        renderCell: (p) => <span className="text-xs">{p.row.notes ?? ''}</span>,
+      },
+    ],
+    []
+  );
 
   return (
     <div className="space-y-5">
@@ -32,49 +82,14 @@ export function MyStamps() {
         <p className="muted text-sm mt-0.5">Storico delle tue timbrature. Vedi solo le tue.</p>
       </header>
 
-      <div className="card grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-        <div>
-          <label className="label" htmlFor="from">Dal</label>
-          <input id="from" type="date" className="input" value={from} onChange={(e) => setFrom(e.target.value)} />
-        </div>
-        <div>
-          <label className="label" htmlFor="to">Al</label>
-          <input id="to" type="date" className="input" value={to} onChange={(e) => setTo(e.target.value)} />
-        </div>
-        <button className="btn btn-secondary btn-block" onClick={load}>Aggiorna</button>
-      </div>
-
-      <div className="card p-0">
-        <div className="table-wrap">
-          <table className="table">
-            <colgroup>
-              <col style={{ width: '14rem' }} />
-              <col style={{ width: '10rem' }} />
-              <col style={{ width: '7rem' }} />
-              <col />
-            </colgroup>
-            <thead>
-              <tr>
-                <th>Quando</th>
-                <th>Evento</th>
-                <th>Origine</th>
-                <th>Note</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.length === 0 ? (
-                <tr><td colSpan={4} className="py-8 text-center muted">Nessuna timbratura nel periodo.</td></tr>
-              ) : list.map((s) => (
-                <tr key={s.id}>
-                  <td className="num nowrap text-xs">{new Date(s.occurred_at).toLocaleString('it-IT')}</td>
-                  <td><span className={`badge ${badgeOf(s.event_type)}`}>{labelEvent(s.event_type)}</span></td>
-                  <td><span className="badge badge-muted">{sourceLabel(s.source)}</span></td>
-                  <td className="text-xs">{s.notes ?? ''}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <div className="card" style={{ padding: 0 }}>
+        <DataGrid<Stamp>
+          rows={list}
+          columns={columns}
+          getRowId={(r) => r.id}
+          sx={dataGridSx}
+          {...dataGridDefaults}
+        />
       </div>
     </div>
   );

@@ -68,7 +68,15 @@ export async function authenticate(
       throw new UnauthorizedError('Missing bearer token');
     }
     const token = header.slice('Bearer '.length).trim();
-    const payload = await verifyToken(token);
+    let payload;
+    try {
+      payload = await verifyToken(token);
+    } catch (e) {
+      const joseCode = (e as { code?: string }).code;
+      const code = joseCode === 'ERR_JWT_EXPIRED' ? 'TOKEN_EXPIRED' : 'INVALID_TOKEN';
+      const message = joseCode === 'ERR_JWT_EXPIRED' ? 'Token expired' : 'Invalid token';
+      throw new UnauthorizedError(message, code);
+    }
     if (!payload.sub) throw new UnauthorizedError('Invalid token: missing sub');
     const membership = await loadMembership(payload.sub);
     if (!membership) {

@@ -10,10 +10,16 @@ export interface CorrectionRow {
   id: string;
   user_id: string;
   user_email?: string;
+  user_display_name?: string | null;
   original_stamp_id: string | null;
+  original_event_type: StampEventType | null;
+  original_occurred_at: string | null;
+  original_branch_id: string | null;
+  original_branch_name: string | null;
   claimed_event_type: StampEventType;
   claimed_occurred_at: string;
   claimed_branch_id: string | null;
+  claimed_branch_name: string | null;
   justification: string;
   status: 'pending' | 'approved' | 'rejected' | 'superseded';
   resolved_by: string | null;

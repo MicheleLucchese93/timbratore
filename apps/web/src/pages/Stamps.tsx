@@ -1,5 +1,7 @@
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
+import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 
 interface Stamp {
   id: string;
@@ -20,17 +22,13 @@ export function Stamps() {
   const [list, setList] = useState<Stamp[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
-  const [filterUser, setFilterUser] = useState('');
-  const [filterFrom, setFilterFrom] = useState(() => isoNDaysAgo(7));
-  const [filterTo, setFilterTo] = useState(() => isoToday());
   const [editing, setEditing] = useState<Stamp | null>(null);
   const [creating, setCreating] = useState(false);
 
   async function load() {
     const params = new URLSearchParams();
-    if (filterUser) params.set('user_id', filterUser);
-    if (filterFrom) params.set('from', filterFrom);
-    if (filterTo) params.set('to', filterTo);
+    params.set('from', isoNDaysAgo(90));
+    params.set('to', isoToday());
     const [s, b, u] = await Promise.all([
       api<Stamp[]>(`/api/v1/stamps?${params}`),
       api<Branch[]>('/api/v1/branches'),
@@ -42,7 +40,7 @@ export function Stamps() {
   }
   useEffect(() => {
     load().catch(() => {});
-  }, [filterUser, filterFrom, filterTo]);
+  }, []);
 
   async function remove(id: string) {
     const reason = prompt('Motivo eliminazione (obbligatorio):');
@@ -61,85 +59,13 @@ export function Stamps() {
         <button className="btn btn-primary" onClick={() => setCreating(true)}>Nuova timbratura</button>
       </header>
 
-      <div className="card grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-        <div>
-          <label className="label" htmlFor="f-user">Utente</label>
-          <select id="f-user" className="input" value={filterUser} onChange={(e) => setFilterUser(e.target.value)}>
-            <option value="">Tutti</option>
-            {users.map((u) => (
-              <option key={u.user_id} value={u.user_id}>{u.email}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="label" htmlFor="f-from">Dal</label>
-          <input id="f-from" type="date" className="input" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} />
-        </div>
-        <div>
-          <label className="label" htmlFor="f-to">Al</label>
-          <input id="f-to" type="date" className="input" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} />
-        </div>
-        <div>
-          <button className="btn btn-secondary btn-block" onClick={load}>Aggiorna</button>
-        </div>
-      </div>
-
-      <div className="card p-0">
-        <div className="table-wrap">
-          <table className="table">
-            <colgroup>
-              <col style={{ width: '11rem' }} />
-              <col />
-              <col style={{ width: '9rem' }} />
-              <col style={{ width: '6rem' }} />
-              <col />
-              <col />
-              <col style={{ width: '6.5rem' }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th>Quando</th>
-                <th>Utente</th>
-                <th>Evento</th>
-                <th>Origine</th>
-                <th>Sede</th>
-                <th>Note</th>
-                <th className="text-center">Azioni</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.length === 0 ? (
-                <tr><td colSpan={7} className="py-8 text-center muted">Nessuna timbratura nel periodo.</td></tr>
-              ) : list.map((s) => (
-                <tr key={s.id}>
-                  <td className="num nowrap text-xs">{formatDateTime(s.occurred_at)}</td>
-                  <td className="text-xs truncate">{s.user_email}</td>
-                  <td><EventBadge event={s.event_type} /></td>
-                  <td><SourceBadge source={s.source} /></td>
-                  <td className="text-xs">{branches.find((b) => b.id === s.branch_id)?.name ?? '—'}</td>
-                  <td className="text-xs">
-                    {s.suspicious_mock_location && <span className="badge badge-warn mr-1">mock</span>}
-                    {s.notes ?? ''}
-                  </td>
-                  <td>
-                    <div className="flex justify-center gap-1">
-                      <StampIconButton
-                        kind="edit"
-                        title="Modifica timbratura"
-                        onClick={() => setEditing(s)}
-                      />
-                      <StampIconButton
-                        kind="delete"
-                        title="Elimina timbratura"
-                        onClick={() => remove(s.id)}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <div className="card" style={{ padding: 0 }}>
+        <StampsDataGrid
+          list={list}
+          branches={branches}
+          onEdit={setEditing}
+          onDelete={remove}
+        />
       </div>
 
       {creating && (
@@ -306,5 +232,116 @@ function StampForm({
         </div>
       </form>
     </div>
+  );
+}
+
+function StampsDataGrid({
+  list,
+  branches,
+  onEdit,
+  onDelete,
+}: {
+  list: Stamp[];
+  branches: Branch[];
+  onEdit: (s: Stamp) => void;
+  onDelete: (id: string) => void;
+}) {
+  const columns = useMemo<GridColDef<Stamp>[]>(
+    () => [
+      {
+        field: 'occurred_at',
+        headerName: 'Quando',
+        width: 170,
+        type: 'dateTime',
+        valueGetter: (_v, row) => new Date(row.occurred_at),
+        renderCell: (p) => <span className="num text-xs">{formatDateTime(p.row.occurred_at)}</span>,
+      },
+      { field: 'user_email', headerName: 'Utente', flex: 1.2, minWidth: 180 },
+      {
+        field: 'event_type',
+        headerName: 'Evento',
+        width: 140,
+        type: 'singleSelect',
+        valueOptions: [
+          { value: 'clock_in', label: 'Ingresso' },
+          { value: 'clock_out', label: 'Uscita' },
+          { value: 'break_start', label: 'Inizio pausa' },
+          { value: 'break_end', label: 'Fine pausa' },
+        ],
+        renderCell: (p) => <EventBadge event={p.row.event_type} />,
+      },
+      {
+        field: 'source',
+        headerName: 'Origine',
+        width: 110,
+        type: 'singleSelect',
+        valueOptions: [
+          { value: 'employee_app', label: 'app' },
+          { value: 'employee_correction', label: 'correz.' },
+          { value: 'admin_manual', label: 'admin' },
+        ],
+        renderCell: (p) => <SourceBadge source={p.row.source} />,
+      },
+      {
+        field: 'branch_id',
+        headerName: 'Sede',
+        flex: 0.8,
+        minWidth: 130,
+        type: 'singleSelect',
+        valueOptions: branches.map((b) => ({ value: b.id, label: b.name })),
+        valueGetter: (_v, row) => row.branch_id ?? '',
+        renderCell: (p) => (
+          <span className="text-xs">
+            {branches.find((b) => b.id === p.row.branch_id)?.name ?? '—'}
+          </span>
+        ),
+      },
+      {
+        field: 'notes',
+        headerName: 'Note',
+        flex: 1,
+        minWidth: 160,
+        renderCell: (p) => (
+          <span className="text-xs">
+            {p.row.suspicious_mock_location && (
+              <span className="badge badge-warn mr-1">mock</span>
+            )}
+            {p.row.notes ?? ''}
+          </span>
+        ),
+      },
+      {
+        field: 'actions',
+        headerName: 'Azioni',
+        width: 110,
+        sortable: false,
+        filterable: false,
+        renderCell: (p) => (
+          <div className="flex gap-1">
+            <StampIconButton
+              kind="edit"
+              title="Modifica timbratura"
+              onClick={() => onEdit(p.row)}
+            />
+            <StampIconButton
+              kind="delete"
+              title="Elimina timbratura"
+              onClick={() => onDelete(p.row.id)}
+            />
+          </div>
+        ),
+      },
+    ],
+    [branches, onEdit, onDelete]
+  );
+
+  return (
+    <DataGrid<Stamp>
+      rows={list}
+      columns={columns}
+      getRowId={(r) => r.id}
+      sx={dataGridSx}
+      {...dataGridDefaults}
+    />
   );
 }

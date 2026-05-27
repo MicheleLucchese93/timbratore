@@ -16,6 +16,7 @@ import type { StampEventType } from '@sonoqui/shared';
 import { color, space, type as t } from '@sonoqui/shared';
 import { computeDayTotals, formatDuration, isoDay, type DayStamp } from '../lib/day-totals';
 import { AppHeader } from '../components/AppHeader';
+import { WorkStateChip } from '../components/WorkStateChip';
 
 const RANGES = [
   { id: 7, label: '7 giorni' },
@@ -57,7 +58,7 @@ export function StoricoScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <AppHeader />
+      <AppHeader centerSlot={<WorkStateChip />} />
       <View style={styles.filterRow}>
         {RANGES.map((r) => {
           const sel = r.id === days;

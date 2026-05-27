@@ -1,4 +1,12 @@
-import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,9 +14,41 @@ import { useSession } from '../store/session';
 import { color, space, type as t } from '@sonoqui/shared';
 import { userDisplayName } from '../lib/user-display';
 
+const AVATAR_PALETTE = [
+  '#24389c',
+  '#b7131a',
+  '#004e11',
+  '#6d4c9e',
+  '#c4651a',
+  '#0d7377',
+  '#8b5e3c',
+  '#5c6bc0',
+];
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
+function getAvatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
+}
+
 export function ProfiloScreen() {
   const { me, logout } = useSession();
   const router = useRouter();
+
+  function goBack() {
+    if (router.canGoBack()) router.back();
+    else router.replace('/timbrature');
+  }
 
   function confirmLogout() {
     const doLogout = async () => {
@@ -29,36 +69,59 @@ export function ProfiloScreen() {
   if (!me) return null;
 
   const displayName = userDisplayName(me.user);
-  const initial = displayName.charAt(0).toUpperCase();
+  const initials = getInitials(displayName);
+  const avatarColor = getAvatarColor(displayName);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.heroBlock}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initial}</Text>
-          </View>
-          <View style={styles.heroInfo}>
-            <Text style={styles.displayName} numberOfLines={1}>{displayName}</Text>
-            <Text style={styles.email} numberOfLines={1}>{me.user.email}</Text>
-            <View style={styles.rolePill}>
-              <Ionicons
-                name={me.user.role === 'admin' ? 'shield-checkmark-outline' : 'person-outline'}
-                size={12}
-                color={color.primary}
-              />
-              <Text style={styles.rolePillText}>
-                {me.user.role === 'admin' ? 'Amministratore' : 'Dipendente'}
-              </Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={goBack}
+          style={styles.backButton}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Indietro">
+          <Ionicons name="arrow-back" size={24} color={color.onSurface} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Profilo</Text>
+        <View style={styles.backButton} />
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}>
+        <Text style={styles.sectionLabel}>Profilo</Text>
+        <View style={styles.card}>
+          <View style={styles.profileRow}>
+            <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </View>
+            <View style={styles.profileInfo}>
+              <Text style={styles.displayName} numberOfLines={1}>{displayName}</Text>
+              <Text style={styles.email} numberOfLines={1}>{me.user.email}</Text>
+              <View style={styles.rolePill}>
+                <Ionicons
+                  name={me.user.role === 'admin' ? 'shield-checkmark-outline' : 'person-outline'}
+                  size={12}
+                  color={color.primary}
+                />
+                <Text style={styles.rolePillText}>
+                  {me.user.role === 'admin' ? 'Amministratore' : 'Dipendente'}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
 
-        <Section title="Azienda">
+        <Text style={styles.sectionLabel}>Azienda</Text>
+        <View style={styles.card}>
           <Row icon="business-outline" label="Ragione sociale" value={me.tenant.ragione_sociale} />
-        </Section>
+        </View>
 
-        <Section title={me.branches.length > 1 ? 'Sedi' : 'Sede'}>
+        <Text style={styles.sectionLabel}>
+          {me.branches.length > 1 ? 'Sedi' : 'Sede'}
+        </Text>
+        <View style={styles.card}>
           {me.branches.length === 0 && (
             <Text style={styles.empty}>Nessuna sede assegnata.</Text>
           )}
@@ -69,28 +132,19 @@ export function ProfiloScreen() {
                 label={b.name}
                 value={b.smart_working ? 'Smart working' : 'In sede'}
               />
-              {i < me.branches.length - 1 && <Divider />}
+              {i < me.branches.length - 1 && <View style={styles.divider} />}
             </View>
           ))}
-        </Section>
+        </View>
 
-        <TouchableOpacity onPress={confirmLogout} activeOpacity={0.7} style={styles.logoutBtn}>
-          <Ionicons name="log-out-outline" size={20} color={color.error} />
+        <TouchableOpacity
+          onPress={confirmLogout}
+          style={styles.logoutButton}
+          activeOpacity={0.8}>
           <Text style={styles.logoutText}>Esci</Text>
         </TouchableOpacity>
-
-        <Text style={styles.version}>sonoQui · v0.1.0</Text>
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.card}>{children}</View>
-    </View>
   );
 }
 
@@ -116,50 +170,93 @@ function Row({
   );
 }
 
-function Divider() {
-  return <View style={styles.divider} />;
-}
-
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: color.surface },
-  scroll: { paddingHorizontal: 6, paddingTop: space.s4, paddingBottom: 44 },
+  container: { flex: 1, backgroundColor: color.surface },
 
-  heroBlock: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    paddingVertical: space.s4,
+    justifyContent: 'space-between',
     paddingHorizontal: space.s2,
+    paddingVertical: space.s3,
   },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: color.primary,
+  backButton: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: 'rgba(0,0,0,0.12)',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 1,
-    shadowRadius: 20,
-    elevation: 4,
   },
-  avatarText: { color: color.onPrimary, fontSize: 26, fontWeight: '700' },
-  heroInfo: { flex: 1, alignItems: 'flex-start' },
-  displayName: {
+  headerTitle: {
+    fontSize: t.h2.size,
+    lineHeight: t.h2.line,
+    fontWeight: '600',
+    color: color.onSurface,
+  },
+
+  scrollContent: {
+    paddingHorizontal: space.s2,
+    paddingBottom: space.s8,
+  },
+
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: color.onSurfaceVariant,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    marginTop: space.s5,
+    marginBottom: space.s2,
+    paddingHorizontal: space.s2,
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    paddingHorizontal: space.s4,
+    paddingVertical: space.s1,
+    shadowColor: 'rgba(0,0,0,0.04)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: space.s4,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    color: '#ffffff',
     fontSize: 20,
+    fontWeight: '700',
+  },
+  profileInfo: { flex: 1, marginLeft: space.s4 },
+  displayName: {
+    fontSize: 18,
     fontWeight: '700',
     color: color.onSurface,
   },
-  email: { fontSize: 13, color: color.onSurfaceVariant, marginTop: 2 },
+  email: {
+    fontSize: 13,
+    color: color.onSurfaceVariant,
+    marginTop: 2,
+  },
   rolePill: {
     flexDirection: 'row',
+    alignSelf: 'flex-start',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: '#ffe0c8',
+    backgroundColor: color.primaryContainer,
     marginTop: 6,
   },
   rolePillText: {
@@ -170,63 +267,48 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 
-  section: { marginTop: space.s5 },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: color.onSurfaceVariant,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    marginBottom: space.s2,
-    paddingHorizontal: space.s2,
-  },
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    paddingVertical: 4,
-    shadowColor: 'rgba(0,0,0,0.04)',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 1,
-  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 14,
-    paddingHorizontal: 16,
     gap: 12,
   },
   rowIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#ffe0c8',
+    backgroundColor: color.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rowLabel: { fontSize: 12, color: color.onSurfaceVariant, fontWeight: '600' },
-  rowValue: { fontSize: 15, color: color.onSurface, fontWeight: '600', marginTop: 1 },
-  divider: { height: 1, backgroundColor: color.surfaceVariant, marginLeft: 64 },
-  empty: { color: color.onSurfaceVariant, padding: 16 },
-
-  logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 24,
-    backgroundColor: '#fde4e4',
-    marginTop: space.s5,
-  },
-  logoutText: { fontSize: 16, fontWeight: '700', color: color.error },
-
-  version: {
-    marginTop: 32,
-    textAlign: 'center',
-    color: color.onSurfaceVariant,
+  rowLabel: {
     fontSize: 12,
+    color: color.onSurfaceVariant,
+    fontWeight: '600',
+  },
+  rowValue: {
+    fontSize: 15,
+    color: color.onSurface,
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: color.surfaceVariant,
+    marginLeft: 48,
+  },
+  empty: { color: color.onSurfaceVariant, paddingVertical: 14 },
+
+  logoutButton: {
+    marginTop: space.s6,
+    backgroundColor: '#fde4e4',
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: color.error,
   },
 });

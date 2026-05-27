@@ -17,11 +17,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { StampEventType } from '@sonoqui/shared';
-import { color, space, type as t } from '@sonoqui/shared';
+import { color, space } from '@sonoqui/shared';
 import { api } from '../lib/api';
 import { useSession } from '../store/session';
 import { useNotifications, type CorrectionRow } from '../lib/notifications';
 import { AppHeader } from '../components/AppHeader';
+import { WorkStateChip } from '../components/WorkStateChip';
+import { DateField } from '../components/DateField';
 
 const STATUS_FILTERS = [
   { id: 'pending', label: 'In attesa' },
@@ -34,6 +36,13 @@ const EVENT_OPTIONS: Array<{ value: StampEventType; label: string; icon: keyof t
   { value: 'break_start', label: 'Inizio pausa', icon: 'pause-outline' },
   { value: 'break_end', label: 'Fine pausa', icon: 'play-outline' },
 ];
+
+interface DayStamp {
+  id: string;
+  event_type: StampEventType;
+  occurred_at: string;
+  branch_id: string | null;
+}
 
 export function CorrezioniScreen() {
   const { me } = useSession();
@@ -95,13 +104,7 @@ export function CorrezioniScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <AppHeader />
-      <View style={styles.headerBlock}>
-        <Text style={styles.title}>Correzioni</Text>
-        <Text style={styles.subtle}>
-          {isAdmin ? 'Approva o rifiuta le richieste dei dipendenti' : 'Richiedi una rettifica delle tue timbrature'}
-        </Text>
-      </View>
+      <AppHeader centerSlot={<WorkStateChip />} />
 
       <View style={styles.filterRow}>
         {STATUS_FILTERS.map((f) => {
@@ -147,7 +150,13 @@ export function CorrezioniScreen() {
           </View>
         )}
         {rows.map((r) => (
-          <CorrectionCard key={r.id} row={r} isAdmin={isAdmin} onApprove={() => approve(r)} onReject={() => reject(r)} />
+          <CorrectionCard
+            key={r.id}
+            row={r}
+            canDecide={isAdmin}
+            onApprove={() => approve(r)}
+            onReject={() => reject(r)}
+          />
         ))}
       </ScrollView>
 
@@ -178,16 +187,17 @@ export function CorrezioniScreen() {
 
 function CorrectionCard({
   row,
-  isAdmin,
+  canDecide,
   onApprove,
   onReject,
 }: {
   row: CorrectionRow;
-  isAdmin: boolean;
+  canDecide: boolean;
   onApprove: () => void;
   onReject: () => void;
 }) {
   const statusMeta = statusBadge(row.status);
+  const isEdit = row.original_stamp_id != null && row.original_occurred_at != null;
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -202,30 +212,71 @@ function CorrectionCard({
         </View>
       </View>
 
-      {isAdmin && row.user_email && (
+      {canDecide && row.user_email && (
         <View style={styles.userRow}>
           <Ionicons name="person-outline" size={14} color={color.onSurfaceVariant} />
-          <Text style={styles.userText}>{row.user_email}</Text>
+          <Text style={styles.userText}>{row.user_display_name || row.user_email}</Text>
         </View>
       )}
 
-      <View style={styles.metaRow}>
-        <Ionicons name="time-outline" size={14} color={color.onSurfaceVariant} />
-        <Text style={styles.metaText}>{formatFull(row.claimed_occurred_at)}</Text>
-      </View>
+      {isEdit ? (
+        <View style={styles.diffRow}>
+          <View style={[styles.diffBox, styles.diffOld]}>
+            <Text style={styles.diffLabel}>Attuale</Text>
+            <DiffField label="Evento" value={humanEvent(row.original_event_type as StampEventType)} />
+            <DiffField
+              label="Quando"
+              value={formatFull(row.original_occurred_at as string)}
+            />
+            <DiffField label="Sede" value={row.original_branch_name ?? '—'} />
+          </View>
+          <View style={[styles.diffBox, styles.diffNew]}>
+            <Text style={styles.diffLabel}>Richiesto</Text>
+            <DiffField
+              label="Evento"
+              value={humanEvent(row.claimed_event_type)}
+              changed={row.claimed_event_type !== row.original_event_type}
+            />
+            <DiffField
+              label="Quando"
+              value={formatFull(row.claimed_occurred_at)}
+              changed={
+                row.original_occurred_at == null ||
+                new Date(row.claimed_occurred_at).getTime() !==
+                  new Date(row.original_occurred_at).getTime()
+              }
+            />
+            <DiffField
+              label="Sede"
+              value={row.claimed_branch_name ?? '—'}
+              changed={row.claimed_branch_id !== row.original_branch_id}
+            />
+          </View>
+        </View>
+      ) : (
+        <View style={[styles.diffBox, styles.diffMissing, { marginTop: 10 }]}>
+          <Text style={styles.diffLabel}>Timbratura mancante da aggiungere</Text>
+          <DiffField label="Evento" value={humanEvent(row.claimed_event_type)} />
+          <DiffField label="Quando" value={formatFull(row.claimed_occurred_at)} />
+          <DiffField label="Sede" value={row.claimed_branch_name ?? '—'} />
+        </View>
+      )}
 
-      <Text style={styles.justification}>{row.justification}</Text>
+      <View style={styles.justificationBlock}>
+        <Text style={styles.diffLabel}>Motivazione</Text>
+        <Text style={styles.justification}>{row.justification}</Text>
+      </View>
 
       {row.resolution_note?.trim() ? (
         <View style={[styles.noteBox, { backgroundColor: row.status === 'rejected' ? '#fde4e4' : '#e8f3ec' }]}>
-          <Text style={styles.noteLabel}>Risposta admin</Text>
+          <Text style={styles.noteLabel}>Risposta approvatore</Text>
           <Text style={styles.noteText}>{row.resolution_note}</Text>
         </View>
       ) : null}
 
       <Text style={styles.created}>Inviata {formatFull(row.created_at)}</Text>
 
-      {isAdmin && row.status === 'pending' && (
+      {canDecide && row.status === 'pending' && (
         <View style={styles.actions}>
           <TouchableOpacity onPress={onReject} activeOpacity={0.8} style={[styles.actionBtn, styles.actionReject]}>
             <Ionicons name="close-outline" size={18} color={color.error} />
@@ -241,6 +292,19 @@ function CorrectionCard({
   );
 }
 
+function DiffField({ label, value, changed }: { label: string; value: string; changed?: boolean }) {
+  return (
+    <View style={styles.diffFieldRow}>
+      <Text style={styles.diffFieldLabel}>{label}</Text>
+      <Text style={[styles.diffFieldValue, changed && styles.diffFieldChanged]} numberOfLines={2}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+type ModalStep = 'date' | 'pickStamp' | 'edit';
+
 function NewRequestModal({
   visible,
   onClose,
@@ -252,8 +316,13 @@ function NewRequestModal({
   onCreated: () => void;
   branches: Array<{ id: string; name: string }>;
 }) {
+  const [step, setStep] = useState<ModalStep>('date');
+  const [targetDate, setTargetDate] = useState(() => isoLocal(new Date()));
+  const [dayStamps, setDayStamps] = useState<DayStamp[] | null>(null);
+  const [loadingDay, setLoadingDay] = useState(false);
+
+  const [originalStampId, setOriginalStampId] = useState<string | null>(null);
   const [eventType, setEventType] = useState<StampEventType>('clock_in');
-  const [date, setDate] = useState(() => isoLocal(new Date()));
   const [time, setTime] = useState(() => isoTime(new Date()));
   const [branchId, setBranchId] = useState<string | null>(branches[0]?.id ?? null);
   const [justification, setJustification] = useState('');
@@ -261,14 +330,50 @@ function NewRequestModal({
 
   useEffect(() => {
     if (visible) {
+      setStep('date');
+      setTargetDate(isoLocal(new Date()));
+      setDayStamps(null);
+      setOriginalStampId(null);
       setEventType('clock_in');
-      const now = new Date();
-      setDate(isoLocal(now));
-      setTime(isoTime(now));
+      setTime(isoTime(new Date()));
       setBranchId(branches[0]?.id ?? null);
       setJustification('');
     }
   }, [visible, branches]);
+
+  async function goToPickStamp() {
+    setLoadingDay(true);
+    try {
+      const rows = await api<DayStamp[]>(
+        `/api/v1/stamps/me?from=${targetDate}&to=${targetDate}`
+      );
+      // Backend returns DESC by occurred_at — flip to chronological for the picker.
+      rows.sort((a, b) => (a.occurred_at < b.occurred_at ? -1 : 1));
+      setDayStamps(rows);
+      setStep('pickStamp');
+    } catch (e) {
+      showError(e);
+    } finally {
+      setLoadingDay(false);
+    }
+  }
+
+  function chooseExisting(s: DayStamp) {
+    setOriginalStampId(s.id);
+    setEventType(s.event_type);
+    const d = new Date(s.occurred_at);
+    setTime(isoTime(d));
+    setBranchId(s.branch_id ?? branches[0]?.id ?? null);
+    setStep('edit');
+  }
+
+  function chooseMissing() {
+    setOriginalStampId(null);
+    setEventType('clock_in');
+    setTime(isoTime(new Date()));
+    setBranchId(branches[0]?.id ?? null);
+    setStep('edit');
+  }
 
   async function submit() {
     if (justification.trim().length < 5) {
@@ -277,10 +382,11 @@ function NewRequestModal({
     }
     setSubmitting(true);
     try {
-      const occurredAt = combineLocalDateTime(date, time);
+      const occurredAt = combineLocalDateTime(targetDate, time);
       await api('/api/v1/correction-requests', {
         method: 'POST',
         json: {
+          original_stamp_id: originalStampId,
           claimed_event_type: eventType,
           claimed_occurred_at: occurredAt,
           claimed_branch_id: branchId,
@@ -295,6 +401,21 @@ function NewRequestModal({
     }
   }
 
+  function back() {
+    if (step === 'edit') setStep('pickStamp');
+    else if (step === 'pickStamp') setStep('date');
+    else onClose();
+  }
+
+  const headerTitle =
+    step === 'date'
+      ? 'Quale giorno?'
+      : step === 'pickStamp'
+      ? formatDateLong(targetDate)
+      : originalStampId
+      ? 'Modifica timbratura'
+      : 'Nuova timbratura';
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.safe} edges={['top']}>
@@ -302,98 +423,169 @@ function NewRequestModal({
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1 }}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Nuova correzione</Text>
-            <Pressable onPress={onClose} style={styles.iconBtn}>
-              <Ionicons name="close" size={22} color={color.onSurface} />
+            <Pressable onPress={back} style={styles.iconBtn} accessibilityLabel="Indietro">
+              <Ionicons
+                name={step === 'date' ? 'close' : 'chevron-back'}
+                size={22}
+                color={color.onSurface}
+              />
             </Pressable>
+            <Text style={styles.modalTitle} numberOfLines={1}>
+              {headerTitle}
+            </Text>
+            <View style={styles.iconBtn} />
           </View>
-          <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
-            <Text style={styles.fieldLabel}>Tipo evento</Text>
-            <View style={styles.eventGrid}>
-              {EVENT_OPTIONS.map((e) => {
-                const sel = e.value === eventType;
-                return (
-                  <Pressable
-                    key={e.value}
-                    onPress={() => setEventType(e.value)}
-                    style={[styles.eventOpt, sel && styles.eventOptSel]}>
-                    <Ionicons name={e.icon} size={18} color={sel ? color.onPrimary : color.primary} />
-                    <Text style={[styles.eventOptText, sel && styles.eventOptTextSel]}>{e.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
 
-            <View style={styles.dateRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.fieldLabel}>Data</Text>
-                <TextInput
-                  value={date}
-                  onChangeText={setDate}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={color.onSurfaceVariant}
-                  style={styles.input}
-                  autoCapitalize="none"
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.fieldLabel}>Ora</Text>
-                <TextInput
-                  value={time}
-                  onChangeText={setTime}
-                  placeholder="HH:MM"
-                  placeholderTextColor={color.onSurfaceVariant}
-                  style={styles.input}
-                  autoCapitalize="none"
-                />
-              </View>
-            </View>
+          {step === 'date' && (
+            <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
+              <Text style={styles.helperText}>
+                Scegli la data per cui vuoi richiedere una correzione. Caricheremo le tue
+                timbrature di quel giorno e potrai modificarle o aggiungerne una mancante.
+              </Text>
+              <Text style={styles.fieldLabel}>Data</Text>
+              <DateField mode="date" value={targetDate} onChange={setTargetDate} maximumDate={new Date()} />
+              <TouchableOpacity
+                onPress={goToPickStamp}
+                disabled={loadingDay}
+                activeOpacity={0.85}
+                style={[styles.submitBtn, loadingDay && { opacity: 0.6 }]}>
+                {loadingDay ? (
+                  <ActivityIndicator color={color.onPrimary} />
+                ) : (
+                  <>
+                    <Ionicons name="arrow-forward-outline" size={18} color={color.onPrimary} />
+                    <Text style={styles.submitText}>Continua</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          )}
 
-            {branches.length > 1 && (
-              <>
-                <Text style={styles.fieldLabel}>Sede</Text>
-                <View style={styles.branchRow}>
-                  {branches.map((b) => {
-                    const sel = b.id === branchId;
-                    return (
-                      <Pressable
-                        key={b.id}
-                        onPress={() => setBranchId(b.id)}
-                        style={[styles.branchChip, sel && styles.branchChipSel]}>
-                        <Text style={[styles.branchChipText, sel && styles.branchChipTextSel]}>{b.name}</Text>
-                      </Pressable>
-                    );
-                  })}
+          {step === 'pickStamp' && (
+            <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
+              <Text style={styles.helperText}>
+                Tocca una timbratura per correggerla, oppure segnala una timbratura mancante.
+              </Text>
+
+              {dayStamps && dayStamps.length === 0 && (
+                <View style={styles.emptyCard}>
+                  <Ionicons name="document-text-outline" size={28} color={color.onSurfaceVariant} />
+                  <Text style={styles.empty}>Nessuna timbratura in questa data.</Text>
                 </View>
-              </>
-            )}
+              )}
 
-            <Text style={styles.fieldLabel}>Motivazione</Text>
-            <TextInput
-              value={justification}
-              onChangeText={setJustification}
-              placeholder="Es. avevo dimenticato di timbrare l'uscita"
-              placeholderTextColor={color.onSurfaceVariant}
-              multiline
-              numberOfLines={4}
-              style={[styles.input, styles.textarea]}
-            />
+              {dayStamps?.map((s) => (
+                <TouchableOpacity
+                  key={s.id}
+                  activeOpacity={0.75}
+                  onPress={() => chooseExisting(s)}
+                  style={styles.stampRow}>
+                  <View style={[styles.eventChip, { backgroundColor: eventBg(s.event_type) }]}>
+                    <Ionicons name={eventIcon(s.event_type)} size={14} color={eventFg(s.event_type)} />
+                    <Text style={[styles.eventChipText, { color: eventFg(s.event_type) }]}>
+                      {humanEvent(s.event_type)}
+                    </Text>
+                  </View>
+                  <Text style={styles.stampTime}>
+                    {new Date(s.occurred_at).toLocaleTimeString('it-IT', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={18} color={color.onSurfaceVariant} />
+                </TouchableOpacity>
+              ))}
 
-            <TouchableOpacity
-              onPress={submit}
-              disabled={submitting}
-              activeOpacity={0.85}
-              style={[styles.submitBtn, submitting && { opacity: 0.6 }]}>
-              {submitting ? (
-                <ActivityIndicator color={color.onPrimary} />
-              ) : (
+              <TouchableOpacity
+                onPress={chooseMissing}
+                activeOpacity={0.85}
+                style={[styles.stampRow, styles.missingRow]}>
+                <Ionicons name="add-circle-outline" size={20} color={color.primary} />
+                <Text style={[styles.stampTime, { color: color.primary }]}>
+                  Aggiungi una timbratura mancante
+                </Text>
+                <Ionicons name="chevron-forward" size={18} color={color.primary} />
+              </TouchableOpacity>
+            </ScrollView>
+          )}
+
+          {step === 'edit' && (
+            <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
+              <Text style={styles.fieldLabel}>Tipo evento</Text>
+              <View style={styles.eventGrid}>
+                {EVENT_OPTIONS.map((e) => {
+                  const sel = e.value === eventType;
+                  return (
+                    <Pressable
+                      key={e.value}
+                      onPress={() => setEventType(e.value)}
+                      style={[styles.eventOpt, sel && styles.eventOptSel]}>
+                      <Ionicons name={e.icon} size={18} color={sel ? color.onPrimary : color.primary} />
+                      <Text style={[styles.eventOptText, sel && styles.eventOptTextSel]}>{e.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <View style={styles.dateRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fieldLabel}>Data</Text>
+                  <View style={styles.fieldStatic}>
+                    <Text style={styles.fieldStaticText}>{formatDateLong(targetDate)}</Text>
+                  </View>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fieldLabel}>Ora</Text>
+                  <DateField mode="time" value={time} onChange={setTime} minuteInterval={5} />
+                </View>
+              </View>
+
+              {branches.length > 1 && (
                 <>
-                  <Ionicons name="send-outline" size={18} color={color.onPrimary} />
-                  <Text style={styles.submitText}>Invia richiesta</Text>
+                  <Text style={styles.fieldLabel}>Sede</Text>
+                  <View style={styles.branchRow}>
+                    {branches.map((b) => {
+                      const sel = b.id === branchId;
+                      return (
+                        <Pressable
+                          key={b.id}
+                          onPress={() => setBranchId(b.id)}
+                          style={[styles.branchChip, sel && styles.branchChipSel]}>
+                          <Text style={[styles.branchChipText, sel && styles.branchChipTextSel]}>{b.name}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
                 </>
               )}
-            </TouchableOpacity>
-          </ScrollView>
+
+              <Text style={styles.fieldLabel}>Motivazione</Text>
+              <TextInput
+                value={justification}
+                onChangeText={setJustification}
+                placeholder="Es. avevo dimenticato di timbrare l'uscita"
+                placeholderTextColor={color.onSurfaceVariant}
+                multiline
+                numberOfLines={4}
+                style={[styles.input, styles.textarea]}
+              />
+
+              <TouchableOpacity
+                onPress={submit}
+                disabled={submitting}
+                activeOpacity={0.85}
+                style={[styles.submitBtn, submitting && { opacity: 0.6 }]}>
+                {submitting ? (
+                  <ActivityIndicator color={color.onPrimary} />
+                ) : (
+                  <>
+                    <Ionicons name="send-outline" size={18} color={color.onPrimary} />
+                    <Text style={styles.submitText}>Invia richiesta</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          )}
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
@@ -402,7 +594,6 @@ function NewRequestModal({
 
 function confirmAction(title: string, msg: string, fn: () => void): void {
   if (Platform.OS === 'web') {
-    // eslint-disable-next-line no-alert
     if (window.confirm(`${title}\n\n${msg}`)) fn();
     return;
   }
@@ -414,7 +605,6 @@ function confirmAction(title: string, msg: string, fn: () => void): void {
 
 function promptNote(title: string, fn: (note: string | null) => void): void {
   if (Platform.OS === 'web') {
-    // eslint-disable-next-line no-alert
     const v = window.prompt(title);
     fn(v);
     return;
@@ -431,7 +621,6 @@ function promptNote(title: string, fn: (note: string | null) => void): void {
     );
     return;
   }
-  // Android: no Alert.prompt — accept rejection with empty note
   Alert.alert(title, 'Procedere senza nota?', [
     { text: 'Annulla', style: 'cancel' },
     { text: 'Rifiuta', onPress: () => fn('') },
@@ -441,7 +630,6 @@ function promptNote(title: string, fn: (note: string | null) => void): void {
 function showError(err: unknown): void {
   const e = err as { message?: string };
   if (Platform.OS === 'web') {
-    // eslint-disable-next-line no-alert
     window.alert(e.message ?? 'Errore');
     return;
   }
@@ -506,6 +694,16 @@ function formatFull(iso: string): string {
   });
 }
 
+function formatDateLong(date: string): string {
+  const [y, mo, d] = date.split('-').map((s) => parseInt(s, 10));
+  return new Date(y, (mo ?? 1) - 1, d ?? 1).toLocaleDateString('it-IT', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 function pad(n: number): string {
   return n.toString().padStart(2, '0');
 }
@@ -527,9 +725,6 @@ function combineLocalDateTime(date: string, time: string): string {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: color.surface },
-  headerBlock: { paddingHorizontal: 6, paddingTop: space.s2, paddingBottom: space.s3 },
-  title: { fontSize: 28, fontWeight: '700', color: color.onSurface, letterSpacing: -0.5 },
-  subtle: { color: color.onSurfaceVariant, marginTop: 2, fontSize: t.body.size },
 
   filterRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 6, paddingBottom: space.s3 },
   tabPill: {
@@ -587,10 +782,31 @@ const styles = StyleSheet.create({
   userRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
   userText: { fontSize: 13, fontWeight: '600', color: color.onSurface },
 
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
-  metaText: { fontSize: 13, color: color.onSurfaceVariant, fontVariant: ['tabular-nums'] },
+  diffRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  diffBox: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 12,
+    gap: 4,
+  },
+  diffOld: { backgroundColor: '#fde4e4' },
+  diffNew: { backgroundColor: '#e8f3ec' },
+  diffMissing: { backgroundColor: color.surfaceVariant },
+  diffLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: color.onSurfaceVariant,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 2,
+  },
+  diffFieldRow: { flexDirection: 'row', gap: 6, alignItems: 'flex-start' },
+  diffFieldLabel: { fontSize: 11, color: color.onSurfaceVariant, minWidth: 56 },
+  diffFieldValue: { flex: 1, fontSize: 12, color: color.onSurface, fontVariant: ['tabular-nums'] },
+  diffFieldChanged: { fontWeight: '700' },
 
-  justification: { marginTop: 10, fontSize: 14, color: color.onSurface, lineHeight: 20 },
+  justificationBlock: { marginTop: 12 },
+  justification: { marginTop: 2, fontSize: 14, color: color.onSurface, lineHeight: 20 },
 
   noteBox: {
     marginTop: 12,
@@ -639,7 +855,6 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
 
-  // Form modal
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -647,8 +862,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.s4,
     paddingTop: space.s2,
     paddingBottom: space.s3,
+    gap: 8,
   },
-  modalTitle: { fontSize: 22, fontWeight: '700', color: color.onSurface, letterSpacing: -0.4 },
+  modalTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 17,
+    fontWeight: '700',
+    color: color.onSurface,
+  },
   iconBtn: {
     width: 40,
     height: 40,
@@ -657,6 +879,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   formContent: { padding: 6, paddingBottom: 48, gap: 14 },
+  helperText: { fontSize: 13, color: color.onSurfaceVariant, paddingHorizontal: 4, lineHeight: 18 },
 
   fieldLabel: {
     fontSize: 12,
@@ -666,6 +889,18 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     paddingHorizontal: 4,
   },
+  fieldStatic: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: color.surfaceVariant,
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  fieldStaticText: { fontSize: 14, color: color.onSurface },
+
   eventGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   eventOpt: {
     flexDirection: 'row',
@@ -707,6 +942,20 @@ const styles = StyleSheet.create({
   branchChipSel: { backgroundColor: color.primary, borderColor: color.primary },
   branchChipText: { fontSize: 13, fontWeight: '600', color: color.onSurfaceVariant },
   branchChipTextSel: { color: color.onPrimary },
+
+  stampRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 16,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: color.surfaceVariant,
+  },
+  missingRow: { borderStyle: 'dashed', borderColor: color.primary },
+  stampTime: { flex: 1, fontSize: 14, fontWeight: '600', color: color.onSurface, fontVariant: ['tabular-nums'] },
 
   submitBtn: {
     flexDirection: 'row',

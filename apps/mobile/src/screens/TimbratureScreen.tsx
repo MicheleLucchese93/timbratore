@@ -23,6 +23,7 @@ import { color, space, type as t } from '@sonoqui/shared';
 import { formatDuration, isoDay, type DayStamp } from '../lib/day-totals';
 import { computeCountedDay, type ActiveAssignment } from '../lib/counted-day';
 import { AppHeader } from '../components/AppHeader';
+import { WorkStateChip } from '../components/WorkStateChip';
 
 interface CurrentState {
   state: 'nothing' | 'clocked_in' | 'on_break';
@@ -197,14 +198,7 @@ export function TimbratureScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <AppHeader
-        centerSlot={
-          <View style={[styles.statePill, { backgroundColor: stateMeta.bg }]}>
-            <View style={[styles.statePillDot, { backgroundColor: stateMeta.fg }]} />
-            <Text style={[styles.statePillText, { color: stateMeta.fg }]}>{stateMeta.label}</Text>
-          </View>
-        }
-      />
+      <AppHeader centerSlot={<WorkStateChip state={currentState} />} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}

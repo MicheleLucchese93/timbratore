@@ -17,7 +17,6 @@ const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   storico: 'calendar-outline',
   correzioni: 'create-outline',
   richieste: 'sunny-outline',
-  profilo: 'person-outline',
 };
 
 export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {

@@ -20,7 +20,15 @@ import { color, space } from '@sonoqui/shared';
 import { api } from '../lib/api';
 import { useSession } from '../store/session';
 import { AppHeader } from '../components/AppHeader';
+import { WorkStateChip } from '../components/WorkStateChip';
 import { DateField } from '../components/DateField';
+
+interface Approver {
+  user_id: string;
+  email: string;
+  display_name: string | null;
+  role: 'admin' | 'user' | null;
+}
 
 type LeaveType = 'ferie' | 'permessi' | 'malattia';
 type LeaveStatus =
@@ -202,7 +210,7 @@ export function RichiesteScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <AppHeader />
+      <AppHeader centerSlot={<WorkStateChip />} />
 
       <View style={styles.filterRow}>
         {TABS.map((t) => {
@@ -475,7 +483,9 @@ function NewLeaveModal({
   onCreated: () => void;
   quotas: QuotaSummary[];
 }) {
+  const { me } = useSession();
   const [type, setType] = useState<LeaveType>('ferie');
+  const [allDay, setAllDay] = useState(true);
   const [fromDate, setFromDate] = useState(() => isoLocal(new Date()));
   const [toDate, setToDate] = useState(() => isoLocal(new Date()));
   const [fromTime, setFromTime] = useState('09:00');
@@ -483,10 +493,12 @@ function NewLeaveModal({
   const [inpsProtocol, setInpsProtocol] = useState('');
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [approvers, setApprovers] = useState<Approver[]>([]);
 
   useEffect(() => {
     if (visible) {
       setType('ferie');
+      setAllDay(true);
       const t = isoLocal(new Date());
       setFromDate(t);
       setToDate(t);
@@ -497,6 +509,26 @@ function NewLeaveModal({
     }
   }, [visible]);
 
+  // Load approver list once when the modal is opened. We only show it for
+  // ferie/permessi (malattia is just a notification — no approval needed).
+  useEffect(() => {
+    if (!visible || !me?.user.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await api<Approver[]>(
+          `/api/v1/users/${me.user.id}/approvers`
+        );
+        if (!cancelled) setApprovers(list);
+      } catch {
+        if (!cancelled) setApprovers([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, me?.user.id]);
+
   async function submit() {
     if (type === 'malattia' && !inpsProtocol.trim()) {
       Alert.alert(
@@ -505,7 +537,10 @@ function NewLeaveModal({
       );
       return;
     }
-    const useTime = type === 'permessi';
+    // Ferie and permessi carry start/end times (15-min slots) when the user
+    // unticks "Tutto il giorno". Otherwise (and always for malattia) the
+    // request covers the full day(s).
+    const useTime = (type === 'ferie' || type === 'permessi') && !allDay;
     const from = useTime
       ? combineLocalDateTime(fromDate, fromTime)
       : combineLocalDateTime(fromDate, '00:00');
@@ -613,20 +648,78 @@ function NewLeaveModal({
               </View>
             </View>
 
-            {type === 'permessi' && (
-              <View style={styles.dateRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.fieldLabel}>Ora inizio</Text>
-                  <DateField
-                    mode="time"
-                    value={fromTime}
-                    onChange={setFromTime}
-                  />
+            {(type === 'ferie' || type === 'permessi') && (
+              <>
+                <Text style={styles.fieldLabel}>Durata</Text>
+                <View style={styles.allDayRow}>
+                  <Pressable
+                    onPress={() => setAllDay(true)}
+                    style={[
+                      styles.allDayOpt,
+                      allDay && styles.allDayOptSel,
+                    ]}>
+                    <Text
+                      style={[
+                        styles.allDayOptText,
+                        allDay && styles.allDayOptTextSel,
+                      ]}>
+                      Tutto il giorno
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setAllDay(false)}
+                    style={[
+                      styles.allDayOpt,
+                      !allDay && styles.allDayOptSel,
+                    ]}>
+                    <Text
+                      style={[
+                        styles.allDayOptText,
+                        !allDay && styles.allDayOptTextSel,
+                      ]}>
+                      Orario specifico
+                    </Text>
+                  </Pressable>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.fieldLabel}>Ora fine</Text>
-                  <DateField mode="time" value={toTime} onChange={setToTime} />
-                </View>
+                {!allDay && (
+                  <View style={styles.dateRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.fieldLabel}>Ora inizio</Text>
+                      <DateField
+                        mode="time"
+                        value={fromTime}
+                        onChange={setFromTime}
+                        minuteInterval={15}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.fieldLabel}>Ora fine</Text>
+                      <DateField
+                        mode="time"
+                        value={toTime}
+                        onChange={setToTime}
+                        minuteInterval={15}
+                      />
+                    </View>
+                  </View>
+                )}
+              </>
+            )}
+
+            {type !== 'malattia' && (
+              <View style={styles.approverBox}>
+                <Ionicons
+                  name="person-outline"
+                  size={14}
+                  color={color.onSurfaceVariant}
+                />
+                <Text style={styles.approverText}>
+                  {approvers.length === 0
+                    ? 'Nessun approvatore configurato'
+                    : `Approvatore: ${approvers
+                        .map((a) => a.display_name || a.email)
+                        .join(', ')}`}
+                </Text>
               </View>
             )}
 
@@ -648,7 +741,7 @@ function NewLeaveModal({
             <TextInput
               value={note}
               onChangeText={setNote}
-              placeholder="Es. matrimonio fratello"
+              placeholder={notePlaceholder(type)}
               placeholderTextColor={color.onSurfaceVariant}
               multiline
               numberOfLines={3}
@@ -665,7 +758,11 @@ function NewLeaveModal({
               ) : (
                 <>
                   <Ionicons name="send-outline" size={18} color={color.onPrimary} />
-                  <Text style={styles.submitText}>Invia richiesta</Text>
+                  <Text style={styles.submitText}>
+                    {type === 'malattia'
+                      ? 'Invia segnalazione'
+                      : 'Invia richiesta'}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
@@ -674,6 +771,12 @@ function NewLeaveModal({
       </SafeAreaView>
     </Modal>
   );
+}
+
+function notePlaceholder(t: LeaveType): string {
+  if (t === 'malattia') return 'Es. influenza';
+  if (t === 'permessi') return 'Es. visita medica';
+  return 'Es. matrimonio fratello';
 }
 
 /* ----- helpers ----- */
@@ -967,6 +1070,36 @@ const styles = StyleSheet.create({
   typeOptTextSel: { color: color.onPrimary },
 
   dateRow: { flexDirection: 'row', gap: 8 },
+
+  allDayRow: { flexDirection: 'row', gap: 8 },
+  allDayOpt: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: color.surfaceVariant,
+    alignItems: 'center',
+  },
+  allDayOptSel: { backgroundColor: color.primary, borderColor: color.primary },
+  allDayOptText: { fontSize: 13, fontWeight: '600', color: color.primary },
+  allDayOptTextSel: { color: color.onPrimary },
+
+  approverBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: color.surfaceVariant,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  approverText: {
+    flex: 1,
+    fontSize: 12,
+    color: color.onSurfaceVariant,
+  },
   input: {
     backgroundColor: '#ffffff',
     borderRadius: 14,

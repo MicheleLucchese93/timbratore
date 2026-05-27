@@ -16,6 +16,7 @@
   "dependencies": {
     "@expo/ui": "~56.0.13",
     "@expo/vector-icons": "^15.0.2",
+    "@react-native-community/datetimepicker": "9.1.0",
     "@sonoqui/shared": "*",
     "expo": "~56.0.4",
     "expo-constants": "~56.0.15",

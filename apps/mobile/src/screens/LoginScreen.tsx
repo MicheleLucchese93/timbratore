@@ -14,15 +14,29 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import Constants from 'expo-constants';
 import { loginWithPassword } from '../lib/api';
 import { useSession } from '../store/session';
 import { color, space } from '@sonoqui/shared';
 
 const LOGO = require('../../assets/images/icon.png');
 
+// Dev-only autofill: prefill the login form when running in Expo Go so the
+// developer doesn't retype credentials on every reload. Gated by __DEV__ AND
+// `appOwnership === 'expo'` so production EAS builds never autofill, even if
+// the EXPO_PUBLIC_* values somehow get bundled.
+const isExpoGoDev =
+  __DEV__ && Constants.appOwnership === 'expo';
+const DEV_EMAIL = isExpoGoDev
+  ? process.env.EXPO_PUBLIC_DEV_EMAIL ?? ''
+  : '';
+const DEV_PASSWORD = isExpoGoDev
+  ? process.env.EXPO_PUBLIC_DEV_PASSWORD ?? ''
+  : '';
+
 export function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(DEV_EMAIL);
+  const [password, setPassword] = useState(DEV_PASSWORD);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [emailFocus, setEmailFocus] = useState(false);
@@ -93,27 +107,24 @@ export function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Header: logo + brand stay rendered, but the logo + subtitle hide
-              while the keyboard is up so the form keeps a comfortable focal
-              centre instead of being squeezed against the top safe-area. */}
-          <View style={styles.header}>
-            {!keyboardVisible ? (
+          {/* Header collapses while the keyboard is open so the Accedi button
+              clears the keyboard cleanly. Re-mounts on hide. */}
+          {!keyboardVisible ? (
+            <View style={styles.header}>
               <Image
                 source={LOGO}
                 style={styles.logo}
                 resizeMode="contain"
                 accessible={false}
               />
-            ) : null}
-            <Text style={styles.brand}>
-              sono<Text style={styles.brandAccent}>Qui</Text>
-            </Text>
-            {!keyboardVisible ? (
+              <Text style={styles.brand}>
+                sono<Text style={styles.brandAccent}>Qui</Text>
+              </Text>
               <Text style={styles.subtitle}>
                 Il tempo che lavori, semplice come dirlo.
               </Text>
-            ) : null}
-          </View>
+            </View>
+          ) : null}
 
           <View style={styles.form}>
             {err ? (

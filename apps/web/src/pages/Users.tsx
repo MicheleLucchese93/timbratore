@@ -1,5 +1,7 @@
-import { type ChangeEvent, type FormEvent, useEffect, useRef, useState } from 'react';
+import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { DataGrid, type GridColDef, type GridRowSelectionModel } from '@mui/x-data-grid';
 import { api, apiUrl, getToken } from '../lib/api.ts';
+import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { useSession } from '../store/session.ts';
 
 interface UserRow {
@@ -58,13 +60,23 @@ export function Users() {
   const [shiftTemplates, setShiftTemplates] = useState<ShiftTemplateOption[]>([]);
   const [shiftAssignments, setShiftAssignments] = useState<ShiftAssignmentRow[]>([]);
   const [shiftEditor, setShiftEditor] = useState<UserRow | null>(null);
-  const [approverEditor, setApproverEditor] = useState<UserRow | null>(null);
+  const [approverEditor, setApproverEditor] = useState<{ user: UserRow; kind: ApproverKind } | null>(
+    null
+  );
   const [showInvite, setShowInvite] = useState(false);
   const [confirmDeactivate, setConfirmDeactivate] = useState<UserRow | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<UserRow | null>(null);
   const [branchEditor, setBranchEditor] = useState<UserRow | null>(null);
   const [userEditor, setUserEditor] = useState<UserRow | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
+    type: 'include',
+    ids: new Set<string>(),
+  });
+  const selectedCount = rowSelection.ids.size;
+  const selectedIdsArray = useMemo(
+    () => Array.from(rowSelection.ids) as string[],
+    [rowSelection]
+  );
   const [bulkMode, setBulkMode] = useState<'add' | 'remove' | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -144,35 +156,20 @@ export function Users() {
 
   async function bulkBranches(branch_ids: string[], mode: 'add' | 'remove') {
     try {
+      const user_ids = selectedIdsArray;
       await api(`/api/v1/users/branches/bulk`, {
         method: 'POST',
-        json: { user_ids: Array.from(selectedIds), branch_ids, mode },
+        json: { user_ids, branch_ids, mode },
       });
-      setSelectedIds(new Set());
+      setRowSelection({ type: 'include', ids: new Set() });
       setBulkMode(null);
       const verb = mode === 'add' ? 'assegnate' : 'rimosse';
       const n = branch_ids.length;
-      setInfo(`${n} ${n === 1 ? 'sede' : 'sedi'} ${verb} a ${selectedIds.size} utenti.`);
+      setInfo(`${n} ${n === 1 ? 'sede' : 'sedi'} ${verb} a ${user_ids.length} utenti.`);
       await load();
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'errore');
     }
-  }
-
-  function toggleSelected(id: string) {
-    setSelectedIds((cur) => {
-      const next = new Set(cur);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-  function toggleSelectAll() {
-    const selectable = list.map((u) => u.user_id);
-    setSelectedIds((cur) => {
-      if (selectable.every((id) => cur.has(id))) return new Set();
-      return new Set(selectable);
-    });
   }
 
   async function saveUser(u: UserRow, patch: { first_name?: string | null; last_name?: string | null }) {
@@ -353,12 +350,12 @@ export function Users() {
         </div>
       )}
 
-      <div className="card p-0">
-        {selectedIds.size > 0 && (
+      <div className="card" style={{ padding: 0 }}>
+        {selectedCount > 0 && (
           <div className="bulk-bar">
             <div>
-              <strong>{selectedIds.size}</strong>{' '}
-              {selectedIds.size === 1 ? 'utente selezionato' : 'utenti selezionati'}
+              <strong>{selectedCount}</strong>{' '}
+              {selectedCount === 1 ? 'utente selezionato' : 'utenti selezionati'}
             </div>
             <div className="bulk-bar-actions">
               <button
@@ -378,198 +375,31 @@ export function Users() {
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"
-                onClick={() => setSelectedIds(new Set())}
+                onClick={() => setRowSelection({ type: 'include', ids: new Set() })}
               >
                 Annulla
               </button>
             </div>
           </div>
         )}
-        <div className="table-wrap">
-          <table className="table">
-            <colgroup>
-              <col style={{ width: '2.5rem' }} />
-              <col />
-              <col />
-              <col />
-              <col style={{ width: '9rem' }} />
-              <col style={{ width: '7rem' }} />
-              <col style={{ width: '9rem' }} />
-              <col style={{ width: '10rem' }} />
-              <col style={{ width: '10rem' }} />
-              <col style={{ width: '11rem' }} />
-              <col style={{ width: '10rem' }} />
-              <col style={{ width: '9rem' }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th className="text-center">
-                  <input
-                    type="checkbox"
-                    aria-label="Seleziona tutti"
-                    checked={
-                      list.length > 0 && list.every((u) => selectedIds.has(u.user_id))
-                    }
-                    onChange={toggleSelectAll}
-                  />
-                </th>
-                <th>Email</th>
-                <th>Nome</th>
-                <th>Cognome</th>
-                <th>Ruolo</th>
-                <th>Stato</th>
-                <th title="Sedi assegnate. Senza almeno una sede l'utente non può timbrare.">
-                  Sedi
-                </th>
-                <th title="Orario di lavoro assegnato all'utente. Usato per calcolare le anomalie.">
-                  Orario
-                </th>
-                <th title="Se attivo, l'utente non può timbrare dal web — solo dall'app mobile.">
-                  Timbratura web
-                </th>
-                <th title="Chi può approvare le richieste di ferie/permessi di questo utente.">
-                  Approvatori
-                </th>
-                <th>Ultima timbratura</th>
-                <th className="text-center">Azioni</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((u) => (
-                <tr
-                  key={u.membership_id}
-                  className={selectedIds.has(u.user_id) ? 'row-selected' : undefined}
-                >
-                  <td className="text-center">
-                    <input
-                      type="checkbox"
-                      aria-label={`Seleziona ${u.email}`}
-                      checked={selectedIds.has(u.user_id)}
-                      onChange={() => toggleSelected(u.user_id)}
-                    />
-                  </td>
-                  <td className="truncate">{u.email}</td>
-                  <td className="truncate muted">{u.first_name?.trim() || '—'}</td>
-                  <td className="truncate muted">{u.last_name?.trim() || '—'}</td>
-                  <td>
-                    <select
-                      className="input"
-                      style={{ minHeight: '2rem', padding: '0 0.5rem', fontSize: '0.75rem' }}
-                      value={u.role}
-                      onChange={(e) => setRole(u, e.target.value as 'admin' | 'user')}
-                      disabled={u.user_id === me?.user.id && u.role === 'admin' && adminsCount === 1}
-                      title={
-                        atAdminLimit && u.role !== 'admin'
-                          ? `Limite admin raggiunto (${adminsCount}/${usage?.max_admins})`
-                          : undefined
-                      }
-                    >
-                      <option value="user">Utente</option>
-                      <option value="admin" disabled={atAdminLimit && u.role !== 'admin'}>
-                        Admin
-                      </option>
-                    </select>
-                  </td>
-                  <td>
-                    {u.active
-                      ? <span className="badge badge-ok">Attivo</span>
-                      : <span className="badge badge-muted">Disattivato</span>}
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setBranchEditor(u)}
-                      title="Modifica sedi assegnate"
-                    >
-                      {(u.branch_ids ?? []).length === 0
-                        ? <span style={{ color: 'var(--color-error)' }}>Nessuna · Assegna</span>
-                        : <>{(u.branch_ids ?? []).length} {(u.branch_ids ?? []).length === 1 ? 'sede' : 'sedi'} · Modifica</>}
-                    </button>
-                  </td>
-                  <td>
-                    {(() => {
-                      const a = shiftAssignments.find(
-                        (x) => x.user_id === u.user_id && x.valid_to === null
-                      );
-                      return (
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => setShiftEditor(u)}
-                          title="Assegna o cambia orario"
-                        >
-                          {a?.template_name ? (
-                            a.template_name
-                          ) : (
-                            <span style={{ color: 'var(--color-error)' }}>Nessuno · Assegna</span>
-                          )}
-                        </button>
-                      );
-                    })()}
-                  </td>
-                  <td>
-                    <label className="switch" title="Disabilita timbratura dal web per questo utente">
-                      <input
-                        type="checkbox"
-                        checked={u.disable_desktop_clock_in}
-                        onChange={(e) => setWebDisabled(u, e.target.checked)}
-                      />
-                      <span className="switch-track">
-                        <span className="switch-thumb" />
-                      </span>
-                      <span className="text-xs">
-                        {u.disable_desktop_clock_in ? 'Disabilitata' : 'Abilitata'}
-                      </span>
-                    </label>
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setApproverEditor(u)}
-                      title="Configura chi può approvare ferie/permessi di questo utente"
-                    >
-                      Modifica
-                    </button>
-                  </td>
-                  <td className="text-xs num">{u.last_stamp_at ? new Date(u.last_stamp_at).toLocaleString('it-IT') : '—'}</td>
-                  <td>
-                    <div className="flex justify-center gap-1">
-                      <IconButton
-                        kind="edit"
-                        title="Modifica nome / cognome"
-                        onClick={() => setUserEditor(u)}
-                      />
-                      <IconButton
-                        kind={u.active ? 'deactivate' : 'reactivate'}
-                        disabled={u.user_id === me?.user.id}
-                        title={
-                          u.user_id === me?.user.id
-                            ? 'Non puoi disattivare il tuo account'
-                            : u.active
-                            ? 'Disattiva utente (mantiene posto)'
-                            : 'Riattiva utente'
-                        }
-                        onClick={() => (u.active ? setConfirmDeactivate(u) : toggleActive(u))}
-                      />
-                      <IconButton
-                        kind="delete"
-                        disabled={u.user_id === me?.user.id}
-                        title={
-                          u.user_id === me?.user.id
-                            ? 'Non puoi eliminare il tuo account'
-                            : 'Elimina utente (libera il posto)'
-                        }
-                        onClick={() => setConfirmDelete(u)}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <UsersDataGrid
+          list={list}
+          me={me}
+          adminsCount={adminsCount}
+          atAdminLimit={atAdminLimit}
+          maxAdmins={usage?.max_admins}
+          shiftAssignments={shiftAssignments}
+          rowSelection={rowSelection}
+          onRowSelectionChange={setRowSelection}
+          onSetRole={setRole}
+          onSetWebDisabled={setWebDisabled}
+          onEditBranches={setBranchEditor}
+          onEditShift={setShiftEditor}
+          onEditApprovers={(user, kind) => setApproverEditor({ user, kind })}
+          onEditUser={setUserEditor}
+          onToggleActive={(u) => (u.active ? setConfirmDeactivate(u) : toggleActive(u))}
+          onDelete={setConfirmDelete}
+        />
       </div>
 
       {showInvite && (
@@ -661,7 +491,7 @@ export function Users() {
       {bulkMode && (
         <BulkBranchesDialog
           mode={bulkMode}
-          count={selectedIds.size}
+          count={selectedCount}
           branches={branches}
           onClose={() => setBulkMode(null)}
           onConfirm={(ids) => bulkBranches(ids, bulkMode)}
@@ -696,8 +526,9 @@ export function Users() {
 
       {approverEditor && (
         <ApproverEditor
-          user={approverEditor}
-          allUsers={list.filter((u) => u.user_id !== approverEditor.user_id && u.active)}
+          user={approverEditor.user}
+          kind={approverEditor.kind}
+          allUsers={list.filter((u) => u.user_id !== approverEditor.user.user_id && u.active)}
           onClose={() => setApproverEditor(null)}
           onSaved={() => setApproverEditor(null)}
         />
@@ -706,17 +537,42 @@ export function Users() {
   );
 }
 
+type ApproverKind = 'leave' | 'correction';
+
+const APPROVER_KIND_META: Record<
+  ApproverKind,
+  { path: string; titleSuffix: string; explainer: string }
+> = {
+  leave: {
+    path: 'approvers',
+    titleSuffix: 'ferie/permessi',
+    explainer:
+      'Solo gli utenti selezionati possono approvare ferie/permessi di questo dipendente. ' +
+      'Se nessuno è configurato, gli admin possono decidere. Vince il primo che decide.',
+  },
+  correction: {
+    path: 'correction-approvers',
+    titleSuffix: 'correzioni',
+    explainer:
+      'Solo gli utenti selezionati possono approvare le richieste di correzione timbrature di questo dipendente. ' +
+      'Se nessuno è configurato, gli admin possono decidere. Vince il primo che decide.',
+  },
+};
+
 function ApproverEditor({
   user,
+  kind,
   allUsers,
   onClose,
   onSaved,
 }: {
   user: UserRow;
+  kind: ApproverKind;
   allUsers: UserRow[];
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const meta = APPROVER_KIND_META[kind];
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -726,7 +582,7 @@ function ApproverEditor({
     (async () => {
       try {
         const r = await api<Array<{ user_id: string }>>(
-          `/api/v1/users/${user.user_id}/approvers`
+          `/api/v1/users/${user.user_id}/${meta.path}`
         );
         setSelected(new Set(r.map((row) => row.user_id)));
       } catch (e) {
@@ -735,7 +591,7 @@ function ApproverEditor({
         setLoading(false);
       }
     })();
-  }, [user.user_id]);
+  }, [user.user_id, meta.path]);
 
   function toggle(id: string) {
     setSelected((cur) => {
@@ -750,7 +606,7 @@ function ApproverEditor({
     setBusy(true);
     setErr(null);
     try {
-      await api(`/api/v1/users/${user.user_id}/approvers`, {
+      await api(`/api/v1/users/${user.user_id}/${meta.path}`, {
         method: 'PUT',
         json: { approver_user_ids: Array.from(selected) },
       });
@@ -766,12 +622,9 @@ function ApproverEditor({
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
       <div className="card w-full max-w-md space-y-3">
         <h2 className="section-title">
-          Approvatori di {user.display_name || user.email}
+          Approvatori {meta.titleSuffix} di {user.display_name || user.email}
         </h2>
-        <p className="text-xs muted">
-          Solo gli utenti selezionati possono approvare ferie/permessi di questo dipendente.
-          Vince il primo che decide.
-        </p>
+        <p className="text-xs muted">{meta.explainer}</p>
         {loading ? (
           <div className="text-sm muted">Caricamento…</div>
         ) : allUsers.length === 0 ? (
@@ -1313,5 +1166,311 @@ function InviteForm({
         </div>
       </form>
     </div>
+  );
+}
+
+interface UsersDataGridProps {
+  list: UserRow[];
+  me: ReturnType<typeof useSession.getState>['me'];
+  adminsCount: number;
+  atAdminLimit: boolean;
+  maxAdmins: number | undefined;
+  shiftAssignments: ShiftAssignmentRow[];
+  rowSelection: GridRowSelectionModel;
+  onRowSelectionChange: (m: GridRowSelectionModel) => void;
+  onSetRole: (u: UserRow, role: 'admin' | 'user') => void;
+  onSetWebDisabled: (u: UserRow, disabled: boolean) => void;
+  onEditBranches: (u: UserRow) => void;
+  onEditShift: (u: UserRow) => void;
+  onEditApprovers: (u: UserRow, kind: ApproverKind) => void;
+  onEditUser: (u: UserRow) => void;
+  onToggleActive: (u: UserRow) => void;
+  onDelete: (u: UserRow) => void;
+}
+
+function UsersDataGrid({
+  list,
+  me,
+  adminsCount,
+  atAdminLimit,
+  maxAdmins,
+  shiftAssignments,
+  rowSelection,
+  onRowSelectionChange,
+  onSetRole,
+  onSetWebDisabled,
+  onEditBranches,
+  onEditShift,
+  onEditApprovers,
+  onEditUser,
+  onToggleActive,
+  onDelete,
+}: UsersDataGridProps) {
+  const columns = useMemo<GridColDef<UserRow>[]>(
+    () => [
+      { field: 'email', headerName: 'Email', flex: 1.4, minWidth: 200 },
+      {
+        field: 'first_name',
+        headerName: 'Nome',
+        flex: 0.8,
+        minWidth: 120,
+        valueGetter: (_v, row) => row.first_name?.trim() ?? '',
+        renderCell: (p) =>
+          p.value || <span style={{ color: 'var(--color-on-surface-variant)' }}>—</span>,
+      },
+      {
+        field: 'last_name',
+        headerName: 'Cognome',
+        flex: 0.8,
+        minWidth: 120,
+        valueGetter: (_v, row) => row.last_name?.trim() ?? '',
+        renderCell: (p) =>
+          p.value || <span style={{ color: 'var(--color-on-surface-variant)' }}>—</span>,
+      },
+      {
+        field: 'role',
+        headerName: 'Ruolo',
+        width: 130,
+        type: 'singleSelect',
+        valueOptions: [
+          { value: 'user', label: 'Utente' },
+          { value: 'admin', label: 'Admin' },
+        ],
+        renderCell: (p) => {
+          const u = p.row;
+          return (
+            <select
+              className="input"
+              style={{ minHeight: '1.875rem', padding: '0 0.5rem', fontSize: '0.75rem' }}
+              value={u.role}
+              onChange={(e) => onSetRole(u, e.target.value as 'admin' | 'user')}
+              disabled={u.user_id === me?.user.id && u.role === 'admin' && adminsCount === 1}
+              title={
+                atAdminLimit && u.role !== 'admin'
+                  ? `Limite admin raggiunto (${adminsCount}/${maxAdmins})`
+                  : undefined
+              }
+            >
+              <option value="user">Utente</option>
+              <option value="admin" disabled={atAdminLimit && u.role !== 'admin'}>
+                Admin
+              </option>
+            </select>
+          );
+        },
+      },
+      {
+        field: 'active',
+        headerName: 'Stato',
+        width: 110,
+        type: 'boolean',
+        align: 'left',
+        headerAlign: 'left',
+        renderCell: (p) =>
+          p.value ? (
+            <span className="badge badge-ok">Attivo</span>
+          ) : (
+            <span className="badge badge-muted">Disattivato</span>
+          ),
+      },
+      {
+        field: 'branch_ids',
+        headerName: 'Sedi',
+        width: 160,
+        sortable: false,
+        filterable: false,
+        valueGetter: (_v, row) => (row.branch_ids ?? []).length,
+        renderCell: (p) => {
+          const n = p.value as number;
+          return (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => onEditBranches(p.row)}
+              title="Modifica sedi assegnate"
+            >
+              {n === 0 ? (
+                <span style={{ color: 'var(--color-error)' }}>Nessuna · Assegna</span>
+              ) : (
+                <>
+                  {n} {n === 1 ? 'sede' : 'sedi'} · Modifica
+                </>
+              )}
+            </button>
+          );
+        },
+      },
+      {
+        field: 'shift',
+        headerName: 'Orario',
+        width: 170,
+        sortable: false,
+        filterable: false,
+        valueGetter: (_v, row) => {
+          const a = shiftAssignments.find(
+            (x) => x.user_id === row.user_id && x.valid_to === null
+          );
+          return a?.template_name ?? '';
+        },
+        renderCell: (p) => (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => onEditShift(p.row)}
+            title="Assegna o cambia orario"
+          >
+            {p.value ? (
+              p.value
+            ) : (
+              <span style={{ color: 'var(--color-error)' }}>Nessuno · Assegna</span>
+            )}
+          </button>
+        ),
+      },
+      {
+        field: 'disable_desktop_clock_in',
+        headerName: 'Timbratura web',
+        width: 180,
+        type: 'boolean',
+        align: 'left',
+        headerAlign: 'left',
+        renderCell: (p) => (
+          <label
+            className="switch"
+            title={
+              p.row.disable_desktop_clock_in
+                ? 'Timbratura web disabilitata — clicca per abilitare'
+                : 'Timbratura web abilitata — clicca per disabilitare'
+            }
+          >
+            <input
+              type="checkbox"
+              checked={!p.row.disable_desktop_clock_in}
+              onChange={(e) => onSetWebDisabled(p.row, !e.target.checked)}
+            />
+            <span className="switch-track">
+              <span className="switch-thumb" />
+            </span>
+          </label>
+        ),
+      },
+      {
+        field: 'leave_approvers',
+        headerName: 'Approvatori ferie',
+        width: 150,
+        sortable: false,
+        filterable: false,
+        renderCell: (p) => (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => onEditApprovers(p.row, 'leave')}
+            title="Configura chi può approvare ferie/permessi di questo utente"
+          >
+            Modifica
+          </button>
+        ),
+      },
+      {
+        field: 'correction_approvers',
+        headerName: 'Approvatori correzioni',
+        width: 170,
+        sortable: false,
+        filterable: false,
+        renderCell: (p) => (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => onEditApprovers(p.row, 'correction')}
+            title="Configura chi può approvare le richieste di correzione di questo utente"
+          >
+            Modifica
+          </button>
+        ),
+      },
+      {
+        field: 'last_stamp_at',
+        headerName: 'Ultima timbratura',
+        width: 170,
+        type: 'dateTime',
+        valueGetter: (_v, row) => (row.last_stamp_at ? new Date(row.last_stamp_at) : null),
+        renderCell: (p) =>
+          p.value ? (
+            <span className="text-xs num">{(p.value as Date).toLocaleString('it-IT')}</span>
+          ) : (
+            <span className="text-xs num">—</span>
+          ),
+      },
+      {
+        field: 'actions',
+        headerName: 'Azioni',
+        width: 130,
+        sortable: false,
+        filterable: false,
+        renderCell: (p) => {
+          const u = p.row;
+          const isSelf = u.user_id === me?.user.id;
+          return (
+            <div className="flex gap-1">
+              <IconButton
+                kind="edit"
+                title="Modifica nome / cognome"
+                onClick={() => onEditUser(u)}
+              />
+              <IconButton
+                kind={u.active ? 'deactivate' : 'reactivate'}
+                disabled={isSelf}
+                title={
+                  isSelf
+                    ? 'Non puoi disattivare il tuo account'
+                    : u.active
+                    ? 'Disattiva utente (mantiene posto)'
+                    : 'Riattiva utente'
+                }
+                onClick={() => onToggleActive(u)}
+              />
+              <IconButton
+                kind="delete"
+                disabled={isSelf}
+                title={
+                  isSelf
+                    ? 'Non puoi eliminare il tuo account'
+                    : 'Elimina utente (libera il posto)'
+                }
+                onClick={() => onDelete(u)}
+              />
+            </div>
+          );
+        },
+      },
+    ],
+    [
+      adminsCount,
+      atAdminLimit,
+      maxAdmins,
+      me?.user.id,
+      shiftAssignments,
+      onSetRole,
+      onSetWebDisabled,
+      onEditBranches,
+      onEditShift,
+      onEditApprovers,
+      onEditUser,
+      onToggleActive,
+      onDelete,
+    ]
+  );
+
+  return (
+    <DataGrid<UserRow>
+      rows={list}
+      columns={columns}
+      getRowId={(r) => r.user_id}
+      checkboxSelection
+      rowSelectionModel={rowSelection}
+      onRowSelectionModelChange={onRowSelectionChange}
+      sx={dataGridSx}
+      {...dataGridDefaults}
+    />
   );
 }

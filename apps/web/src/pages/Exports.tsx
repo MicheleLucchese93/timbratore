@@ -1,5 +1,7 @@
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { api, getToken, apiUrl } from '../lib/api.ts';
+import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 
 interface ExportJob {
   id: string;
@@ -79,51 +81,101 @@ export function Exports() {
         <button className="btn btn-primary btn-block" disabled={busy}>{busy ? 'Invio…' : 'Genera'}</button>
       </form>
 
-      <div className="card p-0">
-        <div className="table-wrap">
-          <table className="table">
-            <colgroup>
-              <col style={{ width: '14rem' }} />
-              <col style={{ width: '6rem' }} />
-              <col style={{ width: '9rem' }} />
-              <col style={{ width: '12rem' }} />
-              <col />
-            </colgroup>
-            <thead>
-              <tr>
-                <th>Periodo</th>
-                <th>Formato</th>
-                <th>Stato</th>
-                <th>Creata</th>
-                <th className="text-right">Azioni</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.length === 0 ? (
-                <tr><td colSpan={5} className="py-6 text-center muted">Nessuna esportazione ancora.</td></tr>
-              ) : list.map((j) => (
-                <tr key={j.id}>
-                  <td className="num nowrap text-xs">{j.period_from} → {j.period_to}</td>
-                  <td>{j.format.toUpperCase()}</td>
-                  <td><StatusBadge status={j.status} /></td>
-                  <td className="text-xs num">{new Date(j.created_at).toLocaleString('it-IT')}</td>
-                  <td>
-                    <div className="table-actions">
-                      {j.status === 'ready' && (
-                        <button className="btn btn-secondary btn-sm" onClick={() => download(j)}>Scarica</button>
-                      )}
-                      {j.status === 'failed' && j.error && (
-                        <span className="text-xs" style={{ color: 'var(--color-error)' }}>{j.error}</span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <div className="card" style={{ padding: 0 }}>
+        <ExportsDataGrid list={list} onDownload={download} />
       </div>
     </div>
+  );
+}
+
+function ExportsDataGrid({
+  list,
+  onDownload,
+}: {
+  list: ExportJob[];
+  onDownload: (j: ExportJob) => void;
+}) {
+  const columns = useMemo<GridColDef<ExportJob>[]>(
+    () => [
+      {
+        field: 'period',
+        headerName: 'Periodo',
+        flex: 1,
+        minWidth: 200,
+        valueGetter: (_v, row) => `${row.period_from} → ${row.period_to}`,
+        renderCell: (p) => <span className="text-xs num">{p.value}</span>,
+      },
+      {
+        field: 'format',
+        headerName: 'Formato',
+        width: 110,
+        type: 'singleSelect',
+        valueOptions: [
+          { value: 'xlsx', label: 'XLSX' },
+          { value: 'json', label: 'JSON' },
+        ],
+        renderCell: (p) => p.row.format.toUpperCase(),
+      },
+      {
+        field: 'status',
+        headerName: 'Stato',
+        width: 150,
+        type: 'singleSelect',
+        valueOptions: [
+          { value: 'pending', label: 'In coda' },
+          { value: 'running', label: 'In elaborazione' },
+          { value: 'ready', label: 'Pronta' },
+          { value: 'failed', label: 'Errore' },
+        ],
+        renderCell: (p) => <StatusBadge status={p.row.status} />,
+      },
+      {
+        field: 'created_at',
+        headerName: 'Creata',
+        width: 180,
+        type: 'dateTime',
+        valueGetter: (_v, row) => new Date(row.created_at),
+        renderCell: (p) => (
+          <span className="text-xs num">{(p.value as Date).toLocaleString('it-IT')}</span>
+        ),
+      },
+      {
+        field: 'actions',
+        headerName: 'Azioni',
+        flex: 1,
+        minWidth: 180,
+        sortable: false,
+        filterable: false,
+        renderCell: (p) => (
+          <div className="flex gap-2">
+            {p.row.status === 'ready' && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => onDownload(p.row)}
+              >
+                Scarica
+              </button>
+            )}
+            {p.row.status === 'failed' && p.row.error && (
+              <span className="text-xs" style={{ color: 'var(--color-error)' }}>
+                {p.row.error}
+              </span>
+            )}
+          </div>
+        ),
+      },
+    ],
+    [onDownload]
+  );
+
+  return (
+    <DataGrid<ExportJob>
+      rows={list}
+      columns={columns}
+      getRowId={(r) => r.id}
+      sx={dataGridSx}
+      {...dataGridDefaults}
+    />
   );
 }
 

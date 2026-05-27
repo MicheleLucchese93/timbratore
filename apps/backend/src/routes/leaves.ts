@@ -55,6 +55,14 @@ async function logEvent(
   );
 }
 
+async function hasAnyApprover(client: PoolClient, requesterId: string): Promise<boolean> {
+  const r = await client.query(
+    `SELECT 1 FROM leave_approvers WHERE user_id = $1 LIMIT 1`,
+    [requesterId]
+  );
+  return (r.rowCount ?? 0) > 0;
+}
+
 async function isApprover(
   client: PoolClient,
   approverId: string,
@@ -65,6 +73,24 @@ async function isApprover(
     [requesterId, approverId]
   );
   return (r.rowCount ?? 0) > 0;
+}
+
+async function assertCanDecide(
+  client: PoolClient,
+  approverId: string,
+  approverRole: 'admin' | 'user',
+  requesterId: string
+): Promise<void> {
+  const configured = await hasAnyApprover(client, requesterId);
+  if (configured) {
+    if (!(await isApprover(client, approverId, requesterId))) {
+      throw new ForbiddenError('non sei un approvatore di questo utente');
+    }
+    return;
+  }
+  if (approverRole !== 'admin') {
+    throw new ForbiddenError('nessun approvatore configurato; solo gli admin possono decidere');
+  }
 }
 
 leavesRouter.post(
@@ -178,23 +204,31 @@ leavesRouter.get(
     const where: string[] = ['1=1'];
     const params: unknown[] = [];
 
+    // Approver-inbox SQL: rows visible to a given approverId are either
+    // explicitly mapped via leave_approvers OR, when the requester has no
+    // approvers configured, fall back to admins.
+    const inboxSql = (approverId: number, isAdminLiteral: string): string => `(
+      EXISTS (
+        SELECT 1 FROM leave_approvers la
+         WHERE la.user_id = lr.user_id AND la.approver_user_id = $${approverId}
+      )
+      OR (
+        ${isAdminLiteral} AND NOT EXISTS (
+          SELECT 1 FROM leave_approvers la2 WHERE la2.user_id = lr.user_id
+        )
+      )
+    )`;
+
     if (scope === 'mine') {
       params.push(req.user!.id);
       where.push(`lr.user_id = $${params.length}`);
     } else if (scope === 'inbox') {
       params.push(req.user!.id);
-      where.push(`EXISTS (
-        SELECT 1 FROM leave_approvers la
-         WHERE la.user_id = lr.user_id AND la.approver_user_id = $${params.length}
-      )`);
+      where.push(inboxSql(params.length, req.user!.role === 'admin' ? 'TRUE' : 'FALSE'));
     } else if (scope === 'all') {
       if (req.user!.role !== 'admin') {
-        // Non-admin "all" collapses to inbox+own.
         params.push(req.user!.id);
-        where.push(`(lr.user_id = $${params.length} OR EXISTS (
-          SELECT 1 FROM leave_approvers la
-           WHERE la.user_id = lr.user_id AND la.approver_user_id = $${params.length}
-        ))`);
+        where.push(`(lr.user_id = $${params.length} OR ${inboxSql(params.length, 'FALSE')})`);
       }
     }
     if (q.status) {
@@ -273,11 +307,7 @@ leavesRouter.post(
     if (row.status !== 'pending') {
       throw new ConflictError('richiesta non più in attesa', 'NOT_PENDING');
     }
-    const canApprove =
-      req.user!.role === 'admin'
-        ? await isApprover(client, req.user!.id, row.user_id)
-        : await isApprover(client, req.user!.id, row.user_id);
-    if (!canApprove) throw new ForbiddenError('non sei un approvatore di questo utente');
+    await assertCanDecide(client, req.user!.id, req.user!.role, row.user_id);
 
     // Approval never blocked by quota — see submission rationale.
     await client.query(
@@ -321,8 +351,7 @@ leavesRouter.post(
     if (row.status !== 'pending') {
       throw new ConflictError('richiesta non più in attesa', 'NOT_PENDING');
     }
-    const canApprove = await isApprover(client, req.user!.id, row.user_id);
-    if (!canApprove) throw new ForbiddenError('non sei un approvatore di questo utente');
+    await assertCanDecide(client, req.user!.id, req.user!.role, row.user_id);
 
     await client.query(
       `UPDATE leave_requests
@@ -451,8 +480,7 @@ leavesRouter.post(
     if (row.status !== 'cancellation_pending') {
       throw new ConflictError('nessuna richiesta di annullamento attiva', 'WRONG_STATE');
     }
-    const canApprove = await isApprover(client, req.user!.id, row.user_id);
-    if (!canApprove) throw new ForbiddenError('non sei un approvatore di questo utente');
+    await assertCanDecide(client, req.user!.id, req.user!.role, row.user_id);
 
     const newStatus = parse.data.approve ? 'cancelled_post_approval' : 'approved';
     await client.query(

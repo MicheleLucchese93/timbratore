@@ -784,31 +784,87 @@ usersRouter.post(
   })
 );
 
-/* ----------------------- Leave approvers ----------------------- */
+/* ----------------------- Approvers (leaves + corrections) ----------------------- */
 
 const SetApprovers = z.object({ approver_user_ids: z.array(z.string().uuid()) });
+
+const APPROVER_KINDS = {
+  leave: { table: 'leave_approvers', auditAction: 'user.set_approvers' },
+  correction: { table: 'correction_approvers', auditAction: 'user.set_correction_approvers' },
+} as const;
+
+async function getApprovers(
+  client: PoolClient,
+  kind: keyof typeof APPROVER_KINDS,
+  userId: string
+): Promise<unknown[]> {
+  const { table } = APPROVER_KINDS[kind];
+  const r = await client.query(
+    `SELECT a.approver_user_id AS user_id,
+            COALESCE(au.email, a.approver_user_id::text) AS email,
+            au.display_name, m.role
+       FROM ${table} a
+       LEFT JOIN auth_users au ON au.id = a.approver_user_id
+       LEFT JOIN memberships m
+         ON m.user_id = a.approver_user_id
+        AND m.tenant_id = current_setting('app.current_tenant_id')::uuid
+        AND m.deleted_at IS NULL
+      WHERE a.user_id = $1
+      ORDER BY au.display_name NULLS LAST, au.email`,
+    [userId]
+  );
+  return r.rows;
+}
+
+async function setApprovers(
+  client: PoolClient,
+  kind: keyof typeof APPROVER_KINDS,
+  userId: string,
+  ids: string[]
+): Promise<void> {
+  const { table, auditAction } = APPROVER_KINDS[kind];
+  const member = await client.query(
+    `SELECT 1 FROM memberships
+      WHERE user_id = $1
+        AND tenant_id = current_setting('app.current_tenant_id')::uuid
+        AND deleted_at IS NULL`,
+    [userId]
+  );
+  if (member.rowCount === 0) throw new NotFoundError('user');
+
+  if (ids.length > 0) {
+    const valid = await client.query(
+      `SELECT user_id FROM memberships
+        WHERE user_id = ANY($1::uuid[])
+          AND tenant_id = current_setting('app.current_tenant_id')::uuid
+          AND active = TRUE
+          AND deleted_at IS NULL`,
+      [ids]
+    );
+    if (valid.rowCount !== ids.length) {
+      throw new ValidationError('uno o più approver non sono membri attivi del tenant');
+    }
+  }
+
+  await client.query(`DELETE FROM ${table} WHERE user_id = $1`, [userId]);
+  for (const aid of ids) {
+    await client.query(
+      `INSERT INTO ${table}(tenant_id, user_id, approver_user_id)
+       VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2)`,
+      [userId, aid]
+    );
+  }
+  await emitAudit(client, auditAction, userId, null, { approver_user_ids: ids });
+}
 
 usersRouter.get(
   '/:id/approvers',
   tenantHandler(async (req, res, client) => {
-    if (req.user!.role !== 'admin' && req.params.id !== req.user!.id) {
+    const userId = String(req.params.id);
+    if (req.user!.role !== 'admin' && userId !== req.user!.id) {
       throw new ConflictError('forbidden', 'FORBIDDEN');
     }
-    const r = await client.query(
-      `SELECT la.approver_user_id AS user_id,
-              COALESCE(au.email, la.approver_user_id::text) AS email,
-              au.display_name, m.role
-         FROM leave_approvers la
-         LEFT JOIN auth_users au ON au.id = la.approver_user_id
-         LEFT JOIN memberships m
-           ON m.user_id = la.approver_user_id
-          AND m.tenant_id = current_setting('app.current_tenant_id')::uuid
-          AND m.deleted_at IS NULL
-        WHERE la.user_id = $1
-        ORDER BY au.display_name NULLS LAST, au.email`,
-      [req.params.id]
-    );
-    ok(res, r.rows);
+    ok(res, await getApprovers(client, 'leave', userId));
   })
 );
 
@@ -818,43 +874,33 @@ usersRouter.put(
   tenantHandler(async (req, res, client) => {
     const parse = SetApprovers.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
-    const userId = req.params.id;
+    const userId = String(req.params.id);
     const ids = Array.from(new Set(parse.data.approver_user_ids)).filter((x) => x !== userId);
+    await setApprovers(client, 'leave', userId, ids);
+    ok(res, { approver_user_ids: ids });
+  })
+);
 
-    const member = await client.query(
-      `SELECT 1 FROM memberships
-        WHERE user_id = $1
-          AND tenant_id = current_setting('app.current_tenant_id')::uuid
-          AND deleted_at IS NULL`,
-      [userId]
-    );
-    if (member.rowCount === 0) throw new NotFoundError('user');
-
-    if (ids.length > 0) {
-      const valid = await client.query(
-        `SELECT user_id FROM memberships
-          WHERE user_id = ANY($1::uuid[])
-            AND tenant_id = current_setting('app.current_tenant_id')::uuid
-            AND active = TRUE
-            AND deleted_at IS NULL`,
-        [ids]
-      );
-      if (valid.rowCount !== ids.length) {
-        throw new ValidationError('uno o più approver non sono membri attivi del tenant');
-      }
+usersRouter.get(
+  '/:id/correction-approvers',
+  tenantHandler(async (req, res, client) => {
+    const userId = String(req.params.id);
+    if (req.user!.role !== 'admin' && userId !== req.user!.id) {
+      throw new ConflictError('forbidden', 'FORBIDDEN');
     }
+    ok(res, await getApprovers(client, 'correction', userId));
+  })
+);
 
-    await client.query(`DELETE FROM leave_approvers WHERE user_id = $1`, [userId]);
-    for (const aid of ids) {
-      await client.query(
-        `INSERT INTO leave_approvers(tenant_id, user_id, approver_user_id)
-         VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2)`,
-        [userId, aid]
-      );
-    }
-    await emitAudit(client, 'user.set_approvers', String(userId), null, {
-      approver_user_ids: ids,
-    });
+usersRouter.put(
+  '/:id/correction-approvers',
+  requireAdmin,
+  tenantHandler(async (req, res, client) => {
+    const parse = SetApprovers.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const userId = String(req.params.id);
+    const ids = Array.from(new Set(parse.data.approver_user_ids)).filter((x) => x !== userId);
+    await setApprovers(client, 'correction', userId, ids);
     ok(res, { approver_user_ids: ids });
   })
 );

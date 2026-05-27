@@ -121,7 +121,7 @@ stampsRouter.get(
     if (req.user!.role !== 'admin') {
       throw new ForbiddenError();
     }
-    const filters: string[] = [`deleted_at IS NULL OR $1::boolean`];
+    const filters: string[] = [`(deleted_at IS NULL OR $1::boolean)`];
     const includeDeleted = req.query.include_deleted === 'true';
     const params: unknown[] = [includeDeleted];
     if (req.query.user_id) {

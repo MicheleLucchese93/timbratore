@@ -5,6 +5,17 @@ import { Platform } from 'react-native';
 const ACCESS_KEY = 'sonoqui.access_token';
 const REFRESH_KEY = 'sonoqui.refresh_token';
 
+// Mirrors Documents/Penno/apps/mobile/src/services/secureStorage.ts —
+// cold-start keychain reads throw transiently on iOS (first read after
+// device boot or app-kill). A single throw, treated as "no token", was
+// the bug that auto-logged users out. Retry ladder [200, 500] ms.
+const SECURE_RETRY_DELAYS_MS = [200, 500];
+
+// Proactive refresh window: rotate the access token this many seconds
+// before its `exp` claim. Penno's supabase-js does the same on a timer;
+// we mirror by parsing the JWT and arming a setTimeout.
+const REFRESH_SKEW_SECONDS = 60;
+
 function extra(): { apiBaseUrl?: string; authBaseUrl?: string } {
   return (Constants.expoConfig?.extra as { apiBaseUrl?: string; authBaseUrl?: string } | undefined) ?? {};
 }
@@ -19,14 +30,32 @@ async function storeGet(key: string): Promise<string | null> {
   if (Platform.OS === 'web') {
     return typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;
   }
-  return SecureStore.getItemAsync(key);
+  const maxAttempts = 1 + SECURE_RETRY_DELAYS_MS.length;
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await SecureStore.getItemAsync(key);
+    } catch (e) {
+      lastError = e;
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, SECURE_RETRY_DELAYS_MS[attempt - 1]));
+      }
+    }
+  }
+  console.warn('[sonoqui] SecureStore read failed after retries', { key, err: String(lastError) });
+  return null;
 }
 async function storeSet(key: string, value: string): Promise<void> {
   if (Platform.OS === 'web') {
     if (typeof localStorage !== 'undefined') localStorage.setItem(key, value);
     return;
   }
-  await SecureStore.setItemAsync(key, value);
+  // AFTER_FIRST_UNLOCK matches Penno — the default WHEN_UNLOCKED throws
+  // "device locked" errors when the OS reads the token in the moments
+  // right after a device unlock or during background → foreground.
+  await SecureStore.setItemAsync(key, value, {
+    keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
+  });
 }
 async function storeDel(key: string): Promise<void> {
   if (Platform.OS === 'web') {
@@ -36,13 +65,55 @@ async function storeDel(key: string): Promise<void> {
   await SecureStore.deleteItemAsync(key);
 }
 
+function decodeJwtExp(token: string): number | null {
+  try {
+    const part = token.split('.')[1];
+    if (!part) return null;
+    const b64 = part.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+    const json =
+      typeof globalThis.atob === 'function'
+        ? globalThis.atob(padded)
+        : Buffer.from(padded, 'base64').toString('utf8');
+    const parsed = JSON.parse(json) as { exp?: number };
+    return typeof parsed.exp === 'number' ? parsed.exp : null;
+  } catch {
+    return null;
+  }
+}
+
+let proactiveTimer: ReturnType<typeof setTimeout> | null = null;
+function clearProactiveTimer(): void {
+  if (proactiveTimer) {
+    clearTimeout(proactiveTimer);
+    proactiveTimer = null;
+  }
+}
+function scheduleProactiveRefresh(accessToken: string): void {
+  clearProactiveTimer();
+  const exp = decodeJwtExp(accessToken);
+  if (!exp) return;
+  const nowSec = Math.floor(Date.now() / 1000);
+  const delayMs = Math.max(0, (exp - REFRESH_SKEW_SECONDS - nowSec) * 1000);
+  proactiveTimer = setTimeout(() => {
+    void refreshAccessToken();
+  }, delayMs);
+}
+export async function ensureProactiveRefreshScheduled(): Promise<void> {
+  if (proactiveTimer) return;
+  const at = await getToken();
+  if (at) scheduleProactiveRefresh(at);
+}
+
 export async function getToken(): Promise<string | null> { return storeGet(ACCESS_KEY); }
 export async function getRefreshToken(): Promise<string | null> { return storeGet(REFRESH_KEY); }
 export async function setTokens(access: string, refresh: string): Promise<void> {
   await storeSet(ACCESS_KEY, access);
   await storeSet(REFRESH_KEY, refresh);
+  scheduleProactiveRefresh(access);
 }
 export async function clearTokens(): Promise<void> {
+  clearProactiveTimer();
   await storeDel(ACCESS_KEY);
   await storeDel(REFRESH_KEY);
 }

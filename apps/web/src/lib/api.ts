@@ -79,9 +79,17 @@ export async function api<T = unknown>(
     return fetch(apiUrl(path), { ...init, headers, body });
   };
   let res = await exec();
-  if (res.status === 401 && getRefreshToken()) {
-    const ok = await refreshAccessToken();
-    if (ok) res = await exec();
+  if (res.status === 401 && getToken()) {
+    const rt = getRefreshToken();
+    const refreshed = rt && AUTH_BASE ? await refreshAccessToken() : false;
+    if (refreshed) {
+      res = await exec();
+    } else {
+      clearTokens();
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        window.location.assign('/login');
+      }
+    }
   }
   const text = await res.text();
   let parsed: unknown = null;
