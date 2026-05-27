@@ -920,7 +920,7 @@ function RequestsDataGrid({
           { value: 'permessi', label: 'Permesso' },
           { value: 'malattia', label: 'Malattia' },
         ],
-        renderCell: (p: GridRenderCellParams<LeaveRequest>) => TYPE_LABEL[p.row.type],
+        renderCell: (p: GridRenderCellParams<LeaveRequest>) => TYPE_LABEL[p.row.type as LeaveType],
       },
       {
         field: 'period',
@@ -949,8 +949,8 @@ function RequestsDataGrid({
           label: STATUS_LABEL[k],
         })),
         renderCell: (p: GridRenderCellParams<LeaveRequest>) => (
-          <span className={`badge ${badgeForStatus(p.row.status)}`}>
-            {STATUS_LABEL[p.row.status]}
+          <span className={`badge ${badgeForStatus(p.row.status as LeaveStatus)}`}>
+            {STATUS_LABEL[p.row.status as LeaveStatus]}
           </span>
         ),
       },
