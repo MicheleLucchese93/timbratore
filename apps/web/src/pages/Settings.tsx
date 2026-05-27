@@ -194,17 +194,29 @@ export function Settings() {
         title="Notifiche personali"
         description="Le notifiche push sono sempre attive se hai installato l'app mobile. L'email è disattivata di default — accendila se vuoi ricevere anche le notifiche via posta elettronica."
       >
-        <label className="flex items-center gap-3 cursor-pointer text-sm">
-          <input
-            type="checkbox"
-            checked={prefs?.email_notifications_enabled ?? false}
-            disabled={!prefs}
-            onChange={(e) => void saveEmailPref(e.target.checked)}
-          />
-          <span>
+        <div className="flex items-center justify-between gap-4">
+          <div className="text-sm" style={{ flex: 1 }}>
             Invia notifiche via email per correzioni, ferie, permessi e malattia
-          </span>
-        </label>
+          </div>
+          <label
+            className="switch"
+            title={
+              prefs?.email_notifications_enabled
+                ? 'Email attive — clicca per disattivare'
+                : 'Email disattivate — clicca per attivare'
+            }
+          >
+            <input
+              type="checkbox"
+              checked={prefs?.email_notifications_enabled ?? false}
+              disabled={!prefs}
+              onChange={(e) => void saveEmailPref(e.target.checked)}
+            />
+            <span className="switch-track">
+              <span className="switch-thumb" />
+            </span>
+          </label>
+        </div>
         {prefs && (
           <p className="field-hint">
             Push:{' '}
