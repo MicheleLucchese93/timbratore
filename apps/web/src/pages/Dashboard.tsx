@@ -370,24 +370,25 @@ export function Dashboard() {
       <section>
         <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
           <h2 className="section-title">Anomalie ultimi 7 giorni</h2>
-          <Link to="/anomalies" className="btn btn-secondary btn-sm">
-            Vedi tutte
+          <Link to="/anomalies" className="btn btn-ghost btn-sm">
+            Vedi tutte →
           </Link>
         </div>
         {summary && summary.anomalies_7d.total > 0 ? (
-          <div className="card space-y-3">
+          <div className="card space-y-4">
             <AnomalyBreakdown by_kind={summary.anomalies_7d.by_kind} />
             <div>
-              <div className="text-xs muted mb-1.5">Più recenti</div>
-              <ul className="space-y-1.5">
+              <div className="dash-subheading">Più recenti</div>
+              <ul className="dash-row-list">
                 {summary.anomalies_7d.recent.map((a, idx) => (
-                  <li key={`${a.user_id}-${a.date}-${a.kind}-${idx}`}
-                      className="text-sm flex items-center justify-between gap-2 flex-wrap">
-                    <span>
-                      <span className="badge badge-warn mr-2">{ANOMALY_LABEL[a.kind]}</span>
-                      <span className="font-medium">{a.user_display_name || a.user_email}</span>
+                  <li key={`${a.user_id}-${a.date}-${a.kind}-${idx}`} className="dash-row">
+                    <span className="dash-row-badge">
+                      <span className="badge badge-warn">{ANOMALY_LABEL[a.kind]}</span>
                     </span>
-                    <span className="text-xs muted">
+                    <span className="dash-row-name">
+                      {a.user_display_name || a.user_email}
+                    </span>
+                    <span className="dash-row-meta num">
                       {new Date(a.date + 'T00:00:00').toLocaleDateString('it-IT', {
                         weekday: 'short',
                         day: '2-digit',
@@ -456,7 +457,7 @@ function CorrectionsInbox({
         <li key={r.id} className="inbox-row">
           <div className="min-w-0 flex-1">
             <div className="font-medium text-sm">{r.user_display_name || r.user_email}</div>
-            <div className="text-xs muted">
+            <div className="text-xs muted num">
               {labelEvent(r.claimed_event_type)} ·{' '}
               {new Date(r.claimed_occurred_at).toLocaleString('it-IT')}
             </div>
@@ -466,11 +467,11 @@ function CorrectionsInbox({
               </div>
             )}
           </div>
-          <div className="flex gap-1 flex-shrink-0">
+          <div className="inbox-actions">
             <IconButton kind="approve" title="Approva" onClick={() => onApprove(r)} />
             <IconButton kind="reject" title="Rifiuta" onClick={() => onReject(r)} />
-            <Link to="/corrections" className="btn btn-ghost btn-sm" title="Apri">
-              ↗
+            <Link to="/corrections" className="icon-link" title="Apri dettaglio" aria-label="Apri dettaglio">
+              <IconOpen />
             </Link>
           </div>
         </li>
@@ -495,27 +496,31 @@ function LeavesInbox({
     <ul className="space-y-1">
       {rows.map((r) => (
         <li key={r.id} className="inbox-row">
-          <div className="min-w-0 flex-1">
-            <div className="text-sm">
-              <span className="badge badge-muted mr-2">{LEAVE_TYPE_LABEL[r.type]}</span>
-              <span className="font-medium">{r.user_display_name || r.user_email}</span>
-            </div>
-            <div className="text-xs muted">
-              {fmtRange(r.from_ts, r.to_ts, r.type)} · {r.duration_hours}h
-            </div>
-            {r.user_note && (
-              <div className="text-xs muted mt-0.5 truncate" title={r.user_note}>
-                {r.user_note}
+          <div className="min-w-0 flex-1 flex items-start gap-2">
+            <span className={`badge ${r.type === 'malattia' ? 'badge-warn' : 'badge-muted'} shrink-0 mt-0.5`}>
+              {LEAVE_TYPE_LABEL[r.type]}
+            </span>
+            <div className="min-w-0">
+              <div className="text-sm font-medium">{r.user_display_name || r.user_email}</div>
+              <div className="text-xs muted num">
+                {fmtRange(r.from_ts, r.to_ts, r.type)} · {Number(r.duration_hours).toFixed(2)}h
               </div>
-            )}
-            {r.inps_protocol && (
-              <div className="text-xs muted">INPS: {r.inps_protocol}</div>
-            )}
+              {r.user_note && (
+                <div className="text-xs muted mt-0.5 truncate" title={r.user_note}>
+                  {r.user_note}
+                </div>
+              )}
+              {r.inps_protocol && (
+                <div className="text-xs muted">INPS: {r.inps_protocol}</div>
+              )}
+            </div>
           </div>
-          <div className="flex gap-1 flex-shrink-0">
+          <div className="inbox-actions">
             <IconButton kind="approve" title="Approva" onClick={() => onApprove(r)} />
             <IconButton kind="reject" title="Rifiuta" onClick={() => onReject(r)} />
-            <Link to="/leaves" className="btn btn-ghost btn-sm" title="Apri">↗</Link>
+            <Link to="/leaves" className="icon-link" title="Apri dettaglio" aria-label="Apri dettaglio">
+              <IconOpen />
+            </Link>
           </div>
         </li>
       ))}
@@ -537,19 +542,21 @@ function RevocationsInbox({
     <ul className="space-y-1">
       {rows.map((r) => (
         <li key={r.id} className="inbox-row">
-          <div className="min-w-0 flex-1">
-            <div className="text-sm">
-              <span className="badge badge-muted mr-2">{LEAVE_TYPE_LABEL[r.type]}</span>
-              <span className="font-medium">{r.user_display_name || r.user_email}</span>
+          <div className="min-w-0 flex-1 flex items-start gap-2">
+            <span className={`badge ${r.type === 'malattia' ? 'badge-warn' : 'badge-muted'} shrink-0 mt-0.5`}>
+              {LEAVE_TYPE_LABEL[r.type]}
+            </span>
+            <div className="min-w-0">
+              <div className="text-sm font-medium">{r.user_display_name || r.user_email}</div>
+              <div className="text-xs muted num">
+                {fmtRange(r.from_ts, r.to_ts, r.type)} · {Number(r.duration_hours).toFixed(2)}h
+              </div>
+              {r.cancellation_reason && (
+                <div className="text-xs muted mt-0.5">Motivo: {r.cancellation_reason}</div>
+              )}
             </div>
-            <div className="text-xs muted">
-              {fmtRange(r.from_ts, r.to_ts, r.type)} · {r.duration_hours}h
-            </div>
-            {r.cancellation_reason && (
-              <div className="text-xs muted mt-0.5">Motivo: {r.cancellation_reason}</div>
-            )}
           </div>
-          <div className="flex gap-1 flex-shrink-0">
+          <div className="inbox-actions">
             <IconButton
               kind="approve"
               title="Accetta annullamento"
@@ -560,7 +567,9 @@ function RevocationsInbox({
               title="Rifiuta annullamento"
               onClick={() => onDecide(r, false)}
             />
-            <Link to="/leaves" className="btn btn-ghost btn-sm" title="Apri">↗</Link>
+            <Link to="/leaves" className="icon-link" title="Apri dettaglio" aria-label="Apri dettaglio">
+              <IconOpen />
+            </Link>
           </div>
         </li>
       ))}
@@ -578,17 +587,21 @@ function AbsenceRow({
   mode: 'now' | 'upcoming';
 }) {
   return (
-    <li className="card flex items-center justify-between gap-3 flex-wrap py-2.5 px-3">
-      <div className="min-w-0">
-        <div className="text-sm font-medium">{row.user_display_name || row.user_email}</div>
-        <div className="text-xs muted">
-          <span className="badge badge-muted mr-2">{LEAVE_TYPE_LABEL[row.type]}</span>
+    <li className="absence-row">
+      <span className="absence-row-badge">
+        <span className={`badge ${row.type === 'malattia' ? 'badge-warn' : 'badge-muted'}`}>
+          {LEAVE_TYPE_LABEL[row.type]}
+        </span>
+      </span>
+      <span className="absence-row-body">
+        <span className="absence-row-name">{row.user_display_name || row.user_email}</span>
+        <span className="absence-row-meta">
           {mode === 'now'
             ? `Fino al ${fmtDateShort(row.to_ts)}`
             : fmtRange(row.from_ts, row.to_ts, row.type)}
-        </div>
-      </div>
-      <div className="text-xs muted">{row.duration_hours}h</div>
+        </span>
+      </span>
+      <span className="absence-row-hours num">{Number(row.duration_hours).toFixed(2)}h</span>
     </li>
   );
 }
@@ -761,11 +774,13 @@ function UserStatusCard({ card, showBranch }: { card: UserCard; showBranch: bool
         {showBranch && card.branch_name && <div>Sede: {card.branch_name}</div>}
         {card.last_event_at ? (
           <div>
-            Ultimo evento: {labelEvent(card.last_event)} alle{' '}
-            {new Date(card.last_event_at).toLocaleTimeString('it-IT', {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+            Ultimo: {labelEvent(card.last_event)}{' '}
+            <span className="num">
+              {new Date(card.last_event_at).toLocaleTimeString('it-IT', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
           </div>
         ) : (
           <div className="status-card-meta-empty">Nessuna attività oggi</div>
@@ -995,6 +1010,14 @@ function IconAlert() {
       <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
       <line x1="12" y1="9" x2="12" y2="13" />
       <line x1="12" y1="17" x2="12" y2="17.01" />
+    </svg>
+  );
+}
+function IconOpen() {
+  return (
+    <svg {...I} width={14} height={14}>
+      <path d="M7 17 17 7" />
+      <path d="M8 7h9v9" />
     </svg>
   );
 }
