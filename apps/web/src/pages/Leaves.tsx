@@ -1,5 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
+import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 
 type LeaveType = 'ferie' | 'permessi' | 'malattia';
 type LeaveStatus =
@@ -36,6 +38,10 @@ interface Template {
   name: string;
   type: 'ferie' | 'permessi';
   hours_default: number;
+  accrual_amount: number;
+  accrual_frequency: 'monthly' | 'yearly';
+  accrual_day_of_month: number;
+  accrual_month: number | null;
   active: boolean;
 }
 
@@ -47,9 +53,17 @@ interface Assignment {
   template_id: string;
   template_name: string;
   type: 'ferie' | 'permessi';
-  year: number;
-  hours_total: number;
-  hours_carried_in: number;
+  initial_balance: number;
+  started_on: string;
+  ended_on: string | null;
+  last_accrual_on: string | null;
+  accrual_amount: number;
+  accrual_frequency: 'monthly' | 'yearly';
+  accrual_day_of_month: number;
+  accrual_month: number | null;
+  accrued_total: number;
+  used_approved: number;
+  used_pending: number;
 }
 
 interface UserRow {
@@ -60,13 +74,20 @@ interface UserRow {
 
 interface QuotaSummary {
   type: 'ferie' | 'permessi';
-  year: number;
-  total: number;
-  carry_in: number;
+  assignment_id: string | null;
+  template_id: string | null;
+  template_name: string | null;
+  initial_balance: number;
+  accrued_total: number;
   used_approved: number;
   used_pending: number;
   residual_strict: number;
   residual_with_pending: number;
+  last_accrual_on: string | null;
+  accrual_amount: number;
+  accrual_frequency: 'monthly' | 'yearly';
+  accrual_day_of_month: number;
+  accrual_month: number | null;
 }
 
 const TYPE_LABEL: Record<LeaveType, string> = {
@@ -157,18 +178,13 @@ function TabButton({
 
 function RequestsTab() {
   const [rows, setRows] = useState<LeaveRequest[]>([]);
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [typeFilter, setTypeFilter] = useState<string>('');
   const [err, setErr] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<LeaveRequest | null>(null);
   const [cancelTarget, setCancelTarget] = useState<LeaveRequest | null>(null);
 
   async function load() {
     try {
-      const qs = new URLSearchParams({ scope: 'all' });
-      if (statusFilter) qs.set('status', statusFilter);
-      if (typeFilter) qs.set('type', typeFilter);
-      const r = await api<LeaveRequest[]>(`/api/v1/leaves?${qs}`);
+      const r = await api<LeaveRequest[]>(`/api/v1/leaves?scope=all`);
       setRows(r);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'errore');
@@ -176,7 +192,7 @@ function RequestsTab() {
   }
   useEffect(() => {
     load().catch(() => undefined);
-  }, [statusFilter, typeFilter]);
+  }, []);
 
   async function approve(r: LeaveRequest) {
     setErr(null);
@@ -203,136 +219,16 @@ function RequestsTab() {
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-2 flex-wrap items-end">
-        <div>
-          <label className="label">Stato</label>
-          <select
-            className="input"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">Tutti</option>
-            <option value="pending">In attesa</option>
-            <option value="approved">Approvate</option>
-            <option value="rejected">Rifiutate</option>
-            <option value="cancellation_pending">Annullamento richiesto</option>
-            <option value="cancelled">Annullate</option>
-            <option value="cancelled_post_approval">Annullate post-approvazione</option>
-            <option value="superseded_by_malattia">Sostituite da malattia</option>
-          </select>
-        </div>
-        <div>
-          <label className="label">Tipo</label>
-          <select
-            className="input"
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-          >
-            <option value="">Tutti</option>
-            <option value="ferie">Ferie</option>
-            <option value="permessi">Permesso</option>
-            <option value="malattia">Malattia</option>
-          </select>
-        </div>
-      </div>
       {err && (
         <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>
       )}
-      <div className="table-wrap">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Utente</th>
-              <th>Tipo</th>
-              <th>Periodo</th>
-              <th>Ore</th>
-              <th>Stato</th>
-              <th>Note / motivo</th>
-              <th>Decisa da</th>
-              <th>Azioni</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td>{r.user_display_name || r.user_email}</td>
-                <td>{TYPE_LABEL[r.type]}</td>
-                <td className="text-xs">{fmtRange(r.from_ts, r.to_ts, r.type)}</td>
-                <td className="num">{r.duration_hours}</td>
-                <td>
-                  <span className={`badge ${badgeForStatus(r.status)}`}>
-                    {STATUS_LABEL[r.status]}
-                  </span>
-                </td>
-                <td className="text-xs">
-                  {r.type === 'malattia' && r.inps_protocol ? (
-                    <span>INPS: <strong>{r.inps_protocol}</strong></span>
-                  ) : null}
-                  {r.user_note ? <div className="muted">{r.user_note}</div> : null}
-                  {r.rejection_reason ? (
-                    <div style={{ color: 'var(--color-error)' }}>{r.rejection_reason}</div>
-                  ) : null}
-                  {r.cancellation_reason ? (
-                    <div className="muted">Annullamento: {r.cancellation_reason}</div>
-                  ) : null}
-                </td>
-                <td className="text-xs">
-                  {r.decided_by_display_name || r.decided_by_email || '—'}
-                </td>
-                <td>
-                  <div className="flex gap-1 flex-wrap">
-                    {r.status === 'pending' && (
-                      <>
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-sm"
-                          onClick={() => approve(r)}
-                        >
-                          Approva
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-danger btn-sm"
-                          onClick={() => setRejectTarget(r)}
-                        >
-                          Rifiuta
-                        </button>
-                      </>
-                    )}
-                    {r.status === 'cancellation_pending' && (
-                      <>
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-sm"
-                          onClick={() => decideCancel(r, true)}
-                        >
-                          Accetta annullamento
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => decideCancel(r, false)}
-                        >
-                          Rifiuta annullamento
-                        </button>
-                      </>
-                    )}
-                    {r.status === 'approved' && (
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => setCancelTarget(r)}
-                      >
-                        Revoca
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <RequestsDataGrid
+        rows={rows}
+        onApprove={approve}
+        onReject={setRejectTarget}
+        onDecideCancel={decideCancel}
+        onCancelApproved={setCancelTarget}
+      />
       {rejectTarget && (
         <ReasonDialog
           title="Rifiuta richiesta"
@@ -437,7 +333,6 @@ function ReasonDialog({
 /* ---------- Quotas ---------- */
 
 function QuotasTab() {
-  const [year, setYear] = useState<number>(new Date().getFullYear());
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -451,7 +346,7 @@ function QuotasTab() {
   async function load() {
     try {
       const [a, u, t] = await Promise.all([
-        api<Assignment[]>(`/api/v1/leave-quotas/assignments?year=${year}`),
+        api<Assignment[]>('/api/v1/leave-quotas/assignments'),
         api<UserRow[]>('/api/v1/users'),
         api<Template[]>('/api/v1/leave-quotas/templates'),
       ]);
@@ -470,7 +365,7 @@ function QuotasTab() {
   }
   useEffect(() => {
     load().catch(() => undefined);
-  }, [year]);
+  }, []);
 
   const grid = useMemo(() => {
     const byUser = new Map<string, { ferie?: Assignment; permessi?: Assignment }>();
@@ -488,19 +383,6 @@ function QuotasTab() {
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-2 items-end">
-        <div>
-          <label className="label">Anno</label>
-          <input
-            type="number"
-            className="input"
-            value={year}
-            min={2024}
-            max={2100}
-            onChange={(e) => setYear(Number(e.target.value))}
-          />
-        </div>
-      </div>
       {err && (
         <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>
       )}
@@ -509,53 +391,9 @@ function QuotasTab() {
           Crea prima un modello quota nella tab <strong>Modelli</strong>.
         </div>
       )}
-      <div className="table-wrap">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Utente</th>
-              <th>Ferie (ore)</th>
-              <th>Carry ferie</th>
-              <th>Permessi (ore)</th>
-              <th>Carry permessi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {grid.map(({ user, ferie, permessi }) => (
-              <tr key={user.user_id}>
-                <td>{user.display_name || user.email}</td>
-                <td>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setEditor({ user, type: 'ferie', existing: ferie })}
-                  >
-                    {ferie ? `${ferie.hours_total}h` : 'Assegna'}
-                  </button>
-                </td>
-                <td className="num text-xs">{ferie ? `${ferie.hours_carried_in}h` : '—'}</td>
-                <td>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() =>
-                      setEditor({ user, type: 'permessi', existing: permessi })
-                    }
-                  >
-                    {permessi ? `${permessi.hours_total}h` : 'Assegna'}
-                  </button>
-                </td>
-                <td className="num text-xs">
-                  {permessi ? `${permessi.hours_carried_in}h` : '—'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <QuotasDataGrid grid={grid} onEdit={(u, type, existing) => setEditor({ user: u, type, existing })} />
       {editor && (
         <AssignmentEditor
-          year={year}
           user={editor.user}
           type={editor.type}
           existing={editor.existing}
@@ -571,8 +409,20 @@ function QuotasTab() {
   );
 }
 
+function fmtAccrual(t: { accrual_amount: number; accrual_frequency: 'monthly' | 'yearly'; accrual_day_of_month: number; accrual_month: number | null }): string {
+  const amt = `${t.accrual_amount}h`;
+  if (t.accrual_amount === 0) return 'Nessun accredito';
+  if (t.accrual_frequency === 'monthly') {
+    return `${amt} ogni mese il giorno ${t.accrual_day_of_month}`;
+  }
+  return `${amt} ogni anno il ${t.accrual_day_of_month}/${t.accrual_month}`;
+}
+
+function balance(a: Assignment): number {
+  return a.initial_balance + a.accrued_total - a.used_approved;
+}
+
 function AssignmentEditor({
-  year,
   user,
   type,
   existing,
@@ -580,7 +430,6 @@ function AssignmentEditor({
   onClose,
   onSaved,
 }: {
-  year: number;
   user: UserRow;
   type: 'ferie' | 'permessi';
   existing?: Assignment;
@@ -591,12 +440,16 @@ function AssignmentEditor({
   const [templateId, setTemplateId] = useState<string>(
     existing?.template_id ?? templates[0]?.id ?? ''
   );
-  const [hours, setHours] = useState<number>(
-    existing?.hours_total ?? templates[0]?.hours_default ?? 0
+  const [initialBalance, setInitialBalance] = useState<number>(
+    existing?.initial_balance ?? 0
   );
-  const [carry, setCarry] = useState<number>(existing?.hours_carried_in ?? 0);
+  const [startedOn, setStartedOn] = useState<string>(
+    existing?.started_on ?? new Date().toISOString().slice(0, 10)
+  );
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const pickedTpl = templates.find((t) => t.id === templateId);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -607,16 +460,22 @@ function AssignmentEditor({
     setBusy(true);
     setErr(null);
     try {
-      await api('/api/v1/leave-quotas/assignments', {
-        method: 'POST',
-        json: {
-          user_id: user.user_id,
-          template_id: templateId,
-          year,
-          hours_total: hours,
-          hours_carried_in: carry,
-        },
-      });
+      if (existing) {
+        await api(`/api/v1/leave-quotas/assignments/${existing.id}`, {
+          method: 'PATCH',
+          json: { initial_balance: initialBalance, template_id: templateId },
+        });
+      } else {
+        await api('/api/v1/leave-quotas/assignments', {
+          method: 'POST',
+          json: {
+            user_id: user.user_id,
+            template_id: templateId,
+            initial_balance: initialBalance,
+            started_on: startedOn,
+          },
+        });
+      }
       onSaved();
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'errore');
@@ -627,7 +486,7 @@ function AssignmentEditor({
 
   async function remove() {
     if (!existing) return;
-    if (!confirm('Eliminare la quota?')) return;
+    if (!confirm('Chiudere assegnazione? Lo storico accrediti resta visibile.')) return;
     try {
       await api(`/api/v1/leave-quotas/assignments/${existing.id}`, { method: 'DELETE' });
       onSaved();
@@ -642,57 +501,65 @@ function AssignmentEditor({
         <h2 className="section-title">
           Quota {type === 'ferie' ? 'ferie' : 'permessi'} — {user.display_name || user.email}
         </h2>
-        <p className="text-xs muted">Anno {year}</p>
         <div>
           <label className="label">Modello</label>
           <select
             className="input"
             value={templateId}
-            onChange={(e) => {
-              setTemplateId(e.target.value);
-              const t = templates.find((x) => x.id === e.target.value);
-              if (t) setHours(t.hours_default);
-            }}
+            onChange={(e) => setTemplateId(e.target.value)}
           >
             <option value="">— scegli —</option>
             {templates.map((t) => (
               <option key={t.id} value={t.id}>
-                {t.name} ({t.hours_default}h)
+                {t.name} — {fmtAccrual(t)}
               </option>
             ))}
           </select>
+          {pickedTpl && (
+            <p className="text-xs muted mt-1">{fmtAccrual(pickedTpl)}</p>
+          )}
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="label">Bilancio iniziale (ore)</label>
+          <input
+            type="number"
+            step="0.25"
+            className="input"
+            value={initialBalance}
+            onChange={(e) => setInitialBalance(Number(e.target.value))}
+          />
+          <p className="text-xs muted mt-1">
+            Saldo di partenza, prima di accrediti e richieste. Può essere negativo.
+          </p>
+        </div>
+        {!existing && (
           <div>
-            <label className="label">Ore totali</label>
+            <label className="label">Attivo dal</label>
             <input
-              type="number"
-              step="0.25"
-              min={0}
+              type="date"
               className="input"
-              value={hours}
-              onChange={(e) => setHours(Number(e.target.value))}
+              value={startedOn}
+              onChange={(e) => setStartedOn(e.target.value)}
             />
           </div>
-          <div>
-            <label className="label">Carry-in</label>
-            <input
-              type="number"
-              step="0.25"
-              min={0}
-              className="input"
-              value={carry}
-              onChange={(e) => setCarry(Number(e.target.value))}
-            />
+        )}
+        {existing && (
+          <div className="text-xs muted">
+            <div>Accrediti accumulati: <strong>{existing.accrued_total}h</strong></div>
+            <div>Usate (approvate): <strong>{existing.used_approved}h</strong></div>
+            <div>Saldo attuale: <strong>{balance(existing).toFixed(2)}h</strong></div>
+            {existing.last_accrual_on && (
+              <div>Ultimo accredito: <strong>{existing.last_accrual_on}</strong></div>
+            )}
           </div>
-        </div>
+        )}
         {err && (
           <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>
         )}
         <div className="flex gap-2 justify-end">
           {existing && (
             <button type="button" className="btn btn-danger" onClick={remove} disabled={busy}>
-              Elimina
+              Chiudi
             </button>
           )}
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
@@ -733,7 +600,16 @@ function TemplatesTab() {
           type="button"
           className="btn btn-primary btn-sm"
           onClick={() =>
-            setEditor({ name: '', type: 'ferie', hours_default: 176, active: true })
+            setEditor({
+              name: '',
+              type: 'ferie',
+              hours_default: 176,
+              accrual_amount: 176,
+              accrual_frequency: 'yearly',
+              accrual_day_of_month: 1,
+              accrual_month: 1,
+              active: true,
+            })
           }
         >
           Nuovo modello
@@ -742,59 +618,19 @@ function TemplatesTab() {
       {err && (
         <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>
       )}
-      <div className="table-wrap">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Tipo</th>
-              <th>Ore default</th>
-              <th>Stato</th>
-              <th>Azioni</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td>{r.name}</td>
-                <td>{r.type === 'ferie' ? 'Ferie' : 'Permessi'}</td>
-                <td className="num">{r.hours_default}</td>
-                <td>
-                  {r.active ? (
-                    <span className="badge badge-ok">Attivo</span>
-                  ) : (
-                    <span className="badge badge-muted">Disattivato</span>
-                  )}
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setEditor(r)}
-                  >
-                    Modifica
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-danger btn-sm"
-                    onClick={async () => {
-                      if (!confirm('Eliminare modello?')) return;
-                      try {
-                        await api(`/api/v1/leave-quotas/templates/${r.id}`, { method: 'DELETE' });
-                        await load();
-                      } catch (e) {
-                        setErr(e instanceof Error ? e.message : 'errore');
-                      }
-                    }}
-                  >
-                    Elimina
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <TemplatesDataGrid
+        rows={rows}
+        onEdit={setEditor}
+        onDelete={async (r) => {
+          if (!confirm('Eliminare modello?')) return;
+          try {
+            await api(`/api/v1/leave-quotas/templates/${r.id}`, { method: 'DELETE' });
+            await load();
+          } catch (e) {
+            setErr(e instanceof Error ? e.message : 'errore');
+          }
+        }}
+      />
       {editor && (
         <TemplateEditor
           initial={editor}
@@ -820,25 +656,49 @@ function TemplateEditor({
 }) {
   const [name, setName] = useState(initial.name ?? '');
   const [type, setType] = useState<'ferie' | 'permessi'>(initial.type ?? 'ferie');
-  const [hours, setHours] = useState(initial.hours_default ?? 176);
+  const [hoursDefault, setHoursDefault] = useState(initial.hours_default ?? 176);
+  const [accrualAmount, setAccrualAmount] = useState(
+    initial.accrual_amount ?? initial.hours_default ?? 176
+  );
+  const [frequency, setFrequency] = useState<'monthly' | 'yearly'>(
+    initial.accrual_frequency ?? 'yearly'
+  );
+  const [dayOfMonth, setDayOfMonth] = useState(initial.accrual_day_of_month ?? 1);
+  const [month, setMonth] = useState<number>(initial.accrual_month ?? 1);
+  const [unit, setUnit] = useState<'hours' | 'days'>('hours');
+  const [hoursPerDay, setHoursPerDay] = useState<number>(8);
   const [active, setActive] = useState(initial.active ?? true);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  function effectiveAccrualHours(): number {
+    return unit === 'days' ? accrualAmount * hoursPerDay : accrualAmount;
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
     setErr(null);
     try {
+      const body = {
+        name,
+        type,
+        hours_default: hoursDefault,
+        accrual_amount: effectiveAccrualHours(),
+        accrual_frequency: frequency,
+        accrual_day_of_month: dayOfMonth,
+        accrual_month: frequency === 'yearly' ? month : null,
+        active,
+      };
       if (initial.id) {
         await api(`/api/v1/leave-quotas/templates/${initial.id}`, {
           method: 'PATCH',
-          json: { name, type, hours_default: hours, active },
+          json: body,
         });
       } else {
         await api('/api/v1/leave-quotas/templates', {
           method: 'POST',
-          json: { name, type, hours_default: hours, active },
+          json: body,
         });
       }
       onSaved();
@@ -849,9 +709,15 @@ function TemplateEditor({
     }
   }
 
+  const monthNames = [
+    '— mese —',
+    'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+    'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre',
+  ];
+
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
-      <form onSubmit={submit} className="card w-full max-w-md space-y-3">
+      <form onSubmit={submit} className="card w-full max-w-lg space-y-3">
         <h2 className="section-title">
           {initial.id ? 'Modifica modello quota' : 'Nuovo modello quota'}
         </h2>
@@ -880,17 +746,120 @@ function TemplateEditor({
             </select>
           </div>
           <div>
-            <label className="label">Ore default</label>
+            <label className="label">Ore di riferimento annuali</label>
             <input
               type="number"
               step="0.25"
               min={0}
               className="input"
-              value={hours}
-              onChange={(e) => setHours(Number(e.target.value))}
+              value={hoursDefault}
+              onChange={(e) => setHoursDefault(Number(e.target.value))}
             />
           </div>
         </div>
+
+        <fieldset className="border rounded p-3 space-y-3" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>
+          <legend className="text-xs muted px-1">Accredito automatico</legend>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="col-span-2">
+              <label className="label">Quantità per accredito</label>
+              <input
+                type="number"
+                step="0.25"
+                min={0}
+                className="input"
+                value={accrualAmount}
+                onChange={(e) => setAccrualAmount(Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <label className="label">Unità</label>
+              <select
+                className="input"
+                value={unit}
+                onChange={(e) => setUnit(e.target.value as 'hours' | 'days')}
+              >
+                <option value="hours">ore</option>
+                <option value="days">giorni</option>
+              </select>
+            </div>
+          </div>
+          {unit === 'days' && (
+            <div>
+              <label className="label">Ore per giorno (conversione)</label>
+              <input
+                type="number"
+                step="0.25"
+                min={1}
+                className="input"
+                value={hoursPerDay}
+                onChange={(e) => setHoursPerDay(Number(e.target.value))}
+              />
+              <p className="text-xs muted mt-1">
+                Verranno salvate {effectiveAccrualHours()}h per accredito.
+              </p>
+            </div>
+          )}
+          <div>
+            <label className="label">Frequenza</label>
+            <div className="flex gap-3">
+              <label className="flex items-center gap-1 text-sm">
+                <input
+                  type="radio"
+                  name="freq"
+                  checked={frequency === 'monthly'}
+                  onChange={() => setFrequency('monthly')}
+                />
+                Mensile
+              </label>
+              <label className="flex items-center gap-1 text-sm">
+                <input
+                  type="radio"
+                  name="freq"
+                  checked={frequency === 'yearly'}
+                  onChange={() => setFrequency('yearly')}
+                />
+                Annuale
+              </label>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="label">Giorno del mese</label>
+              <input
+                type="number"
+                min={1}
+                max={28}
+                className="input"
+                value={dayOfMonth}
+                onChange={(e) => setDayOfMonth(Number(e.target.value))}
+              />
+              <p className="text-xs muted mt-1">1–28 (per sicurezza in mesi corti).</p>
+            </div>
+            {frequency === 'yearly' && (
+              <div>
+                <label className="label">Mese</label>
+                <select
+                  className="input"
+                  value={month}
+                  onChange={(e) => setMonth(Number(e.target.value))}
+                >
+                  {monthNames.slice(1).map((n, i) => (
+                    <option key={i + 1} value={i + 1}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+          <p className="text-xs muted">
+            {frequency === 'monthly'
+              ? `Ogni mese il giorno ${dayOfMonth} verranno aggiunti ${effectiveAccrualHours()}h.`
+              : `Ogni anno il ${dayOfMonth} ${monthNames[month] ?? ''} verranno aggiunti ${effectiveAccrualHours()}h.`}
+          </p>
+        </fieldset>
+
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -916,3 +885,362 @@ function TemplateEditor({
 }
 
 export type { QuotaSummary };
+
+interface RequestsDataGridProps {
+  rows: LeaveRequest[];
+  onApprove: (r: LeaveRequest) => void;
+  onReject: (r: LeaveRequest) => void;
+  onDecideCancel: (r: LeaveRequest, approveCancel: boolean) => void;
+  onCancelApproved: (r: LeaveRequest) => void;
+}
+
+function RequestsDataGrid({
+  rows,
+  onApprove,
+  onReject,
+  onDecideCancel,
+  onCancelApproved,
+}: RequestsDataGridProps) {
+  const columns = useMemo<GridColDef<LeaveRequest>[]>(
+    () => [
+      {
+        field: 'user',
+        headerName: 'Utente',
+        flex: 1.2,
+        minWidth: 180,
+        valueGetter: (_v, row) => row.user_display_name || row.user_email,
+      },
+      {
+        field: 'type',
+        headerName: 'Tipo',
+        width: 130,
+        type: 'singleSelect',
+        valueOptions: [
+          { value: 'ferie', label: 'Ferie' },
+          { value: 'permessi', label: 'Permesso' },
+          { value: 'malattia', label: 'Malattia' },
+        ],
+        renderCell: (p) => TYPE_LABEL[p.row.type],
+      },
+      {
+        field: 'period',
+        headerName: 'Periodo',
+        flex: 1.2,
+        minWidth: 200,
+        sortable: false,
+        valueGetter: (_v, row) => row.from_ts,
+        renderCell: (p) => (
+          <span className="text-xs">{fmtRange(p.row.from_ts, p.row.to_ts, p.row.type)}</span>
+        ),
+      },
+      {
+        field: 'duration_hours',
+        headerName: 'Ore',
+        width: 90,
+        type: 'number',
+      },
+      {
+        field: 'status',
+        headerName: 'Stato',
+        width: 180,
+        type: 'singleSelect',
+        valueOptions: (Object.keys(STATUS_LABEL) as LeaveStatus[]).map((k) => ({
+          value: k,
+          label: STATUS_LABEL[k],
+        })),
+        renderCell: (p) => (
+          <span className={`badge ${badgeForStatus(p.row.status)}`}>
+            {STATUS_LABEL[p.row.status]}
+          </span>
+        ),
+      },
+      {
+        field: 'note',
+        headerName: 'Note / motivo',
+        flex: 1.2,
+        minWidth: 200,
+        sortable: false,
+        valueGetter: (_v, row) =>
+          [
+            row.inps_protocol ? `INPS: ${row.inps_protocol}` : '',
+            row.user_note ?? '',
+            row.rejection_reason ? `Rifiuto: ${row.rejection_reason}` : '',
+            row.cancellation_reason ? `Annullamento: ${row.cancellation_reason}` : '',
+          ]
+            .filter(Boolean)
+            .join(' · '),
+        renderCell: (p) => {
+          const r = p.row;
+          return (
+            <div className="text-xs">
+              {r.type === 'malattia' && r.inps_protocol ? (
+                <span>INPS: <strong>{r.inps_protocol}</strong></span>
+              ) : null}
+              {r.user_note ? <div className="muted">{r.user_note}</div> : null}
+              {r.rejection_reason ? (
+                <div style={{ color: 'var(--color-error)' }}>{r.rejection_reason}</div>
+              ) : null}
+              {r.cancellation_reason ? (
+                <div className="muted">Annullamento: {r.cancellation_reason}</div>
+              ) : null}
+            </div>
+          );
+        },
+      },
+      {
+        field: 'decided_by',
+        headerName: 'Decisa da',
+        flex: 0.8,
+        minWidth: 140,
+        valueGetter: (_v, row) => row.decided_by_display_name || row.decided_by_email || '',
+        renderCell: (p) => <span className="text-xs">{p.value || '—'}</span>,
+      },
+      {
+        field: 'actions',
+        headerName: 'Azioni',
+        width: 220,
+        sortable: false,
+        filterable: false,
+        renderCell: (p) => {
+          const r = p.row;
+          return (
+            <div className="flex gap-1 flex-wrap">
+              {r.status === 'pending' && (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => onApprove(r)}
+                  >
+                    Approva
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger btn-sm"
+                    onClick={() => onReject(r)}
+                  >
+                    Rifiuta
+                  </button>
+                </>
+              )}
+              {r.status === 'cancellation_pending' && (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => onDecideCancel(r, true)}
+                  >
+                    Accetta
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => onDecideCancel(r, false)}
+                  >
+                    Rifiuta
+                  </button>
+                </>
+              )}
+              {r.status === 'approved' && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => onCancelApproved(r)}
+                >
+                  Revoca
+                </button>
+              )}
+            </div>
+          );
+        },
+      },
+    ],
+    [onApprove, onReject, onDecideCancel, onCancelApproved]
+  );
+
+  return (
+    <DataGrid<LeaveRequest>
+      rows={rows}
+      columns={columns}
+      getRowId={(r) => r.id}
+      sx={dataGridSx}
+      {...dataGridDefaults}
+    />
+  );
+}
+
+interface QuotaRow {
+  user: UserRow;
+  ferie?: Assignment;
+  permessi?: Assignment;
+}
+
+function QuotasDataGrid({
+  grid,
+  onEdit,
+}: {
+  grid: QuotaRow[];
+  onEdit: (user: UserRow, type: 'ferie' | 'permessi', existing?: Assignment) => void;
+}) {
+  const columns = useMemo<GridColDef<QuotaRow>[]>(
+    () => [
+      {
+        field: 'user',
+        headerName: 'Utente',
+        flex: 1.2,
+        minWidth: 200,
+        valueGetter: (_v, row) => row.user.display_name || row.user.email,
+      },
+      {
+        field: 'ferie_balance',
+        headerName: 'Saldo ferie',
+        width: 160,
+        sortable: true,
+        valueGetter: (_v, row) => (row.ferie ? balance(row.ferie) : null),
+        renderCell: (p) => (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => onEdit(p.row.user, 'ferie', p.row.ferie)}
+          >
+            {p.row.ferie ? `${balance(p.row.ferie).toFixed(2)}h` : 'Assegna'}
+          </button>
+        ),
+      },
+      {
+        field: 'ferie_accrual',
+        headerName: 'Accredito ferie',
+        flex: 1,
+        minWidth: 200,
+        sortable: false,
+        valueGetter: (_v, row) => (row.ferie ? fmtAccrual(row.ferie) : ''),
+        renderCell: (p) => (
+          <span className="text-xs muted">{p.row.ferie ? fmtAccrual(p.row.ferie) : '—'}</span>
+        ),
+      },
+      {
+        field: 'permessi_balance',
+        headerName: 'Saldo permessi',
+        width: 170,
+        sortable: true,
+        valueGetter: (_v, row) => (row.permessi ? balance(row.permessi) : null),
+        renderCell: (p) => (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => onEdit(p.row.user, 'permessi', p.row.permessi)}
+          >
+            {p.row.permessi ? `${balance(p.row.permessi).toFixed(2)}h` : 'Assegna'}
+          </button>
+        ),
+      },
+      {
+        field: 'permessi_accrual',
+        headerName: 'Accredito permessi',
+        flex: 1,
+        minWidth: 200,
+        sortable: false,
+        valueGetter: (_v, row) => (row.permessi ? fmtAccrual(row.permessi) : ''),
+        renderCell: (p) => (
+          <span className="text-xs muted">{p.row.permessi ? fmtAccrual(p.row.permessi) : '—'}</span>
+        ),
+      },
+    ],
+    [onEdit]
+  );
+
+  return (
+    <DataGrid<QuotaRow>
+      rows={grid}
+      columns={columns}
+      getRowId={(r) => r.user.user_id}
+      sx={dataGridSx}
+      {...dataGridDefaults}
+    />
+  );
+}
+
+function TemplatesDataGrid({
+  rows,
+  onEdit,
+  onDelete,
+}: {
+  rows: Template[];
+  onEdit: (r: Template) => void;
+  onDelete: (r: Template) => void;
+}) {
+  const columns = useMemo<GridColDef<Template>[]>(
+    () => [
+      { field: 'name', headerName: 'Nome', flex: 1.2, minWidth: 180 },
+      {
+        field: 'type',
+        headerName: 'Tipo',
+        width: 130,
+        type: 'singleSelect',
+        valueOptions: [
+          { value: 'ferie', label: 'Ferie' },
+          { value: 'permessi', label: 'Permessi' },
+        ],
+        renderCell: (p) => (p.row.type === 'ferie' ? 'Ferie' : 'Permessi'),
+      },
+      {
+        field: 'hours_default',
+        headerName: 'Riferimento annuo',
+        width: 160,
+        type: 'number',
+        renderCell: (p) => <span className="num text-xs">{p.row.hours_default}h</span>,
+      },
+      {
+        field: 'accrual',
+        headerName: 'Accredito',
+        flex: 1.2,
+        minWidth: 240,
+        sortable: false,
+        valueGetter: (_v, row) => fmtAccrual(row),
+        renderCell: (p) => <span className="text-xs">{fmtAccrual(p.row)}</span>,
+      },
+      {
+        field: 'active',
+        headerName: 'Stato',
+        width: 130,
+        type: 'boolean',
+        align: 'left',
+        headerAlign: 'left',
+        renderCell: (p) =>
+          p.row.active ? (
+            <span className="badge badge-ok">Attivo</span>
+          ) : (
+            <span className="badge badge-muted">Disattivato</span>
+          ),
+      },
+      {
+        field: 'actions',
+        headerName: 'Azioni',
+        width: 180,
+        sortable: false,
+        filterable: false,
+        renderCell: (p) => (
+          <div className="flex gap-1">
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => onEdit(p.row)}>
+              Modifica
+            </button>
+            <button type="button" className="btn btn-danger btn-sm" onClick={() => onDelete(p.row)}>
+              Elimina
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [onEdit, onDelete]
+  );
+
+  return (
+    <DataGrid<Template>
+      rows={rows}
+      columns={columns}
+      getRowId={(r) => r.id}
+      sx={dataGridSx}
+      {...dataGridDefaults}
+    />
+  );
+}

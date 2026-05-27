@@ -10,21 +10,39 @@ export const leaveQuotasRouter = Router();
 leaveQuotasRouter.use(authenticate);
 
 const TypeEnum = z.enum(['ferie', 'permessi']);
+const FrequencyEnum = z.enum(['monthly', 'yearly']);
 
 /* ---------------- Templates ---------------- */
 
-const TemplateBody = z.object({
+const TemplateBaseShape = z.object({
   name: z.string().min(1).max(120),
   type: TypeEnum,
   hours_default: z.number().nonnegative(),
+  accrual_amount: z.number().nonnegative(),
+  accrual_frequency: FrequencyEnum,
+  accrual_day_of_month: z.number().int().min(1).max(28),
+  accrual_month: z.number().int().min(1).max(12).nullable().optional(),
   active: z.boolean().optional(),
+});
+const TemplateBody = TemplateBaseShape.superRefine((b, ctx) => {
+  if (b.accrual_frequency === 'yearly' && !b.accrual_month) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['accrual_month'],
+      message: 'accrual_month obbligatorio per frequenza annuale',
+    });
+  }
 });
 
 leaveQuotasRouter.get(
   '/templates',
   tenantHandler(async (_req, res, client) => {
     const r = await client.query(
-      `SELECT id, name, type, hours_default::float8 AS hours_default, active, created_at
+      `SELECT id, name, type,
+              hours_default::float8 AS hours_default,
+              accrual_amount::float8 AS accrual_amount,
+              accrual_frequency, accrual_day_of_month, accrual_month,
+              active, created_at
          FROM leave_quota_templates
         WHERE deleted_at IS NULL
         ORDER BY type, name`
@@ -42,10 +60,25 @@ leaveQuotasRouter.post(
     const b = parse.data;
     try {
       const r = await client.query(
-        `INSERT INTO leave_quota_templates(tenant_id, name, type, hours_default, active)
-         VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, $4)
+        `INSERT INTO leave_quota_templates(
+           tenant_id, name, type, hours_default,
+           accrual_amount, accrual_frequency, accrual_day_of_month, accrual_month,
+           active
+         ) VALUES (
+           current_setting('app.current_tenant_id')::uuid,
+           $1, $2, $3, $4, $5, $6, $7, $8
+         )
          RETURNING *`,
-        [b.name, b.type, b.hours_default, b.active ?? true]
+        [
+          b.name,
+          b.type,
+          b.hours_default,
+          b.accrual_amount,
+          b.accrual_frequency,
+          b.accrual_day_of_month,
+          b.accrual_frequency === 'yearly' ? b.accrual_month : null,
+          b.active ?? true,
+        ]
       );
       ok(res, r.rows[0], 201);
     } catch (err) {
@@ -57,7 +90,7 @@ leaveQuotasRouter.post(
   })
 );
 
-const PatchTemplate = TemplateBody.partial();
+const PatchTemplate = TemplateBaseShape.partial();
 
 leaveQuotasRouter.patch(
   '/templates/:id',
@@ -97,11 +130,12 @@ leaveQuotasRouter.delete(
   requireAdmin,
   tenantHandler(async (req, res, client) => {
     const inUse = await client.query(
-      `SELECT COUNT(*) AS n FROM leave_quota_assignments WHERE template_id = $1`,
+      `SELECT COUNT(*) AS n FROM leave_quota_assignments
+        WHERE template_id = $1 AND ended_on IS NULL`,
       [req.params.id]
     );
     if (Number(inUse.rows[0].n) > 0) {
-      throw new ConflictError('Template usato in assegnazioni', 'IN_USE');
+      throw new ConflictError('Template usato in assegnazioni attive', 'IN_USE');
     }
     const r = await client.query(
       `UPDATE leave_quota_templates SET deleted_at = now()
@@ -118,31 +152,49 @@ leaveQuotasRouter.delete(
 const AssignBody = z.object({
   user_id: z.string().uuid(),
   template_id: z.string().uuid(),
-  year: z.number().int().min(2000).max(2100),
-  hours_total: z.number().nonnegative().optional(),
-  hours_carried_in: z.number().nonnegative().optional(),
+  initial_balance: z.number().optional(),
+  started_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 leaveQuotasRouter.get(
   '/assignments',
   requireAdmin,
-  tenantHandler(async (req, res, client) => {
-    const year = req.query.year
-      ? Number(req.query.year)
-      : new Date().getFullYear();
+  tenantHandler(async (_req, res, client) => {
     const r = await client.query(
-      `SELECT a.id, a.user_id, a.type, a.year,
-              a.hours_total::float8 AS hours_total,
-              a.hours_carried_in::float8 AS hours_carried_in,
+      `SELECT a.id, a.user_id, a.type,
+              a.initial_balance::float8 AS initial_balance,
+              a.started_on, a.ended_on, a.last_accrual_on,
               a.template_id, t.name AS template_name,
+              t.accrual_amount::float8 AS accrual_amount,
+              t.accrual_frequency, t.accrual_day_of_month, t.accrual_month,
               COALESCE(au.email, a.user_id::text) AS user_email,
-              au.display_name AS user_display_name
+              au.display_name AS user_display_name,
+              COALESCE(
+                (SELECT SUM(ac.hours)::float8 FROM leave_accruals ac
+                  WHERE ac.assignment_id = a.id),
+                0
+              ) AS accrued_total,
+              COALESCE(
+                (SELECT SUM(lr.duration_hours)::float8
+                   FROM leave_requests lr
+                  WHERE lr.user_id = a.user_id
+                    AND lr.type = a.type
+                    AND lr.status = 'approved'),
+                0
+              ) AS used_approved,
+              COALESCE(
+                (SELECT SUM(lr.duration_hours)::float8
+                   FROM leave_requests lr
+                  WHERE lr.user_id = a.user_id
+                    AND lr.type = a.type
+                    AND lr.status IN ('pending','cancellation_pending')),
+                0
+              ) AS used_pending
          FROM leave_quota_assignments a
          JOIN leave_quota_templates t ON t.id = a.template_id
          LEFT JOIN auth_users au ON au.id = a.user_id
-        WHERE a.year = $1
-        ORDER BY au.display_name NULLS LAST, au.email, a.type`,
-      [year]
+        WHERE a.ended_on IS NULL
+        ORDER BY au.display_name NULLS LAST, au.email, a.type`
     );
     ok(res, r.rows);
   })
@@ -156,32 +208,71 @@ leaveQuotasRouter.post(
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     const b = parse.data;
     const tpl = await client.query(
-      `SELECT type, hours_default FROM leave_quota_templates
+      `SELECT type FROM leave_quota_templates
         WHERE id = $1 AND deleted_at IS NULL`,
       [b.template_id]
     );
     if (tpl.rowCount === 0) throw new NotFoundError('template');
     const type = tpl.rows[0].type as 'ferie' | 'permessi';
-    const hoursTotal = b.hours_total ?? Number(tpl.rows[0].hours_default);
-    const carryIn = b.hours_carried_in ?? 0;
+    const initial = b.initial_balance ?? 0;
+    const startedOn = b.started_on ?? new Date().toISOString().slice(0, 10);
+
+    // Close any existing active assignment for this (user, type) before opening a new one.
+    await client.query(
+      `UPDATE leave_quota_assignments
+          SET ended_on = $2::date
+        WHERE user_id = $1 AND type = $3 AND ended_on IS NULL`,
+      [b.user_id, startedOn, type]
+    );
 
     const r = await client.query(
       `INSERT INTO leave_quota_assignments(
-         tenant_id, user_id, template_id, type, year, hours_total, hours_carried_in,
+         tenant_id, user_id, template_id, type, year,
+         hours_total, hours_carried_in,
+         initial_balance, started_on,
          created_by
        ) VALUES (
          current_setting('app.current_tenant_id')::uuid,
-         $1, $2, $3, $4, $5, $6,
+         $1, $2, $3, EXTRACT(YEAR FROM $5::date)::int,
+         0, 0,
+         $4, $5,
          current_setting('app.current_user_id')::uuid
        )
-       ON CONFLICT (tenant_id, user_id, type, year)
-       DO UPDATE SET template_id = EXCLUDED.template_id,
-                     hours_total = EXCLUDED.hours_total,
-                     hours_carried_in = EXCLUDED.hours_carried_in
        RETURNING *`,
-      [b.user_id, b.template_id, type, b.year, hoursTotal, carryIn]
+      [b.user_id, b.template_id, type, initial, startedOn]
     );
     ok(res, r.rows[0], 201);
+  })
+);
+
+const PatchAssignBody = z.object({
+  initial_balance: z.number().optional(),
+  template_id: z.string().uuid().optional(),
+});
+
+leaveQuotasRouter.patch(
+  '/assignments/:id',
+  requireAdmin,
+  tenantHandler(async (req, res, client) => {
+    const parse = PatchAssignBody.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const updates: string[] = [];
+    const values: unknown[] = [];
+    let i = 1;
+    for (const [k, v] of Object.entries(parse.data)) {
+      if (v === undefined) continue;
+      updates.push(`${k} = $${i++}`);
+      values.push(v);
+    }
+    if (updates.length === 0) throw new ValidationError('nothing to update');
+    values.push(req.params.id);
+    const r = await client.query(
+      `UPDATE leave_quota_assignments SET ${updates.join(', ')}
+        WHERE id = $${i} AND ended_on IS NULL RETURNING *`,
+      values
+    );
+    if (r.rowCount === 0) throw new NotFoundError('assignment');
+    ok(res, r.rows[0]);
   })
 );
 
@@ -189,16 +280,20 @@ leaveQuotasRouter.delete(
   '/assignments/:id',
   requireAdmin,
   tenantHandler(async (req, res, client) => {
+    // Soft-close instead of hard delete — preserve audit trail of accruals.
     const r = await client.query(
-      `DELETE FROM leave_quota_assignments WHERE id = $1 RETURNING *`,
+      `UPDATE leave_quota_assignments
+          SET ended_on = CURRENT_DATE
+        WHERE id = $1 AND ended_on IS NULL
+        RETURNING *`,
       [req.params.id]
     );
     if (r.rowCount === 0) throw new NotFoundError('assignment');
-    ok(res, { deleted: true });
+    ok(res, { closed: true });
   })
 );
 
-/* ---------------- Per-user residual ---------------- */
+/* ---------------- Per-user balance summary ---------------- */
 
 leaveQuotasRouter.get(
   '/users/:id/summary',
@@ -206,8 +301,7 @@ leaveQuotasRouter.get(
     if (req.user!.role !== 'admin' && req.params.id !== req.user!.id) {
       throw new ConflictError('forbidden', 'FORBIDDEN');
     }
-    const year = req.query.year ? Number(req.query.year) : new Date().getFullYear();
-    const summary = await getQuotaSummary(client, String(req.params.id), year);
+    const summary = await getQuotaSummary(client, String(req.params.id));
     ok(res, summary);
   })
 );
@@ -215,8 +309,68 @@ leaveQuotasRouter.get(
 leaveQuotasRouter.get(
   '/me/summary',
   tenantHandler(async (req, res, client) => {
-    const year = req.query.year ? Number(req.query.year) : new Date().getFullYear();
-    const summary = await getQuotaSummary(client, req.user!.id, year);
+    const summary = await getQuotaSummary(client, req.user!.id);
     ok(res, summary);
+  })
+);
+
+/* ---------------- Accruals ledger ---------------- */
+
+leaveQuotasRouter.get(
+  '/assignments/:id/accruals',
+  tenantHandler(async (req, res, client) => {
+    const r = await client.query(
+      `SELECT id, hours::float8 AS hours, accrued_on, source, note, created_at
+         FROM leave_accruals
+        WHERE assignment_id = $1
+        ORDER BY accrued_on DESC, id DESC
+        LIMIT 200`,
+      [req.params.id]
+    );
+    ok(res, r.rows);
+  })
+);
+
+// Manual one-off accrual / adjustment (admin only).
+const ManualAccrualBody = z.object({
+  hours: z.number(),
+  accrued_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  note: z.string().max(500).optional(),
+  source: z.enum(['manual', 'adjustment']).default('manual'),
+});
+
+leaveQuotasRouter.post(
+  '/assignments/:id/accruals',
+  requireAdmin,
+  tenantHandler(async (req, res, client) => {
+    const parse = ManualAccrualBody.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const b = parse.data;
+    const a = await client.query(
+      `SELECT tenant_id, user_id, type FROM leave_quota_assignments
+        WHERE id = $1 AND ended_on IS NULL`,
+      [req.params.id]
+    );
+    if (a.rowCount === 0) throw new NotFoundError('assignment');
+    const r = await client.query(
+      `INSERT INTO leave_accruals(
+         tenant_id, assignment_id, user_id, type,
+         hours, accrued_on, source, note, created_by
+       ) VALUES (
+         $1, $2, $3, $4,
+         $5, $6, $7, $8, current_setting('app.current_user_id')::uuid
+       ) RETURNING id, hours::float8 AS hours, accrued_on, source, note, created_at`,
+      [
+        a.rows[0].tenant_id,
+        req.params.id,
+        a.rows[0].user_id,
+        a.rows[0].type,
+        b.hours,
+        b.accrued_on ?? new Date().toISOString().slice(0, 10),
+        b.source,
+        b.note ?? null,
+      ]
+    );
+    ok(res, r.rows[0], 201);
   })
 );

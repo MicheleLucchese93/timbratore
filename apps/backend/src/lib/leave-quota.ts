@@ -2,63 +2,95 @@ import type { PoolClient } from 'pg';
 
 export type LeaveType = 'ferie' | 'permessi' | 'malattia';
 
-export interface QuotaRow {
-  type: 'ferie' | 'permessi';
-  year: number;
-  hours_total: number;
-  hours_carried_in: number;
-  hours_used_approved: number;
-  hours_used_pending: number;
-}
-
 export interface QuotaSummary {
   type: 'ferie' | 'permessi';
-  year: number;
-  total: number;
-  carry_in: number;
+  assignment_id: string | null;
+  template_id: string | null;
+  template_name: string | null;
+  initial_balance: number;
+  accrued_total: number;
   used_approved: number;
   used_pending: number;
-  residual_strict: number;        // total + carry - approved
-  residual_with_pending: number;  // residual_strict - pending
+  /** balance = initial + accrued − approved. Can be negative. */
+  residual_strict: number;
+  /** Includes pending+cancellation_pending requests. Can be negative. */
+  residual_with_pending: number;
+  last_accrual_on: string | null;
+  accrual_amount: number;
+  accrual_frequency: 'monthly' | 'yearly';
+  accrual_day_of_month: number;
+  accrual_month: number | null;
 }
 
+/**
+ * Returns one summary row per active assignment (one per type at most) for the
+ * user. Balance is intentionally allowed to go negative — the API never blocks
+ * submissions; companies decide policy informally.
+ */
 export async function getQuotaSummary(
   client: PoolClient,
-  userId: string,
-  year: number
+  userId: string
 ): Promise<QuotaSummary[]> {
   const r = await client.query(
-    `SELECT a.type, a.year, a.hours_total::float8 AS hours_total,
-            a.hours_carried_in::float8 AS hours_carried_in,
-            COALESCE(SUM(CASE WHEN lr.status = 'approved' THEN lr.duration_hours ELSE 0 END)::float8, 0)
-              AS hours_used_approved,
-            COALESCE(SUM(CASE WHEN lr.status IN ('pending','cancellation_pending') THEN lr.duration_hours ELSE 0 END)::float8, 0)
-              AS hours_used_pending
+    `SELECT a.id AS assignment_id,
+            a.type,
+            a.template_id,
+            t.name AS template_name,
+            t.accrual_amount::float8 AS accrual_amount,
+            t.accrual_frequency,
+            t.accrual_day_of_month,
+            t.accrual_month,
+            a.initial_balance::float8 AS initial_balance,
+            a.last_accrual_on,
+            COALESCE(
+              (SELECT SUM(ac.hours)::float8 FROM leave_accruals ac
+                WHERE ac.assignment_id = a.id),
+              0
+            ) AS accrued_total,
+            COALESCE(
+              (SELECT SUM(lr.duration_hours)::float8
+                 FROM leave_requests lr
+                WHERE lr.user_id = a.user_id
+                  AND lr.type = a.type
+                  AND lr.status = 'approved'),
+              0
+            ) AS used_approved,
+            COALESCE(
+              (SELECT SUM(lr.duration_hours)::float8
+                 FROM leave_requests lr
+                WHERE lr.user_id = a.user_id
+                  AND lr.type = a.type
+                  AND lr.status IN ('pending','cancellation_pending')),
+              0
+            ) AS used_pending
        FROM leave_quota_assignments a
-       LEFT JOIN leave_requests lr
-         ON lr.user_id = a.user_id
-        AND lr.type = a.type
-        AND EXTRACT(YEAR FROM lr.from_ts AT TIME ZONE 'Europe/Rome') = a.year
+       JOIN leave_quota_templates t ON t.id = a.template_id
       WHERE a.user_id = $1
-        AND a.year = $2
-      GROUP BY a.type, a.year, a.hours_total, a.hours_carried_in`,
-    [userId, year]
+        AND a.ended_on IS NULL`,
+    [userId]
   );
   return r.rows.map((row): QuotaSummary => {
-    const total = Number(row.hours_total);
-    const carry_in = Number(row.hours_carried_in);
-    const used_approved = Number(row.hours_used_approved);
-    const used_pending = Number(row.hours_used_pending);
-    const residual_strict = total + carry_in - used_approved;
+    const initial = Number(row.initial_balance);
+    const accrued = Number(row.accrued_total);
+    const used_approved = Number(row.used_approved);
+    const used_pending = Number(row.used_pending);
+    const residual_strict = initial + accrued - used_approved;
     return {
       type: row.type,
-      year: row.year,
-      total,
-      carry_in,
+      assignment_id: row.assignment_id,
+      template_id: row.template_id,
+      template_name: row.template_name,
+      initial_balance: initial,
+      accrued_total: accrued,
       used_approved,
       used_pending,
       residual_strict,
       residual_with_pending: residual_strict - used_pending,
+      last_accrual_on: row.last_accrual_on,
+      accrual_amount: Number(row.accrual_amount),
+      accrual_frequency: row.accrual_frequency,
+      accrual_day_of_month: row.accrual_day_of_month,
+      accrual_month: row.accrual_month,
     };
   });
 }
@@ -283,8 +315,4 @@ export async function applyMalattiaOverlap(
     }
   }
   return { supersededIds, trimmedIds };
-}
-
-export function isoYear(ts: string): number {
-  return new Date(ts).getUTCFullYear();
 }

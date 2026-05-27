@@ -7,9 +7,7 @@ import { ok } from '../lib/api-response.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
 import {
   computeDurationHours,
-  getQuotaSummary,
   applyMalattiaOverlap,
-  isoYear,
 } from '../lib/leave-quota.js';
 import {
   notifyLeaveSubmitted,
@@ -102,24 +100,8 @@ leavesRouter.post(
       );
     }
 
-    if (b.type === 'ferie' || b.type === 'permessi') {
-      const year = isoYear(b.from_ts);
-      const summary = await getQuotaSummary(client, userId, year);
-      const q = summary.find((s) => s.type === b.type);
-      if (!q) {
-        throw new ConflictError(
-          `nessuna quota ${b.type} configurata per ${year}`,
-          'NO_QUOTA'
-        );
-      }
-      if (duration > q.residual_with_pending) {
-        throw new ConflictError(
-          `quota ${b.type} insufficiente: richiesti ${duration}h, disponibili ${q.residual_with_pending}h`,
-          'QUOTA_EXCEEDED'
-        );
-      }
-    }
-
+    // Quota balance is informational only. Submissions never blocked: companies
+    // decide policy themselves and the counter is allowed to go negative.
     const status = b.type === 'malattia' ? 'approved' : 'pending';
     const ins = await client.query(
       `INSERT INTO leave_requests(
@@ -297,18 +279,7 @@ leavesRouter.post(
         : await isApprover(client, req.user!.id, row.user_id);
     if (!canApprove) throw new ForbiddenError('non sei un approvatore di questo utente');
 
-    if (row.type === 'ferie' || row.type === 'permessi') {
-      const year = isoYear(row.from_ts);
-      const summary = await getQuotaSummary(client, row.user_id, year);
-      const q = summary.find((s) => s.type === row.type);
-      if (!q || Number(row.duration_hours) > q.residual_strict) {
-        throw new ConflictError(
-          `quota ${row.type} insufficiente al momento dell'approvazione`,
-          'QUOTA_EXCEEDED'
-        );
-      }
-    }
-
+    // Approval never blocked by quota — see submission rationale.
     await client.query(
       `UPDATE leave_requests
           SET status = 'approved',

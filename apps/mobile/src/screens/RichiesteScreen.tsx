@@ -20,6 +20,7 @@ import { color, space } from '@sonoqui/shared';
 import { api } from '../lib/api';
 import { useSession } from '../store/session';
 import { AppHeader } from '../components/AppHeader';
+import { DateField } from '../components/DateField';
 
 type LeaveType = 'ferie' | 'permessi' | 'malattia';
 type LeaveStatus =
@@ -50,13 +51,20 @@ interface LeaveRequest {
 
 interface QuotaSummary {
   type: 'ferie' | 'permessi';
-  year: number;
-  total: number;
-  carry_in: number;
+  assignment_id: string | null;
+  template_id: string | null;
+  template_name: string | null;
+  initial_balance: number;
+  accrued_total: number;
   used_approved: number;
   used_pending: number;
   residual_strict: number;
   residual_with_pending: number;
+  last_accrual_on: string | null;
+  accrual_amount: number;
+  accrual_frequency: 'monthly' | 'yearly';
+  accrual_day_of_month: number;
+  accrual_month: number | null;
 }
 
 const TYPE_LABEL: Record<LeaveType, string> = {
@@ -231,7 +239,7 @@ export function RichiesteScreen() {
             {quotas.map((q) => (
               <View key={q.type} style={styles.quotaRow}>
                 <Text style={styles.quotaLabel}>
-                  {q.type === 'ferie' ? 'Ferie' : 'Permessi'} {q.year}
+                  {q.type === 'ferie' ? 'Ferie' : 'Permessi'}
                 </Text>
                 <Text style={styles.quotaValue}>
                   {q.residual_strict.toFixed(2)}h
@@ -590,28 +598,18 @@ function NewLeaveModal({
             <View style={styles.dateRow}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.fieldLabel}>Dal</Text>
-                <TextInput
+                <DateField
+                  mode="date"
                   value={fromDate}
-                  onChangeText={(v) => {
+                  onChange={(v) => {
                     setFromDate(v);
                     if (v > toDate) setToDate(v);
                   }}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={color.onSurfaceVariant}
-                  style={styles.input}
-                  autoCapitalize="none"
                 />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.fieldLabel}>Al</Text>
-                <TextInput
-                  value={toDate}
-                  onChangeText={setToDate}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={color.onSurfaceVariant}
-                  style={styles.input}
-                  autoCapitalize="none"
-                />
+                <DateField mode="date" value={toDate} onChange={setToDate} />
               </View>
             </View>
 
@@ -619,25 +617,15 @@ function NewLeaveModal({
               <View style={styles.dateRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.fieldLabel}>Ora inizio</Text>
-                  <TextInput
+                  <DateField
+                    mode="time"
                     value={fromTime}
-                    onChangeText={setFromTime}
-                    placeholder="HH:MM"
-                    placeholderTextColor={color.onSurfaceVariant}
-                    style={styles.input}
-                    autoCapitalize="none"
+                    onChange={setFromTime}
                   />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.fieldLabel}>Ora fine</Text>
-                  <TextInput
-                    value={toTime}
-                    onChangeText={setToTime}
-                    placeholder="HH:MM"
-                    placeholderTextColor={color.onSurfaceVariant}
-                    style={styles.input}
-                    autoCapitalize="none"
-                  />
+                  <DateField mode="time" value={toTime} onChange={setToTime} />
                 </View>
               </View>
             )}
