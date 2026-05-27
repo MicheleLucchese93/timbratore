@@ -1,7 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
 import { useRealtimePolling } from '../hooks/useRealtimePolling.ts';
+import { IconButton } from '../components/IconButton.tsx';
 
 interface Usage {
   active_users: string | number;
@@ -9,6 +11,63 @@ interface Usage {
   max_users: number;
   max_admins: number;
   branches_count: string | number;
+}
+
+interface Presence {
+  clocked_in: string | number;
+  on_break: string | number;
+  off: string | number;
+}
+
+interface PendingCounts {
+  corrections: string | number;
+  leaves: string | number;
+  leave_cancellations: string | number;
+}
+
+type LeaveType = 'ferie' | 'permessi' | 'malattia';
+
+interface AbsentLeave {
+  id: string;
+  user_id: string;
+  user_email: string;
+  user_display_name: string | null;
+  type: LeaveType;
+  from_ts: string;
+  to_ts: string;
+  duration_hours: number;
+}
+
+type AnomalyKind =
+  | 'missing_clock_in'
+  | 'missing_clock_out'
+  | 'late_clock_in'
+  | 'early_clock_out'
+  | 'worked_on_rest_day'
+  | 'break_too_short'
+  | 'break_too_long';
+
+interface Anomaly {
+  date: string;
+  user_id: string;
+  user_email: string;
+  user_display_name: string | null;
+  kind: AnomalyKind;
+  delta_minutes: number | null;
+  details: string | null;
+}
+
+interface Summary {
+  usage: Usage;
+  presence: Presence;
+  pending: PendingCounts;
+  absent_now: AbsentLeave[];
+  upcoming_leaves: AbsentLeave[];
+  anomalies_7d: {
+    total: number;
+    by_kind: Record<AnomalyKind, number>;
+    recent: Anomaly[];
+  };
 }
 
 interface UserCard {
@@ -21,33 +80,92 @@ interface UserCard {
   branch_name: string | null;
 }
 
-interface PendingItem {
+interface PendingCorrection {
   id: string;
   user_email: string;
+  user_display_name: string | null;
   claimed_event_type: string;
   claimed_occurred_at: string;
   justification: string;
 }
 
+interface PendingLeave {
+  id: string;
+  user_id: string;
+  user_email: string;
+  user_display_name: string | null;
+  type: LeaveType;
+  status: 'pending' | 'cancellation_pending';
+  from_ts: string;
+  to_ts: string;
+  duration_hours: number;
+  inps_protocol: string | null;
+  user_note: string | null;
+  cancellation_reason: string | null;
+}
+
 type GroupMode = 'list' | 'by_branch';
+type InboxTab = 'corrections' | 'leaves' | 'revocations';
+
+const LEAVE_TYPE_LABEL: Record<LeaveType, string> = {
+  ferie: 'Ferie',
+  permessi: 'Permesso',
+  malattia: 'Malattia',
+};
+
+const ANOMALY_LABEL: Record<AnomalyKind, string> = {
+  missing_clock_in: 'Entrata mancante',
+  missing_clock_out: 'Uscita mancante',
+  late_clock_in: 'Entrata in ritardo',
+  early_clock_out: 'Uscita anticipata',
+  worked_on_rest_day: 'Lavoro in giorno di riposo',
+  break_too_short: 'Pausa troppo breve',
+  break_too_long: 'Pausa troppo lunga',
+};
 
 export function Dashboard() {
   const me = useSession((s) => s.me);
-  const [usage, setUsage] = useState<Usage | null>(null);
+  const [summary, setSummary] = useState<Summary | null>(null);
   const [cards, setCards] = useState<UserCard[]>([]);
-  const [pending, setPending] = useState<PendingItem[]>([]);
+  const [pendingCorrections, setPendingCorrections] = useState<PendingCorrection[]>([]);
+  const [pendingLeaves, setPendingLeaves] = useState<PendingLeave[]>([]);
+  const [cancellationLeaves, setCancellationLeaves] = useState<PendingLeave[]>([]);
   const [refreshTick, setRefreshTick] = useState(0);
   const [groupMode, setGroupMode] = useState<GroupMode>('list');
+  const [inboxTab, setInboxTab] = useState<InboxTab>('corrections');
+  const [err, setErr] = useState<string | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<
+    | { kind: 'correction'; row: PendingCorrection }
+    | { kind: 'leave'; row: PendingLeave }
+    | null
+  >(null);
 
   const load = useCallback(async () => {
-    const [u, c, p] = await Promise.all([
-      api<Usage>('/api/v1/settings/usage'),
+    const results = await Promise.allSettled([
+      api<Summary>('/api/v1/dashboard/summary'),
       api<UserCard[]>('/api/v1/dashboard/cards'),
-      api<PendingItem[]>('/api/v1/correction-requests?status=pending'),
+      api<PendingCorrection[]>('/api/v1/correction-requests?status=pending'),
+      api<PendingLeave[]>('/api/v1/leaves?scope=all&status=pending'),
+      api<PendingLeave[]>('/api/v1/leaves?scope=all&status=cancellation_pending'),
     ]);
-    setUsage(u);
-    setCards(c);
-    setPending(p);
+    const [s, c, pc, pl, pcan] = results;
+    if (s.status === 'fulfilled') setSummary(s.value);
+    if (c.status === 'fulfilled') setCards(c.value);
+    if (pc.status === 'fulfilled') setPendingCorrections(pc.value);
+    if (pl.status === 'fulfilled') setPendingLeaves(pl.value);
+    if (pcan.status === 'fulfilled') setCancellationLeaves(pcan.value);
+    // Surface load error only if EVERYTHING failed (offline / auth).
+    // A single endpoint missing (e.g. /summary pre-deploy) degrades silently.
+    const allFailed = results.every((r) => r.status === 'rejected');
+    if (allFailed) {
+      const first = results[0];
+      if (first.status === 'rejected') {
+        const reason = first.reason;
+        setErr(reason instanceof Error ? reason.message : 'errore');
+      }
+    } else {
+      setErr(null);
+    }
   }, []);
 
   useEffect(() => {
@@ -56,14 +174,50 @@ export function Dashboard() {
 
   useRealtimePolling(() => setRefreshTick((t) => t + 1));
 
+  async function approveCorrection(r: PendingCorrection) {
+    setErr(null);
+    try {
+      await api(`/api/v1/correction-requests/${r.id}/approve`, { method: 'POST', json: {} });
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'errore');
+    }
+  }
+
+  async function approveLeave(r: PendingLeave) {
+    setErr(null);
+    try {
+      await api(`/api/v1/leaves/${r.id}/approve`, { method: 'POST' });
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'errore');
+    }
+  }
+
+  async function decideCancellation(r: PendingLeave, approveCancel: boolean) {
+    setErr(null);
+    try {
+      await api(`/api/v1/leaves/${r.id}/decide-cancellation`, {
+        method: 'POST',
+        json: { approve: approveCancel },
+      });
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'errore');
+    }
+  }
+
   if (!me) return null;
+
+  const pendingTotal =
+    pendingCorrections.length + pendingLeaves.length + cancellationLeaves.length;
 
   return (
     <div className="space-y-6">
       <header className="page-header">
         <div className="page-header-title">
           <h1>Dashboard</h1>
-          <p>Stato in tempo reale dei tuoi dipendenti.</p>
+          <p>Stato in tempo reale, richieste in coda e anomalie della settimana.</p>
         </div>
         <div className="page-header-actions">
           <button className="btn btn-secondary" onClick={load}>
@@ -72,30 +226,123 @@ export function Dashboard() {
         </div>
       </header>
 
-      <section className="stat-grid">
+      {err && (
+        <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>
+      )}
+
+      <section className="dash-stat-grid">
         <StatCard
-          label="Utenti attivi"
-          value={String(usage?.active_users ?? '–')}
-          suffix={`/ ${usage?.max_users ?? '–'}`}
+          label="Presenti ora"
+          value={String(summary?.presence.clocked_in ?? '–')}
+          suffix={`/ ${summary?.usage.active_users ?? '–'}`}
           icon={<IconUsers />}
         />
         <StatCard
-          label="Amministratori"
-          value={String(usage?.active_admins ?? '–')}
-          suffix={`/ ${usage?.max_admins ?? '–'}`}
-          icon={<IconShield />}
+          label="In pausa"
+          value={String(summary?.presence.on_break ?? '–')}
+          icon={<IconCoffee />}
         />
         <StatCard
-          label="Sedi"
-          value={String(usage?.branches_count ?? '–')}
-          icon={<IconMapPin />}
+          label="Assenti oggi"
+          value={String(summary?.absent_now.length ?? '–')}
+          icon={<IconCalendar />}
+          accent={summary && summary.absent_now.length > 0 ? 'warn' : undefined}
         />
         <StatCard
           label="Da approvare"
-          value={String(pending.length)}
+          value={String(pendingTotal)}
           icon={<IconInbox />}
-          accent={pending.length > 0 ? 'warn' : undefined}
+          accent={pendingTotal > 0 ? 'warn' : undefined}
         />
+        <StatCard
+          label="Anomalie 7 gg"
+          value={String(summary?.anomalies_7d.total ?? '–')}
+          icon={<IconAlert />}
+          accent={summary && summary.anomalies_7d.total > 0 ? 'warn' : undefined}
+        />
+        <StatCard
+          label="Sedi"
+          value={String(summary?.usage.branches_count ?? '–')}
+          icon={<IconMapPin />}
+        />
+      </section>
+
+      <section>
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h2 className="section-title">Da approvare</h2>
+          <div className="text-xs muted">Totale: {pendingTotal}</div>
+        </div>
+        <div className="card p-0">
+          <div className="flex border-b" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>
+            <InboxTabButton
+              active={inboxTab === 'corrections'}
+              onClick={() => setInboxTab('corrections')}
+              label="Correzioni"
+              count={pendingCorrections.length}
+            />
+            <InboxTabButton
+              active={inboxTab === 'leaves'}
+              onClick={() => setInboxTab('leaves')}
+              label="Ferie / permessi / malattia"
+              count={pendingLeaves.length}
+            />
+            <InboxTabButton
+              active={inboxTab === 'revocations'}
+              onClick={() => setInboxTab('revocations')}
+              label="Revoche"
+              count={cancellationLeaves.length}
+            />
+          </div>
+          <div className="p-3">
+            {inboxTab === 'corrections' && (
+              <CorrectionsInbox
+                rows={pendingCorrections}
+                onApprove={approveCorrection}
+                onReject={(row) => setRejectTarget({ kind: 'correction', row })}
+              />
+            )}
+            {inboxTab === 'leaves' && (
+              <LeavesInbox
+                rows={pendingLeaves}
+                onApprove={approveLeave}
+                onReject={(row) => setRejectTarget({ kind: 'leave', row })}
+              />
+            )}
+            {inboxTab === 'revocations' && (
+              <RevocationsInbox
+                rows={cancellationLeaves}
+                onDecide={decideCancellation}
+              />
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div>
+          <h2 className="section-title mb-3">Assenti ora</h2>
+          {summary && summary.absent_now.length > 0 ? (
+            <ul className="space-y-2">
+              {summary.absent_now.map((a) => (
+                <AbsenceRow key={a.id} row={a} mode="now" />
+              ))}
+            </ul>
+          ) : (
+            <EmptyState icon={<IconCalendar />} title="Nessuna assenza in corso" />
+          )}
+        </div>
+        <div>
+          <h2 className="section-title mb-3">Prossime 14 giorni</h2>
+          {summary && summary.upcoming_leaves.length > 0 ? (
+            <ul className="space-y-2">
+              {summary.upcoming_leaves.map((a) => (
+                <AbsenceRow key={a.id} row={a} mode="upcoming" />
+              ))}
+            </ul>
+          ) : (
+            <EmptyState icon={<IconCalendar />} title="Nessuna assenza programmata" />
+          )}
+        </div>
       </section>
 
       <section>
@@ -121,34 +368,307 @@ export function Dashboard() {
       </section>
 
       <section>
-        <h2 className="section-title mb-3">Da approvare</h2>
-        {pending.length === 0 ? (
-          <EmptyState
-            icon={<IconInbox />}
-            title="Nessuna richiesta in coda"
-            hint="Le richieste di correzione dei dipendenti compariranno qui."
-          />
+        <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+          <h2 className="section-title">Anomalie ultimi 7 giorni</h2>
+          <Link to="/anomalies" className="btn btn-secondary btn-sm">
+            Vedi tutte
+          </Link>
+        </div>
+        {summary && summary.anomalies_7d.total > 0 ? (
+          <div className="card space-y-3">
+            <AnomalyBreakdown by_kind={summary.anomalies_7d.by_kind} />
+            <div>
+              <div className="text-xs muted mb-1.5">Più recenti</div>
+              <ul className="space-y-1.5">
+                {summary.anomalies_7d.recent.map((a, idx) => (
+                  <li key={`${a.user_id}-${a.date}-${a.kind}-${idx}`}
+                      className="text-sm flex items-center justify-between gap-2 flex-wrap">
+                    <span>
+                      <span className="badge badge-warn mr-2">{ANOMALY_LABEL[a.kind]}</span>
+                      <span className="font-medium">{a.user_display_name || a.user_email}</span>
+                    </span>
+                    <span className="text-xs muted">
+                      {new Date(a.date + 'T00:00:00').toLocaleDateString('it-IT', {
+                        weekday: 'short',
+                        day: '2-digit',
+                        month: '2-digit',
+                      })}
+                      {a.delta_minutes != null && ` · ${a.delta_minutes}m`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         ) : (
-          <ul className="space-y-2">
-            {pending.map((p) => (
-              <li key={p.id} className="card flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-sm">{p.user_email}</div>
-                  <div className="text-xs text-neutral-600">
-                    {labelEvent(p.claimed_event_type)} alle{' '}
-                    {new Date(p.claimed_occurred_at).toLocaleString('it-IT')}
-                  </div>
-                  <div className="text-xs text-neutral-500 mt-1">{p.justification}</div>
-                </div>
-                <a href="/corrections" className="btn btn-secondary btn-sm">Apri</a>
-              </li>
-            ))}
-          </ul>
+          <EmptyState icon={<IconAlert />} title="Nessuna anomalia negli ultimi 7 giorni" />
         )}
       </section>
+
+      {rejectTarget && (
+        <ReasonDialog
+          title={rejectTarget.kind === 'leave' ? 'Rifiuta richiesta' : 'Rifiuta correzione'}
+          label={rejectTarget.kind === 'leave' ? 'Motivo del rifiuto' : 'Nota di rifiuto (opzionale)'}
+          required={rejectTarget.kind === 'leave'}
+          onClose={() => setRejectTarget(null)}
+          onSubmit={async (reason) => {
+            try {
+              if (rejectTarget.kind === 'leave') {
+                await api(`/api/v1/leaves/${rejectTarget.row.id}/reject`, {
+                  method: 'POST',
+                  json: { rejection_reason: reason },
+                });
+              } else {
+                await api(`/api/v1/correction-requests/${rejectTarget.row.id}/reject`, {
+                  method: 'POST',
+                  json: reason ? { resolution_note: reason } : {},
+                });
+              }
+              setRejectTarget(null);
+              await load();
+            } catch (e) {
+              setErr(e instanceof Error ? e.message : 'errore');
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
+
+/* ---------------- Inbox sub-views ---------------- */
+
+function CorrectionsInbox({
+  rows,
+  onApprove,
+  onReject,
+}: {
+  rows: PendingCorrection[];
+  onApprove: (r: PendingCorrection) => void;
+  onReject: (r: PendingCorrection) => void;
+}) {
+  if (rows.length === 0) {
+    return <EmptyState icon={<IconInbox />} title="Nessuna correzione in coda" />;
+  }
+  return (
+    <ul className="space-y-1">
+      {rows.map((r) => (
+        <li key={r.id} className="inbox-row">
+          <div className="min-w-0 flex-1">
+            <div className="font-medium text-sm">{r.user_display_name || r.user_email}</div>
+            <div className="text-xs muted">
+              {labelEvent(r.claimed_event_type)} ·{' '}
+              {new Date(r.claimed_occurred_at).toLocaleString('it-IT')}
+            </div>
+            {r.justification && (
+              <div className="text-xs muted mt-0.5 truncate" title={r.justification}>
+                {r.justification}
+              </div>
+            )}
+          </div>
+          <div className="flex gap-1 flex-shrink-0">
+            <IconButton kind="approve" title="Approva" onClick={() => onApprove(r)} />
+            <IconButton kind="reject" title="Rifiuta" onClick={() => onReject(r)} />
+            <Link to="/corrections" className="btn btn-ghost btn-sm" title="Apri">
+              ↗
+            </Link>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function LeavesInbox({
+  rows,
+  onApprove,
+  onReject,
+}: {
+  rows: PendingLeave[];
+  onApprove: (r: PendingLeave) => void;
+  onReject: (r: PendingLeave) => void;
+}) {
+  if (rows.length === 0) {
+    return <EmptyState icon={<IconInbox />} title="Nessuna richiesta in coda" />;
+  }
+  return (
+    <ul className="space-y-1">
+      {rows.map((r) => (
+        <li key={r.id} className="inbox-row">
+          <div className="min-w-0 flex-1">
+            <div className="text-sm">
+              <span className="badge badge-muted mr-2">{LEAVE_TYPE_LABEL[r.type]}</span>
+              <span className="font-medium">{r.user_display_name || r.user_email}</span>
+            </div>
+            <div className="text-xs muted">
+              {fmtRange(r.from_ts, r.to_ts, r.type)} · {r.duration_hours}h
+            </div>
+            {r.user_note && (
+              <div className="text-xs muted mt-0.5 truncate" title={r.user_note}>
+                {r.user_note}
+              </div>
+            )}
+            {r.inps_protocol && (
+              <div className="text-xs muted">INPS: {r.inps_protocol}</div>
+            )}
+          </div>
+          <div className="flex gap-1 flex-shrink-0">
+            <IconButton kind="approve" title="Approva" onClick={() => onApprove(r)} />
+            <IconButton kind="reject" title="Rifiuta" onClick={() => onReject(r)} />
+            <Link to="/leaves" className="btn btn-ghost btn-sm" title="Apri">↗</Link>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function RevocationsInbox({
+  rows,
+  onDecide,
+}: {
+  rows: PendingLeave[];
+  onDecide: (r: PendingLeave, approveCancel: boolean) => void;
+}) {
+  if (rows.length === 0) {
+    return <EmptyState icon={<IconInbox />} title="Nessuna revoca da decidere" />;
+  }
+  return (
+    <ul className="space-y-1">
+      {rows.map((r) => (
+        <li key={r.id} className="inbox-row">
+          <div className="min-w-0 flex-1">
+            <div className="text-sm">
+              <span className="badge badge-muted mr-2">{LEAVE_TYPE_LABEL[r.type]}</span>
+              <span className="font-medium">{r.user_display_name || r.user_email}</span>
+            </div>
+            <div className="text-xs muted">
+              {fmtRange(r.from_ts, r.to_ts, r.type)} · {r.duration_hours}h
+            </div>
+            {r.cancellation_reason && (
+              <div className="text-xs muted mt-0.5">Motivo: {r.cancellation_reason}</div>
+            )}
+          </div>
+          <div className="flex gap-1 flex-shrink-0">
+            <IconButton
+              kind="approve"
+              title="Accetta annullamento"
+              onClick={() => onDecide(r, true)}
+            />
+            <IconButton
+              kind="reject"
+              title="Rifiuta annullamento"
+              onClick={() => onDecide(r, false)}
+            />
+            <Link to="/leaves" className="btn btn-ghost btn-sm" title="Apri">↗</Link>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/* ---------------- Absence row ---------------- */
+
+function AbsenceRow({
+  row,
+  mode,
+}: {
+  row: AbsentLeave;
+  mode: 'now' | 'upcoming';
+}) {
+  return (
+    <li className="card flex items-center justify-between gap-3 flex-wrap py-2.5 px-3">
+      <div className="min-w-0">
+        <div className="text-sm font-medium">{row.user_display_name || row.user_email}</div>
+        <div className="text-xs muted">
+          <span className="badge badge-muted mr-2">{LEAVE_TYPE_LABEL[row.type]}</span>
+          {mode === 'now'
+            ? `Fino al ${fmtDateShort(row.to_ts)}`
+            : fmtRange(row.from_ts, row.to_ts, row.type)}
+        </div>
+      </div>
+      <div className="text-xs muted">{row.duration_hours}h</div>
+    </li>
+  );
+}
+
+/* ---------------- Anomaly breakdown ---------------- */
+
+function AnomalyBreakdown({ by_kind }: { by_kind: Record<AnomalyKind, number> }) {
+  const entries = (Object.keys(by_kind) as AnomalyKind[])
+    .map((k) => ({ kind: k, n: by_kind[k] }))
+    .filter((e) => e.n > 0)
+    .sort((a, b) => b.n - a.n);
+  if (entries.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {entries.map((e) => (
+        <span key={e.kind} className="badge badge-muted">
+          {ANOMALY_LABEL[e.kind]}: <strong className="ml-1">{e.n}</strong>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/* ---------------- Reason dialog ---------------- */
+
+function ReasonDialog({
+  title,
+  label,
+  required,
+  onClose,
+  onSubmit,
+}: {
+  title: string;
+  label: string;
+  required: boolean;
+  onClose: () => void;
+  onSubmit: (reason: string) => Promise<void> | void;
+}) {
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (required && !reason.trim()) return;
+    setBusy(true);
+    try {
+      await onSubmit(reason.trim());
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
+      <form onSubmit={submit} className="card w-full max-w-md space-y-3">
+        <h2 className="section-title">{title}</h2>
+        <div>
+          <label className="label">{label}</label>
+          <textarea
+            className="input"
+            rows={3}
+            required={required}
+            maxLength={500}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            autoFocus
+          />
+        </div>
+        <div className="flex justify-end gap-2">
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
+            Annulla
+          </button>
+          <button type="submit" className="btn btn-danger" disabled={busy || (required && !reason.trim())}>
+            {busy ? 'Salvataggio…' : 'Conferma'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+/* ---------------- Presence sub-views (unchanged from prior) ---------------- */
 
 function ViewToggle({
   value,
@@ -194,6 +714,32 @@ function ViewToggle({
         );
       })}
     </div>
+  );
+}
+
+function InboxTabButton({
+  active,
+  onClick,
+  label,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count: number;
+}) {
+  return (
+    <button
+      type="button"
+      className={`px-4 py-2 text-sm border-b-2 flex items-center gap-2 ${active ? 'font-semibold' : 'opacity-70'}`}
+      style={{
+        borderColor: active ? 'var(--color-primary, #2563eb)' : 'transparent',
+      }}
+      onClick={onClick}
+    >
+      <span>{label}</span>
+      <span className={`badge ${count > 0 ? 'badge-warn' : 'badge-muted'}`}>{count}</span>
+    </button>
   );
 }
 
@@ -365,6 +911,27 @@ function labelEvent(e: string | null): string {
   }
 }
 
+function fmtDateShort(iso: string): string {
+  return new Date(iso).toLocaleDateString('it-IT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+  });
+}
+
+function fmtRange(from: string, to: string, type: LeaveType): string {
+  const f = new Date(from);
+  const t = new Date(to);
+  const sameDay = f.toDateString() === t.toDateString();
+  const d: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: '2-digit' };
+  const h: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
+  if (type === 'permessi' && sameDay) {
+    return `${f.toLocaleDateString('it-IT', d)} ${f.toLocaleTimeString('it-IT', h)}–${t.toLocaleTimeString('it-IT', h)}`;
+  }
+  if (sameDay) return f.toLocaleDateString('it-IT', d);
+  return `${f.toLocaleDateString('it-IT', d)} → ${t.toLocaleDateString('it-IT', d)}`;
+}
+
 /* Icons -------------------------------------------------------------- */
 const I = {
   width: 18,
@@ -383,13 +950,6 @@ function IconUsers() {
       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
       <circle cx="9" cy="7" r="4" />
       <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
-}
-function IconShield() {
-  return (
-    <svg {...I}>
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
     </svg>
   );
 }
@@ -416,6 +976,36 @@ function IconRefresh() {
       <path d="M21 3v5h-5" />
       <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
       <path d="M3 21v-5h5" />
+    </svg>
+  );
+}
+function IconCalendar() {
+  return (
+    <svg {...I}>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+function IconAlert() {
+  return (
+    <svg {...I}>
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12" y2="17.01" />
+    </svg>
+  );
+}
+function IconCoffee() {
+  return (
+    <svg {...I}>
+      <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+      <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4Z" />
+      <line x1="6" y1="1" x2="6" y2="4" />
+      <line x1="10" y1="1" x2="10" y2="4" />
+      <line x1="14" y1="1" x2="14" y2="4" />
     </svg>
   );
 }

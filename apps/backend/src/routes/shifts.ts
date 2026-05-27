@@ -432,7 +432,7 @@ shiftsRouter.get(
   })
 );
 
-interface AnomalyRow {
+export interface AnomalyRow {
   day: string;
   user_id: string;
   email: string;
@@ -447,7 +447,7 @@ interface AnomalyRow {
   stamps: { event_type: string; occurred_at: string }[];
 }
 
-interface Anomaly {
+export interface Anomaly {
   date: string;
   user_id: string;
   user_email: string;
@@ -482,7 +482,7 @@ function combineDateTime(dateStr: string, hhmm: string): Date {
   return new Date(Date.UTC(y, mo - 1, d, h, m, 0));
 }
 
-function computeAnomalies(rows: AnomalyRow[]): Anomaly[] {
+export function computeAnomalies(rows: AnomalyRow[]): Anomaly[] {
   const out: Anomaly[] = [];
   for (const row of rows) {
     if (!row.shift_template_id) continue;
