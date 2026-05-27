@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="{{ if eq .language "it" }}it{{ else }}en{{ end }}">
+<head>
+<meta charset="utf-8">
+<title>{{ if eq .language "it" }}Esito correzione — sonoQui{{ else }}Correction outcome — sonoQui{{ end }}</title>
+</head>
+<body style="font-family:Helvetica,Arial,sans-serif;max-width:560px;margin:2rem auto;padding:0 1rem;line-height:1.55;color:#1f1b16">
+{{ if eq .language "it" }}
+<h2 style="color:#b25500;margin:0 0 12px">La tua correzione è stata {{ .DecisionVerb }}</h2>
+<table cellpadding="6" cellspacing="0" style="border-collapse:collapse;margin:12px 0">
+  <tr><td style="color:#666">Evento</td><td><strong>{{ .EventLabel }}</strong></td></tr>
+  <tr><td style="color:#666">Quando</td><td>{{ .When }}</td></tr>
+  {{ if eq .HasNote "1" }}<tr><td style="color:#666">Nota</td><td>{{ .Note }}</td></tr>{{ else }}{{ end }}
+  {{ if eq .HasApprover "1" }}<tr><td style="color:#666">Decisa da</td><td>{{ .ApproverName }}</td></tr>{{ else }}{{ end }}
+</table>
+<p style="color:#666;font-size:12px">sonoQui — gestione presenze per piccole imprese.</p>
+{{ else }}
+<h2 style="color:#b25500;margin:0 0 12px">Your correction was {{ .DecisionVerb }}</h2>
+<table cellpadding="6" cellspacing="0" style="border-collapse:collapse;margin:12px 0">
+  <tr><td style="color:#666">Event</td><td><strong>{{ .EventLabel }}</strong></td></tr>
+  <tr><td style="color:#666">When</td><td>{{ .When }}</td></tr>
+  {{ if eq .HasNote "1" }}<tr><td style="color:#666">Note</td><td>{{ .Note }}</td></tr>{{ else }}{{ end }}
+  {{ if eq .HasApprover "1" }}<tr><td style="color:#666">Decided by</td><td>{{ .ApproverName }}</td></tr>{{ else }}{{ end }}
+</table>
+<p style="color:#666;font-size:12px">sonoQui — simple attendance for small businesses.</p>
+{{ end }}
+</body>
+</html>

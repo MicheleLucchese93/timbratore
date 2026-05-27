@@ -228,6 +228,121 @@ export function buildCancellationRequestedMail(p: LeaveMailPayload): {
   return { subject, text, html };
 }
 
+/* ----- Correction-request email templates ----- */
+
+const EVENT_LABEL: Record<string, { it: string; en: string }> = {
+  clock_in: { it: 'Ingresso', en: 'Clock in' },
+  clock_out: { it: 'Uscita', en: 'Clock out' },
+  break_start: { it: 'Inizio pausa', en: 'Break start' },
+  break_end: { it: 'Fine pausa', en: 'Break end' },
+};
+
+export interface CorrectionMailPayload {
+  event_type: string;
+  occurred_at: string;
+  is_edit: boolean;
+  justification: string;
+  requester_name: string;
+  approver_name?: string;
+  note?: string;
+  language?: 'it' | 'en';
+}
+
+function eventLabel(eventType: string, language: 'it' | 'en'): string {
+  return EVENT_LABEL[eventType]?.[language] ?? eventType;
+}
+
+function fmtMoment(iso: string, language: 'it' | 'en'): string {
+  const d = new Date(iso);
+  const locale = language === 'it' ? 'it-IT' : 'en-GB';
+  return d.toLocaleString(locale, {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function correctionsActionUrl(): string {
+  return env.WEB_PUBLIC_URL.replace(/\/$/, '') + '/corrections';
+}
+
+export function buildCorrectionSubmittedMail(p: CorrectionMailPayload): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const language = p.language ?? 'it';
+  const evt = eventLabel(p.event_type, language);
+  const when = fmtMoment(p.occurred_at, language);
+  const kind =
+    language === 'it'
+      ? p.is_edit
+        ? 'Modifica timbratura'
+        : 'Timbratura mancante'
+      : p.is_edit
+        ? 'Edit existing stamp'
+        : 'Missing stamp';
+  const subject =
+    language === 'it'
+      ? `[sonoQui] Nuova correzione timbratura — ${p.requester_name}`
+      : `[sonoQui] New stamp correction — ${p.requester_name}`;
+  const text =
+    language === 'it'
+      ? `${p.requester_name} ha inviato una richiesta di correzione.\n` +
+        `Tipo: ${kind}\nEvento: ${evt}\nQuando: ${when}\nMotivazione: ${p.justification}\n` +
+        `\nAccedi a sonoQui per approvare o rifiutare.`
+      : `${p.requester_name} submitted a stamp correction.\n` +
+        `Kind: ${kind}\nEvent: ${evt}\nWhen: ${when}\nReason: ${p.justification}\n` +
+        `\nOpen sonoQui to approve or reject.`;
+  const html = renderTemplate('correction-submitted.html', {
+    language,
+    RequesterName: p.requester_name,
+    Kind: kind,
+    EventLabel: evt,
+    When: when,
+    Justification: p.justification,
+    ActionUrl: correctionsActionUrl(),
+  });
+  return { subject, text, html };
+}
+
+export function buildCorrectionDecidedMail(
+  p: CorrectionMailPayload,
+  decision: 'approved' | 'rejected'
+): { subject: string; text: string; html: string } {
+  const language = p.language ?? 'it';
+  const evt = eventLabel(p.event_type, language);
+  const when = fmtMoment(p.occurred_at, language);
+  const verb = decisionVerb(decision, language);
+  const subject =
+    language === 'it'
+      ? `[sonoQui] Correzione ${verb}`
+      : `[sonoQui] Correction ${verb}`;
+  const noteLine = p.note
+    ? language === 'it' ? `Nota: ${p.note}\n` : `Note: ${p.note}\n`
+    : '';
+  const approverLine = p.approver_name
+    ? language === 'it' ? `Decisa da: ${p.approver_name}\n` : `Decided by: ${p.approver_name}\n`
+    : '';
+  const text =
+    language === 'it'
+      ? `La tua richiesta di correzione è stata ${verb}.\nEvento: ${evt}\nQuando: ${when}\n${noteLine}${approverLine}`
+      : `Your correction request has been ${verb}.\nEvent: ${evt}\nWhen: ${when}\n${noteLine}${approverLine}`;
+  const html = renderTemplate('correction-decided.html', {
+    language,
+    EventLabel: evt,
+    When: when,
+    DecisionVerb: verb,
+    HasNote: p.note ? '1' : '0',
+    Note: p.note ?? '',
+    HasApprover: p.approver_name ? '1' : '0',
+    ApproverName: p.approver_name ?? '',
+  });
+  return { subject, text, html };
+}
+
 export function buildCancellationDecidedMail(
   p: LeaveMailPayload,
   accepted: boolean

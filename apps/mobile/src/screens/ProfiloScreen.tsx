@@ -1,8 +1,10 @@
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -13,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSession } from '../store/session';
 import { color, space, type as t } from '@sonoqui/shared';
 import { userDisplayName } from '../lib/user-display';
+import { api } from '../lib/api';
 
 const AVATAR_PALETTE = [
   '#24389c',
@@ -42,8 +45,36 @@ function getAvatarColor(name: string): string {
 }
 
 export function ProfiloScreen() {
-  const { me, logout } = useSession();
+  const { me, logout, refresh } = useSession();
   const router = useRouter();
+  const [emailOn, setEmailOn] = useState<boolean>(
+    me?.preferences?.email_notifications_enabled ?? false
+  );
+  const [savingEmail, setSavingEmail] = useState(false);
+
+  useEffect(() => {
+    setEmailOn(me?.preferences?.email_notifications_enabled ?? false);
+  }, [me?.preferences?.email_notifications_enabled]);
+
+  async function toggleEmail(next: boolean) {
+    const prev = emailOn;
+    setEmailOn(next);
+    setSavingEmail(true);
+    try {
+      await api('/api/v1/me', {
+        method: 'PATCH',
+        json: { email_notifications_enabled: next },
+      });
+      await refresh();
+    } catch (e) {
+      setEmailOn(prev);
+      const msg = e instanceof Error ? e.message : 'Errore di salvataggio';
+      if (Platform.OS === 'web') window.alert(msg);
+      else Alert.alert('Errore', msg);
+    } finally {
+      setSavingEmail(false);
+    }
+  }
 
   function goBack() {
     if (router.canGoBack()) router.back();
@@ -135,6 +166,38 @@ export function ProfiloScreen() {
               {i < me.branches.length - 1 && <View style={styles.divider} />}
             </View>
           ))}
+        </View>
+
+        <Text style={styles.sectionLabel}>Notifiche</Text>
+        <View style={styles.card}>
+          <View style={styles.row}>
+            <View style={styles.rowIcon}>
+              <Ionicons name="notifications-outline" size={18} color={color.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowLabel}>PUSH</Text>
+              <Text style={styles.rowValue}>
+                {me.preferences?.push_token_registered ? 'Attive su questo dispositivo' : 'Non attive'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.row}>
+            <View style={styles.rowIcon}>
+              <Ionicons name="mail-outline" size={18} color={color.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowLabel}>EMAIL</Text>
+              <Text style={styles.rowValue}>
+                Ricevi anche via email
+              </Text>
+            </View>
+            <Switch
+              value={emailOn}
+              onValueChange={toggleEmail}
+              disabled={savingEmail}
+            />
+          </View>
         </View>
 
         <TouchableOpacity

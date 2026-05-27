@@ -32,6 +32,15 @@ meRouter.get(
       [req.user!.id]
     );
     const p = profile.rows[0] ?? {};
+    const prefs = await client.query(
+      `SELECT language,
+              COALESCE(email_notifications_enabled, FALSE) AS email_notifications_enabled,
+              push_token
+         FROM user_preferences
+        WHERE user_id = $1`,
+      [req.user!.id]
+    );
+    const pref = prefs.rows[0] ?? {};
     const branches = await client.query(
       `SELECT b.id, b.name, b.address, b.latitude, b.longitude, b.radius_m, b.smart_working,
               b.geofence_policy, b.gps_accuracy_ceiling_m
@@ -52,12 +61,19 @@ meRouter.get(
       },
       tenant: tenant.rows[0],
       branches: branches.rows,
+      preferences: {
+        language: pref.language ?? 'it',
+        email_notifications_enabled: !!pref.email_notifications_enabled,
+        push_token_registered: !!pref.push_token,
+      },
     });
   })
 );
 
 const PatchMe = z.object({
   language: z.enum(['it', 'en']).optional(),
+  email_notifications_enabled: z.boolean().optional(),
+  push_token: z.string().min(1).max(200).nullable().optional(),
 });
 
 meRouter.patch(
@@ -65,13 +81,31 @@ meRouter.patch(
   tenantHandler(async (req, res, client) => {
     const parse = PatchMe.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
-    if (parse.data.language) {
-      await client.query(
-        `INSERT INTO user_preferences(user_id, language) VALUES ($1, $2)
-         ON CONFLICT (user_id) DO UPDATE SET language = EXCLUDED.language`,
-        [req.user!.id, parse.data.language]
-      );
+    const b = parse.data;
+    if (
+      b.language === undefined &&
+      b.email_notifications_enabled === undefined &&
+      b.push_token === undefined
+    ) {
+      ok(res, { updated: false });
+      return;
     }
+    await client.query(
+      `INSERT INTO user_preferences(user_id, language, email_notifications_enabled, push_token)
+       VALUES ($1, COALESCE($2, 'it'), COALESCE($3, FALSE), $4)
+       ON CONFLICT (user_id) DO UPDATE SET
+         language = COALESCE($2, user_preferences.language),
+         email_notifications_enabled = COALESCE($3, user_preferences.email_notifications_enabled),
+         push_token = CASE WHEN $5::boolean THEN $4 ELSE user_preferences.push_token END,
+         updated_at = now()`,
+      [
+        req.user!.id,
+        b.language ?? null,
+        b.email_notifications_enabled ?? null,
+        b.push_token ?? null,
+        b.push_token !== undefined,
+      ]
+    );
     ok(res, { updated: true });
   })
 );

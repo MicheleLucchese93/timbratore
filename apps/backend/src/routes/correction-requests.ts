@@ -5,6 +5,10 @@ import { authenticate } from '../middleware/auth.js';
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
+import {
+  notifyCorrectionSubmitted,
+  notifyCorrectionDecided,
+} from '../lib/notifications.js';
 
 export const correctionRequestsRouter = Router();
 correctionRequestsRouter.use(authenticate);
@@ -46,6 +50,14 @@ correctionRequestsRouter.post(
        ))`,
       [req.user!.tenantId, JSON.stringify(r.rows[0])]
     );
+    await notifyCorrectionSubmitted(client, {
+      requestId: r.rows[0].id,
+      event_type: b.claimed_event_type,
+      occurred_at: b.claimed_occurred_at,
+      is_edit: !!b.original_stamp_id,
+      justification: b.justification,
+      requester_id: req.user!.id,
+    });
     ok(res, r.rows[0], 201);
   })
 );
@@ -187,6 +199,20 @@ correctionRequestsRouter.post(
        WHERE id = $2`,
       [parse.data.resolution_note ?? null, req.params.id]
     );
+    await notifyCorrectionDecided(
+      client,
+      {
+        requestId: String(req.params.id),
+        event_type: eventType,
+        occurred_at: occurredAt,
+        is_edit: !!row.original_stamp_id,
+        justification: row.justification,
+        requester_id: row.user_id,
+      },
+      'approved',
+      req.user!.id,
+      parse.data.resolution_note ?? undefined
+    );
     ok(res, { stamp });
   })
 );
@@ -215,6 +241,21 @@ correctionRequestsRouter.post(
        RETURNING *`,
       [note.data.resolution_note ?? null, req.params.id]
     );
-    ok(res, r.rows[0]);
+    const row = r.rows[0];
+    await notifyCorrectionDecided(
+      client,
+      {
+        requestId: row.id,
+        event_type: row.claimed_event_type,
+        occurred_at: row.claimed_occurred_at,
+        is_edit: !!row.original_stamp_id,
+        justification: row.justification,
+        requester_id: row.user_id,
+      },
+      'rejected',
+      req.user!.id,
+      note.data.resolution_note ?? undefined
+    );
+    ok(res, row);
   })
 );

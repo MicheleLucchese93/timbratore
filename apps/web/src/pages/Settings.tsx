@@ -28,18 +28,52 @@ const TIMEZONE_OPTIONS = [
 
 type Toast = { kind: 'ok' | 'err'; text: string } | null;
 
+interface MePrefs {
+  language: 'it' | 'en';
+  email_notifications_enabled: boolean;
+  push_token_registered: boolean;
+}
+
+interface MeResponse {
+  preferences?: MePrefs;
+}
+
 export function Settings() {
   const [s, setS] = useState<TenantSettings | null>(null);
+  const [prefs, setPrefs] = useState<MePrefs | null>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<Toast>(null);
 
   async function load() {
-    const data = await api<TenantSettings>('/api/v1/settings');
+    const [data, me] = await Promise.all([
+      api<TenantSettings>('/api/v1/settings'),
+      api<MeResponse>('/api/v1/me'),
+    ]);
     setS(data);
+    setPrefs(me.preferences ?? null);
   }
   useEffect(() => {
     load().catch((e) => setToast({ kind: 'err', text: e.message }));
   }, []);
+
+  async function saveEmailPref(next: boolean) {
+    if (!prefs) return;
+    const prev = prefs.email_notifications_enabled;
+    setPrefs({ ...prefs, email_notifications_enabled: next });
+    try {
+      await api('/api/v1/me', {
+        method: 'PATCH',
+        json: { email_notifications_enabled: next },
+      });
+      setToast({
+        kind: 'ok',
+        text: next ? 'Notifiche email attivate.' : 'Notifiche email disattivate.',
+      });
+    } catch (e) {
+      setPrefs((cur) => (cur ? { ...cur, email_notifications_enabled: prev } : cur));
+      setToast({ kind: 'err', text: e instanceof Error ? e.message : 'Errore' });
+    }
+  }
 
   useEffect(() => {
     if (!toast) return;
@@ -153,6 +187,34 @@ export function Settings() {
         </div>
       </SettingsRow>
 
+      <div className="hairline my-6" />
+
+      <SettingsRow
+        icon={<IconBell />}
+        title="Notifiche personali"
+        description="Le notifiche push sono sempre attive se hai installato l'app mobile. L'email è disattivata di default — accendila se vuoi ricevere anche le notifiche via posta elettronica."
+      >
+        <label className="flex items-center gap-3 cursor-pointer text-sm">
+          <input
+            type="checkbox"
+            checked={prefs?.email_notifications_enabled ?? false}
+            disabled={!prefs}
+            onChange={(e) => void saveEmailPref(e.target.checked)}
+          />
+          <span>
+            Invia notifiche via email per correzioni, ferie, permessi e malattia
+          </span>
+        </label>
+        {prefs && (
+          <p className="field-hint">
+            Push:{' '}
+            {prefs.push_token_registered
+              ? 'dispositivo mobile registrato'
+              : 'nessun dispositivo mobile registrato (apri l\'app per attivarlo)'}.
+          </p>
+        )}
+      </SettingsRow>
+
       {toast && (
         <div className={`toast ${toast.kind === 'ok' ? 'toast-ok' : 'toast-err'}`} role="status">
           {toast.kind === 'ok' ? <IconCheck /> : <IconAlert />}
@@ -206,6 +268,14 @@ function Field({
 }
 
 /* Icons (inline, no dep) ------------------------------------------------ */
+function IconBell() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </svg>
+  );
+}
 function IconBuilding() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

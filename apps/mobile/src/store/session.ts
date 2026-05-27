@@ -18,6 +18,11 @@ export interface Me {
   };
   tenant: { id: string; ragione_sociale: string; language: 'it' | 'en' };
   branches: Array<{ id: string; name: string; smart_working: boolean }>;
+  preferences?: {
+    language: 'it' | 'en';
+    email_notifications_enabled: boolean;
+    push_token_registered: boolean;
+  };
 }
 
 interface SessionState {
@@ -51,6 +56,7 @@ export const useSession = create<SessionState>((set, get) => ({
     try {
       const me = await api<Me>('/api/v1/me');
       set({ me, loading: false });
+      void import('../lib/push').then((m) => m.registerPushTokenIfNeeded());
     } catch (e) {
       const status = (e as { status?: number }).status;
       // Only clear tokens on confirmed auth rejection. Network blips,
