@@ -65,7 +65,7 @@ KEY_PASSWORD=$(grep "^keyPassword=" "$KEYSTORE_PROPERTIES" | cut -d'=' -f2 | tr 
 
 if [ ! -f "$KEYSTORE_FILE" ]; then
     echo -e "${RED}Error: Keystore file not found at $KEYSTORE_FILE${NC}"
-    echo -e "${YELLOW}Copy @micheel93-2__traduttore.jks to android/app/ (from EAS download).${NC}"
+    echo -e "${YELLOW}Copy @micheel93-2__timbratore.jks to android/app/ (from EAS download).${NC}"
     exit 1
 fi
 

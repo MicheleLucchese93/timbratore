@@ -2,7 +2,7 @@
 
 # Build script for creating a signed Android App Bundle (AAB) locally.
 # Uses android/keystore.properties for the local keystore path and credentials
-# (EAS timbratore_prod: @micheel93-2__traduttore.jks).
+# (EAS timbratore_prod: @micheel93-2__timbratore.jks).
 #
 # Run (from repository root):
 #   npm -w apps/mobile run build:aab
@@ -15,7 +15,7 @@
 # local React Native Gradle release builds) to avoid resolving autolinked native
 # modules with "No variants exist" / no matching release variant.
 #
-# Application ID (e.g. app.cisono.cisono) is not set in this script—it comes from
+# Application ID (e.g. app.sonoqui.mobile) is not set in this script—it comes from
 # android/app/build.gradle after Expo prebuild, which reads app.json
 # (expo.android.package). If you change the package name, regenerate android/ first:
 #   npx expo prebuild --platform android --clean
@@ -73,8 +73,8 @@ fi
 # Check if keystore file exists
 if [ ! -f "$KEYSTORE_FILE" ]; then
     echo -e "${RED}Error: Keystore file not found at $KEYSTORE_FILE${NC}"
-    echo -e "${YELLOW}Download from EAS (timbratore_prod) and copy to: android/app/@micheel93-2__traduttore.jks${NC}"
-    echo -e "${YELLOW}Ensure android/keystore.properties has storeFile=app/@micheel93-2__traduttore.jks and matching credentials.${NC}"
+    echo -e "${YELLOW}Download from EAS (timbratore_prod) and copy to: android/app/@micheel93-2__timbratore.jks${NC}"
+    echo -e "${YELLOW}Ensure android/keystore.properties has storeFile=app/@micheel93-2__timbratore.jks and matching credentials.${NC}"
     exit 1
 fi
 
