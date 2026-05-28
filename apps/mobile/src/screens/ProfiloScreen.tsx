@@ -44,6 +44,19 @@ function getAvatarColor(name: string): string {
   return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
 }
 
+type PushPrefKey =
+  | 'push_leave_decisions'
+  | 'push_correction_decisions'
+  | 'push_leave_submissions'
+  | 'push_correction_submissions';
+
+const PUSH_PREF_DEFAULTS: Record<PushPrefKey, boolean> = {
+  push_leave_decisions: true,
+  push_correction_decisions: true,
+  push_leave_submissions: true,
+  push_correction_submissions: true,
+};
+
 export function ProfiloScreen() {
   const { me, logout, refresh } = useSession();
   const router = useRouter();
@@ -52,9 +65,24 @@ export function ProfiloScreen() {
   );
   const [savingEmail, setSavingEmail] = useState(false);
 
+  const initialPushPrefs = {
+    ...PUSH_PREF_DEFAULTS,
+    ...(me?.preferences?.notification_preferences ?? {}),
+  };
+  const [pushPrefs, setPushPrefs] =
+    useState<Record<PushPrefKey, boolean>>(initialPushPrefs);
+  const [savingPushKey, setSavingPushKey] = useState<PushPrefKey | null>(null);
+
   useEffect(() => {
     setEmailOn(me?.preferences?.email_notifications_enabled ?? false);
   }, [me?.preferences?.email_notifications_enabled]);
+
+  useEffect(() => {
+    setPushPrefs({
+      ...PUSH_PREF_DEFAULTS,
+      ...(me?.preferences?.notification_preferences ?? {}),
+    });
+  }, [me?.preferences?.notification_preferences]);
 
   async function toggleEmail(next: boolean) {
     const prev = emailOn;
@@ -73,6 +101,26 @@ export function ProfiloScreen() {
       else Alert.alert('Errore', msg);
     } finally {
       setSavingEmail(false);
+    }
+  }
+
+  async function togglePushPref(key: PushPrefKey, next: boolean) {
+    const prev = pushPrefs[key];
+    setPushPrefs((p) => ({ ...p, [key]: next }));
+    setSavingPushKey(key);
+    try {
+      await api('/api/v1/me', {
+        method: 'PATCH',
+        json: { notification_preferences: { [key]: next } },
+      });
+      await refresh();
+    } catch (e) {
+      setPushPrefs((p) => ({ ...p, [key]: prev }));
+      const msg = e instanceof Error ? e.message : 'Errore di salvataggio';
+      if (Platform.OS === 'web') window.alert(msg);
+      else Alert.alert('Errore', msg);
+    } finally {
+      setSavingPushKey(null);
     }
   }
 
@@ -102,6 +150,8 @@ export function ProfiloScreen() {
   const displayName = userDisplayName(me.user);
   const initials = getInitials(displayName);
   const avatarColor = getAvatarColor(displayName);
+  const isAdmin = me.user.role === 'admin';
+  const pushEnabled = !!me.preferences?.push_token_registered;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -177,10 +227,46 @@ export function ProfiloScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.rowLabel}>PUSH</Text>
               <Text style={styles.rowValue}>
-                {me.preferences?.push_token_registered ? 'Attive su questo dispositivo' : 'Non attive'}
+                {pushEnabled ? 'Attive su questo dispositivo' : 'Non attive'}
               </Text>
             </View>
           </View>
+          <View style={styles.divider} />
+          <PushToggleRow
+            label="Esiti ferie e permessi"
+            hint="Approvazioni e rifiuti delle tue richieste"
+            value={pushPrefs.push_leave_decisions}
+            disabled={!pushEnabled || savingPushKey !== null}
+            onChange={(v) => togglePushPref('push_leave_decisions', v)}
+          />
+          <View style={styles.divider} />
+          <PushToggleRow
+            label="Esiti correzioni"
+            hint="Approvazioni e rifiuti delle tue correzioni"
+            value={pushPrefs.push_correction_decisions}
+            disabled={!pushEnabled || savingPushKey !== null}
+            onChange={(v) => togglePushPref('push_correction_decisions', v)}
+          />
+          {isAdmin && (
+            <>
+              <View style={styles.divider} />
+              <PushToggleRow
+                label="Nuove richieste ferie e permessi"
+                hint="Richieste da approvare e annullamenti"
+                value={pushPrefs.push_leave_submissions}
+                disabled={!pushEnabled || savingPushKey !== null}
+                onChange={(v) => togglePushPref('push_leave_submissions', v)}
+              />
+              <View style={styles.divider} />
+              <PushToggleRow
+                label="Nuove correzioni da approvare"
+                hint="Correzioni inviate dai dipendenti"
+                value={pushPrefs.push_correction_submissions}
+                disabled={!pushEnabled || savingPushKey !== null}
+                onChange={(v) => togglePushPref('push_correction_submissions', v)}
+              />
+            </>
+          )}
           <View style={styles.divider} />
           <View style={styles.row}>
             <View style={styles.rowIcon}>
@@ -229,6 +315,30 @@ function Row({
         <Text style={styles.rowLabel}>{label}</Text>
         <Text style={styles.rowValue}>{value}</Text>
       </View>
+    </View>
+  );
+}
+
+function PushToggleRow({
+  label,
+  hint,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  value: boolean;
+  disabled: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <View style={styles.subRow}>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.subRowLabel, disabled && styles.subRowDisabled]}>{label}</Text>
+        <Text style={[styles.subRowHint, disabled && styles.subRowDisabled]}>{hint}</Text>
+      </View>
+      <Switch value={value && !disabled} onValueChange={onChange} disabled={disabled} />
     </View>
   );
 }
@@ -359,6 +469,26 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: color.surfaceVariant,
     marginLeft: 48,
+  },
+  subRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingLeft: 48,
+    gap: 12,
+  },
+  subRowLabel: {
+    fontSize: 14,
+    color: color.onSurface,
+    fontWeight: '500',
+  },
+  subRowHint: {
+    fontSize: 12,
+    color: color.onSurfaceVariant,
+    marginTop: 2,
+  },
+  subRowDisabled: {
+    opacity: 0.5,
   },
   empty: { color: color.onSurfaceVariant, paddingVertical: 14 },
 

@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
+import { IconButton } from '../components/IconButton.tsx';
 
 type LeaveType = 'ferie' | 'permessi' | 'malattia';
 type LeaveStatus =
@@ -938,6 +939,8 @@ function RequestsDataGrid({
         headerName: 'Ore',
         width: 90,
         type: 'number',
+        align: 'left',
+        headerAlign: 'left',
       },
       {
         field: 'status',
@@ -998,57 +1001,39 @@ function RequestsDataGrid({
       {
         field: 'actions',
         headerName: 'Azioni',
-        width: 220,
+        width: 130,
         sortable: false,
         filterable: false,
         renderCell: (p: GridRenderCellParams<LeaveRequest>) => {
           const r = p.row;
           return (
-            <div className="flex gap-1 flex-wrap">
+            <div className="flex gap-1">
               {r.status === 'pending' && (
                 <>
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
-                    onClick={() => onApprove(r)}
-                  >
-                    Approva
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-danger btn-sm"
-                    onClick={() => onReject(r)}
-                  >
-                    Rifiuta
-                  </button>
+                  <IconButton kind="approve" title="Approva" onClick={() => onApprove(r)} />
+                  <IconButton kind="reject" title="Rifiuta" onClick={() => onReject(r)} />
                 </>
               )}
               {r.status === 'cancellation_pending' && (
                 <>
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
+                  <IconButton
+                    kind="approve"
+                    title="Accetta annullamento"
                     onClick={() => onDecideCancel(r, true)}
-                  >
-                    Accetta
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
+                  />
+                  <IconButton
+                    kind="reject"
+                    title="Rifiuta annullamento"
                     onClick={() => onDecideCancel(r, false)}
-                  >
-                    Rifiuta
-                  </button>
+                  />
                 </>
               )}
               {r.status === 'approved' && (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
+                <IconButton
+                  kind="revoke"
+                  title="Revoca"
                   onClick={() => onCancelApproved(r)}
-                >
-                  Revoca
-                </button>
+                />
               )}
             </div>
           );
@@ -1188,6 +1173,8 @@ function TemplatesDataGrid({
         headerName: 'Riferimento annuo',
         width: 160,
         type: 'number',
+        align: 'left',
+        headerAlign: 'left',
         renderCell: (p: GridRenderCellParams<Template>) => (
           <span className="num text-xs">{p.row.hours_default}h</span>
         ),
@@ -1220,17 +1207,13 @@ function TemplatesDataGrid({
       {
         field: 'actions',
         headerName: 'Azioni',
-        width: 180,
+        width: 130,
         sortable: false,
         filterable: false,
         renderCell: (p: GridRenderCellParams<Template>) => (
           <div className="flex gap-1">
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => onEdit(p.row)}>
-              Modifica
-            </button>
-            <button type="button" className="btn btn-danger btn-sm" onClick={() => onDelete(p.row)}>
-              Elimina
-            </button>
+            <IconButton kind="edit" title="Modifica modello" onClick={() => onEdit(p.row)} />
+            <IconButton kind="delete" title="Elimina modello" onClick={() => onDelete(p.row)} />
           </div>
         ),
       },

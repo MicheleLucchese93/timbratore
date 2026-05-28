@@ -3,6 +3,7 @@ import { ActivityIndicator, AppState, View } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useSession } from '../store/session';
 import { LoginScreen } from '../screens/LoginScreen';
+import { setupBadgeSync } from '../lib/badgeSync';
 
 // Mirrors Documents/Penno/apps/mobile/src/App.tsx safety net: if `refresh`
 // never settles (network stall, SecureStore wedge), don't trap the user
@@ -42,6 +43,15 @@ export default function Index() {
     });
     return () => sub.remove();
   }, [refresh]);
+
+  // Mirror notification unread count to OS app-icon badge once logged in.
+  // Tears down on logout / role change so the next session starts clean.
+  const role = me?.user.role;
+  useEffect(() => {
+    if (!role) return;
+    const teardown = setupBadgeSync(role);
+    return teardown;
+  }, [role]);
 
   if (!bootDone && loading) {
     return (

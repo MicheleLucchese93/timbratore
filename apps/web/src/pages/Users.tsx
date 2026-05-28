@@ -3,6 +3,7 @@ import { DataGrid, type GridColDef, type GridRowSelectionModel } from '@mui/x-da
 import { api, apiUrl, getToken } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { useSession } from '../store/session.ts';
+import { IconButton } from '../components/IconButton.tsx';
 
 interface UserRow {
   membership_id: string;
@@ -917,57 +918,6 @@ function BulkBranchesDialog({
         </div>
       </div>
     </div>
-  );
-}
-
-function IconButton({
-  kind,
-  onClick,
-  disabled,
-  title,
-}: {
-  kind: 'edit' | 'deactivate' | 'reactivate' | 'delete';
-  onClick: () => void;
-  disabled?: boolean;
-  title?: string;
-}) {
-  const danger = kind === 'delete';
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      aria-label={title}
-      className={`icon-btn ${danger ? 'icon-btn-danger' : ''}`.trim()}
-    >
-      {kind === 'edit' && (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M12 20h9" />
-          <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
-        </svg>
-      )}
-      {kind === 'deactivate' && (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
-          <line x1="12" y1="2" x2="12" y2="12" />
-        </svg>
-      )}
-      {kind === 'reactivate' && (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <polygon points="6 4 20 12 6 20 6 4" />
-        </svg>
-      )}
-      {kind === 'delete' && (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <polyline points="3 6 5 6 21 6" />
-          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-          <path d="M10 11v6" />
-          <path d="M14 11v6" />
-          <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-        </svg>
-      )}
-    </button>
   );
 }
 

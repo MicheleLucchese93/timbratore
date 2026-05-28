@@ -22,6 +22,12 @@ export interface Me {
     language: 'it' | 'en';
     email_notifications_enabled: boolean;
     push_token_registered: boolean;
+    notification_preferences: {
+      push_leave_decisions: boolean;
+      push_correction_decisions: boolean;
+      push_leave_submissions: boolean;
+      push_correction_submissions: boolean;
+    };
   };
 }
 

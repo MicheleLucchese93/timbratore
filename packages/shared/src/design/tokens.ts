@@ -1,4 +1,4 @@
-// Canonical design tokens — referenced by design.md.
+// Canonical design tokens — referenced by Specs/design.md.
 // Web mirrors these in apps/web/src/index.css :root block.
 
 export const color = {

@@ -15,12 +15,14 @@ const adminNav: NavItem[] = [
   { to: '/leaves', label: 'Ferie & Permessi', icon: <IconCalendar /> },
   { to: '/exports', label: 'Esportazioni', icon: <IconDownload /> },
   { to: '/settings', label: 'Impostazioni', icon: <IconCog /> },
+  { to: '/manual', label: 'Manuale Utente', icon: <IconBook /> },
 ];
 
 const userNav: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: <IconHome /> },
   { to: '/me/stamps', label: 'Le mie timbrature', icon: <IconStamp /> },
   { to: '/me/corrections', label: 'Le mie richieste', icon: <IconEdit /> },
+  { to: '/manual', label: 'Manuale Utente', icon: <IconBook /> },
 ];
 
 const COLLAPSED_KEY = 'sonoqui.sidebar.collapsed';
@@ -272,6 +274,14 @@ function IconLogout() {
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
       <path d="M16 17l5-5-5-5" />
       <path d="M21 12H9" />
+    </svg>
+  );
+}
+function IconBook() {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5a2.5 2.5 0 0 0 0 5H20" />
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
     </svg>
   );
 }

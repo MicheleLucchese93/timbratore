@@ -16,6 +16,7 @@ import { Anomalies } from '../pages/Anomalies.tsx';
 import { Leaves } from '../pages/Leaves.tsx';
 import { MyStamps } from '../pages/MyStamps.tsx';
 import { MyDashboard } from '../pages/MyDashboard.tsx';
+import { Manual } from '../pages/Manual.tsx';
 
 export function App() {
   const { me, loading, refresh } = useSession();
@@ -58,6 +59,7 @@ export function App() {
           <Route path="/shifts" element={<Shifts />} />
           <Route path="/anomalies" element={<Anomalies />} />
           <Route path="/leaves" element={<Leaves />} />
+          <Route path="/manual" element={<Manual />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
@@ -71,6 +73,7 @@ export function App() {
         <Route path="/" element={<MyDashboard />} />
         <Route path="/me/stamps" element={<MyStamps />} />
         <Route path="/me/corrections" element={<Corrections />} />
+        <Route path="/manual" element={<Manual />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
