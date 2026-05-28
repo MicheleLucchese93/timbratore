@@ -62,5 +62,17 @@ target 'sonoQui' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
+
+    # Fix for AD-joined Macs where primary group is "Domain Users" (contains space)
+    # which breaks Xcode's SetOwnerAndGroup phase: `chown: ARCHITM\Domain Users: illegal group name`
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['SKIP_INSTALL'] = 'YES'
+      end
+    end
+    installer.pods_project.build_configurations.each do |config|
+      config.build_settings['INSTALL_OWNER'] = ''
+      config.build_settings['INSTALL_GROUP'] = ''
+    end
   end
 end

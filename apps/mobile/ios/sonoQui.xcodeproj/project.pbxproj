@@ -375,6 +375,8 @@
 					"FB_SONARKIT_ENABLED=1",
 				);
 				INFOPLIST_FILE = sonoQui/Info.plist;
+				INSTALL_GROUP = "";
+				INSTALL_OWNER = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -408,6 +410,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = C7E2BDD3MR;
 				INFOPLIST_FILE = sonoQui/Info.plist;
+				INSTALL_GROUP = "";
+				INSTALL_OWNER = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
