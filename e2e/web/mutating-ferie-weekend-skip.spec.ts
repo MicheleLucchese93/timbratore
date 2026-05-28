@@ -88,11 +88,16 @@ test.describe('web — Ferie weekend-skip via shift template (mutating)', () => 
     const followingMon = new Date(mon);
     followingMon.setUTCDate(followingMon.getUTCDate() + 7);
     // Times-of-day are not material to ferie duration math — the backend
-    // walks day-by-day. Use 00:00 → 23:59 to span both endpoints.
+    // walks day-by-day in Europe/Rome. Anchor both endpoints to noon UTC
+    // so they land squarely inside the calendar Monday in Rome time
+    // (CEST = UTC+2, so 12:00 UTC = 14:00 Rome). Using 00:00 / 23:59 UTC
+    // would slide the endpoints across the Rome day boundary (UTC 23:59
+    // Mon = 01:59 Tue in Rome), making enumerateDays count an extra
+    // Tuesday and the test compute 56h instead of the expected 48h.
     const from = new Date(mon);
-    from.setUTCHours(0, 0, 0, 0);
+    from.setUTCHours(12, 0, 0, 0);
     const to = new Date(followingMon);
-    to.setUTCHours(23, 59, 0, 0);
+    to.setUTCHours(12, 0, 0, 0);
 
     const created = await createLeave(user.token, {
       type: 'ferie',
