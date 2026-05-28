@@ -18,7 +18,7 @@ export interface ExportResult {
   signedUrlExpiresAt: Date;
 }
 
-import { pool } from '../lib/db.js';
+import { adminPool } from '../lib/admin-db.js';
 
 interface DayAgg {
   day: string;
@@ -72,7 +72,7 @@ export async function generateExportFile(job: ExportJobRow): Promise<ExportResul
 const PAID_BREAK_THRESHOLD_MIN = 30;
 
 async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
-  const rows = await pool.query(
+  const rows = await adminPool.query(
     `SELECT s.user_id, s.event_type, s.occurred_at, s.deleted_at,
             COALESCE(au.email, s.user_id::text) AS email
      FROM stamps s
@@ -98,7 +98,7 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
   // Ensure users that only have leave (no stamps) still appear in the export.
   for (const userId of leavesByUserDay.keys()) {
     if (!byUser.has(userId)) {
-      const meta = await pool.query(
+      const meta = await adminPool.query(
         `SELECT COALESCE(au.email, $1::text) AS email FROM auth_users au WHERE au.id = $1`,
         [userId]
       );
@@ -271,7 +271,7 @@ async function loadLeavesPerDay(
   job: ExportJobRow
 ): Promise<Map<string, Map<string, DayLeaveBucket>>> {
   // approved + cancellation_pending count as "user is out" for export purposes.
-  const r = await pool.query(
+  const r = await adminPool.query(
     `SELECT lr.user_id, lr.type, lr.from_ts, lr.to_ts, lr.duration_hours
        FROM leave_requests lr
       WHERE lr.tenant_id = $1
@@ -329,7 +329,7 @@ async function loadLeavesPerDay(
 
 async function loadShiftConfigs(job: ExportJobRow): Promise<Map<string, ShiftConfig>> {
   // Latest active assignment overlapping the export period — one row per user.
-  const assigns = await pool.query(
+  const assigns = await adminPool.query(
     `SELECT DISTINCT ON (a.user_id)
             a.user_id, a.shift_template_id,
             st.tolerance_in_min, st.tolerance_out_min,
@@ -348,7 +348,7 @@ async function loadShiftConfigs(job: ExportJobRow): Promise<Map<string, ShiftCon
   if (assigns.rowCount === 0) return new Map();
 
   const tplIds = [...new Set(assigns.rows.map((r) => r.shift_template_id))];
-  const slots = await pool.query(
+  const slots = await adminPool.query(
     `SELECT shift_template_id, day_of_week,
             to_char(start_time, 'HH24:MI') AS start_time,
             to_char(end_time, 'HH24:MI') AS end_time

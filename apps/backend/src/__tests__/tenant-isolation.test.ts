@@ -32,6 +32,29 @@ async function seedTenant(slug: string): Promise<Seed> {
   return { tenantId, userId, branchId: b.rows[0].id };
 }
 
+test('per-request DB role does NOT have BYPASSRLS', async () => {
+  // Regression guard for the prod incident where the `app` role was created
+  // with rolbypassrls=true, silently disabling every tenant-isolation policy.
+  const client = await pool.connect();
+  try {
+    const r = await client.query<{ user: string; bypasses: boolean }>(
+      `SELECT current_user AS user, rolbypassrls AS bypasses
+         FROM pg_roles
+        WHERE rolname = current_user`
+    );
+    const row = r.rows[0];
+    assert.ok(row, 'expected current_user row in pg_roles');
+    assert.equal(
+      row.bypasses,
+      false,
+      `Role "${row.user}" has BYPASSRLS=true; tenant RLS is silently disabled. ` +
+        `Run infra/fix-app-role-rls.sql as superuser.`
+    );
+  } finally {
+    client.release();
+  }
+});
+
 test('cross-tenant branch SELECT is blocked by RLS', async () => {
   const a = await seedTenant('A');
   const b = await seedTenant('B');

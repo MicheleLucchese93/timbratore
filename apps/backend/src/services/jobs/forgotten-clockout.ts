@@ -1,10 +1,10 @@
-import { pool } from '../../lib/db.js';
+import { adminPool } from '../../lib/admin-db.js';
 import { createLogger } from '../../lib/logger.js';
 
 const logger = createLogger('forgotten_clockout');
 
 export async function forgottenClockoutReminder(): Promise<void> {
-  const result = await pool.query(
+  const result = await adminPool.query(
     `WITH latest AS (
        SELECT DISTINCT ON (user_id) id, tenant_id, user_id, event_type, occurred_at, reminder_sent_at
        FROM stamps

@@ -66,3 +66,18 @@ BEGIN
 END $$;
 GRANT anon, authenticated TO app;
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
+
+-- 7. RLS enforcement for the `app` role.
+-- The role is created by the shared infra bootstrap and historically inherited
+-- BYPASSRLS=true from a PostgREST-style template. With BYPASSRLS, our
+-- tenant-isolation RLS policies are silently skipped on per-request API
+-- queries — admins in one tenant can read every other tenant. Force it off
+-- here so fresh bootstraps are correct. Existing DBs need the one-shot
+-- infra/fix-app-role-rls.sql run as superuser; the
+-- 024_app_role_rls_guard.sql migration fails loudly if neither path ran.
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'app') THEN
+    ALTER ROLE app NOBYPASSRLS;
+  END IF;
+END $$;

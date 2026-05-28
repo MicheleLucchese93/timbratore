@@ -1,4 +1,4 @@
-import { pool } from '../../lib/db.js';
+import { adminPool } from '../../lib/admin-db.js';
 import { createLogger } from '../../lib/logger.js';
 
 const logger = createLogger('leave_daily_accrual');
@@ -12,7 +12,7 @@ const logger = createLogger('leave_daily_accrual');
  * only refreshed when an INSERT actually happened.
  */
 export async function leaveDailyAccrual(): Promise<void> {
-  const r = await pool.query(
+  const r = await adminPool.query(
     `WITH today AS (
        SELECT (now() AT TIME ZONE 'Europe/Rome')::date AS d
      ),
