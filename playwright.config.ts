@@ -9,6 +9,7 @@ import { STORAGE, URLS } from './e2e/fixtures/test-data';
 // User specs live in e2e/{web,mobile}/user/*.spec.ts.
 export default defineConfig({
   testDir: './e2e',
+  globalTeardown: './e2e/setup/global-teardown.ts',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

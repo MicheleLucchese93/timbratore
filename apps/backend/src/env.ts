@@ -63,6 +63,9 @@ const Env = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().optional(),
+  // Bearer secret for the e2e fixture purge endpoint. Endpoint is only
+  // registered when this is set; required length keeps brute-force out of reach.
+  E2E_PURGE_SECRET: z.string().min(32).optional(),
 });
 
 export const env = Env.parse(process.env);
