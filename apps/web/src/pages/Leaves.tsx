@@ -4,7 +4,33 @@ import { api } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { IconButton } from '../components/IconButton.tsx';
 
-type LeaveType = 'ferie' | 'permessi' | 'malattia';
+type LeaveType = 'ferie' | 'permessi' | 'malattia' | 'assenza';
+type AssenzaSubtype =
+  | 'lutto'
+  | 'donazione_sangue'
+  | 'permesso_studio'
+  | 'permesso_elettorale'
+  | 'matrimonio'
+  | 'allattamento'
+  | 'congedo_parentale'
+  | 'legge_104'
+  | 'assemblea_sindacale'
+  | 'visita_medica'
+  | 'motivi_personali';
+
+const ASSENZA_SUBTYPE_LABEL: Record<AssenzaSubtype, string> = {
+  lutto: 'Lutto',
+  donazione_sangue: 'Donazione sangue',
+  permesso_studio: 'Permesso studio',
+  permesso_elettorale: 'Permesso elettorale',
+  matrimonio: 'Matrimonio',
+  allattamento: 'Allattamento',
+  congedo_parentale: 'Congedo parentale',
+  legge_104: 'Legge 104',
+  assemblea_sindacale: 'Assemblea sindacale',
+  visita_medica: 'Visita medica',
+  motivi_personali: 'Motivi personali',
+};
 type LeaveStatus =
   | 'pending'
   | 'approved'
@@ -28,6 +54,8 @@ interface LeaveRequest {
   user_note: string | null;
   rejection_reason: string | null;
   cancellation_reason: string | null;
+  assenza_subtype: AssenzaSubtype | null;
+  is_paid: boolean | null;
   decided_by_display_name: string | null;
   decided_by_email: string | null;
   decided_at: string | null;
@@ -95,6 +123,7 @@ const TYPE_LABEL: Record<LeaveType, string> = {
   ferie: 'Ferie',
   permessi: 'Permesso',
   malattia: 'Malattia',
+  assenza: 'Assenza',
 };
 
 const STATUS_LABEL: Record<LeaveStatus, string> = {
@@ -920,6 +949,7 @@ function RequestsDataGrid({
           { value: 'ferie', label: 'Ferie' },
           { value: 'permessi', label: 'Permesso' },
           { value: 'malattia', label: 'Malattia' },
+          { value: 'assenza', label: 'Assenza' },
         ],
         renderCell: (p: GridRenderCellParams<LeaveRequest>) => TYPE_LABEL[p.row.type as LeaveType],
       },
@@ -966,6 +996,9 @@ function RequestsDataGrid({
         valueGetter: (_v: unknown, row: LeaveRequest) =>
           [
             row.inps_protocol ? `INPS: ${row.inps_protocol}` : '',
+            row.type === 'assenza' && row.assenza_subtype
+              ? `${ASSENZA_SUBTYPE_LABEL[row.assenza_subtype]} (${row.is_paid ? 'retribuita' : 'non retribuita'})`
+              : '',
             row.user_note ?? '',
             row.rejection_reason ? `Rifiuto: ${row.rejection_reason}` : '',
             row.cancellation_reason ? `Annullamento: ${row.cancellation_reason}` : '',
@@ -978,6 +1011,12 @@ function RequestsDataGrid({
             <div className="text-xs">
               {r.type === 'malattia' && r.inps_protocol ? (
                 <span>INPS: <strong>{r.inps_protocol}</strong></span>
+              ) : null}
+              {r.type === 'assenza' && r.assenza_subtype ? (
+                <div>
+                  <strong>{ASSENZA_SUBTYPE_LABEL[r.assenza_subtype]}</strong>{' '}
+                  · {r.is_paid ? 'retribuita' : 'non retribuita'}
+                </div>
               ) : null}
               {r.user_note ? <div className="muted">{r.user_note}</div> : null}
               {r.rejection_reason ? (

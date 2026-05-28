@@ -167,7 +167,7 @@ async function deliver(
 
 interface LeaveContext {
   requestId: string;
-  type: 'ferie' | 'permessi' | 'malattia';
+  type: 'ferie' | 'permessi' | 'malattia' | 'assenza';
   from_ts: string;
   to_ts: string;
   duration_hours: number;
@@ -383,6 +383,7 @@ function labelOf(type: string): string {
   if (type === 'ferie') return 'Ferie';
   if (type === 'permessi') return 'Permesso';
   if (type === 'malattia') return 'Malattia';
+  if (type === 'assenza') return 'Assenza';
   return type;
 }
 

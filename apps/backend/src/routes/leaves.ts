@@ -8,6 +8,7 @@ import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '.
 import {
   computeDurationHours,
   applyMalattiaOverlap,
+  assertPerDayCap,
 } from '../lib/leave-quota.js';
 import {
   notifyLeaveSubmitted,
@@ -19,7 +20,22 @@ import {
 export const leavesRouter = Router();
 leavesRouter.use(authenticate);
 
-const TypeEnum = z.enum(['ferie', 'permessi', 'malattia']);
+const TypeEnum = z.enum(['ferie', 'permessi', 'malattia', 'assenza']);
+
+const ASSENZA_SUBTYPES = [
+  'lutto',
+  'donazione_sangue',
+  'permesso_studio',
+  'permesso_elettorale',
+  'matrimonio',
+  'allattamento',
+  'congedo_parentale',
+  'legge_104',
+  'assemblea_sindacale',
+  'visita_medica',
+  'motivi_personali',
+] as const;
+const AssenzaSubtypeEnum = z.enum(ASSENZA_SUBTYPES);
 
 const CreateBody = z.object({
   type: TypeEnum,
@@ -27,6 +43,8 @@ const CreateBody = z.object({
   to_ts: z.string().datetime({ offset: true }),
   inps_protocol: z.string().min(1).max(100).optional(),
   user_note: z.string().max(1000).optional(),
+  assenza_subtype: AssenzaSubtypeEnum.optional(),
+  is_paid: z.boolean().optional(),
 });
 
 function quarterMs(): number {
@@ -117,6 +135,17 @@ leavesRouter.post(
     if (b.type === 'malattia' && !b.inps_protocol) {
       throw new ValidationError('numero protocollo INPS obbligatorio per malattia');
     }
+    if (b.type === 'assenza') {
+      if (!b.assenza_subtype) {
+        throw new ValidationError('tipologia di assenza obbligatoria');
+      }
+      if (b.is_paid === undefined) {
+        throw new ValidationError('specifica se l\'assenza è retribuita');
+      }
+      if (!b.user_note || b.user_note.trim().length === 0) {
+        throw new ValidationError('motivazione obbligatoria per l\'assenza');
+      }
+    }
 
     const userId = req.user!.id;
     const duration = await computeDurationHours(client, userId, b.type, b.from_ts, b.to_ts);
@@ -126,6 +155,12 @@ leavesRouter.post(
       );
     }
 
+    // Per-day cap: the sum of (existing active requests + this one) cannot
+    // exceed the user's timesheet hours for any single day. malattia is
+    // exempt — it deliberately overrides overlapping rows via
+    // applyMalattiaOverlap below.
+    await assertPerDayCap(client, userId, b.type, b.from_ts, b.to_ts, null);
+
     // Quota balance is informational only. Submissions never blocked: companies
     // decide policy themselves and the counter is allowed to go negative.
     const status = b.type === 'malattia' ? 'approved' : 'pending';
@@ -134,11 +169,12 @@ leavesRouter.post(
          tenant_id, user_id, type, status,
          from_ts, to_ts, duration_hours,
          inps_protocol, user_note,
+         assenza_subtype, is_paid,
          decided_by, decided_at
        ) VALUES (
          current_setting('app.current_tenant_id')::uuid,
          current_setting('app.current_user_id')::uuid,
-         $1, $2, $3, $4, $5, $6, $7, $8, $9
+         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
        ) RETURNING *`,
       [
         b.type,
@@ -148,6 +184,8 @@ leavesRouter.post(
         duration,
         b.inps_protocol ?? null,
         b.user_note ?? null,
+        b.type === 'assenza' ? b.assenza_subtype ?? null : null,
+        b.type === 'assenza' ? b.is_paid ?? null : null,
         b.type === 'malattia' ? userId : null,
         b.type === 'malattia' ? new Date().toISOString() : null,
       ]
@@ -308,6 +346,19 @@ leavesRouter.post(
       throw new ConflictError('richiesta non più in attesa', 'NOT_PENDING');
     }
     await assertCanDecide(client, req.user!.id, req.user!.role, row.user_id);
+
+    // Re-check the per-day cap in case other requests landed between submit
+    // and approve. Exclude this row's id so an exact-match self-overlap
+    // doesn't double-count. malattia is exempt (assertPerDayCap short-
+    // circuits on type='malattia').
+    await assertPerDayCap(
+      client,
+      row.user_id,
+      row.type as 'ferie' | 'permessi' | 'malattia' | 'assenza',
+      typeof row.from_ts === 'string' ? row.from_ts : new Date(row.from_ts).toISOString(),
+      typeof row.to_ts === 'string' ? row.to_ts : new Date(row.to_ts).toISOString(),
+      row.id
+    );
 
     // Approval never blocked by quota — see submission rationale.
     await client.query(

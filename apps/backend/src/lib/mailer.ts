@@ -57,6 +57,7 @@ const TYPE_LABEL: Record<string, { it: string; en: string }> = {
   ferie: { it: 'Ferie', en: 'Holiday' },
   permessi: { it: 'Permesso', en: 'Time off' },
   malattia: { it: 'Malattia', en: 'Sick leave' },
+  assenza: { it: 'Assenza', en: 'Absence' },
 };
 
 const SUBJECTS = {

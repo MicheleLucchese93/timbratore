@@ -1,6 +1,7 @@
 import type { PoolClient } from 'pg';
+import { ValidationError } from '../errors/index.js';
 
-export type LeaveType = 'ferie' | 'permessi' | 'malattia';
+export type LeaveType = 'ferie' | 'permessi' | 'malattia' | 'assenza';
 
 export interface QuotaSummary {
   type: 'ferie' | 'permessi';
@@ -99,9 +100,10 @@ export async function getQuotaSummary(
  * Compute duration in hours for a leave request.
  *
  * - permessi: simply (to_ts - from_ts) in hours, expecting 15-min multiples.
- * - ferie / malattia: sum of expected work hours from the user's shift template
- *   over the day range. Days without an assigned template default to 8h per
- *   weekday, 0 on weekends — a conservative fallback so quota math never crashes.
+ * - ferie / malattia / assenza: sum of expected work hours from the user's
+ *   shift template over the day range. Days without an assigned template
+ *   default to 8h per weekday, 0 on weekends — a conservative fallback so
+ *   quota math never crashes.
  */
 export async function computeDurationHours(
   client: PoolClient,
@@ -110,18 +112,65 @@ export async function computeDurationHours(
   fromTs: string,
   toTs: string
 ): Promise<number> {
+  const perDay = await computeHoursPerDay(client, userId, type, fromTs, toTs);
+  let total = 0;
+  for (const h of perDay.values()) total += h;
+  return Math.round(total * 100) / 100;
+}
+
+/**
+ * For each Europe/Rome calendar day touched by [from_ts, to_ts), return the
+ * hours that a leave request of the given type would claim on that day.
+ *
+ * - permessi: clipped (to − from) intersection within the day, in hours.
+ * - ferie / malattia / assenza: shift-template hours for that weekday
+ *   (Mon–Fri 8h fallback when no template is assigned).
+ *
+ * Powers both the total duration computation and the per-day cap check.
+ */
+export async function computeHoursPerDay(
+  client: PoolClient,
+  userId: string,
+  type: LeaveType,
+  fromTs: string,
+  toTs: string
+): Promise<Map<string, number>> {
   const from = new Date(fromTs);
   const to = new Date(toTs);
+  const days = enumerateDays(from, to);
+  const out = new Map<string, number>();
+  if (days.length === 0) return out;
+
   if (type === 'permessi') {
-    const ms = to.getTime() - from.getTime();
-    return Math.round((ms / 3_600_000) * 100) / 100;
+    for (const d of days) {
+      const dayStart = romeStartOfDayMs(d.iso);
+      const dayEnd = romeStartOfDayMs(addOneDay(d.iso));
+      const startMs = Math.max(from.getTime(), dayStart);
+      const endMs = Math.min(to.getTime(), dayEnd);
+      const hours = Math.max(0, (endMs - startMs) / 3_600_000);
+      out.set(d.iso, Math.round(hours * 100) / 100);
+    }
+    return out;
   }
 
-  // Walk each calendar day in Europe/Rome between from and to inclusive.
-  const days = enumerateDays(from, to);
-  if (days.length === 0) return 0;
+  const hoursByDow = await loadShiftHoursByDow(client, userId, days[0]!.iso);
+  for (const d of days) {
+    const h =
+      hoursByDow.size > 0
+        ? hoursByDow.get(d.dow) ?? 0
+        : d.dow >= 1 && d.dow <= 5
+        ? 8
+        : 0;
+    out.set(d.iso, h);
+  }
+  return out;
+}
 
-  // Load active shift template + slots for this user.
+async function loadShiftHoursByDow(
+  client: PoolClient,
+  userId: string,
+  anchorIso: string
+): Promise<Map<number, number>> {
   const tplRow = await client.query(
     `SELECT a.shift_template_id
        FROM user_shift_assignments a
@@ -129,37 +178,99 @@ export async function computeDurationHours(
         AND a.valid_from <= $2::date
         AND (a.valid_to IS NULL OR a.valid_to >= $2::date)
       ORDER BY a.valid_from DESC LIMIT 1`,
-    [userId, days[0]!.iso]
+    [userId, anchorIso]
   );
-  let slots: Array<{ day_of_week: number; hours: number }> = [];
-  if ((tplRow.rowCount ?? 0) > 0) {
-    const sl = await client.query(
-      `SELECT day_of_week,
-              EXTRACT(EPOCH FROM (end_time - start_time))/3600.0 AS hours
-         FROM shift_template_slots
-        WHERE shift_template_id = $1`,
-      [tplRow.rows[0].shift_template_id]
-    );
-    slots = sl.rows.map((r) => ({
-      day_of_week: Number(r.day_of_week),
-      hours: Number(r.hours),
-    }));
-  }
   const hoursByDow = new Map<number, number>();
-  for (const s of slots) {
-    hoursByDow.set(s.day_of_week, (hoursByDow.get(s.day_of_week) ?? 0) + s.hours);
+  if ((tplRow.rowCount ?? 0) === 0) return hoursByDow;
+  const sl = await client.query(
+    `SELECT day_of_week,
+            EXTRACT(EPOCH FROM (end_time - start_time))/3600.0 AS hours
+       FROM shift_template_slots
+      WHERE shift_template_id = $1`,
+    [tplRow.rows[0].shift_template_id]
+  );
+  for (const r of sl.rows) {
+    const dow = Number(r.day_of_week);
+    hoursByDow.set(dow, (hoursByDow.get(dow) ?? 0) + Number(r.hours));
   }
+  return hoursByDow;
+}
 
-  let total = 0;
-  for (const d of days) {
-    if (hoursByDow.size > 0) {
-      total += hoursByDow.get(d.dow) ?? 0;
-    } else {
-      // Fallback: Mon–Fri = 8h.
-      total += d.dow >= 1 && d.dow <= 5 ? 8 : 0;
+/**
+ * Reject the request if any single Europe/Rome day inside [from, to) would
+ * end up with more leave hours than the user's timesheet capacity for that
+ * weekday, summing all the user's *active* requests (pending / approved /
+ * cancellation_pending) plus the candidate request.
+ *
+ * malattia is exempt: it intentionally overrides overlapping ferie/permessi
+ * via {@link applyMalattiaOverlap}, so the cap would block legitimate
+ * sick-leave events whose purpose is exactly to supersede existing rows.
+ */
+export async function assertPerDayCap(
+  client: PoolClient,
+  userId: string,
+  type: LeaveType,
+  fromTs: string,
+  toTs: string,
+  excludeRequestId: string | null
+): Promise<void> {
+  if (type === 'malattia') return;
+  const newPerDay = await computeHoursPerDay(client, userId, type, fromTs, toTs);
+  if (newPerDay.size === 0) return;
+
+  const isoDays = Array.from(newPerDay.keys()).sort();
+  const firstIso = isoDays[0]!;
+  const lastIsoInclusive = isoDays[isoDays.length - 1]!;
+  const lastIsoExclusive = addOneDay(lastIsoInclusive);
+  const hoursByDow = await loadShiftHoursByDow(client, userId, firstIso);
+  const capacityOf = (iso: string): number => {
+    const dow = isoDowFromIso(iso);
+    if (hoursByDow.size > 0) return hoursByDow.get(dow) ?? 0;
+    return dow >= 1 && dow <= 5 ? 8 : 0;
+  };
+
+  const params: unknown[] = [userId, firstIso, lastIsoExclusive];
+  let exclude = '';
+  if (excludeRequestId) {
+    params.push(excludeRequestId);
+    exclude = ` AND id <> $${params.length}`;
+  }
+  const r = await client.query(
+    `SELECT id, type, from_ts, to_ts
+       FROM leave_requests
+      WHERE user_id = $1
+        AND status IN ('pending','approved','cancellation_pending')
+        AND to_ts > $2::date::timestamptz
+        AND from_ts < $3::date::timestamptz
+        ${exclude}`,
+    params
+  );
+
+  const existingPerDay = new Map<string, number>();
+  for (const row of r.rows) {
+    const map = await computeHoursPerDay(
+      client,
+      userId,
+      row.type as LeaveType,
+      typeof row.from_ts === 'string' ? row.from_ts : new Date(row.from_ts).toISOString(),
+      typeof row.to_ts === 'string' ? row.to_ts : new Date(row.to_ts).toISOString()
+    );
+    for (const [iso, h] of map) {
+      if (newPerDay.has(iso)) {
+        existingPerDay.set(iso, (existingPerDay.get(iso) ?? 0) + h);
+      }
     }
   }
-  return Math.round(total * 100) / 100;
+
+  for (const [iso, h] of newPerDay) {
+    const total = (existingPerDay.get(iso) ?? 0) + h;
+    const cap = capacityOf(iso);
+    if (total > cap + 1e-6) {
+      throw new ValidationError(
+        `Il giorno ${iso} eccede l'orario di lavoro: ${total.toFixed(2)}h richieste su ${cap.toFixed(2)}h disponibili.`
+      );
+    }
+  }
 }
 
 interface DayCell {
@@ -199,6 +310,23 @@ function isoDowFromIso(iso: string): number {
   const [y, m, d] = iso.split('-').map(Number);
   const dow = new Date(Date.UTC(y!, m! - 1, d!)).getUTCDay();
   return dow === 0 ? 7 : dow;
+}
+
+/**
+ * 00:00 Europe/Rome of the given ISO date, returned as UTC ms. CET (+1) or
+ * CEST (+2) depending on DST — picked by re-formatting the candidate back
+ * into Rome local and verifying the date round-trips.
+ */
+function romeStartOfDayMs(iso: string): number {
+  const cestGuess = new Date(`${iso}T00:00:00+02:00`).getTime();
+  const back = new Intl.DateTimeFormat('en-CA', {
+    timeZone: ROME_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(cestGuess));
+  if (back === iso) return cestGuess;
+  return new Date(`${iso}T00:00:00+01:00`).getTime();
 }
 
 /**

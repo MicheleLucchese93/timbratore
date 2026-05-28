@@ -22,6 +22,7 @@ import { useSession } from '../store/session';
 import { AppHeader } from '../components/AppHeader';
 import { WorkStateChip } from '../components/WorkStateChip';
 import { DateField } from '../components/DateField';
+import { SwipeableTabs } from '../components/SwipeableTabs';
 
 interface Approver {
   user_id: string;
@@ -30,7 +31,19 @@ interface Approver {
   role: 'admin' | 'user' | null;
 }
 
-type LeaveType = 'ferie' | 'permessi' | 'malattia';
+type LeaveType = 'ferie' | 'permessi' | 'malattia' | 'assenza';
+type AssenzaSubtype =
+  | 'lutto'
+  | 'donazione_sangue'
+  | 'permesso_studio'
+  | 'permesso_elettorale'
+  | 'matrimonio'
+  | 'allattamento'
+  | 'congedo_parentale'
+  | 'legge_104'
+  | 'assemblea_sindacale'
+  | 'visita_medica'
+  | 'motivi_personali';
 type LeaveStatus =
   | 'pending'
   | 'approved'
@@ -54,6 +67,8 @@ interface LeaveRequest {
   user_note: string | null;
   rejection_reason: string | null;
   cancellation_reason: string | null;
+  assenza_subtype: AssenzaSubtype | null;
+  is_paid: boolean | null;
   created_at: string;
 }
 
@@ -79,7 +94,36 @@ const TYPE_LABEL: Record<LeaveType, string> = {
   ferie: 'Ferie',
   permessi: 'Permesso',
   malattia: 'Malattia',
+  assenza: 'Assenza',
 };
+
+const ASSENZA_SUBTYPE_LABEL: Record<AssenzaSubtype, string> = {
+  lutto: 'Lutto',
+  donazione_sangue: 'Donazione sangue',
+  permesso_studio: 'Permesso studio (diritto allo studio)',
+  permesso_elettorale: 'Permesso elettorale',
+  matrimonio: 'Matrimonio',
+  allattamento: 'Allattamento',
+  congedo_parentale: 'Congedo parentale',
+  legge_104: 'Legge 104 (assistenza disabili)',
+  assemblea_sindacale: 'Assemblea sindacale',
+  visita_medica: 'Visita medica',
+  motivi_personali: 'Motivi personali',
+};
+
+const ASSENZA_SUBTYPES_ORDER: AssenzaSubtype[] = [
+  'lutto',
+  'donazione_sangue',
+  'visita_medica',
+  'permesso_studio',
+  'matrimonio',
+  'allattamento',
+  'congedo_parentale',
+  'legge_104',
+  'assemblea_sindacale',
+  'permesso_elettorale',
+  'motivi_personali',
+];
 
 const STATUS_LABEL: Record<LeaveStatus, string> = {
   pending: 'In attesa',
@@ -91,44 +135,56 @@ const STATUS_LABEL: Record<LeaveStatus, string> = {
   superseded_by_malattia: 'Sostituita da malattia',
 };
 
-const TABS = [
-  { id: 'mine', label: 'Le mie' },
-  { id: 'inbox', label: 'Da approvare' },
-] as const;
+type RichiesteTab = 'mine' | 'inbox';
 
 export function RichiesteScreen() {
   const { me } = useSession();
-  const [tab, setTab] = useState<'mine' | 'inbox'>('mine');
-  const [rows, setRows] = useState<LeaveRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [tab, setTab] = useState<RichiesteTab>('mine');
+  const [mineRows, setMineRows] = useState<LeaveRequest[]>([]);
+  const [inboxRows, setInboxRows] = useState<LeaveRequest[]>([]);
+  const [loadingMine, setLoadingMine] = useState(true);
+  const [loadingInbox, setLoadingInbox] = useState(true);
+  const [refreshingMine, setRefreshingMine] = useState(false);
+  const [refreshingInbox, setRefreshingInbox] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [quotas, setQuotas] = useState<QuotaSummary[]>([]);
 
-  const load = useCallback(async () => {
+  const loadMine = useCallback(async () => {
     try {
-      const list = await api<LeaveRequest[]>(`/api/v1/leaves?scope=${tab}`);
-      setRows(list);
-      if (tab === 'mine') {
-        try {
-          const q = await api<QuotaSummary[]>('/api/v1/leave-quotas/me/summary');
-          setQuotas(q);
-        } catch {
-          setQuotas([]);
-        }
-      }
+      const [list, q] = await Promise.all([
+        api<LeaveRequest[]>('/api/v1/leaves?scope=mine'),
+        api<QuotaSummary[]>('/api/v1/leave-quotas/me/summary').catch(() => [] as QuotaSummary[]),
+      ]);
+      setMineRows(list);
+      setQuotas(q);
     } catch {
       /* ignore */
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      setLoadingMine(false);
+      setRefreshingMine(false);
     }
-  }, [tab]);
+  }, []);
+
+  const loadInbox = useCallback(async () => {
+    try {
+      const list = await api<LeaveRequest[]>('/api/v1/leaves?scope=inbox');
+      setInboxRows(list);
+    } catch {
+      /* ignore */
+    } finally {
+      setLoadingInbox(false);
+      setRefreshingInbox(false);
+    }
+  }, []);
+
+  const load = useCallback(async () => {
+    await Promise.all([loadMine(), loadInbox()]);
+  }, [loadMine, loadInbox]);
 
   useEffect(() => {
-    setLoading(true);
-    load();
-  }, [load]);
+    loadMine();
+    loadInbox();
+  }, [loadMine, loadInbox]);
 
   async function cancel(r: LeaveRequest) {
     confirmAction('Annullare richiesta?', 'Verrà annullata definitivamente.', async () => {
@@ -203,92 +259,141 @@ export function RichiesteScreen() {
     );
   }
 
-  const pendingCount = useMemo(
-    () => rows.filter((r) => r.status === 'pending').length,
-    [rows]
+  const pendingInboxCount = useMemo(
+    () => inboxRows.filter((r) => r.status === 'pending').length,
+    [inboxRows]
+  );
+
+  const renderMinePage = (
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshingMine}
+          onRefresh={() => {
+            setRefreshingMine(true);
+            loadMine();
+          }}
+        />
+      }>
+      {quotas.length > 0 && (
+        <View style={styles.quotaCard}>
+          <Text style={styles.quotaCardTitle}>Disponibilità</Text>
+          {quotas.map((q) => (
+            <View key={q.type} style={styles.quotaItem}>
+              <View style={styles.quotaItemHeader}>
+                <View style={styles.quotaItemTitleRow}>
+                  <Ionicons
+                    name={typeIcon(q.type)}
+                    size={16}
+                    color={typeFg(q.type)}
+                  />
+                  <Text style={styles.quotaItemTitle}>
+                    {q.type === 'ferie' ? 'Ferie' : 'Permessi'}
+                  </Text>
+                </View>
+                <Text style={[styles.quotaItemResidual, { color: typeFg(q.type) }]}>
+                  {q.residual_strict.toFixed(2)}h
+                </Text>
+              </View>
+              <View style={styles.quotaBreakdownRow}>
+                <QuotaStat label="Iniziale" value={q.initial_balance} />
+                <QuotaStat label="Maturate" value={q.accrued_total} />
+                <QuotaStat label="Usate" value={q.used_approved} />
+                {q.used_pending > 0 && (
+                  <QuotaStat label="In attesa" value={q.used_pending} />
+                )}
+              </View>
+              {q.used_pending > 0 && (
+                <Text style={styles.quotaPendingHint}>
+                  Residuo dopo richieste in attesa: {q.residual_with_pending.toFixed(2)}h
+                </Text>
+              )}
+            </View>
+          ))}
+        </View>
+      )}
+      {loadingMine && (
+        <View style={styles.centered}>
+          <ActivityIndicator />
+        </View>
+      )}
+      {!loadingMine && mineRows.length === 0 && (
+        <View style={styles.emptyCard}>
+          <Ionicons name="calendar-outline" size={32} color={color.onSurfaceVariant} />
+          <Text style={styles.empty}>Non hai richieste.</Text>
+        </View>
+      )}
+      {mineRows.map((r) => (
+        <LeaveCard
+          key={r.id}
+          row={r}
+          tab="mine"
+          myUserId={me?.user.id ?? ''}
+          onApprove={() => approve(r)}
+          onReject={() => reject(r)}
+          onCancel={() => cancel(r)}
+          onRequestCancellation={() => requestCancellation(r)}
+          onDecideCancellation={(ok) => decideCancel(r, ok)}
+        />
+      ))}
+    </ScrollView>
+  );
+
+  const renderInboxPage = (
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshingInbox}
+          onRefresh={() => {
+            setRefreshingInbox(true);
+            loadInbox();
+          }}
+        />
+      }>
+      {loadingInbox && (
+        <View style={styles.centered}>
+          <ActivityIndicator />
+        </View>
+      )}
+      {!loadingInbox && inboxRows.length === 0 && (
+        <View style={styles.emptyCard}>
+          <Ionicons name="calendar-outline" size={32} color={color.onSurfaceVariant} />
+          <Text style={styles.empty}>Nessuna richiesta da approvare.</Text>
+        </View>
+      )}
+      {inboxRows.map((r) => (
+        <LeaveCard
+          key={r.id}
+          row={r}
+          tab="inbox"
+          myUserId={me?.user.id ?? ''}
+          onApprove={() => approve(r)}
+          onReject={() => reject(r)}
+          onCancel={() => cancel(r)}
+          onRequestCancellation={() => requestCancellation(r)}
+          onDecideCancellation={(ok) => decideCancel(r, ok)}
+        />
+      ))}
+    </ScrollView>
   );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <AppHeader centerSlot={<WorkStateChip />} />
 
-      <View style={styles.filterRow}>
-        {TABS.map((t) => {
-          const sel = t.id === tab;
-          return (
-            <TouchableOpacity
-              key={t.id}
-              onPress={() => setTab(t.id)}
-              activeOpacity={0.7}
-              style={[styles.tabPill, sel && styles.tabPillActive]}>
-              <Text style={[styles.tabPillText, sel && styles.tabPillTextActive]}>
-                {t.label}
-                {t.id === 'inbox' && pendingCount > 0 ? ` · ${pendingCount}` : ''}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
-              load();
-            }}
-          />
-        }>
-        {tab === 'mine' && quotas.length > 0 && (
-          <View style={styles.quotaCard}>
-            {quotas.map((q) => (
-              <View key={q.type} style={styles.quotaRow}>
-                <Text style={styles.quotaLabel}>
-                  {q.type === 'ferie' ? 'Ferie' : 'Permessi'}
-                </Text>
-                <Text style={styles.quotaValue}>
-                  {q.residual_strict.toFixed(2)}h
-                </Text>
-                <Text style={styles.quotaHint}>
-                  ({q.residual_with_pending.toFixed(2)}h dopo richieste in attesa)
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {loading && (
-          <View style={styles.centered}>
-            <ActivityIndicator />
-          </View>
-        )}
-        {!loading && rows.length === 0 && (
-          <View style={styles.emptyCard}>
-            <Ionicons name="calendar-outline" size={32} color={color.onSurfaceVariant} />
-            <Text style={styles.empty}>
-              {tab === 'inbox'
-                ? 'Nessuna richiesta da approvare.'
-                : 'Non hai richieste.'}
-            </Text>
-          </View>
-        )}
-        {rows.map((r) => (
-          <LeaveCard
-            key={r.id}
-            row={r}
-            tab={tab}
-            myUserId={me?.user.id ?? ''}
-            onApprove={() => approve(r)}
-            onReject={() => reject(r)}
-            onCancel={() => cancel(r)}
-            onRequestCancellation={() => requestCancellation(r)}
-            onDecideCancellation={(ok) => decideCancel(r, ok)}
-          />
-        ))}
-      </ScrollView>
+      <SwipeableTabs
+        tabs={[
+          { id: 'mine', label: 'Le mie' },
+          { id: 'inbox', label: 'Da approvare', badge: pendingInboxCount },
+        ]}
+        activeId={tab}
+        onChange={setTab}>
+        {[renderMinePage, renderInboxPage]}
+      </SwipeableTabs>
 
       {tab === 'mine' && (
         <TouchableOpacity
@@ -380,6 +485,20 @@ function LeaveCard({
         <View style={styles.metaRow}>
           <Ionicons name="medkit-outline" size={14} color={color.onSurfaceVariant} />
           <Text style={styles.metaText}>INPS: {row.inps_protocol}</Text>
+        </View>
+      ) : null}
+
+      {row.type === 'assenza' && row.assenza_subtype ? (
+        <View style={styles.metaRow}>
+          <Ionicons
+            name="bookmark-outline"
+            size={14}
+            color={color.onSurfaceVariant}
+          />
+          <Text style={styles.metaText}>
+            {ASSENZA_SUBTYPE_LABEL[row.assenza_subtype]} ·{' '}
+            {row.is_paid ? 'retribuita' : 'non retribuita'}
+          </Text>
         </View>
       ) : null}
 
@@ -494,6 +613,10 @@ function NewLeaveModal({
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [approvers, setApprovers] = useState<Approver[]>([]);
+  const [assenzaSubtype, setAssenzaSubtype] =
+    useState<AssenzaSubtype>('motivi_personali');
+  const [isPaid, setIsPaid] = useState(true);
+  const [subtypePickerOpen, setSubtypePickerOpen] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -506,6 +629,9 @@ function NewLeaveModal({
       setToTime('13:00');
       setInpsProtocol('');
       setNote('');
+      setAssenzaSubtype('motivi_personali');
+      setIsPaid(true);
+      setSubtypePickerOpen(false);
     }
   }, [visible]);
 
@@ -537,9 +663,16 @@ function NewLeaveModal({
       );
       return;
     }
+    if (type === 'assenza' && note.trim().length === 0) {
+      Alert.alert(
+        'Motivazione',
+        'Inserisci una motivazione per l\'assenza.'
+      );
+      return;
+    }
     // Ferie and permessi carry start/end times (15-min slots) when the user
-    // unticks "Tutto il giorno". Otherwise (and always for malattia) the
-    // request covers the full day(s).
+    // unticks "Tutto il giorno". Otherwise (and always for malattia /
+    // assenza) the request covers the full day(s).
     const useTime = (type === 'ferie' || type === 'permessi') && !allDay;
     const from = useTime
       ? combineLocalDateTime(fromDate, fromTime)
@@ -561,6 +694,8 @@ function NewLeaveModal({
           to_ts: to,
           inps_protocol: type === 'malattia' ? inpsProtocol.trim() : undefined,
           user_note: note.trim() || undefined,
+          assenza_subtype: type === 'assenza' ? assenzaSubtype : undefined,
+          is_paid: type === 'assenza' ? isPaid : undefined,
         },
       });
       onCreated();
@@ -571,9 +706,10 @@ function NewLeaveModal({
     }
   }
 
-  const residual = quotas.find(
-    (q) => q.type === (type === 'malattia' ? 'ferie' : type)
-  );
+  const residual =
+    type === 'ferie' || type === 'permessi'
+      ? quotas.find((q) => q.type === type)
+      : undefined;
 
   return (
     <Modal
@@ -596,31 +732,33 @@ function NewLeaveModal({
             keyboardShouldPersistTaps="handled">
             <Text style={styles.fieldLabel}>Tipo</Text>
             <View style={styles.typeGrid}>
-              {(['ferie', 'permessi', 'malattia'] as LeaveType[]).map((t) => {
-                const sel = t === type;
-                return (
-                  <Pressable
-                    key={t}
-                    onPress={() => setType(t)}
-                    style={[styles.typeOpt, sel && styles.typeOptSel]}>
-                    <Ionicons
-                      name={typeIcon(t)}
-                      size={18}
-                      color={sel ? color.onPrimary : color.primary}
-                    />
-                    <Text
-                      style={[
-                        styles.typeOptText,
-                        sel && styles.typeOptTextSel,
-                      ]}>
-                      {TYPE_LABEL[t]}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+              {(['ferie', 'permessi', 'malattia', 'assenza'] as LeaveType[]).map(
+                (t) => {
+                  const sel = t === type;
+                  return (
+                    <Pressable
+                      key={t}
+                      onPress={() => setType(t)}
+                      style={[styles.typeOpt, sel && styles.typeOptSel]}>
+                      <Ionicons
+                        name={typeIcon(t)}
+                        size={18}
+                        color={sel ? color.onPrimary : color.primary}
+                      />
+                      <Text
+                        style={[
+                          styles.typeOptText,
+                          sel && styles.typeOptTextSel,
+                        ]}>
+                        {TYPE_LABEL[t]}
+                      </Text>
+                    </Pressable>
+                  );
+                }
+              )}
             </View>
 
-            {type !== 'malattia' && residual && (
+            {residual && (
               <Text style={styles.quotaHintInline}>
                 Disponibili: {residual.residual_strict.toFixed(2)}h ·{' '}
                 <Text style={{ opacity: 0.7 }}>
@@ -628,6 +766,90 @@ function NewLeaveModal({
                   attesa
                 </Text>
               </Text>
+            )}
+
+            {type === 'assenza' && (
+              <>
+                <Text style={styles.fieldLabel}>Tipologia di assenza</Text>
+                <Pressable
+                  onPress={() => setSubtypePickerOpen((v) => !v)}
+                  style={styles.subtypeBtn}>
+                  <Text style={styles.subtypeBtnText}>
+                    {ASSENZA_SUBTYPE_LABEL[assenzaSubtype]}
+                  </Text>
+                  <Ionicons
+                    name={subtypePickerOpen ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color={color.onSurfaceVariant}
+                  />
+                </Pressable>
+                {subtypePickerOpen && (
+                  <View style={styles.subtypeList}>
+                    {ASSENZA_SUBTYPES_ORDER.map((s) => {
+                      const sel = s === assenzaSubtype;
+                      return (
+                        <Pressable
+                          key={s}
+                          onPress={() => {
+                            setAssenzaSubtype(s);
+                            setSubtypePickerOpen(false);
+                          }}
+                          style={[
+                            styles.subtypeRow,
+                            sel && styles.subtypeRowSel,
+                          ]}>
+                          <Text
+                            style={[
+                              styles.subtypeRowText,
+                              sel && styles.subtypeRowTextSel,
+                            ]}>
+                            {ASSENZA_SUBTYPE_LABEL[s]}
+                          </Text>
+                          {sel && (
+                            <Ionicons
+                              name="checkmark"
+                              size={16}
+                              color={color.primary}
+                            />
+                          )}
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+
+                <Text style={styles.fieldLabel}>Retribuzione</Text>
+                <View style={styles.allDayRow}>
+                  <Pressable
+                    onPress={() => setIsPaid(true)}
+                    style={[
+                      styles.allDayOpt,
+                      isPaid && styles.allDayOptSel,
+                    ]}>
+                    <Text
+                      style={[
+                        styles.allDayOptText,
+                        isPaid && styles.allDayOptTextSel,
+                      ]}>
+                      Retribuita
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setIsPaid(false)}
+                    style={[
+                      styles.allDayOpt,
+                      !isPaid && styles.allDayOptSel,
+                    ]}>
+                    <Text
+                      style={[
+                        styles.allDayOptText,
+                        !isPaid && styles.allDayOptTextSel,
+                      ]}>
+                      Non retribuita
+                    </Text>
+                  </Pressable>
+                </View>
+              </>
             )}
 
             <View style={styles.dateRow}>
@@ -737,7 +959,9 @@ function NewLeaveModal({
               </>
             )}
 
-            <Text style={styles.fieldLabel}>Note (facoltative)</Text>
+            <Text style={styles.fieldLabel}>
+              {type === 'assenza' ? 'Motivazione' : 'Note (facoltative)'}
+            </Text>
             <TextInput
               value={note}
               onChangeText={setNote}
@@ -776,6 +1000,7 @@ function NewLeaveModal({
 function notePlaceholder(t: LeaveType): string {
   if (t === 'malattia') return 'Es. influenza';
   if (t === 'permessi') return 'Es. visita medica';
+  if (t === 'assenza') return 'Es. funerale del nonno (obbligatoria)';
   return 'Es. matrimonio fratello';
 }
 
@@ -825,21 +1050,33 @@ function showError(err: unknown): void {
   Alert.alert('Errore', e.message ?? 'Operazione non riuscita.');
 }
 
+function QuotaStat({ label, value }: { label: string; value: number }) {
+  return (
+    <View style={styles.quotaStat}>
+      <Text style={styles.quotaStatLabel}>{label}</Text>
+      <Text style={styles.quotaStatValue}>{value.toFixed(2)}h</Text>
+    </View>
+  );
+}
+
 function typeIcon(t: LeaveType): keyof typeof Ionicons.glyphMap {
   if (t === 'ferie') return 'sunny-outline';
   if (t === 'permessi') return 'time-outline';
+  if (t === 'assenza') return 'ellipsis-horizontal-circle-outline';
   return 'medkit-outline';
 }
 
 function typeBg(t: LeaveType): string {
   if (t === 'ferie') return '#e0f2fe';
   if (t === 'permessi') return '#fff3d1';
+  if (t === 'assenza') return '#ede9fe';
   return '#fde4e4';
 }
 
 function typeFg(t: LeaveType): string {
   if (t === 'ferie') return '#0369a1';
   if (t === 'permessi') return color.warning;
+  if (t === 'assenza') return '#6d28d9';
   return color.error;
 }
 
@@ -893,23 +1130,6 @@ function combineLocalDateTime(date: string, time: string): string {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: color.surface },
 
-  filterRow: {
-    flexDirection: 'row',
-    gap: 6,
-    paddingHorizontal: 6,
-    paddingBottom: space.s3,
-  },
-  tabPill: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: color.surfaceVariant,
-    alignItems: 'center',
-  },
-  tabPillActive: { backgroundColor: color.primary },
-  tabPillText: { fontSize: 13, fontWeight: '600', color: color.onSurfaceVariant },
-  tabPillTextActive: { color: color.onPrimary },
-
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 6, paddingBottom: 96 },
 
@@ -918,17 +1138,84 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     marginBottom: space.s3,
-    gap: 6,
+    gap: 12,
   },
-  quotaRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' },
-  quotaLabel: { fontSize: 13, fontWeight: '600', color: color.onSurface },
-  quotaValue: { fontSize: 16, fontWeight: '700', color: color.primary },
-  quotaHint: { fontSize: 11, color: color.onSurfaceVariant },
+  quotaCardTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: color.onSurfaceVariant,
+  },
+  quotaItem: { gap: 8 },
+  quotaItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  quotaItemTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  quotaItemTitle: { fontSize: 14, fontWeight: '700', color: color.onSurface },
+  quotaItemResidual: { fontSize: 18, fontWeight: '800' },
+  quotaBreakdownRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  quotaStat: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: color.surfaceVariant,
+    minWidth: 70,
+  },
+  quotaStatLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    color: color.onSurfaceVariant,
+  },
+  quotaStatValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: color.onSurface,
+    marginTop: 2,
+    fontVariant: ['tabular-nums'],
+  },
+  quotaPendingHint: { fontSize: 11, color: color.onSurfaceVariant },
   quotaHintInline: {
     fontSize: 12,
     color: color.onSurfaceVariant,
     paddingHorizontal: 4,
   },
+
+  subtypeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: color.surfaceVariant,
+    marginBottom: 4,
+  },
+  subtypeBtnText: { fontSize: 14, color: color.onSurface, fontWeight: '600' },
+  subtypeList: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    paddingVertical: 4,
+    marginBottom: 4,
+  },
+  subtypeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  subtypeRowSel: { backgroundColor: color.surfaceVariant },
+  subtypeRowText: { fontSize: 14, color: color.onSurface },
+  subtypeRowTextSel: { fontWeight: '700', color: color.primary },
 
   centered: { paddingVertical: 48, alignItems: 'center' },
   emptyCard: {
