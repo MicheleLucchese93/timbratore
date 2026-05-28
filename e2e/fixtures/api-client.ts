@@ -181,6 +181,16 @@ export async function approveCorrection(
   return apiPost(adminToken, `/api/v1/correction-requests/${id}/approve`, {});
 }
 
+export async function rejectCorrection(
+  adminToken: string,
+  id: string,
+  resolutionNote?: string,
+): Promise<{ status: number; code?: string; data: { id?: string } | null }> {
+  return apiPost(adminToken, `/api/v1/correction-requests/${id}/reject`, {
+    resolution_note: resolutionNote ?? 'e2e cleanup',
+  });
+}
+
 export async function deleteStampAdmin(adminToken: string, stampId: string): Promise<void> {
   // The admin-stamps router accepts a deletion_reason in the body. The
   // route is DELETE /api/v1/admin/stamps/:id — we send a JSON body even

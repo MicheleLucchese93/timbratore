@@ -69,18 +69,19 @@ internalE2eRouter.post(
       // Belt-and-braces text-marker sweep: web mutating specs that act as the
       // persistent test3 QA user leave rows behind on that account (we can't
       // delete test3 because mobile-user specs assert its seeded data). The
-      // suite tags every fixture row's free-text fields with an "e2e " prefix
-      // — wipe any orphan that matches even if the owning user still exists.
+      // suite tags every fixture row's free-text fields with an "e2e " or
+      // "e2e-" prefix — wipe any orphan that matches even if the owning user
+      // still exists.
       const lrm = await client.query(
         `DELETE FROM leave_requests
-          WHERE user_note            ILIKE 'e2e %'
-             OR cancellation_reason  ILIKE 'e2e %'
-             OR rejection_reason     ILIKE 'e2e %'`
+          WHERE user_note            ILIKE 'e2e %' OR user_note            ILIKE 'e2e-%'
+             OR cancellation_reason  ILIKE 'e2e %' OR cancellation_reason  ILIKE 'e2e-%'
+             OR rejection_reason     ILIKE 'e2e %' OR rejection_reason     ILIKE 'e2e-%'`
       );
       const crm = await client.query(
         `DELETE FROM correction_requests
-          WHERE justification   ILIKE 'e2e %'
-             OR resolution_note ILIKE 'e2e %'`
+          WHERE justification   ILIKE 'e2e %' OR justification   ILIKE 'e2e-%'
+             OR resolution_note ILIKE 'e2e %' OR resolution_note ILIKE 'e2e-%'`
       );
       await client.query('COMMIT');
       const totalLeave = (lr.rowCount ?? 0) + (lrm.rowCount ?? 0);

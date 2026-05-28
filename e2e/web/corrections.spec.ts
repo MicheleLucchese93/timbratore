@@ -4,6 +4,7 @@ import {
   createCorrection,
   deleteStampAdmin,
   loadHandleFromStorage,
+  rejectCorrection,
   type ApiHandle,
 } from '../fixtures/api-client';
 
@@ -40,6 +41,7 @@ test.describe('web — Correzioni (admin) — seeded pending row', () => {
   let admin: ApiHandle;
   let user: ApiHandle;
   let marker: string;
+  let seededId: string | null;
 
   test.beforeAll(async () => {
     admin = await loadHandleFromStorage(STORAGE.webAuth, CREDS.admin);
@@ -48,21 +50,31 @@ test.describe('web — Correzioni (admin) — seeded pending row', () => {
 
   test.beforeEach(async () => {
     marker = `e2e-correction-${Date.now()}`;
+    seededId = null;
     const branchId = admin.branches[0]?.id ?? null;
-    await createCorrection(user.token, {
+    const row = await createCorrection(user.token, {
       original_stamp_id: null,
       claimed_event_type: 'clock_in',
       claimed_occurred_at: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
       claimed_branch_id: branchId,
       justification: `${marker}: avevo dimenticato di timbrare l'ingresso`,
     });
+    seededId = row.id;
   });
 
   test.afterEach(async () => {
-    // Best-effort: locate a stamp with our marker in notes (only present if
-    // a previous run approved it). For a pending row, the seed remains as
-    // 'pending' — admin-stamps DELETE is a no-op here; we leave the row
-    // because there's no DELETE endpoint on correction_requests.
+    // Reject the seeded row so it leaves the pending queue (no DELETE
+    // endpoint on correction_requests). The global teardown's marker-sweep
+    // then wipes the rejected row entirely.
+    if (seededId) {
+      try {
+        await rejectCorrection(admin.token, seededId);
+      } catch {
+        /* best-effort — teardown sweep is the safety net */
+      }
+    }
+    // Belt-and-braces: if a prior failed run left an approved seed, also
+    // wipe its stamp.
     try {
       const fromDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const toDate = new Date().toISOString().slice(0, 10);
