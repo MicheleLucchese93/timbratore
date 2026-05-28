@@ -1,4 +1,4 @@
-package app.cisono.cisono
+package app.sonoqui.mobile
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
