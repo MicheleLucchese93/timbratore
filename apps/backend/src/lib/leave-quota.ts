@@ -167,21 +167,37 @@ interface DayCell {
   dow: number;          // ISO weekday 1..7
 }
 
+const ROME_TZ = 'Europe/Rome';
+
 function enumerateDays(from: Date, to: Date): DayCell[] {
   const out: DayCell[] = [];
-  const cur = new Date(from);
-  cur.setUTCHours(12, 0, 0, 0); // mid-day anchor avoids DST edge issues
-  const end = new Date(to);
-  end.setUTCHours(12, 0, 0, 0);
-  while (cur.getTime() <= end.getTime()) {
-    out.push({ iso: cur.toISOString().slice(0, 10), dow: isoDow(cur) });
-    cur.setUTCDate(cur.getUTCDate() + 1);
+  let curIso = romeDateOnly(from);
+  const endIso = romeDateOnly(to);
+  while (curIso <= endIso) {
+    out.push({ iso: curIso, dow: isoDowFromIso(curIso) });
+    curIso = addOneDay(curIso);
   }
   return out;
 }
 
-function isoDow(d: Date): number {
-  const dow = d.getUTCDay();
+function romeDateOnly(d: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: ROME_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d);
+}
+
+function addOneDay(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(Date.UTC(y!, m! - 1, d! + 1));
+  return dt.toISOString().slice(0, 10);
+}
+
+function isoDowFromIso(iso: string): number {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dow = new Date(Date.UTC(y!, m! - 1, d!)).getUTCDay();
   return dow === 0 ? 7 : dow;
 }
 
