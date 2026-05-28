@@ -30,7 +30,12 @@ test.describe('web — Utenti CRUD (mutating)', () => {
   });
 
   test.afterEach(async () => {
-    if (createdUserId) await deleteUser(admin.token, createdUserId).catch(() => {});
+    if (createdUserId) {
+      await deleteUser(admin.token, createdUserId).catch((e: Error) => {
+        // eslint-disable-next-line no-console
+        console.warn(`[afterEach] deleteUser ${createdUserId} failed: ${e.message}`);
+      });
+    }
     createdUserId = null;
   });
 

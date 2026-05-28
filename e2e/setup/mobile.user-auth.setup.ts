@@ -1,8 +1,10 @@
 import { test as setup, expect } from '@playwright/test';
 import { CREDS, STORAGE, URLS } from '../fixtures/test-data';
 
-// Employee-role mobile session. Lands on /timbrature like the admin session;
-// the role gate only affects screen-internal UI (e.g. Corrections FAB).
+// Employee-role mobile session. Reuses the fixture user provisioned by
+// web.auth.setup.ts (creds stored at STORAGE.userCreds, read dynamically by
+// CREDS.user). Lands on /timbrature like the admin session; the role gate
+// only affects screen-internal UI (e.g. Corrections FAB).
 setup('authenticate mobile user', async ({ page }) => {
   await page.goto(URLS.mobile);
   await expect(page.getByPlaceholder('email@azienda.it')).toBeVisible({ timeout: 60_000 });

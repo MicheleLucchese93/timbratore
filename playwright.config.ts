@@ -1,5 +1,15 @@
 import { defineConfig, devices } from '@playwright/test';
+import { existsSync, readFileSync } from 'node:fs';
 import { STORAGE, URLS } from './e2e/fixtures/test-data';
+
+// Load .env.e2e (gitignored) so secrets like E2E_PURGE_SECRET reach
+// globalTeardown without forcing a shell export before every run.
+if (existsSync('.env.e2e')) {
+  for (const line of readFileSync('.env.e2e', 'utf8').split('\n')) {
+    const m = line.match(/^([A-Z][A-Z0-9_]*)=(.*)$/);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
+  }
+}
 
 // Four spec projects (web admin, web user, mobile admin, mobile user) +
 // their setup projects. Setup projects log in once via the UI and persist

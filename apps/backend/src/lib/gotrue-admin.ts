@@ -67,3 +67,27 @@ export async function updatePassword(accessToken: string, password: string): Pro
     throw new Error(`GoTrue PUT /user ${r.status}: ${text}`);
   }
 }
+
+// Admin-level create: bypasses the invite email flow and sets a password
+// directly. Used only by the e2e fixture-user endpoint — never exposed to
+// regular admin flows, which always go through `inviteUser` so a real human
+// receives the magic link.
+export async function createUserWithPassword(
+  email: string,
+  password: string,
+): Promise<GoTrueUser> {
+  const jwt = await serviceRoleJwt();
+  const r = await fetch(`${env.GOTRUE_URL}/admin/users`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${jwt}`,
+    },
+    body: JSON.stringify({ email, password, email_confirm: true }),
+  });
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error(`GoTrue POST /admin/users ${r.status}: ${text}`);
+  }
+  return (await r.json()) as GoTrueUser;
+}
