@@ -1,12 +1,9 @@
 import { test as setup, expect } from '@playwright/test';
 import { CREDS, STORAGE, URLS } from '../fixtures/test-data';
 
-// Logs in as the per-run fixture user (provisioned by web.auth.setup.ts via
-// the internal /create-fixture-user endpoint and persisted to
-// STORAGE.userCreds, which CREDS.user reads at module load). Falls back to
-// the legacy test3 QA account when the creds file is absent — e.g. the
-// internal endpoint is unavailable. Persists the session to
-// STORAGE.webUserAuth for the `web-user` project.
+// Logs in test3 (the only non-admin on the test tenant) and persists the
+// session to STORAGE.webUserAuth. Used by the `web-user` project for
+// employee-role coverage.
 setup('authenticate web user', async ({ page }) => {
   await page.goto(`${URLS.web}/login`);
   await page.locator('input#email').fill(CREDS.user.email);

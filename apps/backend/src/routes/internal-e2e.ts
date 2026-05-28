@@ -65,13 +65,32 @@ internalE2eRouter.post(
       const m = await client.query(`DELETE FROM memberships WHERE user_id ${inE2eUsers}`, args);
       const a = await client.query(`DELETE FROM auth_users WHERE email LIKE $1`, args);
       const g = await client.query(`DELETE FROM auth.users WHERE email LIKE $1`, args);
+
+      // Belt-and-braces text-marker sweep: web mutating specs that act as the
+      // persistent test3 QA user leave rows behind on that account (we can't
+      // delete test3 because mobile-user specs assert its seeded data). The
+      // suite tags every fixture row's free-text fields with an "e2e " prefix
+      // — wipe any orphan that matches even if the owning user still exists.
+      const lrm = await client.query(
+        `DELETE FROM leave_requests
+          WHERE user_note            ILIKE 'e2e %'
+             OR cancellation_reason  ILIKE 'e2e %'
+             OR rejection_reason     ILIKE 'e2e %'`
+      );
+      const crm = await client.query(
+        `DELETE FROM correction_requests
+          WHERE justification   ILIKE 'e2e %'
+             OR resolution_note ILIKE 'e2e %'`
+      );
       await client.query('COMMIT');
+      const totalLeave = (lr.rowCount ?? 0) + (lrm.rowCount ?? 0);
+      const totalCorr = (cr.rowCount ?? 0) + (crm.rowCount ?? 0);
       logger.info(
         {
-          leave_requests: lr.rowCount,
+          leave_requests: totalLeave,
           leave_quota_assignments: lqa.rowCount,
           leave_approvers: lap.rowCount,
-          correction_requests: cr.rowCount,
+          correction_requests: totalCorr,
           correction_approvers: cap.rowCount,
           stamps: st.rowCount,
           user_shift_assignments: usa.rowCount,
@@ -80,14 +99,16 @@ internalE2eRouter.post(
           memberships: m.rowCount,
           auth_users: a.rowCount,
           gotrue_users: g.rowCount,
+          leave_requests_marker_sweep: lrm.rowCount,
+          correction_requests_marker_sweep: crm.rowCount,
         },
         'e2e fixtures purged'
       );
       ok(res, {
-        leave_requests_deleted: lr.rowCount,
+        leave_requests_deleted: totalLeave,
         leave_quota_assignments_deleted: lqa.rowCount,
         leave_approvers_deleted: lap.rowCount,
-        correction_requests_deleted: cr.rowCount,
+        correction_requests_deleted: totalCorr,
         correction_approvers_deleted: cap.rowCount,
         stamps_deleted: st.rowCount,
         user_shift_assignments_deleted: usa.rowCount,

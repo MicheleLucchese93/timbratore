@@ -23,18 +23,25 @@ export default async function globalTeardown(): Promise<void> {
       headers: { Authorization: `Bearer ${secret}` },
     });
     const body = (await r.json().catch(() => null)) as
-      | { ok: boolean; data?: { memberships_deleted: number; auth_users_deleted: number; gotrue_users_deleted: number } }
+      | { ok: boolean; data?: Record<string, number> }
       | null;
     if (!r.ok || !body?.ok) {
       // eslint-disable-next-line no-console
       console.warn(`[teardown] purge failed: ${r.status} ${JSON.stringify(body)}`);
       return;
     }
-    const d = body.data!;
+    const d = body.data ?? {};
+    // Print every "*_deleted" field returned so the log surfaces all the
+    // child tables the purge wiped (leave_requests, correction_requests,
+    // stamps, etc.) — not only memberships + auth_users like the original
+    // narrow purge.
+    const summary = Object.entries(d)
+      .filter(([k]) => k.endsWith('_deleted'))
+      .filter(([, v]) => typeof v === 'number' && v > 0)
+      .map(([k, v]) => `${v} ${k.replace(/_deleted$/, '')}`)
+      .join(', ');
     // eslint-disable-next-line no-console
-    console.log(
-      `[teardown] purged ${d.memberships_deleted} memberships, ${d.auth_users_deleted} auth_users, ${d.gotrue_users_deleted} gotrue users`
-    );
+    console.log(`[teardown] purged: ${summary || 'nothing'}`);
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn('[teardown] purge error', (err as Error).message);

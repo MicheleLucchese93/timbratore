@@ -92,7 +92,7 @@ export async function apiPost<T = unknown>(
   token: string,
   path: string,
   json: unknown,
-): Promise<{ status: number; data: T | null; code?: string }> {
+): Promise<{ status: number; data: T | null; code?: string; message?: string }> {
   const r = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
     headers: {
@@ -112,6 +112,7 @@ export async function apiPost<T = unknown>(
     status: r.status,
     data: (parsed.data as T) ?? null,
     code: parsed.error?.code,
+    message: parsed.error?.message,
   };
 }
 
@@ -264,7 +265,9 @@ export interface LeaveRow {
 export async function createLeave(token: string, body: LeaveCreateBody): Promise<LeaveRow> {
   const r = await apiPost<LeaveRow>(token, '/api/v1/leaves', body);
   if (r.status !== 201 || !r.data) {
-    throw new Error(`createLeave failed: ${r.status} ${r.code ?? ''}`);
+    throw new Error(
+      `createLeave failed: ${r.status} ${r.code ?? ''} ${r.message ?? ''}`.trim()
+    );
   }
   return r.data;
 }
