@@ -59,11 +59,11 @@ test.describe('mobile — Negative ferie balance (employee view)', () => {
     await page.getByRole('button', { name: 'Richieste' }).click();
     // Quota card renders only on the "Le mie" tab (default).  The card shows
     // "Ferie" + "{residual_strict.toFixed(2)}h". With initial_balance=-8 and
-    // no consumption, residual_strict should be exactly -8.00.
-    // The string "-8.00h" renders twice on the quota card — the main value
-    // and the "(… dopo richieste in attesa)" hint. .first() picks the main.
+    // no consumption, residual_strict should be exactly -8.00. The
+    // "Residuo dopo richieste in attesa" hint only renders when
+    // used_pending > 0 (RichiesteScreen.tsx:308); we don't seed a pending
+    // request here, so the hint should NOT be on screen.
     await expect(page.getByText(/-8\.00h/).first()).toBeVisible({ timeout: 15_000 });
-    // And the hint variant should be visible too.
-    await expect(page.getByText(/\(-8\.00h dopo richieste in attesa\)/)).toBeVisible();
+    await expect(page.getByText(/dopo richieste in attesa/i)).toHaveCount(0);
   });
 });

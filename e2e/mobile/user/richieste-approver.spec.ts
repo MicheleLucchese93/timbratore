@@ -25,11 +25,18 @@ test.describe('mobile — Approver hint on Ferie/Permessi modal', () => {
   });
 
   test('switching to Permesso preserves the approver-box hint', async ({ page }) => {
-    // Multiple "Permesso" text nodes may exist (leftover seeded leave notes
-    // mention "permessi"). The modal chip is the LAST rendered one. Click
-    // with `force: true` because sibling overlays (FAB, textarea) may
-    // intercept pointer events.
-    await page.getByText('Permesso', { exact: true }).last().click({ force: true });
+    // Multiple "Permesso" text nodes can exist (residue leave-request rows
+    // in "Le mie" use the word too). Anchor on the unique "Tipo" label
+    // above the modal's type-picker so we always target the chip and not
+    // a leftover row label. scrollIntoView in case the modal is taller
+    // than the viewport; force:true to bypass any pointer-intercept
+    // animation from sibling overlays.
+    const tipoLabel = page.getByText('Tipo', { exact: true });
+    await tipoLabel.scrollIntoViewIfNeeded();
+    const modal = tipoLabel.locator('xpath=ancestor::*[1]');
+    const chip = modal.getByText('Permesso', { exact: true }).first();
+    await chip.scrollIntoViewIfNeeded();
+    await chip.click({ force: true });
     const approverLine = page.getByText(/^Approvatore: /);
     const fallback = page.getByText('Nessun approvatore configurato');
     await expect(approverLine.or(fallback).first()).toBeVisible({ timeout: 10_000 });

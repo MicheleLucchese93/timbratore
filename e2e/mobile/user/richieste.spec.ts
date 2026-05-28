@@ -18,7 +18,7 @@ test.describe('mobile — Richieste (employee, ferie/permessi/malattia)', () => 
     await page.getByRole('button', { name: 'Richieste' }).click();
   });
 
-  test('shows both pills: "Le mie" and "Da approvare"', async ({ page }) => {
+  test('shows both swipeable tabs: "Le mie" and "Da approvare"', async ({ page }) => {
     await expect(page.getByText('Le mie', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(/Da approvare/).first()).toBeVisible();
   });
@@ -97,10 +97,12 @@ test.describe('mobile — Richieste with seeded quota (employee)', () => {
   });
 
   test('quota summary card lists Ferie + Permessi residuals', async ({ page }) => {
-    // Card renders "Ferie" + "{residual_strict}h" + "(…h dopo richieste in
-    // attesa)" after the assignment we seeded.
+    // Card renders "Ferie" + "{residual_strict.toFixed(2)}h" after the
+    // assignment we seeded. The "Residuo dopo richieste in attesa" hint
+    // is opt-in on used_pending > 0 (RichiesteScreen.tsx:308) — we don't
+    // seed a pending request, so just assert the main residual line.
     await expect(page.getByText('Ferie', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/dopo richieste in attesa/i).first()).toBeVisible();
+    await expect(page.getByText(/40\.00h/).first()).toBeVisible();
   });
 
   test('quota hint surfaces "Disponibili: Xh" inside the new-request modal', async ({ page }) => {
