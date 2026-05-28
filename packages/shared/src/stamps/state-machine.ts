@@ -3,7 +3,8 @@ import type { StampEventType } from '../types/index.js';
 export type StampState =
   | 'nothing'
   | 'clocked_in'
-  | 'on_break';
+  | 'on_break'
+  | 'on_lunch';
 
 export function stateAfter(currentState: StampState, event: StampEventType): StampState | null {
   switch (currentState) {
@@ -12,9 +13,13 @@ export function stateAfter(currentState: StampState, event: StampEventType): Sta
     case 'clocked_in':
       if (event === 'clock_out') return 'nothing';
       if (event === 'break_start') return 'on_break';
+      if (event === 'lunch_start') return 'on_lunch';
       return null;
     case 'on_break':
       if (event === 'break_end') return 'clocked_in';
+      return null;
+    case 'on_lunch':
+      if (event === 'lunch_end') return 'clocked_in';
       return null;
   }
 }
@@ -49,9 +54,12 @@ export function stateFromLastEvent(lastEvent: StampEventType | null): StampState
   switch (lastEvent) {
     case 'clock_in':
     case 'break_end':
+    case 'lunch_end':
       return 'clocked_in';
     case 'break_start':
       return 'on_break';
+    case 'lunch_start':
+      return 'on_lunch';
     case 'clock_out':
     case null:
       return 'nothing';

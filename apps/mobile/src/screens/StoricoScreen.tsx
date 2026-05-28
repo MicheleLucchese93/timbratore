@@ -134,8 +134,10 @@ function DayCard({ day, stamps }: { day: string; stamps: DayStamp[] }) {
         style={styles.cardHeader}>
         <View style={{ flex: 1 }}>
           <Text style={styles.dayLabel}>{formatDay(day)}</Text>
-          {totals.breakMs > 0 && (
-            <Text style={styles.breakLine}>Pause {formatDuration(totals.breakMs)}</Text>
+          {(totals.breakMs > 0 || totals.lunchMs > 0) && (
+            <Text style={styles.breakLine}>
+              Pause {formatDuration(totals.breakMs + totals.lunchMs)}
+            </Text>
           )}
         </View>
         <View style={styles.dayTotalBadge}>
@@ -199,6 +201,8 @@ function humanEvent(e: StampEventType): string {
     case 'clock_out': return 'Uscita';
     case 'break_start': return 'Inizio pausa';
     case 'break_end': return 'Fine pausa';
+    case 'lunch_start': return 'Inizio pausa pranzo';
+    case 'lunch_end': return 'Fine pausa pranzo';
   }
 }
 
@@ -208,6 +212,8 @@ function eventIcon(e: StampEventType): keyof typeof Ionicons.glyphMap {
     case 'clock_out': return 'log-out-outline';
     case 'break_start': return 'pause-outline';
     case 'break_end': return 'play-outline';
+    case 'lunch_start': return 'restaurant-outline';
+    case 'lunch_end': return 'play-outline';
   }
 }
 
@@ -217,6 +223,8 @@ function dotBg(e: StampEventType): string {
     case 'clock_out': return '#fde4e4';
     case 'break_start':
     case 'break_end':
+    case 'lunch_start':
+    case 'lunch_end':
       return '#fff3d1';
   }
 }
@@ -227,6 +235,8 @@ function dotFg(e: StampEventType): string {
     case 'clock_out': return color.error;
     case 'break_start':
     case 'break_end':
+    case 'lunch_start':
+    case 'lunch_end':
       return color.warning;
   }
 }

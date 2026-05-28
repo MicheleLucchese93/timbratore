@@ -25,10 +25,12 @@ test.describe('mobile — Timbrature tab', () => {
   });
 
   test('shows at least one stamp action button matching current state', async ({ page }) => {
-    // State chip is one of: Al lavoro / In pausa / Fuori servizio. Each state
-    // surfaces 1-2 action buttons. Assert at least one of the expected labels
-    // is on screen rather than coupling the test to a specific state.
-    const anyAction = page.getByText(/Timbra ingresso|Timbra uscita|Inizia pausa|Termina pausa/);
+    // State chip is one of: Al lavoro / In pausa / In pausa pranzo / Fuori servizio.
+    // Each state surfaces 1-3 action buttons. Assert at least one of the expected
+    // labels is on screen rather than coupling the test to a specific state.
+    const anyAction = page.getByText(
+      /Timbra ingresso|Timbra uscita|Inizia pausa|Termina pausa|Inizia pausa pranzo|Termina pausa pranzo/
+    );
     await expect(anyAction.first()).toBeVisible();
   });
 

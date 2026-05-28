@@ -28,9 +28,16 @@ await page.getByText('Continua').click();
     // TouchableOpacity submit button — RN-Web emits <div> w/o role=button.
 await page.getByText('Continua').click();
     await page.getByText(/Aggiungi una timbratura mancante/i).click();
-    // Step 3 — Tipo evento with all 4 options + Motivazione textarea.
+    // Step 3 — Tipo evento with all 6 options + Motivazione textarea.
     await expect(page.getByText('Tipo evento')).toBeVisible({ timeout: 10_000 });
-    for (const ev of ['Ingresso', 'Inizio pausa', 'Fine pausa', 'Uscita']) {
+    for (const ev of [
+      'Ingresso',
+      'Inizio pausa',
+      'Fine pausa',
+      'Inizio pausa pranzo',
+      'Fine pausa pranzo',
+      'Uscita',
+    ]) {
       await expect(page.getByText(ev).first()).toBeVisible();
     }
     // "Motivazione" appears both on the card detail behind the modal and

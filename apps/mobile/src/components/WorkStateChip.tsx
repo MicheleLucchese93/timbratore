@@ -4,7 +4,7 @@ import { color } from '@sonoqui/shared';
 import type { StampEventType } from '@sonoqui/shared';
 import { api } from '../lib/api';
 
-type WorkState = 'nothing' | 'clocked_in' | 'on_break';
+type WorkState = 'nothing' | 'clocked_in' | 'on_break' | 'on_lunch';
 
 interface CurrentStateResponse {
   state: WorkState;
@@ -47,6 +47,7 @@ export function WorkStateChip({ state }: WorkStateChipProps) {
 function stateBadge(s: WorkState): { label: string; bg: string; fg: string } {
   if (s === 'clocked_in') return { label: 'Al lavoro', bg: '#e8f3ec', fg: color.success };
   if (s === 'on_break') return { label: 'In pausa', bg: '#fff3d1', fg: color.warning };
+  if (s === 'on_lunch') return { label: 'In pausa pranzo', bg: '#fff3d1', fg: color.warning };
   return { label: 'Fuori servizio', bg: color.surfaceVariant, fg: color.onSurfaceVariant };
 }
 

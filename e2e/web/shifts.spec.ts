@@ -22,4 +22,16 @@ test.describe('web — Orari (Shifts) page', () => {
     if (await cancel.count()) await cancel.click();
     else await page.keyboard.press('Escape');
   });
+
+  test('modal exposes both pausa and pausa pranzo min/max thresholds', async ({ page }) => {
+    await page.getByRole('button', { name: /Nuovo orario/i }).click();
+    await expect(page.getByRole('heading', { name: 'Nuovo orario' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Pausa min', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Pausa max', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Pausa pranzo min', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Pausa pranzo max', { exact: true }).first()).toBeVisible();
+    const cancel = page.getByRole('button', { name: 'Annulla' });
+    if (await cancel.count()) await cancel.click();
+    else await page.keyboard.press('Escape');
+  });
 });

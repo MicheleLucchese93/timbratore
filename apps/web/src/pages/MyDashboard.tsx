@@ -4,14 +4,14 @@ import { api } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
 
 interface CurrentState {
-  state: 'nothing' | 'clocked_in' | 'on_break';
-  lastEvent: 'clock_in' | 'clock_out' | 'break_start' | 'break_end' | null;
+  state: 'nothing' | 'clocked_in' | 'on_break' | 'on_lunch';
+  lastEvent: 'clock_in' | 'clock_out' | 'break_start' | 'break_end' | 'lunch_start' | 'lunch_end' | null;
   lastEventAt: string | null;
 }
 
 interface Stamp {
   id: string;
-  event_type: 'clock_in' | 'clock_out' | 'break_start' | 'break_end';
+  event_type: 'clock_in' | 'clock_out' | 'break_start' | 'break_end' | 'lunch_start' | 'lunch_end';
   occurred_at: string;
 }
 
@@ -34,8 +34,15 @@ export function MyDashboard() {
 
   if (!me) return null;
 
-  const stateLabel = state?.state === 'clocked_in' ? 'Al lavoro' : state?.state === 'on_break' ? 'In pausa' : 'Fuori servizio';
-  const stateTone = state?.state === 'clocked_in' ? 'badge-ok' : state?.state === 'on_break' ? 'badge-warn' : 'badge-muted';
+  const stateLabel =
+    state?.state === 'clocked_in' ? 'Al lavoro'
+    : state?.state === 'on_break' ? 'In pausa'
+    : state?.state === 'on_lunch' ? 'In pausa pranzo'
+    : 'Fuori servizio';
+  const stateTone =
+    state?.state === 'clocked_in' ? 'badge-ok'
+    : state?.state === 'on_break' || state?.state === 'on_lunch' ? 'badge-warn'
+    : 'badge-muted';
 
   return (
     <div className="space-y-5">
@@ -89,6 +96,8 @@ function labelEvent(e: string | null): string {
     case 'clock_out': return 'Uscita';
     case 'break_start': return 'Inizio pausa';
     case 'break_end': return 'Fine pausa';
+    case 'lunch_start': return 'Inizio pausa pranzo';
+    case 'lunch_end': return 'Fine pausa pranzo';
     default: return '–';
   }
 }

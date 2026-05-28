@@ -15,7 +15,7 @@ export async function forgottenClockoutReminder(): Promise<void> {
        -- Fixed 14h max-shift cutoff (no per-tenant or per-shift override).
        SELECT l.id, l.tenant_id, l.user_id
        FROM latest l
-       WHERE l.event_type IN ('clock_in','break_end')
+       WHERE l.event_type IN ('clock_in','break_end','lunch_end')
          AND l.reminder_sent_at IS NULL
          AND l.occurred_at < now() - INTERVAL '14 hours'
      )

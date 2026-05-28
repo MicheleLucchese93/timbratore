@@ -35,6 +35,8 @@ const EVENT_OPTIONS: Array<{ value: StampEventType; label: string; icon: keyof t
   { value: 'clock_out', label: 'Uscita', icon: 'log-out-outline' },
   { value: 'break_start', label: 'Inizio pausa', icon: 'pause-outline' },
   { value: 'break_end', label: 'Fine pausa', icon: 'play-outline' },
+  { value: 'lunch_start', label: 'Inizio pausa pranzo', icon: 'restaurant-outline' },
+  { value: 'lunch_end', label: 'Fine pausa pranzo', icon: 'play-outline' },
 ];
 
 interface DayStamp {
@@ -642,6 +644,8 @@ function humanEvent(e: StampEventType): string {
     case 'clock_out': return 'Uscita';
     case 'break_start': return 'Inizio pausa';
     case 'break_end': return 'Fine pausa';
+    case 'lunch_start': return 'Inizio pausa pranzo';
+    case 'lunch_end': return 'Fine pausa pranzo';
   }
 }
 
@@ -651,6 +655,8 @@ function eventIcon(e: StampEventType): keyof typeof Ionicons.glyphMap {
     case 'clock_out': return 'log-out-outline';
     case 'break_start': return 'pause-outline';
     case 'break_end': return 'play-outline';
+    case 'lunch_start': return 'restaurant-outline';
+    case 'lunch_end': return 'play-outline';
   }
 }
 
@@ -660,6 +666,8 @@ function eventBg(e: StampEventType): string {
     case 'clock_out': return '#fde4e4';
     case 'break_start':
     case 'break_end':
+    case 'lunch_start':
+    case 'lunch_end':
       return '#fff3d1';
   }
 }
@@ -670,6 +678,8 @@ function eventFg(e: StampEventType): string {
     case 'clock_out': return color.error;
     case 'break_start':
     case 'break_end':
+    case 'lunch_start':
+    case 'lunch_end':
       return color.warning;
   }
 }

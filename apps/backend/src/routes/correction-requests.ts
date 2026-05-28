@@ -15,7 +15,7 @@ correctionRequestsRouter.use(authenticate);
 
 const CreateBody = z.object({
   original_stamp_id: z.string().uuid().nullable().optional(),
-  claimed_event_type: z.enum(['clock_in', 'clock_out', 'break_start', 'break_end']),
+  claimed_event_type: z.enum(['clock_in', 'clock_out', 'break_start', 'break_end', 'lunch_start', 'lunch_end']),
   claimed_occurred_at: z.string().datetime({ offset: true }),
   claimed_branch_id: z.string().uuid().nullable().optional(),
   justification: z.string().min(5).max(1000),
@@ -144,7 +144,7 @@ async function assertCanDecide(
 const ApproveBody = z.object({
   override: z
     .object({
-      claimed_event_type: z.enum(['clock_in', 'clock_out', 'break_start', 'break_end']).optional(),
+      claimed_event_type: z.enum(['clock_in', 'clock_out', 'break_start', 'break_end', 'lunch_start', 'lunch_end']).optional(),
       claimed_occurred_at: z.string().datetime({ offset: true }).optional(),
       claimed_branch_id: z.string().uuid().nullable().optional(),
     })

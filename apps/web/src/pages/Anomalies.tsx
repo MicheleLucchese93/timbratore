@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api, type ApiError } from '../lib/api.ts';
 
 interface Anomaly {
@@ -13,15 +14,19 @@ interface Anomaly {
     | 'missing_clock_out'
     | 'late_clock_in'
     | 'early_clock_out'
+    | 'short_hours'
     | 'worked_on_rest_day'
     | 'break_too_short'
-    | 'break_too_long';
+    | 'break_too_long'
+    | 'lunch_too_short'
+    | 'lunch_too_long';
   expected_start_at: string | null;
   expected_end_at: string | null;
   actual_start_at: string | null;
   actual_end_at: string | null;
   delta_minutes: number | null;
   break_total_min: number | null;
+  lunch_total_min: number | null;
   details: string | null;
 }
 
@@ -36,9 +41,12 @@ const KIND_LABEL: Record<Anomaly['kind'], string> = {
   missing_clock_out: 'Uscita mancante',
   late_clock_in: 'Entrata in ritardo',
   early_clock_out: 'Uscita anticipata',
+  short_hours: 'Ore giornaliere insufficienti',
   worked_on_rest_day: 'Lavoro in giorno di riposo',
   break_too_short: 'Pausa troppo breve',
   break_too_long: 'Pausa troppo lunga',
+  lunch_too_short: 'Pausa pranzo troppo breve',
+  lunch_too_long: 'Pausa pranzo troppo lunga',
 };
 
 const KIND_COLOR: Record<Anomaly['kind'], string> = {
@@ -46,10 +54,21 @@ const KIND_COLOR: Record<Anomaly['kind'], string> = {
   missing_clock_out: '#b91c1c',
   late_clock_in: '#d97706',
   early_clock_out: '#d97706',
+  short_hours: '#d97706',
   worked_on_rest_day: '#7c3aed',
   break_too_short: '#0369a1',
   break_too_long: '#0369a1',
+  lunch_too_short: '#0369a1',
+  lunch_too_long: '#0369a1',
 };
+
+const JUSTIFIABLE_KINDS: Anomaly['kind'][] = [
+  'short_hours',
+  'missing_clock_in',
+  'missing_clock_out',
+  'late_clock_in',
+  'early_clock_out',
+];
 
 function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -234,6 +253,15 @@ export function Anomalies() {
                       <div className="text-xs text-neutral-600 mt-0.5">{a.details}</div>
                     )}
                   </div>
+                  {JUSTIFIABLE_KINDS.includes(a.kind) && (
+                    <Link
+                      to={`/leaves?user_id=${encodeURIComponent(a.user_id)}&date=${encodeURIComponent(a.date)}`}
+                      className="btn btn-secondary btn-sm shrink-0"
+                      title="Crea o approva un giustificativo (ferie/permesso/malattia) per coprire la mancanza"
+                    >
+                      Giustifica
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

@@ -28,6 +28,8 @@ export interface ActiveAssignment {
   tolerance_out_min: number;
   expected_break_min_min: number;
   expected_break_max_min: number;
+  expected_lunch_min_min: number;
+  expected_lunch_max_min: number;
   extraordinary_threshold_min: 1 | 15 | 30;
   count_extraordinary: boolean;
   tolerance_in_breach_deduct_min: number;
@@ -99,9 +101,15 @@ export function computeCountedDay(
     }
   }
 
-  // break-too-long breach
+  // break-too-long breach (regular pausa)
   const breakMin = Math.round(totals.breakMs / MINUTE_MS);
   if (breakMin > assignment.expected_break_max_min) {
+    deductMs += assignment.tolerance_break_breach_deduct_min * MINUTE_MS;
+  }
+
+  // lunch-too-long breach
+  const lunchMin = Math.round(totals.lunchMs / MINUTE_MS);
+  if (lunchMin > assignment.expected_lunch_max_min) {
     deductMs += assignment.tolerance_break_breach_deduct_min * MINUTE_MS;
   }
 

@@ -15,6 +15,14 @@ import {
 
 const logger = createLogger('notifications');
 
+// Per-kind push opt-out keys stored in user_preferences.notification_preferences.
+// Missing keys are treated as `true` (defaults from migration 021).
+type PushPrefKey =
+  | 'push_leave_decisions'
+  | 'push_correction_decisions'
+  | 'push_leave_submissions'
+  | 'push_correction_submissions';
+
 interface RecipientRow {
   user_id: string;
   email: string | null;
@@ -22,6 +30,12 @@ interface RecipientRow {
   push_token: string | null;
   language: string | null;
   email_notifications_enabled: boolean;
+  notification_preferences: Record<string, unknown> | null;
+}
+
+function pushAllowed(recipient: RecipientRow, key: PushPrefKey): boolean {
+  const v = recipient.notification_preferences?.[key];
+  return typeof v === 'boolean' ? v : true;
 }
 
 async function loadRecipients(userIds: string[]): Promise<RecipientRow[]> {
@@ -29,7 +43,8 @@ async function loadRecipients(userIds: string[]): Promise<RecipientRow[]> {
   const r = await adminPool.query(
     `SELECT au.id AS user_id, au.email, au.display_name,
             up.push_token, up.language,
-            COALESCE(up.email_notifications_enabled, FALSE) AS email_notifications_enabled
+            COALESCE(up.email_notifications_enabled, FALSE) AS email_notifications_enabled,
+            up.notification_preferences
        FROM auth_users au
        LEFT JOIN user_preferences up ON up.user_id = au.id
       WHERE au.id = ANY($1::uuid[])`,
@@ -98,10 +113,12 @@ async function sendExpoPush(
 
 async function deliver(
   recipient: RecipientRow,
-  push: { title: string; body: string; data?: Record<string, unknown> } | null,
+  push:
+    | { title: string; body: string; data?: Record<string, unknown>; prefKey: PushPrefKey }
+    | null,
   email: { subject: string; text: string; html: string } | null
 ): Promise<void> {
-  if (push && recipient.push_token) {
+  if (push && recipient.push_token && pushAllowed(recipient, push.prefKey)) {
     await sendExpoPush(recipient.push_token, push.title, push.body, push.data);
   }
   if (email && recipient.email && recipient.email_notifications_enabled) {
@@ -152,6 +169,7 @@ export async function notifyLeaveSubmitted(
         title: 'Nuova richiesta',
         body: `${requesterName}: ${labelOf(ctx.type)}`,
         data: { kind: 'leave_submitted', request_id: ctx.requestId },
+        prefKey: 'push_leave_submissions',
       },
       mail
     );
@@ -184,6 +202,7 @@ export async function notifyLeaveDecided(
       title: `Richiesta ${verb}`,
       body: `${labelOf(ctx.type)} ${verb}${rejectionReason ? `: ${rejectionReason}` : ''}`,
       data: { kind: 'leave_decided', request_id: ctx.requestId, decision },
+      prefKey: 'push_leave_decisions',
     },
     mail
   );
@@ -215,6 +234,7 @@ export async function notifyCancellationRequested(
         title: 'Annullamento richiesto',
         body: `${requesterName}: ${labelOf(ctx.type)}`,
         data: { kind: 'leave_cancellation_requested', request_id: ctx.requestId },
+        prefKey: 'push_leave_submissions',
       },
       mail
     );
@@ -242,6 +262,7 @@ export async function notifyCancellationDecided(
       title: `Annullamento ${accepted ? 'accettato' : 'rifiutato'}`,
       body: labelOf(ctx.type),
       data: { kind: 'leave_cancellation_decided', request_id: ctx.requestId, accepted },
+      prefKey: 'push_leave_decisions',
     },
     mail
   );
@@ -284,6 +305,7 @@ export async function notifyCorrectionSubmitted(
         title: 'Nuova correzione',
         body: `${requesterName}: ${correctionLabel(ctx.event_type)}`,
         data: { kind: 'correction_submitted', request_id: ctx.requestId },
+        prefKey: 'push_correction_submissions',
       },
       mail
     );
@@ -317,6 +339,7 @@ export async function notifyCorrectionDecided(
       title: `Correzione ${verb}`,
       body: `${correctionLabel(ctx.event_type)}${note ? `: ${note}` : ''}`,
       data: { kind: 'correction_decided', request_id: ctx.requestId, decision },
+      prefKey: 'push_correction_decisions',
     },
     mail
   );
@@ -335,6 +358,8 @@ function correctionLabel(eventType: string): string {
     case 'clock_out': return 'Uscita';
     case 'break_start': return 'Inizio pausa';
     case 'break_end': return 'Fine pausa';
+    case 'lunch_start': return 'Inizio pausa pranzo';
+    case 'lunch_end': return 'Fine pausa pranzo';
     default: return eventType;
   }
 }

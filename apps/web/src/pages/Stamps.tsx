@@ -7,7 +7,7 @@ interface Stamp {
   id: string;
   user_id: string;
   user_email: string;
-  event_type: 'clock_in' | 'clock_out' | 'break_start' | 'break_end';
+  event_type: 'clock_in' | 'clock_out' | 'break_start' | 'break_end' | 'lunch_start' | 'lunch_end';
   occurred_at: string;
   source: string;
   branch_id: string | null;
@@ -84,6 +84,8 @@ function EventBadge({ event }: { event: Stamp['event_type'] }) {
     clock_out: { label: 'Uscita', cls: 'badge-muted' },
     break_start: { label: 'Inizio pausa', cls: 'badge-warn' },
     break_end: { label: 'Fine pausa', cls: 'badge-warn' },
+    lunch_start: { label: 'Inizio pausa pranzo', cls: 'badge-warn' },
+    lunch_end: { label: 'Fine pausa pranzo', cls: 'badge-warn' },
   };
   const v = map[event];
   return <span className={`badge ${v.cls}`}>{v.label}</span>;
@@ -205,6 +207,8 @@ function StampForm({
             <option value="clock_in">Ingresso</option>
             <option value="break_start">Inizio pausa</option>
             <option value="break_end">Fine pausa</option>
+            <option value="lunch_start">Inizio pausa pranzo</option>
+            <option value="lunch_end">Fine pausa pranzo</option>
             <option value="clock_out">Uscita</option>
           </select>
         </div>
@@ -267,6 +271,8 @@ function StampsDataGrid({
           { value: 'clock_out', label: 'Uscita' },
           { value: 'break_start', label: 'Inizio pausa' },
           { value: 'break_end', label: 'Fine pausa' },
+          { value: 'lunch_start', label: 'Inizio pausa pranzo' },
+          { value: 'lunch_end', label: 'Fine pausa pranzo' },
         ],
         renderCell: (p) => <EventBadge event={p.row.event_type} />,
       },

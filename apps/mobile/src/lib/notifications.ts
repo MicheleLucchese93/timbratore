@@ -166,6 +166,8 @@ function humanEvent(e: StampEventType): string {
     case 'clock_out': return 'Uscita';
     case 'break_start': return 'Inizio pausa';
     case 'break_end': return 'Fine pausa';
+    case 'lunch_start': return 'Inizio pausa pranzo';
+    case 'lunch_end': return 'Fine pausa pranzo';
   }
 }
 

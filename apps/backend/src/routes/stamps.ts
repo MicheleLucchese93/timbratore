@@ -12,7 +12,7 @@ export const stampsRouter = Router();
 stampsRouter.use(authenticate);
 
 const StampBody = z.object({
-  event_type: z.enum(['clock_in', 'clock_out', 'break_start', 'break_end']),
+  event_type: z.enum(['clock_in', 'clock_out', 'break_start', 'break_end', 'lunch_start', 'lunch_end']),
   occurred_at: z.string().datetime({ offset: true }),
   latitude: z.number().gte(-90).lte(90).optional(),
   longitude: z.number().gte(-180).lte(180).optional(),

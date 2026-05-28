@@ -4,7 +4,9 @@ export type StampEventType =
   | 'clock_in'
   | 'clock_out'
   | 'break_start'
-  | 'break_end';
+  | 'break_end'
+  | 'lunch_start'
+  | 'lunch_end';
 
 export type StampSource =
   | 'employee_app'
@@ -104,6 +106,8 @@ export interface ShiftTemplate {
   tolerance_out_min: number;
   expected_break_min_min: number;
   expected_break_max_min: number;
+  expected_lunch_min_min: number;
+  expected_lunch_max_min: number;
   extraordinary_threshold_min: 1 | 15 | 30;
   count_extraordinary: boolean;
   tolerance_in_breach_deduct_min: number;
@@ -133,7 +137,9 @@ export type ShiftAnomalyKind =
   | 'early_clock_out'
   | 'worked_on_rest_day'
   | 'break_too_short'
-  | 'break_too_long';
+  | 'break_too_long'
+  | 'lunch_too_short'
+  | 'lunch_too_long';
 
 export interface ShiftAnomaly {
   date: string;
@@ -149,6 +155,7 @@ export interface ShiftAnomaly {
   actual_end_at: string | null;
   delta_minutes: number | null;
   break_total_min: number | null;
+  lunch_total_min: number | null;
   details: string | null;
 }
 

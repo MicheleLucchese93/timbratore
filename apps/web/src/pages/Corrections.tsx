@@ -234,6 +234,10 @@ function labelEvent(e: string): string {
       return 'Inizio pausa';
     case 'break_end':
       return 'Fine pausa';
+    case 'lunch_start':
+      return 'Inizio pausa pranzo';
+    case 'lunch_end':
+      return 'Fine pausa pranzo';
     default:
       return e || '—';
   }

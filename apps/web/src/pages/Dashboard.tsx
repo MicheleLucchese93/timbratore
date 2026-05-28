@@ -43,9 +43,12 @@ type AnomalyKind =
   | 'missing_clock_out'
   | 'late_clock_in'
   | 'early_clock_out'
+  | 'short_hours'
   | 'worked_on_rest_day'
   | 'break_too_short'
-  | 'break_too_long';
+  | 'break_too_long'
+  | 'lunch_too_short'
+  | 'lunch_too_long';
 
 interface Anomaly {
   date: string;
@@ -74,7 +77,7 @@ interface UserCard {
   user_id: string;
   email: string;
   role: 'admin' | 'user';
-  state: 'nothing' | 'clocked_in' | 'on_break';
+  state: 'nothing' | 'clocked_in' | 'on_break' | 'on_lunch';
   last_event: string | null;
   last_event_at: string | null;
   branch_name: string | null;
@@ -118,9 +121,12 @@ const ANOMALY_LABEL: Record<AnomalyKind, string> = {
   missing_clock_out: 'Uscita mancante',
   late_clock_in: 'Entrata in ritardo',
   early_clock_out: 'Uscita anticipata',
+  short_hours: 'Ore giornaliere insufficienti',
   worked_on_rest_day: 'Lavoro in giorno di riposo',
   break_too_short: 'Pausa troppo breve',
   break_too_long: 'Pausa troppo lunga',
+  lunch_too_short: 'Pausa pranzo troppo breve',
+  lunch_too_long: 'Pausa pranzo troppo lunga',
 };
 
 export function Dashboard() {
@@ -888,6 +894,7 @@ function StatCard({
 function StateBadge({ state }: { state: UserCard['state'] }) {
   if (state === 'clocked_in') return <span className="badge badge-ok">Al lavoro</span>;
   if (state === 'on_break') return <span className="badge badge-warn">In pausa</span>;
+  if (state === 'on_lunch') return <span className="badge badge-warn">In pausa pranzo</span>;
   return <span className="badge badge-muted">Fuori servizio</span>;
 }
 
@@ -922,6 +929,8 @@ function labelEvent(e: string | null): string {
     case 'clock_out': return 'Uscita';
     case 'break_start': return 'Inizio pausa';
     case 'break_end': return 'Fine pausa';
+    case 'lunch_start': return 'Inizio pausa pranzo';
+    case 'lunch_end': return 'Fine pausa pranzo';
     default: return '–';
   }
 }

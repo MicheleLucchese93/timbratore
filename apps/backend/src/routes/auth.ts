@@ -56,3 +56,36 @@ authRouter.post(
     ok(res, { token, user: u.rows[0] });
   })
 );
+
+// GoTrue-shaped /token endpoint for local mobile e2e: lets Expo Web hit the
+// same backend for auth without a real GoTrue instance. DEV_AUTH_ENABLED
+// gates it — production refuses to boot with this flag on (see env.ts:71).
+const PasswordLogin = z.object({
+  email: z.string().email().optional(),
+  username: z.string().email().optional(),
+  password: z.string().min(1),
+});
+
+authRouter.post(
+  '/token',
+  asyncHandler(async (req, res) => {
+    if (!env.DEV_AUTH_ENABLED) throw new ForbiddenError('dev auth disabled');
+    if (req.query.grant_type !== 'password') {
+      throw new ValidationError('only grant_type=password supported in dev shim');
+    }
+    const parse = PasswordLogin.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const email = parse.data.email ?? parse.data.username;
+    if (!email) throw new ValidationError('email required');
+    const u = await adminPool.query(`SELECT id, email FROM auth_users WHERE email = $1`, [email]);
+    if (u.rowCount === 0) throw new NotFoundError(`user not found: ${email}`);
+    const access = await signDevToken({ sub: u.rows[0].id, email: u.rows[0].email });
+    res.json({
+      access_token: access,
+      refresh_token: access,
+      token_type: 'bearer',
+      expires_in: 3600,
+      user: { id: u.rows[0].id, email: u.rows[0].email },
+    });
+  })
+);

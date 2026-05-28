@@ -5,7 +5,7 @@ import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 
 interface Stamp {
   id: string;
-  event_type: 'clock_in' | 'clock_out' | 'break_start' | 'break_end';
+  event_type: 'clock_in' | 'clock_out' | 'break_start' | 'break_end' | 'lunch_start' | 'lunch_end';
   occurred_at: string;
   source: string;
   branch_id: string | null;
@@ -47,6 +47,8 @@ export function MyStamps() {
           { value: 'clock_out', label: 'Uscita' },
           { value: 'break_start', label: 'Inizio pausa' },
           { value: 'break_end', label: 'Fine pausa' },
+          { value: 'lunch_start', label: 'Inizio pausa pranzo' },
+          { value: 'lunch_end', label: 'Fine pausa pranzo' },
         ],
         renderCell: (p) => (
           <span className={`badge ${badgeOf(p.row.event_type)}`}>{labelEvent(p.row.event_type)}</span>
@@ -101,6 +103,8 @@ function labelEvent(e: string): string {
     case 'clock_out': return 'Uscita';
     case 'break_start': return 'Inizio pausa';
     case 'break_end': return 'Fine pausa';
+    case 'lunch_start': return 'Inizio pausa pranzo';
+    case 'lunch_end': return 'Fine pausa pranzo';
     default: return e;
   }
 }

@@ -17,8 +17,10 @@ test.describe('web — Timbrature (admin stamps)', () => {
     // Custom overlay (not a real <dialog>): fixed-position card with the
     // "Nuova timbratura" heading and selects with localized option labels.
     await expect(page.getByRole('heading', { name: 'Nuova timbratura' })).toBeVisible();
-    // The Evento <select> contains the four event types — use that as the
+    // The Evento <select> contains the six event types — use that as the
     // disambiguating signal (avoids collision with the DataGrid column menu).
-    await expect(page.locator('option', { hasText: 'Inizio pausa' })).toHaveCount(1);
+    // Anchor 'Inizio pausa' with regex so the substring of 'Inizio pausa pranzo' doesn't double-match.
+    await expect(page.locator('option', { hasText: /^Inizio pausa$/ })).toHaveCount(1);
+    await expect(page.locator('option', { hasText: /^Inizio pausa pranzo$/ })).toHaveCount(1);
   });
 });

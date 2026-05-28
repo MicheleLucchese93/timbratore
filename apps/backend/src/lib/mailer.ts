@@ -235,6 +235,8 @@ const EVENT_LABEL: Record<string, { it: string; en: string }> = {
   clock_out: { it: 'Uscita', en: 'Clock out' },
   break_start: { it: 'Inizio pausa', en: 'Break start' },
   break_end: { it: 'Fine pausa', en: 'Break end' },
+  lunch_start: { it: 'Inizio pausa pranzo', en: 'Lunch start' },
+  lunch_end: { it: 'Fine pausa pranzo', en: 'Lunch end' },
 };
 
 export interface CorrectionMailPayload {

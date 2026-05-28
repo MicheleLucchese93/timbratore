@@ -26,8 +26,9 @@ dashboardRouter.get(
               ls.occurred_at AS last_event_at,
               b.name AS branch_name,
               CASE
-                WHEN ls.event_type IN ('clock_in','break_end') THEN 'clocked_in'
+                WHEN ls.event_type IN ('clock_in','break_end','lunch_end') THEN 'clocked_in'
                 WHEN ls.event_type = 'break_start' THEN 'on_break'
+                WHEN ls.event_type = 'lunch_start' THEN 'on_lunch'
                 ELSE 'nothing'
               END AS state
        FROM memberships m
@@ -67,8 +68,9 @@ dashboardRouter.get(
          ORDER BY user_id, occurred_at DESC, created_at DESC
        )
        SELECT
-         COUNT(*) FILTER (WHERE ls.event_type IN ('clock_in','break_end')) AS clocked_in,
+         COUNT(*) FILTER (WHERE ls.event_type IN ('clock_in','break_end','lunch_end')) AS clocked_in,
          COUNT(*) FILTER (WHERE ls.event_type = 'break_start') AS on_break,
+         COUNT(*) FILTER (WHERE ls.event_type = 'lunch_start') AS on_lunch,
          COUNT(*) FILTER (WHERE ls.event_type IS NULL OR ls.event_type = 'clock_out') AS off
        FROM memberships m
        LEFT JOIN last_stamp ls ON ls.user_id = m.user_id
@@ -134,6 +136,7 @@ dashboardRouter.get(
               a.shift_template_id, st.name AS template_name,
               st.tolerance_in_min, st.tolerance_out_min,
               st.expected_break_min_min, st.expected_break_max_min,
+              st.expected_lunch_min_min, st.expected_lunch_max_min,
               COALESCE(
                 (SELECT json_agg(json_build_object(
                   'day_of_week', sl.day_of_week,
@@ -155,7 +158,20 @@ dashboardRouter.get(
                   AND s.occurred_at >= r.d::timestamptz
                   AND s.occurred_at <  (r.d + INTERVAL '1 day')::timestamptz),
                 '[]'::json
-              ) AS stamps
+              ) AS stamps,
+              COALESCE(
+                (SELECT json_agg(json_build_object(
+                  'type', lr.type,
+                  'from_ts', lr.from_ts,
+                  'to_ts', lr.to_ts
+                ))
+                 FROM leave_requests lr
+                WHERE lr.user_id = m.user_id
+                  AND lr.status = 'approved'
+                  AND lr.from_ts <  (r.d + INTERVAL '1 day')::timestamptz
+                  AND lr.to_ts   >   r.d::timestamptz),
+                '[]'::json
+              ) AS leaves
          FROM range r
          CROSS JOIN memb m
          LEFT JOIN user_shift_assignments a
@@ -181,9 +197,12 @@ dashboardRouter.get(
       missing_clock_out: 0,
       late_clock_in: 0,
       early_clock_out: 0,
+      short_hours: 0,
       worked_on_rest_day: 0,
       break_too_short: 0,
       break_too_long: 0,
+      lunch_too_short: 0,
+      lunch_too_long: 0,
     };
     for (const a of anomalies) byKind[a.kind]++;
     const recentAnomalies = anomalies

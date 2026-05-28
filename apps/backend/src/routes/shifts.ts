@@ -45,6 +45,8 @@ const TemplateBody = z.object({
   tolerance_out_min: z.number().int().min(0).max(240).default(10),
   expected_break_min_min: z.number().int().min(0).max(480).default(0),
   expected_break_max_min: z.number().int().min(0).max(480).default(90),
+  expected_lunch_min_min: z.number().int().min(0).max(480).default(0),
+  expected_lunch_max_min: z.number().int().min(0).max(480).default(90),
   extraordinary_threshold_min: z
     .union([z.literal(1), z.literal(15), z.literal(30)])
     .default(15),
@@ -92,6 +94,7 @@ shiftsRouter.get(
     const t = await client.query(
       `SELECT id, name, description, tolerance_in_min, tolerance_out_min,
               expected_break_min_min, expected_break_max_min,
+              expected_lunch_min_min, expected_lunch_max_min,
               extraordinary_threshold_min, count_extraordinary,
               tolerance_in_breach_deduct_min, tolerance_out_breach_deduct_min,
               tolerance_break_breach_deduct_min,
@@ -147,16 +150,20 @@ shiftsRouter.post(
     if (b.expected_break_min_min > b.expected_break_max_min) {
       throw new ValidationError('expected_break_min_min deve essere ≤ expected_break_max_min');
     }
+    if (b.expected_lunch_min_min > b.expected_lunch_max_min) {
+      throw new ValidationError('expected_lunch_min_min deve essere ≤ expected_lunch_max_min');
+    }
     validateSlots(b.slots);
     let created;
     try {
       created = await client.query(
         `INSERT INTO shift_templates(tenant_id, name, description, tolerance_in_min, tolerance_out_min,
                                      expected_break_min_min, expected_break_max_min,
+                                     expected_lunch_min_min, expected_lunch_max_min,
                                      extraordinary_threshold_min, count_extraordinary,
                                      tolerance_in_breach_deduct_min, tolerance_out_breach_deduct_min,
                                      tolerance_break_breach_deduct_min)
-         VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
          RETURNING *`,
         [
           b.name,
@@ -165,6 +172,8 @@ shiftsRouter.post(
           b.tolerance_out_min,
           b.expected_break_min_min,
           b.expected_break_max_min,
+          b.expected_lunch_min_min,
+          b.expected_lunch_max_min,
           b.extraordinary_threshold_min,
           b.count_extraordinary,
           b.tolerance_in_breach_deduct_min,
@@ -290,6 +299,7 @@ shiftsRouter.get(
               st.name AS template_name,
               st.tolerance_in_min, st.tolerance_out_min,
               st.expected_break_min_min, st.expected_break_max_min,
+              st.expected_lunch_min_min, st.expected_lunch_max_min,
               st.extraordinary_threshold_min, st.count_extraordinary,
               st.tolerance_in_breach_deduct_min, st.tolerance_out_breach_deduct_min,
               st.tolerance_break_breach_deduct_min
@@ -394,6 +404,7 @@ shiftsRouter.get(
               a.shift_template_id, st.name AS template_name,
               st.tolerance_in_min, st.tolerance_out_min,
               st.expected_break_min_min, st.expected_break_max_min,
+              st.expected_lunch_min_min, st.expected_lunch_max_min,
               COALESCE(
                 (SELECT json_agg(json_build_object(
                   'day_of_week', sl.day_of_week,
@@ -415,7 +426,20 @@ shiftsRouter.get(
                   AND s.occurred_at >= r.d::timestamptz
                   AND s.occurred_at <  (r.d + INTERVAL '1 day')::timestamptz),
                 '[]'::json
-              ) AS stamps
+              ) AS stamps,
+              COALESCE(
+                (SELECT json_agg(json_build_object(
+                  'type', lr.type,
+                  'from_ts', lr.from_ts,
+                  'to_ts', lr.to_ts
+                ))
+                 FROM leave_requests lr
+                WHERE lr.user_id = m.user_id
+                  AND lr.status = 'approved'
+                  AND lr.from_ts <  (r.d + INTERVAL '1 day')::timestamptz
+                  AND lr.to_ts   >   r.d::timestamptz),
+                '[]'::json
+              ) AS leaves
          FROM range r
          CROSS JOIN memb m
          LEFT JOIN user_shift_assignments a
@@ -443,8 +467,11 @@ export interface AnomalyRow {
   tolerance_out_min: number | null;
   expected_break_min_min: number | null;
   expected_break_max_min: number | null;
+  expected_lunch_min_min: number | null;
+  expected_lunch_max_min: number | null;
   slots: { day_of_week: number; start_time: string; end_time: string }[];
   stamps: { event_type: string; occurred_at: string }[];
+  leaves: { type: 'ferie' | 'permessi' | 'malattia'; from_ts: string; to_ts: string }[];
 }
 
 export interface Anomaly {
@@ -459,15 +486,19 @@ export interface Anomaly {
     | 'missing_clock_out'
     | 'late_clock_in'
     | 'early_clock_out'
+    | 'short_hours'
     | 'worked_on_rest_day'
     | 'break_too_short'
-    | 'break_too_long';
+    | 'break_too_long'
+    | 'lunch_too_short'
+    | 'lunch_too_long';
   expected_start_at: string | null;
   expected_end_at: string | null;
   actual_start_at: string | null;
   actual_end_at: string | null;
   delta_minutes: number | null;
   break_total_min: number | null;
+  lunch_total_min: number | null;
   details: string | null;
 }
 
@@ -574,14 +605,71 @@ export function computeAnomalies(rows: AnomalyRow[]): Anomaly[] {
 
     let breakTotal = 0;
     let openBreak: number | null = null;
+    let lunchTotal = 0;
+    let openLunch: number | null = null;
     for (const s of stamps) {
       if (s.event_type === 'break_start') {
         openBreak = new Date(s.occurred_at).getTime();
       } else if (s.event_type === 'break_end' && openBreak !== null) {
         breakTotal += Math.round((new Date(s.occurred_at).getTime() - openBreak) / 60000);
         openBreak = null;
+      } else if (s.event_type === 'lunch_start') {
+        openLunch = new Date(s.occurred_at).getTime();
+      } else if (s.event_type === 'lunch_end' && openLunch !== null) {
+        lunchTotal += Math.round((new Date(s.occurred_at).getTime() - openLunch) / 60000);
+        openLunch = null;
       }
     }
+
+    if (firstIn && lastOut) {
+      const expectedMin = slots.reduce((sum, sl) => {
+        const start = combineDateTime(date, sl.start_time).getTime();
+        const end = combineDateTime(date, sl.end_time).getTime();
+        return sum + Math.max(0, Math.round((end - start) / 60000));
+      }, 0);
+      const dayStart = Date.UTC(
+        Number(date.slice(0, 4)),
+        Number(date.slice(5, 7)) - 1,
+        Number(date.slice(8, 10))
+      );
+      const dayEnd = dayStart + 24 * 60 * 60 * 1000;
+      const leaveCoveredMin = (row.leaves ?? []).reduce((sum, lv) => {
+        const from = new Date(lv.from_ts).getTime();
+        const to = new Date(lv.to_ts).getTime();
+        const overlap = Math.min(to, dayEnd) - Math.max(from, dayStart);
+        return sum + (overlap > 0 ? Math.round(overlap / 60000) : 0);
+      }, 0);
+      let workedMs = 0;
+      let openIn: number | null = null;
+      for (const s of stamps) {
+        if (s.event_type === 'clock_in') {
+          openIn = new Date(s.occurred_at).getTime();
+        } else if (s.event_type === 'clock_out' && openIn !== null) {
+          workedMs += new Date(s.occurred_at).getTime() - openIn;
+          openIn = null;
+        }
+      }
+      const workedMin = Math.max(0, Math.round(workedMs / 60000) - breakTotal - lunchTotal);
+      const effectiveExpected = Math.max(0, expectedMin - leaveCoveredMin);
+      const shortfall = effectiveExpected - workedMin;
+      if (shortfall > tolOut) {
+        const a = buildAnomaly(
+          row,
+          date,
+          'short_hours',
+          expectedStart.toISOString(),
+          expectedEnd.toISOString(),
+          stamps
+        );
+        a.delta_minutes = shortfall;
+        a.details =
+          leaveCoveredMin > 0
+            ? `Lavorate ${workedMin} min su ${effectiveExpected} attese (assenza copre ${leaveCoveredMin} min)`
+            : `Lavorate ${workedMin} min su ${expectedMin} attese`;
+        out.push(a);
+      }
+    }
+
     const bMin = row.expected_break_min_min ?? 0;
     const bMax = row.expected_break_max_min ?? Number.POSITIVE_INFINITY;
     if (firstIn && lastOut) {
@@ -608,6 +696,36 @@ export function computeAnomalies(rows: AnomalyRow[]): Anomaly[] {
         );
         a.break_total_min = breakTotal;
         a.details = `Pausa ${breakTotal} min, massima ${bMax} min`;
+        out.push(a);
+      }
+    }
+
+    const lMin = row.expected_lunch_min_min ?? 0;
+    const lMax = row.expected_lunch_max_min ?? Number.POSITIVE_INFINITY;
+    if (firstIn && lastOut) {
+      if (lunchTotal < lMin) {
+        const a = buildAnomaly(
+          row,
+          date,
+          'lunch_too_short',
+          expectedStart.toISOString(),
+          expectedEnd.toISOString(),
+          stamps
+        );
+        a.lunch_total_min = lunchTotal;
+        a.details = `Pausa pranzo ${lunchTotal} min, minima ${lMin} min`;
+        out.push(a);
+      } else if (lunchTotal > lMax) {
+        const a = buildAnomaly(
+          row,
+          date,
+          'lunch_too_long',
+          expectedStart.toISOString(),
+          expectedEnd.toISOString(),
+          stamps
+        );
+        a.lunch_total_min = lunchTotal;
+        a.details = `Pausa pranzo ${lunchTotal} min, massima ${lMax} min`;
         out.push(a);
       }
     }
@@ -639,6 +757,7 @@ function buildAnomaly(
       [...stamps].reverse().find((s) => s.event_type === 'clock_out')?.occurred_at ?? null,
     delta_minutes: null,
     break_total_min: null,
+    lunch_total_min: null,
     details: null,
   };
 }

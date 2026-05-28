@@ -16,6 +16,8 @@ interface ShiftTemplate {
   tolerance_out_min: number;
   expected_break_min_min: number;
   expected_break_max_min: number;
+  expected_lunch_min_min: number;
+  expected_lunch_max_min: number;
   extraordinary_threshold_min: 1 | 15 | 30;
   count_extraordinary: boolean;
   tolerance_in_breach_deduct_min: number;
@@ -103,7 +105,8 @@ export function Shifts() {
                 )}
                 <div className="text-xs text-neutral-500 mt-1">
                   Tolleranza entrata ±{t.tolerance_in_min}min · uscita ±{t.tolerance_out_min}min ·
-                  pausa {t.expected_break_min_min}–{t.expected_break_max_min}min
+                  pausa {t.expected_break_min_min}–{t.expected_break_max_min}min ·
+                  pausa pranzo {t.expected_lunch_min_min}–{t.expected_lunch_max_min}min
                 </div>
                 <div className="text-xs text-neutral-500 mt-0.5">
                   Totale settimanale: {formatWeeklyTotal(t.slots)}
@@ -146,7 +149,7 @@ export function Shifts() {
   );
 }
 
-function formatWeeklyTotal(slots: Slot[]): string {
+function slotsMinutes(slots: Slot[]): number {
   let totalMin = 0;
   for (const s of slots) {
     const [sh, sm] = s.start_time.split(':').map(Number);
@@ -156,9 +159,17 @@ function formatWeeklyTotal(slots: Slot[]): string {
     const end = eh * 60 + em;
     if (end > start) totalMin += end - start;
   }
+  return totalMin;
+}
+
+function formatMinutes(totalMin: number): string {
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
   return `${h}h ${m.toString().padStart(2, '0')}m`;
+}
+
+function formatWeeklyTotal(slots: Slot[]): string {
+  return formatMinutes(slotsMinutes(slots));
 }
 
 function WeeklyPreview({ slots }: { slots: Slot[] }) {
@@ -192,6 +203,8 @@ interface FormState {
   tolerance_out_min: number;
   expected_break_min_min: number;
   expected_break_max_min: number;
+  expected_lunch_min_min: number;
+  expected_lunch_max_min: number;
   extraordinary_threshold_min: 1 | 15 | 30;
   count_extraordinary: boolean;
   tolerance_in_breach_deduct_min: number;
@@ -216,6 +229,8 @@ function ShiftForm({
     tolerance_out_min: initial?.tolerance_out_min ?? 10,
     expected_break_min_min: initial?.expected_break_min_min ?? 0,
     expected_break_max_min: initial?.expected_break_max_min ?? 90,
+    expected_lunch_min_min: initial?.expected_lunch_min_min ?? 0,
+    expected_lunch_max_min: initial?.expected_lunch_max_min ?? 90,
     extraordinary_threshold_min: initial?.extraordinary_threshold_min ?? 15,
     count_extraordinary: initial?.count_extraordinary ?? false,
     tolerance_in_breach_deduct_min: initial?.tolerance_in_breach_deduct_min ?? 0,
@@ -254,6 +269,8 @@ function ShiftForm({
         tolerance_out_min: state.tolerance_out_min,
         expected_break_min_min: state.expected_break_min_min,
         expected_break_max_min: state.expected_break_max_min,
+        expected_lunch_min_min: state.expected_lunch_min_min,
+        expected_lunch_max_min: state.expected_lunch_max_min,
         extraordinary_threshold_min: state.extraordinary_threshold_min,
         count_extraordinary: state.count_extraordinary,
         tolerance_in_breach_deduct_min: state.tolerance_in_breach_deduct_min,
@@ -369,6 +386,32 @@ function ShiftForm({
                   }
                 />
               </label>
+              <label>
+                <span className="label">Pausa pranzo min</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={480}
+                  className="input"
+                  value={state.expected_lunch_min_min}
+                  onChange={(e) =>
+                    setState({ ...state, expected_lunch_min_min: Number(e.target.value) })
+                  }
+                />
+              </label>
+              <label>
+                <span className="label">Pausa pranzo max</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={480}
+                  className="input"
+                  value={state.expected_lunch_max_min}
+                  onChange={(e) =>
+                    setState({ ...state, expected_lunch_max_min: Number(e.target.value) })
+                  }
+                />
+              </label>
             </div>
           </fieldset>
 
@@ -475,6 +518,7 @@ function ShiftForm({
                 const daySlots = state.slots
                   .map((s, idx) => ({ s, idx }))
                   .filter(({ s }) => s.day_of_week === d.iso);
+                const dayMin = slotsMinutes(daySlots.map(({ s }) => s));
                 return (
                   <div
                     key={d.iso}
@@ -523,10 +567,21 @@ function ShiftForm({
                       >
                         + fascia
                       </button>
+                      {dayMin > 0 && (
+                        <span className="text-xs text-neutral-500 ml-auto tabular-nums">
+                          {formatMinutes(dayMin)}
+                        </span>
+                      )}
                     </div>
                   </div>
                 );
               })}
+            </div>
+            <div className="flex items-center justify-between pt-2 mt-2 border-t border-neutral-200 text-sm">
+              <span className="font-medium">Totale settimanale</span>
+              <span className="font-medium tabular-nums">
+                {formatWeeklyTotal(state.slots)}
+              </span>
             </div>
           </fieldset>
 

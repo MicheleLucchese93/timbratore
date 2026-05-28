@@ -112,6 +112,7 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
     const days = new Map<string, DayAgg & { firstIn: Date | null; lastOut: Date | null }>();
     let openClockIn: Date | null = null;
     let openBreak: Date | null = null;
+    let openLunch: Date | null = null;
 
     for (const s of u.stamps) {
       const dayKey = s.at.toISOString().slice(0, 10);
@@ -142,6 +143,15 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
         else day.unpaid_break_minutes += minutes;
         openClockIn = s.at;
         openBreak = null;
+      } else if (s.event === 'lunch_start' && openClockIn) {
+        day.worked_minutes += diffMin(openClockIn, s.at);
+        openLunch = s.at;
+      } else if (s.event === 'lunch_end' && openLunch) {
+        const minutes = diffMin(openLunch, s.at);
+        if (minutes <= PAID_BREAK_THRESHOLD_MIN) day.paid_break_minutes += minutes;
+        else day.unpaid_break_minutes += minutes;
+        openClockIn = s.at;
+        openLunch = null;
       } else if (s.event === 'clock_out' && openClockIn) {
         day.worked_minutes += diffMin(openClockIn, s.at);
         day.lastOut = s.at;

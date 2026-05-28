@@ -10,6 +10,7 @@ export interface DayStamp {
 export interface DayTotals {
   workedMs: number;
   breakMs: number;
+  lunchMs: number;
   firstInAt: string | null;
   lastOutAt: string | null;
   isOpen: boolean;
@@ -21,8 +22,10 @@ export function computeDayTotals(stamps: DayStamp[], now: Date = new Date()): Da
   );
   let workedMs = 0;
   let breakMs = 0;
+  let lunchMs = 0;
   let inAt: Date | null = null;
   let breakAt: Date | null = null;
+  let lunchAt: Date | null = null;
   let firstInAt: string | null = null;
   let lastOutAt: string | null = null;
   for (const s of sorted) {
@@ -46,6 +49,20 @@ export function computeDayTotals(stamps: DayStamp[], now: Date = new Date()): Da
         }
         inAt = t;
         break;
+      case 'lunch_start':
+        if (inAt) {
+          workedMs += t.getTime() - inAt.getTime();
+          inAt = null;
+        }
+        lunchAt = t;
+        break;
+      case 'lunch_end':
+        if (lunchAt) {
+          lunchMs += t.getTime() - lunchAt.getTime();
+          lunchAt = null;
+        }
+        inAt = t;
+        break;
       case 'clock_out':
         if (inAt) {
           workedMs += t.getTime() - inAt.getTime();
@@ -55,10 +72,11 @@ export function computeDayTotals(stamps: DayStamp[], now: Date = new Date()): Da
         break;
     }
   }
-  const isOpen = inAt !== null || breakAt !== null;
+  const isOpen = inAt !== null || breakAt !== null || lunchAt !== null;
   if (inAt) workedMs += now.getTime() - inAt.getTime();
   if (breakAt) breakMs += now.getTime() - breakAt.getTime();
-  return { workedMs, breakMs, firstInAt, lastOutAt, isOpen };
+  if (lunchAt) lunchMs += now.getTime() - lunchAt.getTime();
+  return { workedMs, breakMs, lunchMs, firstInAt, lastOutAt, isOpen };
 }
 
 export function formatDuration(ms: number): string {

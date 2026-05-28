@@ -11,7 +11,7 @@ adminStampsRouter.use(requireAdmin);
 
 const AdminCreate = z.object({
   user_id: z.string().uuid(),
-  event_type: z.enum(['clock_in', 'clock_out', 'break_start', 'break_end']),
+  event_type: z.enum(['clock_in', 'clock_out', 'break_start', 'break_end', 'lunch_start', 'lunch_end']),
   occurred_at: z.string().datetime({ offset: true }),
   branch_id: z.string().uuid().nullable().optional(),
   notes: z.string().max(500).optional(),
@@ -46,7 +46,7 @@ adminStampsRouter.post(
 );
 
 const AdminPatch = z.object({
-  event_type: z.enum(['clock_in', 'clock_out', 'break_start', 'break_end']).optional(),
+  event_type: z.enum(['clock_in', 'clock_out', 'break_start', 'break_end', 'lunch_start', 'lunch_end']).optional(),
   occurred_at: z.string().datetime({ offset: true }).optional(),
   branch_id: z.string().uuid().nullable().optional(),
   notes: z.string().max(500).optional(),
@@ -115,6 +115,8 @@ const BulkApply = z.object({
     clock_out: z.string().regex(/^\d{2}:\d{2}$/),
     break_start: z.string().regex(/^\d{2}:\d{2}$/).optional(),
     break_end: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    lunch_start: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    lunch_end: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   }),
 });
 
@@ -158,6 +160,20 @@ adminStampsRouter.post(
              VALUES (current_setting('app.current_tenant_id')::uuid, $1, 'break_end',
                      ($2 || ' ' || $3 || ':00')::timestamptz, 'admin_manual', $4, 'bulk_apply_standard')`,
             [b.user_id, date, b.schedule.break_end, b.branch_id ?? null]
+          );
+        }
+        if (b.schedule.lunch_start && b.schedule.lunch_end) {
+          await client.query(
+            `INSERT INTO stamps(tenant_id, user_id, event_type, occurred_at, source, branch_id, notes)
+             VALUES (current_setting('app.current_tenant_id')::uuid, $1, 'lunch_start',
+                     ($2 || ' ' || $3 || ':00')::timestamptz, 'admin_manual', $4, 'bulk_apply_standard')`,
+            [b.user_id, date, b.schedule.lunch_start, b.branch_id ?? null]
+          );
+          await client.query(
+            `INSERT INTO stamps(tenant_id, user_id, event_type, occurred_at, source, branch_id, notes)
+             VALUES (current_setting('app.current_tenant_id')::uuid, $1, 'lunch_end',
+                     ($2 || ' ' || $3 || ':00')::timestamptz, 'admin_manual', $4, 'bulk_apply_standard')`,
+            [b.user_id, date, b.schedule.lunch_end, b.branch_id ?? null]
           );
         }
         await client.query(

@@ -26,7 +26,7 @@ import { AppHeader } from '../components/AppHeader';
 import { WorkStateChip } from '../components/WorkStateChip';
 
 interface CurrentState {
-  state: 'nothing' | 'clocked_in' | 'on_break';
+  state: 'nothing' | 'clocked_in' | 'on_break' | 'on_lunch';
   lastEvent: StampEventType | null;
   lastEventAt: string | null;
 }
@@ -188,8 +188,11 @@ export function TimbratureScreen() {
   } else if (currentState === 'clocked_in') {
     buttons.push({ event: 'clock_out', label: 'Timbra uscita', icon: 'log-out-outline', variant: 'primary' });
     buttons.push({ event: 'break_start', label: 'Inizia pausa', icon: 'pause-outline', variant: 'secondary' });
+    buttons.push({ event: 'lunch_start', label: 'Inizia pausa pranzo', icon: 'restaurant-outline', variant: 'secondary' });
   } else if (currentState === 'on_break') {
     buttons.push({ event: 'break_end', label: 'Termina pausa', icon: 'play-outline', variant: 'primary' });
+  } else if (currentState === 'on_lunch') {
+    buttons.push({ event: 'lunch_end', label: 'Termina pausa pranzo', icon: 'play-outline', variant: 'primary' });
   }
   const undoVisible =
     lastUndoId && lastSubmittedAt && Date.now() - lastSubmittedAt.getTime() < 60_000;
@@ -373,9 +376,10 @@ function openShiftBranchId(stamps: DayStamp[]): string | null {
   return openBranch;
 }
 
-function stateBadge(s: 'nothing' | 'clocked_in' | 'on_break'): { label: string; bg: string; fg: string } {
+function stateBadge(s: 'nothing' | 'clocked_in' | 'on_break' | 'on_lunch'): { label: string; bg: string; fg: string } {
   if (s === 'clocked_in') return { label: 'Al lavoro', bg: '#e8f3ec', fg: color.success };
   if (s === 'on_break') return { label: 'In pausa', bg: '#fff3d1', fg: color.warning };
+  if (s === 'on_lunch') return { label: 'In pausa pranzo', bg: '#fff3d1', fg: color.warning };
   return { label: 'Fuori servizio', bg: color.surfaceVariant, fg: color.onSurfaceVariant };
 }
 
@@ -385,6 +389,8 @@ function humanEvent(e: StampEventType | null): string {
     case 'clock_out': return 'Uscita';
     case 'break_start': return 'Inizio pausa';
     case 'break_end': return 'Fine pausa';
+    case 'lunch_start': return 'Inizio pausa pranzo';
+    case 'lunch_end': return 'Fine pausa pranzo';
     default: return '–';
   }
 }

@@ -209,7 +209,7 @@ export async function evaluateStamp(
 }
 
 export interface CurrentState {
-  state: 'nothing' | 'clocked_in' | 'on_break';
+  state: 'nothing' | 'clocked_in' | 'on_break' | 'on_lunch';
   lastEvent: StampEventType | null;
   lastEventAt: string | null;
 }
