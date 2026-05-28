@@ -88,6 +88,18 @@ async function loadCorrectionApproverIds(
   return admins.filter((id) => id !== requesterId);
 }
 
+interface ExpoTicket {
+  status: 'ok' | 'error';
+  id?: string;
+  message?: string;
+  details?: unknown;
+}
+
+interface ExpoSendResponse {
+  data?: ExpoTicket | ExpoTicket[];
+  errors?: unknown;
+}
+
 async function sendExpoPush(
   token: string,
   title: string,
@@ -101,10 +113,32 @@ async function sendExpoPush(
     const res = await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ to: token, title, body, data: data ?? {}, sound: 'default' }),
+      body: JSON.stringify({
+        to: token,
+        title,
+        body,
+        data: data ?? {},
+        sound: 'default',
+        priority: 'high',
+      }),
     });
     if (!res.ok) {
       logger.warn({ status: res.status }, 'expo push non-OK');
+      return;
+    }
+    const payload = (await res.json()) as ExpoSendResponse;
+    const ticket = Array.isArray(payload.data) ? payload.data[0] : payload.data;
+    if (!ticket) {
+      logger.warn({ payload }, 'expo push response missing ticket');
+      return;
+    }
+    if (ticket.status === 'ok') {
+      logger.info({ ticketId: ticket.id, title }, 'expo push sent');
+    } else {
+      logger.error(
+        { ticketId: ticket.id, message: ticket.message, details: ticket.details },
+        'expo push ticket error'
+      );
     }
   } catch (err) {
     logger.error({ err }, 'expo push failed');
