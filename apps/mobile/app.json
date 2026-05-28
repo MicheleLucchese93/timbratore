@@ -2,14 +2,14 @@
   "expo": {
     "name": "sonoQui",
     "slug": "traduttore",
-    "version": "0.1.0",
+    "version": "3.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "sonoqui",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
-      "bundleIdentifier": "app.cisono.cisono",
+      "bundleIdentifier": "app.sonoqui.mobile",
       "supportsTablet": false,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "sonoQui usa la posizione SOLO al momento della timbratura per verificare che tu sia presso la sede di lavoro. La posizione NON viene mai tracciata in background. sonoQui uses your location ONLY at clock-in to verify you are at the work site. Location is NEVER tracked in the background.",
@@ -18,7 +18,7 @@
       }
     },
     "android": {
-      "package": "app.cisono.cisono",
+      "package": "app.sonoqui.mobile",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
