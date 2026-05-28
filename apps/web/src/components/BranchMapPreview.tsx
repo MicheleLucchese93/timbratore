@@ -17,11 +17,19 @@ interface Props {
   lat: number | null;
   lng: number | null;
   radiusM: number;
+  showRadius?: boolean;
   height?: number | string;
   interactive?: boolean;
 }
 
-export function BranchMapPreview({ lat, lng, radiusM, height = 360, interactive = true }: Props) {
+export function BranchMapPreview({
+  lat,
+  lng,
+  radiusM,
+  showRadius = true,
+  height = 360,
+  interactive = true,
+}: Props) {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
   if (!apiKey) {
     return (
@@ -36,6 +44,7 @@ export function BranchMapPreview({ lat, lng, radiusM, height = 360, interactive 
       lat={lat}
       lng={lng}
       radiusM={radiusM}
+      showRadius={showRadius}
       height={height}
       interactive={interactive}
     />
@@ -47,6 +56,7 @@ function MapInner({
   lat,
   lng,
   radiusM,
+  showRadius,
   height,
   interactive,
 }: {
@@ -54,6 +64,7 @@ function MapInner({
   lat: number | null;
   lng: number | null;
   radiusM: number;
+  showRadius: boolean;
   height: number | string;
   interactive: boolean;
 }) {
@@ -80,9 +91,13 @@ function MapInner({
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    if (lat === null || lng === null) {
+    if (lat === null || lng === null || !showRadius) {
       circleRef.current?.setMap(null);
       circleRef.current = null;
+      if (lat !== null && lng !== null && !showRadius) {
+        map.setCenter({ lat, lng });
+        map.setZoom(16);
+      }
       return;
     }
     const center = { lat, lng };
@@ -103,7 +118,7 @@ function MapInner({
     }
     const bounds = circleRef.current.getBounds();
     if (bounds) map.fitBounds(bounds, 24);
-  }, [lat, lng, radiusM, isLoaded]);
+  }, [lat, lng, radiusM, showRadius, isLoaded]);
 
   if (loadError) {
     return (

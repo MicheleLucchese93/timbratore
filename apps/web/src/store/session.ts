@@ -27,6 +27,7 @@ export interface MeResponse {
     latitude: number | null;
     longitude: number | null;
     radius_m: number;
+    enforce_radius: boolean;
     smart_working: boolean;
     geofence_policy: 'lenient' | 'strict';
     gps_accuracy_ceiling_m: number;

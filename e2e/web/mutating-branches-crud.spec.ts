@@ -48,4 +48,24 @@ test.describe('web — Sedi CRUD (mutating)', () => {
     await page.reload();
     await expect(page.getByText(name)).toHaveCount(0, { timeout: 10_000 });
   });
+
+  test('branch created with enforce_radius=false renders "senza raggio" badge', async ({ page }) => {
+    // Clean up the smart_working seed from beforeEach — this test seeds its own.
+    if (branchId) await deleteBranch(admin.token, branchId).catch(() => {});
+    const noRadiusName = `e2e-sede-noradius-${Date.now()}`;
+    const b = await createBranch(admin.token, {
+      name: noRadiusName,
+      latitude: 41.9028,
+      longitude: 12.4964,
+      radius_m: 300,
+      enforce_radius: false,
+      smart_working: false,
+      geofence_policy: 'lenient',
+    });
+    branchId = b.id;
+    await page.goto('/branches');
+    const card = page.locator('li.card', { hasText: noRadiusName });
+    await expect(card).toBeVisible({ timeout: 15_000 });
+    await expect(card.getByText(/senza raggio/i)).toBeVisible();
+  });
 });

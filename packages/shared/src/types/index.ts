@@ -50,6 +50,7 @@ export interface Branch {
   latitude: number | null;
   longitude: number | null;
   radius_m: number;
+  enforce_radius: boolean;
   smart_working: boolean;
   geofence_policy: GeofencePolicy;
   gps_accuracy_ceiling_m: number;

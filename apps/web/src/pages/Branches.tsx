@@ -10,6 +10,7 @@ interface Branch {
   latitude: number | null;
   longitude: number | null;
   radius_m: number;
+  enforce_radius: boolean;
   smart_working: boolean;
   geofence_policy: 'lenient' | 'strict';
   gps_accuracy_ceiling_m: number;
@@ -57,7 +58,8 @@ export function Branches() {
                     <span className="badge badge-muted">Smart working</span>
                   ) : (
                     <>
-                      {b.latitude?.toFixed(4)}, {b.longitude?.toFixed(4)} · raggio {b.radius_m}m
+                      {b.latitude?.toFixed(4)}, {b.longitude?.toFixed(4)}
+                      {b.enforce_radius ? ` · raggio ${b.radius_m}m` : ' · senza raggio'}
                     </>
                   )}
                 </div>
@@ -72,6 +74,7 @@ export function Branches() {
                 lat={b.latitude}
                 lng={b.longitude}
                 radiusM={b.radius_m}
+                showRadius={b.enforce_radius}
                 height={280}
                 interactive
               />
@@ -111,6 +114,7 @@ function BranchForm({
   const [lat, setLat] = useState<number | null>(initial?.latitude ?? null);
   const [lng, setLng] = useState<number | null>(initial?.longitude ?? null);
   const [radius, setRadius] = useState(initial?.radius_m ?? 300);
+  const [enforceRadius, setEnforceRadius] = useState(initial?.enforce_radius ?? true);
   const [smartWorking, setSmartWorking] = useState(initial?.smart_working ?? false);
   const [geofencePolicy, setGeofencePolicy] = useState<'lenient' | 'strict'>(
     initial?.geofence_policy ?? 'lenient'
@@ -148,6 +152,7 @@ function BranchForm({
         latitude: lat ?? undefined,
         longitude: lng ?? undefined,
         radius_m: Number(radius),
+        enforce_radius: enforceRadius,
         smart_working: smartWorking,
         geofence_policy: geofencePolicy,
         gps_accuracy_ceiling_m: Number(accuracyCeiling),
@@ -209,57 +214,83 @@ function BranchForm({
             </div>
             {!smartWorking && (
               <>
-                <div>
-                  <label className="label">Raggio (50–1500 m): {radius}m</label>
+                <div className="flex items-center gap-2">
                   <input
-                    type="range"
-                    min={50}
-                    max={1500}
-                    value={radius}
-                    onChange={(e) => setRadius(Number(e.target.value))}
-                    className="w-full"
+                    id="er"
+                    type="checkbox"
+                    checked={enforceRadius}
+                    onChange={(e) => setEnforceRadius(e.target.checked)}
                   />
+                  <label htmlFor="er" className="text-sm">
+                    Limita timbratura entro un raggio
+                  </label>
                 </div>
-                <div>
-                  <label className="label">Politica geofence</label>
-                  <select
-                    className="input"
-                    value={geofencePolicy}
-                    onChange={(e) =>
-                      setGeofencePolicy(e.target.value as 'lenient' | 'strict')
-                    }
-                  >
-                    <option value="lenient">Permissiva (tollera accuracy)</option>
-                    <option value="strict">Stretta</option>
-                  </select>
-                  <p className="text-xs text-neutral-500 mt-1">
-                    Permissiva: accetta entro <em>raggio + accuracy</em>. Stretta: solo entro il raggio.
-                  </p>
-                </div>
-                <div>
-                  <label className="label">Accuratezza GPS massima (m)</label>
-                  <input
-                    type="number"
-                    className="input"
-                    min={10}
-                    max={2000}
-                    value={accuracyCeiling}
-                    onChange={(e) => setAccuracyCeiling(Number(e.target.value))}
-                  />
-                  <p className="text-xs text-neutral-500 mt-1">
-                    Sopra questa soglia la timbratura è respinta.
-                  </p>
-                </div>
+                <p className="text-xs text-neutral-500 -mt-2">
+                  Se disattivato: GPS viene comunque registrato sulla timbratura, ma senza
+                  controllo di distanza. La sede dovrà essere selezionata manualmente
+                  dall'utente (no auto-detect).
+                </p>
+                {enforceRadius && (
+                  <>
+                    <div>
+                      <label className="label">Raggio (50–1500 m): {radius}m</label>
+                      <input
+                        type="range"
+                        min={50}
+                        max={1500}
+                        value={radius}
+                        onChange={(e) => setRadius(Number(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Politica geofence</label>
+                      <select
+                        className="input"
+                        value={geofencePolicy}
+                        onChange={(e) =>
+                          setGeofencePolicy(e.target.value as 'lenient' | 'strict')
+                        }
+                      >
+                        <option value="lenient">Permissiva (tollera accuracy)</option>
+                        <option value="strict">Stretta</option>
+                      </select>
+                      <p className="text-xs text-neutral-500 mt-1">
+                        Permissiva: accetta entro <em>raggio + accuracy</em>. Stretta: solo entro il raggio.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="label">Accuratezza GPS massima (m)</label>
+                      <input
+                        type="number"
+                        className="input"
+                        min={10}
+                        max={2000}
+                        value={accuracyCeiling}
+                        onChange={(e) => setAccuracyCeiling(Number(e.target.value))}
+                      />
+                      <p className="text-xs text-neutral-500 mt-1">
+                        Sopra questa soglia la timbratura è respinta.
+                      </p>
+                    </div>
+                  </>
+                )}
               </>
             )}
           </div>
           {!smartWorking && (
             <div className="flex flex-col">
               <label className="label">Anteprima</label>
-              <BranchMapPreview lat={lat} lng={lng} radiusM={radius} />
+              <BranchMapPreview
+                lat={lat}
+                lng={lng}
+                radiusM={radius}
+                showRadius={enforceRadius}
+              />
               {lat !== null && lng !== null ? (
                 <p className="text-xs text-neutral-500 mt-2">
-                  {lat.toFixed(5)}, {lng.toFixed(5)} · tolleranza {radius}m
+                  {lat.toFixed(5)}, {lng.toFixed(5)}
+                  {enforceRadius ? ` · tolleranza ${radius}m` : ' · senza raggio'}
                 </p>
               ) : (
                 <p className="text-xs text-neutral-500 mt-2">

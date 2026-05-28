@@ -59,7 +59,7 @@ export async function evaluateStamp(
   if (input.source !== 'admin_manual') {
     if (branchId) {
       const b = await client.query(
-        `SELECT b.id, b.latitude, b.longitude, b.radius_m, b.smart_working,
+        `SELECT b.id, b.latitude, b.longitude, b.radius_m, b.enforce_radius, b.smart_working,
                 b.geofence_policy, b.gps_accuracy_ceiling_m
          FROM branches b
          JOIN branch_memberships bm ON bm.branch_id = b.id AND bm.user_id = $1
@@ -72,31 +72,33 @@ export async function evaluateStamp(
         if (body.latitude == null || body.longitude == null) {
           throw new ValidationError('GPS required', { code: 'GPS_REQUIRED' });
         }
-        const ceiling = b.rows[0].gps_accuracy_ceiling_m as number;
-        const policy = b.rows[0].geofence_policy as GeofencePolicy;
-        if (body.gps_accuracy_m != null && body.gps_accuracy_m > ceiling) {
-          throw new ValidationError('GPS accuracy too low', {
-            code: 'GPS_ACCURACY_TOO_LOW',
-            value: body.gps_accuracy_m,
-            ceiling,
+        if (b.rows[0].enforce_radius) {
+          const ceiling = b.rows[0].gps_accuracy_ceiling_m as number;
+          const policy = b.rows[0].geofence_policy as GeofencePolicy;
+          if (body.gps_accuracy_m != null && body.gps_accuracy_m > ceiling) {
+            throw new ValidationError('GPS accuracy too low', {
+              code: 'GPS_ACCURACY_TOO_LOW',
+              value: body.gps_accuracy_m,
+              ceiling,
+            });
+          }
+          const gf = withinGeofence({
+            user: { lat: body.latitude, lng: body.longitude, accuracyM: body.gps_accuracy_m ?? null },
+            branch: {
+              lat: b.rows[0].latitude,
+              lng: b.rows[0].longitude,
+              radiusM: b.rows[0].radius_m,
+              smartWorking: false,
+            },
+            policy,
           });
-        }
-        const gf = withinGeofence({
-          user: { lat: body.latitude, lng: body.longitude, accuracyM: body.gps_accuracy_m ?? null },
-          branch: {
-            lat: b.rows[0].latitude,
-            lng: b.rows[0].longitude,
-            radiusM: b.rows[0].radius_m,
-            smartWorking: false,
-          },
-          policy,
-        });
-        if (!gf.allowed) {
-          throw new ConflictError(
-            'Out of geofence',
-            'OUT_OF_GEOFENCE',
-            { distance_m: gf.distanceM, branch_id: branchId }
-          );
+          if (!gf.allowed) {
+            throw new ConflictError(
+              'Out of geofence',
+              'OUT_OF_GEOFENCE',
+              { distance_m: gf.distanceM, branch_id: branchId }
+            );
+          }
         }
       }
     } else {
@@ -104,7 +106,7 @@ export async function evaluateStamp(
         throw new ValidationError('GPS required', { code: 'GPS_REQUIRED' });
       }
       const branches = await client.query(
-        `SELECT b.id, b.latitude, b.longitude, b.radius_m, b.smart_working,
+        `SELECT b.id, b.latitude, b.longitude, b.radius_m, b.enforce_radius, b.smart_working,
                 b.geofence_policy, b.gps_accuracy_ceiling_m
          FROM branches b
          JOIN branch_memberships bm ON bm.branch_id = b.id AND bm.user_id = $1
@@ -119,6 +121,7 @@ export async function evaluateStamp(
           smartWorking = true;
           break;
         }
+        if (!b.enforce_radius) continue;
         if (b.latitude == null || b.longitude == null) continue;
         if (
           body.gps_accuracy_m != null &&
