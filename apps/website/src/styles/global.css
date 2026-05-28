@@ -1,0 +1,38 @@
+@import "tailwindcss";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/inter/800.css";
+
+@theme {
+  --color-primary: #0369a1;
+  --color-primary-container: #0284c7;
+  --color-primary-light: #38bdf8;
+  --color-accent: #f59e0b;
+  --color-surface: #f4faff;
+  --color-surface-dim: #cfdce4;
+  --color-on-surface: #0f172a;
+  --color-on-surface-variant: #475569;
+  --color-success: #166534;
+  --color-success-light: #c8f0cf;
+  --color-danger: #b91c1c;
+
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-on-surface);
+  background-color: #ffffff;
+  overflow-x: clip;
+}

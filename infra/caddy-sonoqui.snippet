@@ -64,3 +64,10 @@ m-sonoqui.xdevapp.it {
 	import api_security_headers
 	reverse_proxy sonoqui-mobile-web:80
 }
+
+sonoqui.xdevapp.it {
+	import origin_tls
+	import access_log
+	import api_security_headers
+	reverse_proxy sonoqui-website:80
+}

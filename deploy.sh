@@ -11,7 +11,7 @@ PROJECT_DIR="/opt/sonoqui"
 echo "==> Pulling latest main + rebuilding sonoQui…"
 ssh -p $SSH_PORT $SERVER "cd $PROJECT_DIR && \
   git pull origin main && \
-  docker compose build --no-cache sonoqui-api sonoqui-web && \
+  docker compose build --no-cache sonoqui-api sonoqui-web sonoqui-website && \
   docker compose up -d && \
   docker image prune -f && \
   sleep 5 && \
@@ -19,5 +19,6 @@ ssh -p $SSH_PORT $SERVER "cd $PROJECT_DIR && \
 
 echo "==> Health probe…"
 curl -sf https://api-sonoqui.xdevapp.it/health && echo "" || echo "Health check failed!"
+curl -sf -o /dev/null -w "website: %{http_code}\n" https://sonoqui.xdevapp.it/it/ || echo "Website check failed!"
 
 echo "==> Done."

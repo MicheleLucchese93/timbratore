@@ -1,0 +1,21 @@
+# sonoQui
+
+> sonoQui è l'app di rilevazione presenze per piccole aziende italiane (≤20 dipendenti). Timbratura GPS al momento del check-in, gestione richieste ferie/permessi/correzioni, dashboard amministrativa, export per il commercialista.
+
+## Caratteristiche chiave
+
+- Timbratura iOS/Android con verifica posizione (GPS rilevato SOLO al momento del tap, mai in background — conforme all'art. 4 Statuto dei Lavoratori)
+- Dashboard web per amministratori: visione presenze, anomalie, ferie, correzioni
+- Multi-tenant con Row Level Security (RLS) Postgres
+- Export XLSX per il commercialista (paghe italiane)
+- Nessun riconoscimento facciale, nessun tracciamento continuo
+- Cifratura in transito (TLS 1.2+) e a riposo
+
+## Link utili
+
+- [Sito principale](https://sonoqui.xdevapp.it/it/)
+- [Web app amministratori](https://app-sonoqui.xdevapp.it/)
+- [Informativa Privacy](https://sonoqui.xdevapp.it/it/privacy-policy/)
+- [Cookie Policy](https://sonoqui.xdevapp.it/it/cookie-policy/)
+- [Termini e Condizioni](https://sonoqui.xdevapp.it/it/termini-e-condizioni/)
+- [EULA](https://sonoqui.xdevapp.it/it/eula/)

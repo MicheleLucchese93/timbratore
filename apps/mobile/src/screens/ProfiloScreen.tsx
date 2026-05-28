@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Alert,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -56,6 +57,25 @@ const PUSH_PREF_DEFAULTS: Record<PushPrefKey, boolean> = {
   push_leave_submissions: true,
   push_correction_submissions: true,
 };
+
+const SITE_BASE = 'https://sonoqui.xdevapp.it/it';
+const CONTACT_EMAIL = 'michele.lucchese@outlook.it';
+const LEGAL_LINKS = [
+  { icon: 'shield-checkmark-outline', label: 'Informativa sulla Privacy', url: `${SITE_BASE}/privacy-policy/` },
+  { icon: 'document-text-outline', label: 'Termini e Condizioni', url: `${SITE_BASE}/termini-e-condizioni/` },
+  { icon: 'document-lock-outline', label: 'EULA', url: `${SITE_BASE}/eula/` },
+  { icon: 'cafe-outline', label: 'Cookie Policy', url: `${SITE_BASE}/cookie-policy/` },
+] as const;
+
+async function openExternal(url: string) {
+  try {
+    await Linking.openURL(url);
+  } catch {
+    const msg = 'Impossibile aprire il link.';
+    if (Platform.OS === 'web') window.alert(msg);
+    else Alert.alert('Errore', msg);
+  }
+}
 
 export function ProfiloScreen() {
   const { me, logout, refresh } = useSession();
@@ -286,6 +306,26 @@ export function ProfiloScreen() {
           </View>
         </View>
 
+        <Text style={styles.sectionLabel}>Informazioni e supporto</Text>
+        <View style={styles.card}>
+          <LinkRow
+            icon="mail-outline"
+            label="Contatta il supporto"
+            value={CONTACT_EMAIL}
+            onPress={() => openExternal(`mailto:${CONTACT_EMAIL}`)}
+          />
+          {LEGAL_LINKS.map((link) => (
+            <View key={link.url}>
+              <View style={styles.divider} />
+              <LinkRow
+                icon={link.icon}
+                label={link.label}
+                onPress={() => openExternal(link.url)}
+              />
+            </View>
+          ))}
+        </View>
+
         <TouchableOpacity
           onPress={confirmLogout}
           style={styles.logoutButton}
@@ -316,6 +356,36 @@ function Row({
         <Text style={styles.rowValue}>{value}</Text>
       </View>
     </View>
+  );
+}
+
+function LinkRow({
+  icon,
+  label,
+  value,
+  onPress,
+}: {
+  icon: keyof typeof import('@expo/vector-icons').Ionicons.glyphMap;
+  label: string;
+  value?: string;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={styles.row}
+      onPress={onPress}
+      activeOpacity={0.6}
+      accessibilityRole="link"
+      accessibilityLabel={label}>
+      <View style={styles.rowIcon}>
+        <Ionicons name={icon} size={18} color={color.primary} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.rowValue}>{label}</Text>
+        {value ? <Text style={styles.rowLabel}>{value}</Text> : null}
+      </View>
+      <Ionicons name="open-outline" size={18} color={color.onSurfaceVariant} />
+    </TouchableOpacity>
   );
 }
 

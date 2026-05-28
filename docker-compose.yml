@@ -138,6 +138,20 @@ services:
           memory: 64M
           cpus: '0.10'
 
+  sonoqui-website:
+    build:
+      context: .
+      dockerfile: apps/website/Dockerfile
+    container_name: sonoqui-website
+    restart: unless-stopped
+    networks:
+      - gateway
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.10'
+
 networks:
   gateway:
     external: true

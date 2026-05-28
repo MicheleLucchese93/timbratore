@@ -1,0 +1,165 @@
+---
+import LegalLayout from "../../layouts/LegalLayout.astro";
+---
+
+<LegalLayout
+  title="Informativa sulla Privacy"
+  lastUpdated="28 maggio 2026"
+  alternatePaths={{ it: "/it/privacy-policy/" }}
+>
+  <h2>1. Titolare del trattamento</h2>
+  <p>Il Titolare del trattamento dei dati personali raccolti tramite l'applicazione mobile sonoQui, la dashboard web e il sito sonoqui.xdevapp.it è:</p>
+  <ul>
+    <li><strong>Michele Lucchese</strong> (persona fisica, editore non commerciale)</li>
+    <li>Email di contatto: <strong>michele.lucchese@outlook.it</strong></li>
+  </ul>
+  <p>sonoQui non ha designato un Responsabile della Protezione dei Dati (DPO) poiché il trattamento non rientra nelle soglie dell'art. 37 GDPR. Per qualsiasi richiesta in materia di protezione dei dati, contatta l'indirizzo sopra indicato.</p>
+
+  <h2>2. Introduzione</h2>
+  <p>sonoQui ("noi" o "nostro") è un servizio di rilevazione presenze rivolto alle piccole imprese italiane (≤20 dipendenti). Questa Informativa spiega come raccogliamo, utilizziamo, conserviamo e proteggiamo le informazioni personali quando utilizzi l'applicazione mobile sonoQui e i servizi correlati, nel rispetto del Regolamento (UE) 2016/679 ("GDPR"), del D.Lgs. 196/2003 come modificato e dell'art. 4 della Legge 300/1970 (Statuto dei Lavoratori).</p>
+
+  <h2>3. Modello di responsabilità: Titolare vs Responsabile</h2>
+  <div class="highlight-box">
+    <p><strong>Importante:</strong> nei rapporti con i dipendenti che utilizzano sonoQui, il <strong>datore di lavoro</strong> (l'azienda cliente) agisce come Titolare del trattamento dei dati dei propri dipendenti, mentre noi agiamo come <strong>Responsabile del trattamento</strong> (art. 28 GDPR) sulla base del Data Processing Agreement sottoscritto al momento dell'attivazione del servizio.</p>
+  </div>
+  <p>Per il sito sonoqui.xdevapp.it, per le richieste di contatto e per il rapporto contrattuale con l'azienda cliente, agiamo invece come Titolare autonomo.</p>
+
+  <h2>4. Informazioni che raccogliamo</h2>
+
+  <h3>4.1 Dati dell'account dipendente</h3>
+  <ul>
+    <li><strong>Indirizzo email</strong> — necessario per l'autenticazione, fornito dal datore di lavoro</li>
+    <li><strong>Nome e cognome</strong> — utilizzato nella dashboard amministratori e nei report</li>
+    <li><strong>Sede di riferimento</strong> — sede di lavoro principale assegnata dal datore di lavoro</li>
+    <li><strong>Password</strong> — sottoposta ad hashing (mai conservata in chiaro)</li>
+  </ul>
+
+  <h3>4.2 Dati di timbratura</h3>
+  <ul>
+    <li><strong>Orario di timbratura</strong> — ingresso, uscita e pause</li>
+    <li><strong>Tipo timbratura</strong> — ingresso, uscita, inizio/fine pausa</li>
+    <li><strong>Coordinate GPS</strong> — latitudine e longitudine rilevate <strong>esclusivamente al momento del tap</strong> sul pulsante di timbratura, mai in background, mai in continuo</li>
+    <li><strong>Accuratezza GPS</strong> — raggio di precisione fornito dal sistema operativo</li>
+    <li><strong>Identificativo del dispositivo</strong> — modello e versione OS per finalità diagnostiche</li>
+  </ul>
+
+  <div class="highlight-box">
+    <p><strong>Art. 4 Statuto dei Lavoratori — Garanzie:</strong> sonoQui rileva la posizione SOLO al momento del tap del dipendente. Non utilizziamo geofencing in background, non tracciamo spostamenti continui, non raccogliamo posizioni quando l'app è chiusa. Non è previsto riconoscimento facciale, riconoscimento vocale né alcuna forma di dato biometrico. L'utilizzo del controllo a distanza per finalità di tutela del patrimonio aziendale e di rilevazione di prestazioni lavorative è disciplinato dall'accordo sindacale o dall'autorizzazione dell'Ispettorato Territoriale del Lavoro che il datore di lavoro deve avere in essere prima di abilitare il servizio.</p>
+  </div>
+
+  <h3>4.3 Richieste di ferie, permessi e correzioni</h3>
+  <ul>
+    <li>Tipo richiesta (ferie, permesso, malattia, ROL), periodo, ore, motivo</li>
+    <li>Allegati facoltativi (es. certificato medico) caricati dal dipendente</li>
+    <li>Esito, decisore, timestamp di approvazione/rifiuto</li>
+  </ul>
+
+  <h3>4.4 Dati del servizio</h3>
+  <ul>
+    <li><strong>Token per le notifiche push</strong> — per l'invio di notifiche su approvazioni</li>
+    <li><strong>Cronologia delle notifiche</strong> — registrazioni delle notifiche inviate</li>
+    <li><strong>Metadati di richiesta</strong> — indirizzo IP e log minimi conservati temporaneamente per finalità di sicurezza (rate-limiting, prevenzione abusi)</li>
+  </ul>
+
+  <h2>5. Base giuridica (art. 6 GDPR)</h2>
+  <ul>
+    <li><strong>Esecuzione del contratto di lavoro (art. 6(1)(b)):</strong> rilevazione presenze, gestione ferie e permessi, retribuzione</li>
+    <li><strong>Obbligo legale (art. 6(1)(c)):</strong> conservazione delle registrazioni di presenza per finalità fiscali e previdenziali</li>
+    <li><strong>Legittimo interesse del datore di lavoro (art. 6(1)(f)):</strong> verifica della prestazione lavorativa entro i limiti dell'art. 4 SdL</li>
+    <li><strong>Legittimo interesse del fornitore (art. 6(1)(f)):</strong> logging di sicurezza, prevenzione frodi, stabilità del servizio</li>
+  </ul>
+
+  <h2>6. Come utilizziamo le tue informazioni</h2>
+  <ul>
+    <li>Registrare e validare le timbrature contro la sede di lavoro</li>
+    <li>Calcolare ore lavorate, ore di assenza, anomalie e ferie residue</li>
+    <li>Gestire il flusso di approvazione di ferie, permessi e correzioni</li>
+    <li>Inviare notifiche push su esiti di approvazioni</li>
+    <li>Generare report e export per l'amministrazione e il commercialista</li>
+    <li>Rispettare gli obblighi legali e proteggere i nostri diritti</li>
+  </ul>
+
+  <h2>7. Categorie di destinatari</h2>
+  <p>Ci avvaliamo di responsabili del trattamento terzi (art. 28 GDPR) vincolati da specifico Data Processing Agreement (DPA):</p>
+  <ul>
+    <li><strong>Infrastruttura di hosting e database</strong> — server OVH, con sede nell'Unione Europea (Francia)</li>
+    <li><strong>Object storage</strong> — Cloudflare R2 per allegati richieste, operante a livello globale con SCC</li>
+    <li><strong>Servizio di autenticazione</strong> — GoTrue self-hosted sulla nostra infrastruttura UE</li>
+    <li><strong>Servizi di consegna delle notifiche push</strong> — gestiti dai fornitori dei sistemi operativi mobili (iOS Apple Inc., Android Google LLC)</li>
+    <li><strong>Reverse proxy e DNS</strong> — Cloudflare</li>
+  </ul>
+  <p>L'elenco completo e aggiornato dei sub-responsabili nominativi è disponibile su richiesta scrivendo a <strong>michele.lucchese@outlook.it</strong>.</p>
+  <p>Non vendiamo le tue informazioni personali. I dati di un dipendente sono visibili solo al proprio datore di lavoro e agli amministratori da questi designati.</p>
+
+  <h2>8. Trasferimenti internazionali</h2>
+  <p>I dati primari sono trattati esclusivamente nell'Unione Europea. Alcuni servizi accessori (notifiche push tramite APNs/FCM, reverse proxy Cloudflare) possono comportare trasferimenti negli Stati Uniti. In tali casi, i trasferimenti sono protetti dalle Clausole Contrattuali Standard della Commissione Europea (Decisione 2021/914) e, ove applicabile, dalla decisione di adeguatezza EU-US Data Privacy Framework.</p>
+
+  <h2>9. Conservazione dei dati</h2>
+  <h3>9.1 Dati di timbratura</h3>
+  <ul>
+    <li><strong>Periodo di conservazione di default: 5 anni</strong> — configurabile dall'azienda cliente fino a 10 anni in base agli obblighi fiscali, previdenziali e di contenzioso del lavoro</li>
+    <li><strong>Mascheramento GPS dopo 90 giorni:</strong> le coordinate GPS dettagliate vengono cancellate; viene conservato esclusivamente l'identificativo della sede a cui la timbratura era associata</li>
+    <li>Allo scadere del periodo di conservazione, le timbrature vengono cancellate definitivamente</li>
+  </ul>
+
+  <h3>9.2 Richieste di ferie/permessi/correzioni</h3>
+  <ul>
+    <li>Conservazione 5 anni come per le timbrature, configurabile fino a 10</li>
+    <li>Gli allegati (es. certificati medici) sono cifrati a riposo e cancellati alla scadenza del periodo di conservazione</li>
+  </ul>
+
+  <h3>9.3 Account dipendente</h3>
+  <ul>
+    <li>Alla cessazione del rapporto di lavoro, l'account viene disabilitato dall'amministratore</li>
+    <li>I dati storici sono mantenuti per il periodo di conservazione delle timbrature (vedi 9.1)</li>
+    <li>Al termine, i dati personali identificativi vengono pseudonimizzati o cancellati</li>
+  </ul>
+
+  <h3>9.4 Log di sicurezza</h3>
+  <ul>
+    <li>I log di richiesta contenenti indirizzi IP sono conservati fino a <strong>30 giorni</strong> per finalità di sicurezza, poi cancellati</li>
+  </ul>
+
+  <h2>10. Archiviazione e sicurezza</h2>
+  <ul>
+    <li><strong>Database:</strong> PostgreSQL su server UE con <strong>Row Level Security (RLS)</strong> che garantisce l'isolamento dei dati per azienda cliente</li>
+    <li><strong>Crittografia:</strong> dati cifrati in transito (TLS 1.2+) e a riposo (LUKS / AES-256)</li>
+    <li><strong>Autenticazione:</strong> token sicuri (JWT), password con hashing bcrypt, sessione persistente cifrata</li>
+    <li><strong>Backup:</strong> backup cifrati conservati nell'UE</li>
+    <li><strong>Audit log:</strong> ogni modifica amministrativa (correzioni, approvazioni, cambio sede) tracciata con timestamp e identità decisore</li>
+  </ul>
+
+  <h2>11. I tuoi diritti (artt. 15-22 GDPR)</h2>
+  <p>Ai sensi del GDPR hai i seguenti diritti:</p>
+  <ul>
+    <li><strong>Accesso</strong> (art. 15) — richiedere una copia dei tuoi dati personali</li>
+    <li><strong>Rettifica</strong> (art. 16) — correggere dati inesatti, anche direttamente dall'app tramite la funzione "richiesta di correzione"</li>
+    <li><strong>Cancellazione</strong> (art. 17) — eliminare i tuoi dati personali ("diritto all'oblio"), nei limiti degli obblighi di legge del datore di lavoro</li>
+    <li><strong>Limitazione</strong> (art. 18) — limitare il trattamento dei tuoi dati</li>
+    <li><strong>Portabilità</strong> (art. 20) — ricevere i tuoi dati in formato leggibile da macchina</li>
+    <li><strong>Opposizione</strong> (art. 21) — opporti al trattamento basato sul legittimo interesse</li>
+    <li><strong>Non essere sottoposto a decisioni automatizzate</strong> (art. 22) — sonoQui non effettua decisioni automatizzate con effetti giuridici</li>
+  </ul>
+  <p>Per esercitare un diritto rispetto ai dati raccolti per conto del tuo datore di lavoro, contatta in primo luogo il tuo datore di lavoro (Titolare del trattamento). Per richieste tecniche o relative al servizio, scrivi a <strong>michele.lucchese@outlook.it</strong>. Rispondiamo entro 30 giorni (art. 12(3)).</p>
+
+  <h2>12. Diritto di reclamo</h2>
+  <p>Se ritieni che i tuoi diritti siano stati violati, puoi presentare reclamo all'Autorità di controllo italiana:</p>
+  <ul>
+    <li><strong>Garante per la protezione dei dati personali</strong></li>
+    <li>Piazza Venezia 11, 00187 Roma, Italia</li>
+    <li>Web: <a href="https://www.garanteprivacy.it" target="_blank" rel="noopener">www.garanteprivacy.it</a></li>
+    <li>Email: protocollo@gpdp.it</li>
+  </ul>
+  <p>Hai inoltre il diritto di proporre reclamo all'Autorità di controllo del Paese UE in cui risiedi (art. 77 GDPR).</p>
+
+  <h2>13. Privacy dei minori</h2>
+  <p>Il servizio è destinato esclusivamente a lavoratori adulti nell'ambito di un rapporto di lavoro. Non raccogliamo consapevolmente informazioni personali da minori di 16 anni.</p>
+
+  <h2>14. Modifiche a questa Informativa</h2>
+  <p>Potremmo aggiornare questa Informativa di tanto in tanto. Ti informeremo di eventuali modifiche pubblicandola su questa pagina e aggiornando la data di "Ultimo aggiornamento". Per modifiche che riguardano la base giuridica o i destinatari del trattamento, informeremo gli utenti anche via email o messaggio in-app.</p>
+
+  <div class="contact-box">
+    <h3>Contattaci</h3>
+    <p>Per domande o per esercitare i tuoi diritti: <strong>michele.lucchese@outlook.it</strong></p>
+  </div>
+</LegalLayout>

@@ -1,0 +1,26 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Hero from "../../components/Hero.astro";
+import Features from "../../components/Features.astro";
+import Screenshots from "../../components/Screenshots.astro";
+import WebShowcase from "../../components/WebShowcase.astro";
+import FAQ from "../../components/FAQ.astro";
+import CTA from "../../components/CTA.astro";
+import { buildHomeSchema, homeMeta } from "../../data/seo";
+
+const meta = homeMeta.it;
+---
+
+<BaseLayout
+  title={meta.title}
+  description={meta.description}
+  alternatePaths={{ it: "/it/" }}
+  schema={buildHomeSchema("it")}
+>
+  <Hero />
+  <Features />
+  <Screenshots />
+  <WebShowcase />
+  <FAQ />
+  <CTA />
+</BaseLayout>

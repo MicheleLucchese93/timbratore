@@ -5,6 +5,7 @@
   "workspaces": [
     "apps/backend",
     "apps/web",
+    "apps/website",
     "apps/mobile",
     "packages/shared"
   ],

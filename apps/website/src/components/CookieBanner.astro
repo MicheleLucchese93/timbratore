@@ -1,0 +1,61 @@
+---
+import "vanilla-cookieconsent/dist/cookieconsent.css";
+import { getLangFromUrl } from "../i18n/utils";
+
+const lang = getLangFromUrl(Astro.url);
+const cookiePolicyUrl = `/${lang}/cookie-policy/`;
+---
+
+<div data-cookie-banner data-lang={lang} data-cookie-policy-url={cookiePolicyUrl} hidden></div>
+
+<script>
+  import * as CookieConsent from "vanilla-cookieconsent";
+
+  const node = document.querySelector<HTMLElement>("[data-cookie-banner]");
+  const lang = node?.dataset.lang ?? "it";
+  const cookiePolicyUrl = node?.dataset.cookiePolicyUrl ?? "/it/cookie-policy/";
+
+  CookieConsent.run({
+    guiOptions: {
+      consentModal: { layout: "box inline", position: "bottom left" },
+      preferencesModal: { layout: "box" },
+    },
+    categories: {
+      necessary: { enabled: true, readOnly: true },
+      analytics: { enabled: false },
+    },
+    language: {
+      default: lang,
+      translations: {
+        it: {
+          consentModal: {
+            title: "Questo sito utilizza i cookie",
+            description:
+              'Utilizziamo cookie tecnici necessari al funzionamento del sito. <a href="' + cookiePolicyUrl + '">Cookie Policy</a>',
+            acceptAllBtn: "Accetta",
+            acceptNecessaryBtn: "Solo necessari",
+            showPreferencesBtn: "Personalizza",
+          },
+          preferencesModal: {
+            title: "Preferenze cookie",
+            acceptAllBtn: "Accetta tutto",
+            acceptNecessaryBtn: "Solo necessari",
+            savePreferencesBtn: "Salva preferenze",
+            sections: [
+              {
+                title: "Cookie necessari",
+                description: "Cookie essenziali per il funzionamento del sito. Non possono essere disattivati.",
+                linkedCategory: "necessary",
+              },
+              {
+                title: "Cookie analitici",
+                description: "Cookie utilizzati per analizzare il traffico del sito e migliorare l'esperienza utente.",
+                linkedCategory: "analytics",
+              },
+            ],
+          },
+        },
+      },
+    },
+  });
+</script>

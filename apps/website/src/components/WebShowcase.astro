@@ -1,0 +1,137 @@
+---
+import { getLangFromUrl, useTranslations } from "../i18n/utils";
+import { WEB_APP_URL } from "../data/seo";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+const shots = [
+  { file: "dashboard", label: t("web.shot.dashboard"), desc: t("web.shot.dashboard.desc") },
+  { file: "stamps", label: t("web.shot.stamps"), desc: t("web.shot.stamps.desc") },
+  { file: "anomalies", label: t("web.shot.anomalies"), desc: t("web.shot.anomalies.desc") },
+  { file: "leaves", label: t("web.shot.leaves"), desc: t("web.shot.leaves.desc") },
+  { file: "leave-detail", label: t("web.shot.leave-detail"), desc: t("web.shot.leave-detail.desc") },
+  { file: "corrections", label: t("web.shot.corrections"), desc: t("web.shot.corrections.desc") },
+  { file: "export", label: t("web.shot.export"), desc: t("web.shot.export.desc") },
+  { file: "users", label: t("web.shot.users"), desc: t("web.shot.users.desc") },
+  { file: "branches", label: t("web.shot.branches"), desc: t("web.shot.branches.desc") },
+  { file: "settings", label: t("web.shot.settings"), desc: t("web.shot.settings.desc") },
+  { file: "login", label: t("web.shot.login"), desc: t("web.shot.login.desc") },
+];
+
+const src = (file: string) => `/screenshots-web/${file}.png`;
+const hero = shots[0];
+---
+
+<section id="web" class="bg-white py-20 sm:py-28 scroll-mt-20">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6">
+    <div class="text-center">
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-success">
+        <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2h4l-1 2v1h8v-1l-1-2h4a2 2 0 002-2z"/></svg>
+        {t("web.badge")}
+      </span>
+      <h2 class="mt-4 text-3xl font-bold tracking-tight text-on-surface sm:text-4xl">
+        {t("web.title")}
+      </h2>
+      <p class="mx-auto mt-4 max-w-3xl text-lg text-on-surface-variant">
+        {t("web.subtitle")}
+      </p>
+      <div class="mt-6">
+        <a href={WEB_APP_URL} target="_blank" rel="noopener noreferrer"
+          class="inline-flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-5 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/10">
+          {t("web.cta")}
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="mt-14">
+      <div class="relative mx-auto max-w-5xl">
+        <div class="overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 shadow-2xl">
+          <div class="flex items-center gap-1.5 border-b border-gray-200 bg-gray-50 px-4 py-2.5">
+            <span class="h-2.5 w-2.5 rounded-full bg-red-400"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-yellow-400"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-green-400"></span>
+            <span class="ml-3 truncate rounded-md bg-white px-3 py-1 text-xs text-on-surface-variant">app-sonoqui.xdevapp.it</span>
+          </div>
+          <img id="web-hero-img" src={src(hero.file)} alt={hero.label} class="block w-full transition-opacity duration-150" loading="lazy" />
+        </div>
+        <p id="web-hero-label" class="mt-4 text-center text-sm font-semibold text-on-surface">{hero.label}</p>
+        <p id="web-hero-desc" class="mx-auto max-w-2xl text-center text-sm text-on-surface-variant">{hero.desc}</p>
+      </div>
+    </div>
+
+    <div class="mt-12 grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+      {shots.map((shot, idx) => (
+        <button
+          type="button"
+          data-web-thumb
+          data-file={shot.file}
+          data-label={shot.label}
+          data-desc={shot.desc}
+          data-active={idx === 0 ? "true" : "false"}
+          class:list={[
+            "group rounded-xl border-2 bg-white p-1.5 text-left transition-all hover:border-primary",
+            idx === 0 ? "border-primary ring-2 ring-primary/30" : "border-gray-100",
+          ]}
+          aria-label={shot.label}
+          aria-pressed={idx === 0 ? "true" : "false"}
+        >
+          <div class="overflow-hidden rounded-lg border border-gray-100 bg-gray-50">
+            <img src={src(shot.file)} alt={shot.label} class="block w-full" loading="lazy" />
+          </div>
+          <p class="mt-1.5 px-1 text-[11px] font-semibold leading-tight text-on-surface line-clamp-2">{shot.label}</p>
+        </button>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+  function init() {
+    const hero = document.getElementById("web-hero-img") as HTMLImageElement | null;
+    const heroLabel = document.getElementById("web-hero-label");
+    const heroDesc = document.getElementById("web-hero-desc");
+    const thumbs = document.querySelectorAll<HTMLButtonElement>("[data-web-thumb]");
+    if (!hero || !heroLabel || !heroDesc || !thumbs.length) return;
+
+    const baseSrc = "/screenshots-web/";
+
+    thumbs.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const file = btn.dataset.file;
+        const label = btn.dataset.label || "";
+        const desc = btn.dataset.desc || "";
+        if (!file) return;
+
+        hero.style.opacity = "0";
+        const newSrc = `${baseSrc}${file}.png`;
+        const preload = new Image();
+        preload.onload = () => {
+          hero.src = newSrc;
+          hero.alt = label;
+          heroLabel.textContent = label;
+          heroDesc.textContent = desc;
+          hero.style.opacity = "1";
+        };
+        preload.src = newSrc;
+
+        thumbs.forEach((other) => {
+          const isActive = other === btn;
+          other.dataset.active = isActive ? "true" : "false";
+          other.setAttribute("aria-pressed", isActive ? "true" : "false");
+          if (isActive) {
+            other.classList.add("border-primary", "ring-2", "ring-primary/30");
+            other.classList.remove("border-gray-100");
+          } else {
+            other.classList.remove("border-primary", "ring-2", "ring-primary/30");
+            other.classList.add("border-gray-100");
+          }
+        });
+      });
+    });
+  }
+
+  init();
+  document.addEventListener("astro:page-load", init);
+</script>

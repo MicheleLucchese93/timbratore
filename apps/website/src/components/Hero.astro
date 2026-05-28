@@ -1,0 +1,111 @@
+---
+import { getLangFromUrl, useTranslations } from "../i18n/utils";
+import { WEB_APP_URL } from "../data/seo";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+---
+
+<section class="relative overflow-hidden bg-gradient-to-b from-surface to-white pt-28 pb-16 sm:pt-36 sm:pb-24">
+  <div class="absolute inset-0 overflow-hidden">
+    <div class="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/5 blur-3xl"></div>
+    <div class="absolute -bottom-20 -left-20 h-60 w-60 rounded-full bg-accent/5 blur-3xl"></div>
+  </div>
+
+  <div class="relative mx-auto max-w-6xl px-4 sm:px-6">
+    <div class="grid items-center gap-12 lg:grid-cols-2">
+      <div class="mx-auto max-w-xl text-center lg:mx-0 lg:text-left">
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+          Per piccole aziende italiane
+        </span>
+        <h1 class="mt-4 text-3xl font-extrabold leading-tight tracking-tight text-on-surface text-balance sm:text-5xl lg:text-6xl">
+          {t("hero.tagline")}
+        </h1>
+        <p class="mt-6 text-lg leading-relaxed text-on-surface-variant sm:text-xl">
+          {t("hero.subtitle")}
+        </p>
+
+        <div class="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <a
+            href="#contact"
+            class="inline-flex items-center justify-center gap-2 rounded-lg bg-on-surface px-3 py-2 text-white hover:bg-on-surface/90 transition-colors"
+            aria-label="App Store — richiedi accesso beta"
+          >
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+            </svg>
+            <div class="text-left">
+              <div class="text-[9px] leading-none opacity-80">Presto su</div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-sm font-semibold leading-tight">App Store</span>
+                <span class="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-white tracking-wide">Beta</span>
+              </div>
+            </div>
+          </a>
+          <a
+            href="#contact"
+            class="inline-flex items-center justify-center gap-2 rounded-lg bg-on-surface px-3 py-2 text-white hover:bg-on-surface/90 transition-colors"
+            aria-label="Google Play — richiedi accesso beta"
+          >
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3.609 1.814 13.792 12 3.61 22.186a.996.996 0 0 1-.61-.92V2.734a1 1 0 0 1 .609-.92zm10.89 10.893 2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.193 2.807 1.626a1 1 0 0 1 0 1.73l-2.808 1.626L15.198 12l2.5-2.486zM5.864 2.658 16.802 8.99l-2.302 2.302-8.636-8.634z"/>
+            </svg>
+            <div class="text-left">
+              <div class="text-[9px] leading-none opacity-80">Presto su</div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-sm font-semibold leading-tight">Google Play</span>
+                <span class="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-white tracking-wide">Beta</span>
+              </div>
+            </div>
+          </a>
+          <a
+            href={WEB_APP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center justify-center gap-2 rounded-lg bg-on-surface px-3 py-2 text-white hover:bg-on-surface/90 transition-colors"
+            aria-label={t("hero.cta.web")}
+          >
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            </svg>
+            <div class="text-left">
+              <div class="text-[9px] leading-none opacity-80">Usa sul</div>
+              <div class="text-sm font-semibold leading-tight">Web</div>
+            </div>
+          </a>
+        </div>
+
+        <p class="mt-6 text-sm text-on-surface-variant">
+          <span class="font-semibold">3€</span> per utente attivo al mese · Nessun canone fisso · GDPR + art. 4 Statuto dei Lavoratori
+        </p>
+      </div>
+
+      <div class="flex items-center justify-center lg:justify-end">
+        <div class="relative flex items-center justify-center py-4">
+          <div class="relative w-36 -translate-x-2 translate-y-3 -rotate-[8deg] sm:w-48 md:w-56 z-0 drop-shadow-xl">
+            <div class="rounded-[2.2rem] border-[3px] border-on-surface bg-on-surface p-px shadow-2xl">
+              <img
+                class="aspect-[9/19.5] h-full w-full rounded-[2rem] object-cover object-top bg-on-surface"
+                src="/screenshots/dashboard.png"
+                alt="sonoQui dashboard"
+                loading="eager"
+              />
+            </div>
+            <div class="absolute top-0 left-1/2 h-4 w-16 -translate-x-1/2 rounded-b-xl bg-on-surface"></div>
+          </div>
+          <div class="relative -ml-4 w-44 -translate-y-2 rotate-[6deg] sm:w-56 md:w-64 z-10 drop-shadow-2xl">
+            <div class="rounded-[2.4rem] border-[4px] border-on-surface bg-on-surface p-px shadow-2xl">
+              <img
+                class="aspect-[9/19.5] h-full w-full rounded-[2.1rem] object-cover object-top bg-on-surface"
+                src="/screenshots/clock-in.png"
+                alt="sonoQui timbratura"
+                loading="eager"
+              />
+            </div>
+            <div class="absolute top-0 left-1/2 h-5 w-20 -translate-x-1/2 rounded-b-xl bg-on-surface"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

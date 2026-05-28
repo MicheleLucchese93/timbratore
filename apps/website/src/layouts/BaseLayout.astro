@@ -1,0 +1,79 @@
+---
+import "../styles/global.css";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import CookieBanner from "../components/CookieBanner.astro";
+import { defaultLang, type Lang } from "../i18n/ui";
+import { getLangFromUrl } from "../i18n/utils";
+
+interface Props {
+  title: string;
+  description?: string;
+  image?: string;
+  type?: "website" | "article";
+  alternatePaths?: Partial<Record<Lang, string>>;
+  schema?: Record<string, unknown>;
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description = "sonoQui — rilevazione presenze GPS per piccole aziende italiane.",
+  image = "/icon.png",
+  type = "website",
+  alternatePaths,
+  schema,
+  noindex = false,
+} = Astro.props;
+const lang = getLangFromUrl(Astro.url);
+const site = Astro.site ?? new URL("https://sonoqui.xdevapp.it");
+const canonicalUrl = new URL(Astro.url.pathname, site).toString();
+const imageUrl = new URL(image, site).toString();
+const alternateLinks = alternatePaths
+  ? Object.entries(alternatePaths).filter((entry): entry is [Lang, string] => Boolean(entry[1]))
+  : [];
+const xDefaultPath = alternatePaths?.[defaultLang] ?? alternatePaths?.[lang];
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex,follow" />}
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/icon.png" />
+    <link rel="canonical" href={canonicalUrl} />
+    <title>{title}</title>
+
+    <!-- Open Graph -->
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content={type} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:site_name" content="sonoQui" />
+    <meta property="og:image" content={imageUrl} />
+    <meta property="og:locale" content="it_IT" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={imageUrl} />
+
+    {alternateLinks.map(([alternateLang, path]) => (
+      <link rel="alternate" hreflang={alternateLang} href={new URL(path, site).toString()} />
+    ))}
+    {xDefaultPath && <link rel="alternate" hreflang="x-default" href={new URL(xDefaultPath, site).toString()} />}
+    {schema && <script type="application/ld+json" set:html={JSON.stringify(schema)} />}
+  </head>
+  <body class="bg-white text-on-surface antialiased">
+    <Header />
+    <main>
+      <slot />
+    </main>
+    <Footer />
+    <CookieBanner />
+  </body>
+</html>

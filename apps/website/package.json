@@ -1,0 +1,19 @@
+{
+  "name": "sonoqui-website",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.2",
+    "@fontsource/inter": "^5.2.8",
+    "@tailwindcss/vite": "^4.1.4",
+    "astro": "^6.1.9",
+    "tailwindcss": "^4.1.4",
+    "vanilla-cookieconsent": "^3.1.0"
+  }
+}
