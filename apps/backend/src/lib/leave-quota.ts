@@ -267,10 +267,15 @@ export async function assertPerDayCap(
     const cap = capacityOf(iso);
     if (total > cap + 1e-6) {
       throw new ValidationError(
-        `Il giorno ${iso} eccede l'orario di lavoro: ${total.toFixed(2)}h richieste su ${cap.toFixed(2)}h disponibili.`
+        `Il giorno ${formatItalianDate(iso)} eccede l'orario di lavoro: ${total.toFixed(2)}h richieste su ${cap.toFixed(2)}h disponibili.`
       );
     }
   }
+}
+
+function formatItalianDate(iso: string): string {
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
 }
 
 interface DayCell {
