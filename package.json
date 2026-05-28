@@ -13,12 +13,24 @@
     "test": "npm run -ws --if-present test",
     "dev:backend": "npm run -w apps/backend dev",
     "dev:web": "npm run -w apps/web dev",
+    "dev:mobile": "npm -w apps/mobile run web",
     "migrate": "npm run -w apps/backend migrate",
-    "seed": "npm run -w apps/backend seed"
+    "seed": "npm run -w apps/backend seed",
+    "e2e": "playwright test",
+    "e2e:web": "playwright test --project=web-setup --project=web --project=web-user-setup --project=web-user",
+    "e2e:web:admin": "playwright test --project=web-setup --project=web",
+    "e2e:web:user": "playwright test --project=web-user-setup --project=web-user",
+    "e2e:mobile": "playwright test --project=mobile-setup --project=mobile --project=mobile-user-setup --project=mobile-user",
+    "e2e:mobile:admin": "playwright test --project=mobile-setup --project=mobile",
+    "e2e:mobile:user": "playwright test --project=mobile-user-setup --project=mobile-user",
+    "e2e:ui": "playwright test --ui",
+    "e2e:report": "playwright show-report e2e/playwright-report"
   },
   "devDependencies": {
-    "typescript": "^5.6.3",
-    "@types/node": "^22.10.2"
+    "@axe-core/playwright": "^4.11.3",
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.6.3"
   },
   "engines": {
     "node": ">=22"

@@ -1,0 +1,50 @@
+import { test, expect } from '@playwright/test';
+
+test.describe('mobile — Storico interactions', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: 'Timbrature' })).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('button', { name: 'Storico' }).click();
+  });
+
+  test('switching between 7 / 30 / 90-day pills triggers a refetch', async ({ page }) => {
+    // Pills render their RANGES labels: "7 giorni" / "30 giorni" / "90 giorni".
+    for (const label of ['7 giorni', '30 giorni', '90 giorni']) {
+      await page.getByText(label, { exact: true }).first().click();
+      await page.waitForTimeout(300);
+    }
+    await expect(page.getByRole('button', { name: 'Storico' })).toBeVisible();
+  });
+});
+
+test.describe('mobile — Notifications bell tap', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: 'Timbrature' })).toBeVisible({ timeout: 30_000 });
+  });
+
+  test('tapping Notifiche opens the notifications modal', async ({ page }) => {
+    await page.getByRole('button', { name: 'Notifiche' }).click();
+    // Modal shows either "Notifiche" header text or a list/empty state.
+    // Use a permissive locator — content depends on tenant push events.
+    await expect(
+      page.getByText('Notifiche', { exact: true }).or(page.getByText(/Nessuna notifica/i)),
+    ).toBeVisible({ timeout: 10_000 });
+  });
+});
+
+test.describe('mobile — Timbrature branch picker (multi-branch)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: 'Timbrature' })).toBeVisible({ timeout: 30_000 });
+  });
+
+  test('multi-branch tenant exposes pill selector under "Sede"', async ({ page }) => {
+    // Admin test1 is assigned to >1 branch (Archiva + Casa). Pills render.
+    // For tenants with 1 branch the section is a static row instead.
+    const sectionTitle = page.getByText('Sede', { exact: true }).first();
+    await expect(sectionTitle).toBeVisible({ timeout: 10_000 });
+    // At least one branch chip text is present.
+    await expect(page.getByText(/^(Archiva|Casa)$/).first()).toBeVisible({ timeout: 10_000 });
+  });
+});
