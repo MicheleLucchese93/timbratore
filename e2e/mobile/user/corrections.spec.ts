@@ -20,7 +20,7 @@ test.describe('mobile — Correzioni create flow (employee)', () => {
     await expect(page.getByText(/Scegli la data/i)).toBeVisible();
   });
 
-  test('status filter pills "In attesa" and "Tutte" are present', async ({ page }) => {
+  test('swipeable tabs "In attesa" and "Tutte" are present', async ({ page }) => {
     await expect(page.getByText('In attesa').first()).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('Tutte').first()).toBeVisible();
   });

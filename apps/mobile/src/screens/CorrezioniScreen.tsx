@@ -24,11 +24,9 @@ import { useNotifications, type CorrectionRow } from '../lib/notifications';
 import { AppHeader } from '../components/AppHeader';
 import { WorkStateChip } from '../components/WorkStateChip';
 import { DateField } from '../components/DateField';
+import { SwipeableTabs } from '../components/SwipeableTabs';
 
-const STATUS_FILTERS = [
-  { id: 'pending', label: 'In attesa' },
-  { id: 'all', label: 'Tutte' },
-] as const;
+type CorrezioniTab = 'pending' | 'all';
 
 const EVENT_OPTIONS: Array<{ value: StampEventType; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
   { value: 'clock_in', label: 'Ingresso', icon: 'log-in-outline' },
@@ -50,30 +48,48 @@ export function CorrezioniScreen() {
   const { me } = useSession();
   const isAdmin = me?.user.role === 'admin';
 
-  const [filter, setFilter] = useState<'pending' | 'all'>('pending');
-  const [rows, setRows] = useState<CorrectionRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [tab, setTab] = useState<CorrezioniTab>('pending');
+  const [pendingRows, setPendingRows] = useState<CorrectionRow[]>([]);
+  const [allRows, setAllRows] = useState<CorrectionRow[]>([]);
+  const [loadingPending, setLoadingPending] = useState(true);
+  const [loadingAll, setLoadingAll] = useState(true);
+  const [refreshingPending, setRefreshingPending] = useState(false);
+  const [refreshingAll, setRefreshingAll] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const refreshNotif = useNotifications((s) => s.refresh);
 
-  const load = useCallback(async () => {
+  const loadPending = useCallback(async () => {
     try {
-      const q = filter === 'pending' ? '?status=pending' : '';
-      const list = await api<CorrectionRow[]>(`/api/v1/correction-requests${q}`);
-      setRows(list);
+      const list = await api<CorrectionRow[]>('/api/v1/correction-requests?status=pending');
+      setPendingRows(list);
     } catch {
       /* ignore */
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      setLoadingPending(false);
+      setRefreshingPending(false);
     }
-  }, [filter]);
+  }, []);
+
+  const loadAll = useCallback(async () => {
+    try {
+      const list = await api<CorrectionRow[]>('/api/v1/correction-requests');
+      setAllRows(list);
+    } catch {
+      /* ignore */
+    } finally {
+      setLoadingAll(false);
+      setRefreshingAll(false);
+    }
+  }, []);
+
+  const load = useCallback(async () => {
+    await Promise.all([loadPending(), loadAll()]);
+  }, [loadPending, loadAll]);
 
   useEffect(() => {
-    setLoading(true);
-    load();
-  }, [load]);
+    loadPending();
+    loadAll();
+  }, [loadPending, loadAll]);
 
   async function approve(cr: CorrectionRow) {
     confirmAction('Approvare?', 'La timbratura verrà creata o aggiornata.', async () => {
@@ -102,65 +118,60 @@ export function CorrezioniScreen() {
     });
   }
 
-  const pendingCount = useMemo(() => rows.filter((r) => r.status === 'pending').length, [rows]);
+  const pendingCount = useMemo(() => pendingRows.length, [pendingRows]);
+
+  const renderPage = (data: CorrectionRow[], isLoading: boolean, isRefreshing: boolean, onRefresh: () => void) => (
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />}>
+      {isLoading && (
+        <View style={styles.centered}>
+          <ActivityIndicator />
+        </View>
+      )}
+      {!isLoading && data.length === 0 && (
+        <View style={styles.emptyCard}>
+          <Ionicons name="document-text-outline" size={32} color={color.onSurfaceVariant} />
+          <Text style={styles.empty}>
+            {isAdmin ? 'Nessuna richiesta da gestire.' : 'Non hai richieste.'}
+          </Text>
+        </View>
+      )}
+      {data.map((r) => (
+        <CorrectionCard
+          key={r.id}
+          row={r}
+          canDecide={isAdmin}
+          onApprove={() => approve(r)}
+          onReject={() => reject(r)}
+        />
+      ))}
+    </ScrollView>
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <AppHeader centerSlot={<WorkStateChip />} />
 
-      <View style={styles.filterRow}>
-        {STATUS_FILTERS.map((f) => {
-          const sel = f.id === filter;
-          return (
-            <TouchableOpacity
-              key={f.id}
-              onPress={() => setFilter(f.id)}
-              activeOpacity={0.7}
-              style={[styles.tabPill, sel && styles.tabPillActive]}>
-              <Text style={[styles.tabPillText, sel && styles.tabPillTextActive]}>
-                {f.label}
-                {f.id === 'pending' && pendingCount > 0 ? ` · ${pendingCount}` : ''}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
-              load();
-            }}
-          />
-        }>
-        {loading && (
-          <View style={styles.centered}>
-            <ActivityIndicator />
-          </View>
-        )}
-        {!loading && rows.length === 0 && (
-          <View style={styles.emptyCard}>
-            <Ionicons name="document-text-outline" size={32} color={color.onSurfaceVariant} />
-            <Text style={styles.empty}>
-              {isAdmin ? 'Nessuna richiesta da gestire.' : 'Non hai richieste.'}
-            </Text>
-          </View>
-        )}
-        {rows.map((r) => (
-          <CorrectionCard
-            key={r.id}
-            row={r}
-            canDecide={isAdmin}
-            onApprove={() => approve(r)}
-            onReject={() => reject(r)}
-          />
-        ))}
-      </ScrollView>
+      <SwipeableTabs
+        tabs={[
+          { id: 'pending', label: 'In attesa', badge: pendingCount },
+          { id: 'all', label: 'Tutte' },
+        ]}
+        activeId={tab}
+        onChange={setTab}>
+        {[
+          renderPage(pendingRows, loadingPending, refreshingPending, () => {
+            setRefreshingPending(true);
+            loadPending();
+          }),
+          renderPage(allRows, loadingAll, refreshingAll, () => {
+            setRefreshingAll(true);
+            loadAll();
+          }),
+        ]}
+      </SwipeableTabs>
 
       {!isAdmin && (
         <TouchableOpacity
@@ -735,18 +746,6 @@ function combineLocalDateTime(date: string, time: string): string {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: color.surface },
-
-  filterRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 6, paddingBottom: space.s3 },
-  tabPill: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: color.surfaceVariant,
-    alignItems: 'center',
-  },
-  tabPillActive: { backgroundColor: color.primary },
-  tabPillText: { fontSize: 13, fontWeight: '600', color: color.onSurfaceVariant },
-  tabPillTextActive: { color: color.onPrimary },
 
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 6, paddingBottom: 96 },

@@ -806,7 +806,7 @@ const MANUAL_BODY = `
 
       <div class="feature">
         <h3>Le tue richieste</h3>
-        <p>Due tab: <strong>In attesa</strong> e <strong>Tutte</strong>. Il badge sulla tab "In attesa" mostra il numero di richieste ancora da decidere.</p>
+        <p>Due tab: <strong>In attesa</strong> e <strong>Tutte</strong>. Il badge sulla tab "In attesa" mostra il numero di richieste ancora da decidere. Tocca le tab oppure <strong>scorri a destra/sinistra</strong> sull'elenco per passare da una vista all'altra.</p>
         <p>Ogni richiesta è una card con: tipo evento (Ingresso/Uscita/...), stato (<span class="pill pill-warn">In attesa</span> <span class="pill pill-ok">Approvata</span> <span class="pill pill-err">Rifiutata</span>), differenza prima/dopo, motivazione e nota dell'approvatore se decisa.</p>
       </div>
 
@@ -832,6 +832,11 @@ const MANUAL_BODY = `
     <section class="chapter" id="mob-user-richieste">
       <h2><span class="chapter-num">24</span>Ferie / Permessi / Malattia <span class="badge badge-user">user</span> <span class="badge badge-mobile">mobile</span></h2>
       <p class="lead">Tutte le richieste di assenza si gestiscono dalla scheda Richieste.</p>
+
+      <div class="feature">
+        <h3>Tab "Le mie" e "Da approvare"</h3>
+        <p>Se sei amministratore vedi due tab: <strong>Le mie</strong> (le tue richieste) e <strong>Da approvare</strong> (quelle dei tuoi dipendenti, con badge sul numero pending). Tocca le tab oppure <strong>scorri a destra/sinistra</strong> sull'elenco per cambiare vista.</p>
+      </div>
 
       <div class="feature">
         <h3>Quota disponibile</h3>
@@ -946,7 +951,7 @@ const MANUAL_BODY = `
 
       <div class="feature">
         <h3>Tab "In attesa"</h3>
-        <p>Mostra tutte le richieste di correzione che spettano a te (in base alla configurazione approvatori).</p>
+        <p>Mostra tutte le richieste di correzione che spettano a te (in base alla configurazione approvatori). Passa a <strong>Tutte</strong> per lo storico — tocca la tab o <strong>scorri a destra/sinistra</strong>.</p>
         <p>Ogni card mostra il dipendente, la differenza prima/dopo e la motivazione, con i pulsanti:</p>
         <ul class="tidy">
           <li><span class="pill pill-ok">Approva</span> — chiede conferma e applica la correzione.</li>
@@ -961,7 +966,7 @@ const MANUAL_BODY = `
 
       <div class="feature">
         <h3>Tab "Da approvare"</h3>
-        <p>Vedi tutte le richieste pending. Per ognuna:</p>
+        <p>Vedi tutte le richieste pending. Tocca la tab oppure <strong>scorri a destra/sinistra</strong> per spostarti tra "Le mie" e "Da approvare". Per ognuna:</p>
         <ul class="tidy">
           <li><span class="pill pill-ok">Approva</span> — conferma con dialog riepilogativo.</li>
           <li><span class="pill pill-err">Rifiuta</span> — prompt obbligatorio per il motivo.</li>

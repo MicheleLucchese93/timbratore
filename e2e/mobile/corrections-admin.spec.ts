@@ -14,7 +14,7 @@ test.describe('mobile — Correzioni (admin)', () => {
     await expect(page.getByRole('button', { name: 'Nuova richiesta' })).toHaveCount(0);
   });
 
-  test('shows the status filter pills (In attesa / Tutte)', async ({ page }) => {
+  test('shows the swipeable tabs (In attesa / Tutte)', async ({ page }) => {
     await expect(page.getByText('In attesa').first()).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('Tutte').first()).toBeVisible();
   });
