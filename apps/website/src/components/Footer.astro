@@ -13,20 +13,41 @@ const eulaPath = `/${lang}/eula/`;
 
 <footer id="contact" class="border-t border-gray-100 bg-surface py-12">
   <div class="mx-auto max-w-6xl px-4 sm:px-6">
-    <div class="mx-auto mb-12 max-w-4xl text-center">
-      <h3 class="text-3xl font-bold text-on-surface sm:text-4xl">{t("contact.title")}</h3>
-      <p class="mt-3 mb-8 text-lg text-on-surface-variant">{t("contact.subtitle")}</p>
-      <p class="text-lg text-primary font-semibold">
-        <a href={`mailto:${CONTACT_EMAIL}`} class="hover:underline">{CONTACT_EMAIL}</a>
+    <div class="mx-auto mb-12 max-w-2xl">
+      <div class="text-center">
+        <h3 class="text-3xl font-bold text-on-surface sm:text-4xl">{t("contact.title")}</h3>
+        <p class="mt-3 mb-8 text-lg text-on-surface-variant">{t("contact.subtitle")}</p>
+      </div>
+      <form id="contact-form" class="space-y-4 text-left">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <input type="text" name="name" required maxlength="100" placeholder={t("contact.name")}
+            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-base text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" />
+          <input type="email" name="email" required maxlength="254" placeholder={t("contact.email")}
+            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-base text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" />
+        </div>
+        <input type="text" name="subject" required maxlength="200" placeholder={t("contact.subject")}
+          class="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-base text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" />
+        <textarea name="message" required rows="5" maxlength="5000" placeholder={t("contact.message")}
+          class="w-full resize-none rounded-lg border border-gray-200 bg-white px-4 py-3 text-base text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"></textarea>
+        <input type="hidden" name="source" value="sonoqui" />
+        <div class="flex items-center gap-3">
+          <button type="submit" id="contact-submit"
+            class="rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white hover:bg-primary-container transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            {t("contact.send")}
+          </button>
+          <span id="contact-message" class="hidden text-base"></span>
+        </div>
+      </form>
+      <p class="mt-4 text-center text-sm text-on-surface-variant">
+        Oppure scrivici a <a href={`mailto:${CONTACT_EMAIL}`} class="text-primary hover:underline">{CONTACT_EMAIL}</a>
       </p>
-      <p class="mt-2 text-sm text-on-surface-variant">Rispondiamo entro 24 ore lavorative.</p>
     </div>
 
     <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 border-t border-gray-200 pt-8">
       <div>
         <div class="flex items-center gap-2">
           <img src="/icon.png" alt="sonoQui" class="h-8 w-8 rounded-lg" />
-          <span class="text-lg font-bold text-primary">sono<span class="text-accent">Qui</span></span>
+          <span class="text-lg font-extrabold tracking-tight text-primary">sono<span class="text-accent">Qui</span></span>
         </div>
         <p class="mt-3 text-sm text-on-surface-variant">
           Rilevazione presenze per le piccole aziende italiane.
@@ -67,3 +88,44 @@ const eulaPath = `/${lang}/eula/`;
     </div>
   </div>
 </footer>
+
+<script>
+  const form = document.getElementById("contact-form") as HTMLFormElement | null;
+  const btn = document.getElementById("contact-submit") as HTMLButtonElement | null;
+  const msg = document.getElementById("contact-message") as HTMLSpanElement | null;
+
+  if (form && btn && msg) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const original = btn.textContent ?? "Invia";
+      btn.disabled = true;
+      btn.textContent = "Invio…";
+      msg.classList.add("hidden");
+
+      const data = Object.fromEntries(new FormData(form));
+      try {
+        const res = await fetch("/api/v1/helpdesk", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        if (res.ok) {
+          msg.textContent = "Messaggio inviato. Ti rispondiamo al più presto.";
+          msg.className = "text-base text-success";
+          form.reset();
+        } else {
+          const json = (await res.json().catch(() => ({}))) as { error?: string };
+          msg.textContent = json.error || "Errore durante l'invio. Riprova più tardi.";
+          msg.className = "text-base text-danger";
+        }
+      } catch {
+        msg.textContent = "Errore di rete. Riprova più tardi.";
+        msg.className = "text-base text-danger";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = original;
+        msg.classList.remove("hidden");
+      }
+    });
+  }
+</script>

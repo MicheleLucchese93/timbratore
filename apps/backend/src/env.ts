@@ -63,6 +63,10 @@ const Env = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().optional(),
+  // Recipient for website "Contattaci" form submissions (routes/helpdesk.ts).
+  HELPDESK_TO: z.string().optional(),
+  // Cloudflare Turnstile secret. When set, the helpdesk route requires + verifies a token.
+  TURNSTILE_SECRET_KEY: z.string().optional(),
   // Bearer secret for the e2e fixture purge endpoint. Endpoint is only
   // registered when this is set; required length keeps brute-force out of reach.
   E2E_PURGE_SECRET: z.string().min(32).optional(),

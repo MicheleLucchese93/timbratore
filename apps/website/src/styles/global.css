@@ -6,17 +6,18 @@
 @import "@fontsource/inter/800.css";
 
 @theme {
-  --color-primary: #0369a1;
-  --color-primary-container: #0284c7;
-  --color-primary-light: #38bdf8;
-  --color-accent: #f59e0b;
-  --color-surface: #f4faff;
-  --color-surface-dim: #cfdce4;
-  --color-on-surface: #0f172a;
-  --color-on-surface-variant: #475569;
-  --color-success: #166534;
-  --color-success-light: #c8f0cf;
-  --color-danger: #b91c1c;
+  /* Matches the mobile app design tokens (packages/shared tokens.ts) */
+  --color-primary: #b25500;
+  --color-primary-container: #8a4200;
+  --color-primary-light: #ffe0c8;
+  --color-accent: #5a2a00;
+  --color-surface: #fffbf8;
+  --color-surface-dim: #f3ece5;
+  --color-on-surface: #1f1b16;
+  --color-on-surface-variant: #514440;
+  --color-success: #1e7a3a;
+  --color-success-light: #e8f3ec;
+  --color-danger: #ba1a1a;
 
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
 }

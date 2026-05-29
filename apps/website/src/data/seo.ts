@@ -33,7 +33,7 @@ export const homeFaq: Record<Lang, FaqItem[]> = {
     {
       question: "Per quante persone è pensato?",
       answer:
-        "sonoQui è progettato per piccole imprese italiane fino a 20 dipendenti. Pricing target 3€/utente attivo al mese, senza canone fisso.",
+        "sonoQui è progettato per piccole imprese italiane fino a 20 dipendenti, dove la timbratura cartolare o i fogli Excel non bastano più ma i gestionali enterprise sono troppo.",
     },
     {
       question: "Posso esportare i dati per il commercialista?",
@@ -75,17 +75,6 @@ export function buildHomeSchema(lang: Lang) {
     operatingSystem: 'iOS, Android, Web',
     description: meta.description,
     url: SITE_URL,
-    offers: {
-      '@type': 'Offer',
-      priceCurrency: 'EUR',
-      price: '3.00',
-      priceSpecification: {
-        '@type': 'UnitPriceSpecification',
-        price: '3.00',
-        priceCurrency: 'EUR',
-        unitText: 'utente attivo al mese',
-      },
-    },
     inLanguage: 'it-IT',
     audience: {
       '@type': 'BusinessAudience',

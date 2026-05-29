@@ -68,6 +68,13 @@ m-sonoqui.xdevapp.it {
 sonoqui.xdevapp.it {
 	import origin_tls
 	import access_log
-	import api_security_headers
-	reverse_proxy sonoqui-website:80
+	# Same-origin proxy for the marketing contact form ("Contattaci") so the
+	# browser never makes a cross-origin call (no CORS preflight). Everything
+	# else is the static Astro site.
+	handle /api/v1/helpdesk* {
+		reverse_proxy sonoqui-api:4000
+	}
+	handle {
+		reverse_proxy sonoqui-website:80
+	}
 }

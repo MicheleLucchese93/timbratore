@@ -26,6 +26,7 @@ import { placesRouter } from './routes/places.js';
 import { shiftsRouter } from './routes/shifts.js';
 import { leavesRouter } from './routes/leaves.js';
 import { leaveQuotasRouter } from './routes/leave-quotas.js';
+import { helpdeskRouter } from './routes/helpdesk.js';
 import { internalE2eRouter } from './routes/internal-e2e.js';
 
 export function createApp(): Express {
@@ -91,6 +92,7 @@ export function createApp(): Express {
   app.use('/api/v1/shifts', shiftsRouter);
   app.use('/api/v1/leaves', leavesRouter);
   app.use('/api/v1/leave-quotas', leaveQuotasRouter);
+  app.use('/api/v1/helpdesk', helpdeskRouter);
   if (env.E2E_PURGE_SECRET) {
     app.use('/api/v1/_internal/e2e', internalE2eRouter);
   }
