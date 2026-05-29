@@ -15,7 +15,7 @@ export const ui = {
     // Hero
     'hero.tagline': 'La timbratura è qui.',
     'hero.subtitle':
-      'sonoQui è la app di rilevazione presenze pensata per le piccole imprese italiane. Timbra in un tap, gestisci ferie e correzioni, esporta tutto per il commercialista.',
+      'sonoQui è la app di rilevazione presenze pensata per le PMI italiane. Timbra in un tap, gestisci ferie e correzioni, esporta tutto per il commercialista.',
     'hero.cta.appstore': 'App Store',
     'hero.cta.playstore': 'Google Play',
     'hero.cta.web': 'Apri la dashboard',

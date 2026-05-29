@@ -9,9 +9,9 @@ export const DEFAULT_IMAGE = '/icon.png';
 
 export const homeMeta: Record<Lang, { title: string; description: string }> = {
   it: {
-    title: 'sonoQui | Rilevazione presenze con GPS per piccole aziende italiane',
+    title: 'sonoQui | Rilevazione presenze con GPS per PMI italiane',
     description:
-      "sonoQui è l'app di rilevazione presenze per piccole imprese italiane: timbratura GPS al tap, ferie e correzioni in app, export per il commercialista. Conforme art. 4 Statuto dei Lavoratori.",
+      "sonoQui è l'app di rilevazione presenze per PMI italiane: timbratura GPS al tap, ferie e correzioni in app, export per il commercialista. Conforme art. 4 Statuto dei Lavoratori.",
   },
 };
 
