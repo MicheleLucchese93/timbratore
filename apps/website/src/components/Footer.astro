@@ -30,6 +30,7 @@ const eulaPath = `/${lang}/eula/`;
         <textarea name="message" required rows="5" maxlength="5000" placeholder={t("contact.message")}
           class="w-full resize-none rounded-lg border border-gray-200 bg-white px-4 py-3 text-base text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"></textarea>
         <input type="hidden" name="source" value="sonoqui" />
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAADYNGw6MCmH7jyON" data-theme="light"></div>
         <div class="flex items-center gap-3">
           <button type="submit" id="contact-submit"
             class="rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white hover:bg-primary-container transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
@@ -86,6 +87,7 @@ const eulaPath = `/${lang}/eula/`;
   </div>
 </footer>
 
+<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script>
   const form = document.getElementById("contact-form") as HTMLFormElement | null;
   const btn = document.getElementById("contact-submit") as HTMLButtonElement | null;
@@ -94,12 +96,22 @@ const eulaPath = `/${lang}/eula/`;
   if (form && btn && msg) {
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+
+      const fd = new FormData(form);
+      const token = (fd.get("cf-turnstile-response") || "").toString();
+      if (!token) {
+        msg.textContent = "Completa la verifica di sicurezza.";
+        msg.className = "text-base text-danger";
+        msg.classList.remove("hidden");
+        return;
+      }
+
       const original = btn.textContent ?? "Invia";
       btn.disabled = true;
       btn.textContent = "Invio…";
       msg.classList.add("hidden");
 
-      const data = Object.fromEntries(new FormData(form));
+      const data = { ...Object.fromEntries(fd), turnstileToken: token };
       try {
         const res = await fetch("/api/v1/helpdesk", {
           method: "POST",
@@ -122,6 +134,7 @@ const eulaPath = `/${lang}/eula/`;
         btn.disabled = false;
         btn.textContent = original;
         msg.classList.remove("hidden");
+        (window as unknown as { turnstile?: { reset: () => void } }).turnstile?.reset();
       }
     });
   }
