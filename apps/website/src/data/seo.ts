@@ -48,7 +48,7 @@ export const homeFaq: Record<Lang, FaqItem[]> = {
     {
       question: "I miei dati sono al sicuro?",
       answer:
-        "Cifratura in transito (TLS 1.2+) e a riposo (LUKS / AES-256). Database PostgreSQL su server UE con Row Level Security (RLS) che garantisce l'isolamento dei dati per azienda. Backup cifrati nell'UE.",
+        "Sì. I dati sono cifrati e conservati su server nell'Unione Europea. I dati di ogni azienda sono isolati e non visibili ad altre aziende, con backup cifrati nel rispetto del GDPR.",
     },
     {
       question: "Quanto durano i miei dati?",
@@ -56,9 +56,24 @@ export const homeFaq: Record<Lang, FaqItem[]> = {
         "Le timbrature sono conservate per 5 anni di default (configurabili fino a 10). I dati GPS dettagliati vengono mascherati dopo 90 giorni: rimane solo l'identificativo della sede. Puoi richiedere la cancellazione anticipata in qualsiasi momento.",
     },
     {
-      question: "Serve un contratto?",
+      question: "Chi può approvare ferie, permessi e correzioni?",
       answer:
-        "L'account viene creato dal nostro team al momento dell'attivazione. Scrivici a " +
+        "Gli amministratori dell'azienda. Puoi anche nominare approvatori dedicati per singola sede, così ogni responsabile gestisce solo i dipendenti della propria sede.",
+    },
+    {
+      question: "Supportate lo smart working?",
+      answer:
+        "Sì. Una sede può essere impostata come smart working: per quei dipendenti la timbratura avviene senza verifica della posizione, mentre per le sedi fisiche la verifica GPS resta attiva.",
+    },
+    {
+      question: "I dati restano della nostra azienda? Possiamo esportarli?",
+      answer:
+        "Sì. I dati sono solo della tua azienda e puoi esportarli in Excel in qualsiasi momento, già nel formato utile al commercialista. Alla cessazione del servizio i dati vengono restituiti o cancellati su tua richiesta.",
+    },
+    {
+      question: "Come iniziamo a usare sonoQui?",
+      answer:
+        "Non c'è registrazione pubblica: attiviamo noi l'azienda e creiamo il primo account amministratore. Da lì inviti i dipendenti, configuri sedi e orari e sei operativo. Scrivici a " +
         CONTACT_EMAIL +
         " e ti rispondiamo entro 24 ore lavorative.",
     },
