@@ -4,7 +4,6 @@ export const SITE_URL = 'https://sonoqui.xdevapp.it';
 export const APP_STORE_URL = 'https://apps.apple.com/it/app/sonoqui/id000000000';
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=app.sonoqui.mobile';
 export const WEB_APP_URL = 'https://app-sonoqui.xdevapp.it/login';
-export const CONTACT_EMAIL = 'michele.lucchese@outlook.it';
 export const LINKEDIN_URL = 'https://www.linkedin.com/in/michele-lucchese/';
 export const DEFAULT_IMAGE = '/icon.png';
 
@@ -73,9 +72,7 @@ export const homeFaq: Record<Lang, FaqItem[]> = {
     {
       question: "Come iniziamo a usare sonoQui?",
       answer:
-        "Non c'è registrazione pubblica: attiviamo noi l'azienda e creiamo il primo account amministratore. Da lì inviti i dipendenti, configuri sedi e orari e sei operativo. Scrivici a " +
-        CONTACT_EMAIL +
-        " e ti rispondiamo entro 24 ore lavorative.",
+        "Non c'è registrazione pubblica: attiviamo noi l'azienda e creiamo il primo account amministratore. Da lì inviti i dipendenti, configuri sedi e orari e sei operativo. Compila il modulo di contatto qui sotto e ti rispondiamo entro 24 ore lavorative.",
     },
   ],
 };
