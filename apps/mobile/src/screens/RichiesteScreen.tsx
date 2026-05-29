@@ -663,13 +663,6 @@ function NewLeaveModal({
       );
       return;
     }
-    if (type === 'assenza' && note.trim().length === 0) {
-      Alert.alert(
-        'Motivazione',
-        'Inserisci una motivazione per l\'assenza.'
-      );
-      return;
-    }
     // Ferie and permessi carry start/end times (15-min slots) when the user
     // unticks "Tutto il giorno". Otherwise (and always for malattia /
     // assenza) the request covers the full day(s).
@@ -960,7 +953,7 @@ function NewLeaveModal({
             )}
 
             <Text style={styles.fieldLabel}>
-              {type === 'assenza' ? 'Motivazione' : 'Note (facoltative)'}
+              {type === 'assenza' ? 'Motivazione (facoltativa)' : 'Note (facoltative)'}
             </Text>
             <TextInput
               value={note}
@@ -1000,7 +993,7 @@ function NewLeaveModal({
 function notePlaceholder(t: LeaveType): string {
   if (t === 'malattia') return 'Es. influenza';
   if (t === 'permessi') return 'Es. visita medica';
-  if (t === 'assenza') return 'Es. funerale del nonno (obbligatoria)';
+  if (t === 'assenza') return 'Es. funerale del nonno';
   return 'Es. matrimonio fratello';
 }
 

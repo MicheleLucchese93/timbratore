@@ -221,6 +221,14 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
       }
     }
 
+    // "Ore conteggiate" rounds down to 15-minute blocks: anything below 15 min
+    // counts as 0. Applied to both worked and overtime per day. Mirrors mobile
+    // counted-day.ts.
+    for (const day of days.values()) {
+      day.worked_minutes = Math.floor(Math.max(0, day.worked_minutes) / 15) * 15;
+      day.overtime_minutes = Math.floor(Math.max(0, day.overtime_minutes) / 15) * 15;
+    }
+
     const dayList = [...days.values()]
       .map((d): DayAgg => {
         const ferie = d.ferie_minutes ?? 0;

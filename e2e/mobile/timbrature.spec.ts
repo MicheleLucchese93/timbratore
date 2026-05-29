@@ -7,11 +7,13 @@ test.describe('mobile — Timbrature tab', () => {
     await expect(page.getByText('Ore lavorate').first()).toBeVisible({ timeout: 30_000 });
   });
 
-  test('shows hero stats: ore lavorate, entrata, pause, uscita', async ({ page }) => {
+  test('shows hero stats: ore lavorate, ore conteggiate, entrata, pause, uscita', async ({ page }) => {
     // Strict mode would fire on "Uscita" / "Pause" because action labels also
     // contain them ("Timbra uscita", "Inizia pausa"). Pin to the first match
     // — the hero card renders them before the action buttons.
     await expect(page.getByText('Ore lavorate').first()).toBeVisible();
+    // "Ore conteggiate" floors to 15-min blocks (apps/mobile/src/lib/counted-day.ts).
+    await expect(page.getByText('Ore conteggiate').first()).toBeVisible();
     await expect(page.getByText('Entrata').first()).toBeVisible();
     await expect(page.getByText('Pause').first()).toBeVisible();
     await expect(page.getByText('Uscita').first()).toBeVisible();

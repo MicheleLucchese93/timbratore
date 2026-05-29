@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { color } from '@sonoqui/shared';
 import type { StampEventType } from '@sonoqui/shared';
 import { api } from '../lib/api';
@@ -20,20 +21,22 @@ export function WorkStateChip({ state }: WorkStateChipProps) {
   const [fetched, setFetched] = useState<WorkState | null>(null);
   const value: WorkState = state ?? fetched ?? 'nothing';
 
-  useEffect(() => {
-    if (state !== undefined) return;
-    let cancelled = false;
-    api<CurrentStateResponse>('/api/v1/stamps/me/current-state')
-      .then((r) => {
-        if (!cancelled) setFetched(r.state);
-      })
-      .catch(() => {
-        /* ignore */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [state]);
+  useFocusEffect(
+    useCallback(() => {
+      if (state !== undefined) return;
+      let cancelled = false;
+      api<CurrentStateResponse>('/api/v1/stamps/me/current-state')
+        .then((r) => {
+          if (!cancelled) setFetched(r.state);
+        })
+        .catch(() => {
+          /* ignore */
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [state]),
+  );
 
   const meta = stateBadge(value);
   return (

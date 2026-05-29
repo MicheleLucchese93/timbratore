@@ -94,6 +94,7 @@ const MANUAL_BODY = `
             <tr><td><strong>Ferie</strong></td><td>Giorni di vacanza retribuiti. Consumano la quota ferie del dipendente.</td></tr>
             <tr><td><strong>Permesso</strong></td><td>Assenza a ore, con granularità di 15 minuti. Consuma la quota permessi.</td></tr>
             <tr><td><strong>Malattia</strong></td><td>Assenza per motivi sanitari con protocollo INPS. Auto-approvata.</td></tr>
+            <tr><td><strong>Assenza</strong></td><td>Assenza generica (motivi personali, lutto, congedo, ecc.) retribuita o non retribuita. Non consuma quote.</td></tr>
             <tr><td><strong>Quota</strong></td><td>Saldo di ore disponibili per ferie/permessi, con accantonamento periodico.</td></tr>
             <tr><td><strong>Approvatore</strong></td><td>Utente (di solito admin) designato a decidere richieste di un dipendente.</td></tr>
             <tr><td><strong>Geofence</strong></td><td>Area geografica intorno alla sede entro cui sono accettate le timbrature.</td></tr>
@@ -720,7 +721,7 @@ const MANUAL_BODY = `
         <p>In alto vedi sempre:</p>
         <ul class="tidy">
           <li><strong>Ore lavorate</strong> — totale aggiornato in tempo reale.</li>
-          <li><strong>Ore conteggiate</strong> — basato sull'orario assegnato (se presente).</li>
+          <li><strong>Ore conteggiate</strong> — basato sull'orario assegnato (se presente), arrotondato per difetto a blocchi di 15 minuti (es. 14 minuti = 0).</li>
           <li><strong>Entrata</strong>, <strong>Pause</strong>, <strong>Uscita</strong> — riepilogo della giornata.</li>
         </ul>
       </div>
@@ -830,7 +831,7 @@ const MANUAL_BODY = `
     </section>
 
     <section class="chapter" id="mob-user-richieste">
-      <h2><span class="chapter-num">24</span>Ferie / Permessi / Malattia <span class="badge badge-user">user</span> <span class="badge badge-mobile">mobile</span></h2>
+      <h2><span class="chapter-num">24</span>Ferie / Permessi / Malattia / Assenza <span class="badge badge-user">user</span> <span class="badge badge-mobile">mobile</span></h2>
       <p class="lead">Tutte le richieste di assenza si gestiscono dalla scheda Richieste.</p>
 
       <div class="feature">
@@ -851,13 +852,14 @@ const MANUAL_BODY = `
         <h3>Inviare una richiesta</h3>
         <p>Tocca <strong>+</strong> in basso a destra. Si apre il modulo:</p>
         <ol class="steps">
-          <li>Scegli il <strong>tipo</strong>: <span class="pill pill-info">Ferie</span> <span class="pill pill-warn">Permessi</span> <span class="pill pill-err">Malattia</span>.</li>
+          <li>Scegli il <strong>tipo</strong>: <span class="pill pill-info">Ferie</span> <span class="pill pill-warn">Permessi</span> <span class="pill pill-err">Malattia</span> <span class="pill">Assenza</span>.</li>
           <li>Indica <strong>Dal</strong> e <strong>Al</strong> (date).</li>
           <li>Per Ferie/Permessi puoi scegliere <em>Tutto il giorno</em> oppure attivare <strong>Orario specifico</strong> (ora inizio/fine).</li>
           <li>Per Malattia: inserisci il <strong>numero protocollo INPS</strong> (obbligatorio).</li>
+          <li>Per Assenza: scegli la <strong>tipologia</strong> (Motivi personali, Lutto, ecc.) e indica se è <strong>retribuita</strong> o no.</li>
           <li>Vedi chi è l'<strong>approvatore</strong> designato (o "Nessun approvatore configurato").</li>
-          <li>Aggiungi una <strong>nota</strong> opzionale (es. "matrimonio fratello", "visita medica").</li>
-          <li>Premi <strong>Invia richiesta</strong> (per Ferie/Permessi) o <strong>Invia segnalazione</strong> (per Malattia).</li>
+          <li>Aggiungi una <strong>nota</strong> opzionale (es. "matrimonio fratello", "visita medica"). Per Assenza il campo si chiama <strong>Motivazione</strong> ed è anch'esso facoltativo.</li>
+          <li>Premi <strong>Invia richiesta</strong> (per Ferie/Permessi/Assenza) o <strong>Invia segnalazione</strong> (per Malattia).</li>
         </ol>
       </div>
 
@@ -1087,6 +1089,7 @@ const MANUAL_BODY = `
             <tr><td><strong>Accantonamento</strong></td><td>L'accredito automatico di ore ferie/permessi a cadenza mensile o annuale.</td></tr>
             <tr><td><strong>Anomalia</strong></td><td>Deviazione tra timbrature e orario atteso.</td></tr>
             <tr><td><strong>Approvatore</strong></td><td>Admin designato a decidere su un tipo di richiesta per un dipendente specifico.</td></tr>
+            <tr><td><strong>Assenza</strong></td><td>Richiesta generica con tipologia (motivi personali, lutto, congedo, ecc.) e flag retribuita/non retribuita. Motivazione facoltativa.</td></tr>
             <tr><td><strong>Audit log</strong></td><td>Registro delle modifiche manuali su timbrature (chi, quando, perché).</td></tr>
             <tr><td><strong>Badge</strong></td><td>Pillola colorata che indica stato o tipo (ferie, malattia, ecc.).</td></tr>
             <tr><td><strong>Correzione</strong></td><td>Richiesta del dipendente di modificare o aggiungere una timbratura.</td></tr>

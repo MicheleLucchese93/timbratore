@@ -53,6 +53,28 @@ test.describe('mobile — Richieste (employee, ferie/permessi/malattia)', () => 
     await expect(page.getByText('Invia segnalazione')).toBeVisible();
     await expect(page.getByText('Invia richiesta', { exact: true })).toHaveCount(0);
   });
+
+  test('Assenza type marks Motivazione as optional (not "obbligatoria")', async ({ page }) => {
+    // Motivazione for `assenza` is optional — neither label nor placeholder
+    // should surface the "(obbligatoria)" marker, and the submit handler must
+    // accept an empty note. Backend leaves.ts mirrors the same rule.
+    await page.getByLabel('Nuova richiesta').first().click();
+    await page.getByText('Assenza', { exact: true }).last().click();
+    await expect(page.getByText('Motivazione (facoltativa)')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/\(obbligatoria\)/)).toHaveCount(0);
+    await expect(page.getByPlaceholder(/Es\. funerale del nonno$/)).toBeVisible();
+  });
+
+  test('Assenza type reveals Tipologia + Retribuzione controls', async ({ page }) => {
+    // Subtype picker + Retribuita/Non retribuita pair are the two required
+    // choices left on assenza after motivazione became optional.
+    await page.getByLabel('Nuova richiesta').first().click();
+    await page.getByText('Assenza', { exact: true }).last().click();
+    await expect(page.getByText('Tipologia di assenza')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Retribuzione', { exact: true })).toBeVisible();
+    await expect(page.getByText('Retribuita', { exact: true })).toBeVisible();
+    await expect(page.getByText('Non retribuita', { exact: true })).toBeVisible();
+  });
 });
 
 // Quota-dependent assertions live here. We seed a known ferie quota

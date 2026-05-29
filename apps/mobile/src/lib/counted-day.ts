@@ -51,6 +51,13 @@ export interface CountedDay extends DayTotals {
 }
 
 const MINUTE_MS = 60_000;
+const QUARTER_MS = 15 * MINUTE_MS;
+
+// "Ore conteggiate" rounds down to 15-minute blocks: 14 min of work counts as
+// 0, 15–29 min as 15, etc. Mirrors backend export-service.ts.
+function floorQuarter(ms: number): number {
+  return Math.floor(Math.max(0, ms) / QUARTER_MS) * QUARTER_MS;
+}
 
 export function computeCountedDay(
   stamps: DayStamp[],
@@ -60,11 +67,12 @@ export function computeCountedDay(
   const totals = computeDayTotals(stamps, now);
 
   if (!assignment) {
+    const countedMs = floorQuarter(totals.workedMs);
     return {
       ...totals,
-      countedMs: totals.workedMs,
+      countedMs,
       overtimeMs: 0,
-      countedTotalMs: totals.workedMs,
+      countedTotalMs: countedMs,
     };
   }
 
@@ -78,11 +86,12 @@ export function computeCountedDay(
 
   if (todaySlots.length === 0) {
     // Rest day per shift_template — nothing to compare against.
+    const countedMs = floorQuarter(totals.workedMs);
     return {
       ...totals,
-      countedMs: totals.workedMs,
+      countedMs,
       overtimeMs: 0,
-      countedTotalMs: totals.workedMs,
+      countedTotalMs: countedMs,
     };
   }
 
@@ -122,12 +131,13 @@ export function computeCountedDay(
     }
   }
 
-  const countedMs = Math.max(0, totals.workedMs - deductMs);
+  const countedMs = floorQuarter(totals.workedMs - deductMs);
+  const overtimeMsQuarter = floorQuarter(overtimeMs);
   return {
     ...totals,
     countedMs,
-    overtimeMs,
-    countedTotalMs: countedMs + overtimeMs,
+    overtimeMs: overtimeMsQuarter,
+    countedTotalMs: countedMs + overtimeMsQuarter,
   };
 }
 

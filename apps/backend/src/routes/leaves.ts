@@ -142,9 +142,6 @@ leavesRouter.post(
       if (b.is_paid === undefined) {
         throw new ValidationError('specifica se l\'assenza è retribuita');
       }
-      if (!b.user_note || b.user_note.trim().length === 0) {
-        throw new ValidationError('motivazione obbligatoria per l\'assenza');
-      }
     }
 
     const userId = req.user!.id;
