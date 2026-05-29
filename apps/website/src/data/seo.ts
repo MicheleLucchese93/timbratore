@@ -30,11 +30,6 @@ export const homeFaq: Record<Lang, FaqItem[]> = {
         "Sì. sonoQui rileva la posizione solo al momento della timbratura, mai in continuo. Non utilizza riconoscimento facciale né dati biometrici. I dati GPS vengono mascherati dopo 90 giorni: rimane solo la sede di riferimento.",
     },
     {
-      question: "Per quante persone è pensato?",
-      answer:
-        "sonoQui è progettato per piccole imprese italiane fino a 20 dipendenti, dove la timbratura cartolare o i fogli Excel non bastano più ma i gestionali enterprise sono troppo.",
-    },
-    {
       question: "Posso esportare i dati per il commercialista?",
       answer:
         "Sì. La dashboard amministratori genera export XLSX mensili nel formato richiesto dalle paghe italiane. Anomalie evidenziate, totali per dipendente, sede e tipologia.",

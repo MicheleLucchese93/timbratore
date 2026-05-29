@@ -109,7 +109,7 @@ export const ui = {
     // Contact / Footer
     'contact.title': 'Contattaci',
     'contact.subtitle':
-      'Hai una piccola azienda e vuoi provare sonoQui? Scrivici e ti aiutiamo a partire.',
+      'Vuoi provare sonoQui? Scrivici e ti aiutiamo a partire.',
     'contact.name': 'Nome',
     'contact.email': 'Email',
     'contact.subject': 'Oggetto',
