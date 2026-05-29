@@ -4,19 +4,20 @@ import { getLangFromUrl, useTranslations } from "../i18n/utils";
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 
+// Labels are written to match the actual captured screen (see Specs/images/mobile).
 const screenshots = [
-  { file: "login", label: t("screenshots.login"), desc: t("screenshots.login.desc") },
-  { file: "dashboard", label: t("screenshots.dashboard"), desc: t("screenshots.dashboard.desc") },
-  { file: "clock-in", label: t("screenshots.clock-in"), desc: t("screenshots.clock-in.desc") },
-  { file: "clock-in-success", label: t("screenshots.clock-in-success"), desc: t("screenshots.clock-in-success.desc") },
-  { file: "history", label: t("screenshots.history"), desc: t("screenshots.history.desc") },
-  { file: "history-detail", label: t("screenshots.history-detail"), desc: t("screenshots.history-detail.desc") },
-  { file: "leaves-list", label: t("screenshots.leaves-list"), desc: t("screenshots.leaves-list.desc") },
-  { file: "leave-request", label: t("screenshots.leave-request"), desc: t("screenshots.leave-request.desc") },
-  { file: "corrections", label: t("screenshots.corrections"), desc: t("screenshots.corrections.desc") },
-  { file: "correction-form", label: t("screenshots.correction-form"), desc: t("screenshots.correction-form.desc") },
-  { file: "profile", label: t("screenshots.profile"), desc: t("screenshots.profile.desc") },
-  { file: "notifications", label: t("screenshots.notifications"), desc: t("screenshots.notifications.desc") },
+  { file: "login", label: "Accesso sicuro", desc: "Email e password. L'account è creato dall'amministratore della tua azienda." },
+  { file: "dashboard", label: "La tua giornata", desc: "Stato attuale, ore lavorate e conteggiate, sede. Timbra entrata, uscita e pause con un tap." },
+  { file: "clock-in", label: "Storico timbrature", desc: "Totale lavorato su 7, 30 o 90 giorni. Ogni ingresso e uscita, giorno per giorno." },
+  { file: "leaves-list", label: "Richiesta ferie", desc: "Scegli le date, tutto il giorno o a ore, e invia la richiesta all'amministratore." },
+  { file: "leave-request", label: "Richiesta permesso", desc: "Permesso a orario specifico: imposta ora di inizio e fine e la motivazione." },
+  { file: "corrections", label: "Segnalazione malattia", desc: "Comunica la malattia con numero di protocollo INPS e note facoltative." },
+  { file: "correction-form", label: "Altre assenze", desc: "Donazione sangue, congedi e altri permessi, retribuiti o non retribuiti." },
+  { file: "history-detail", label: "Le tue richieste", desc: "Stato di ferie e permessi: in attesa, approvate, annullate. Richiedi l'annullamento." },
+  { file: "clock-in-success", label: "Correzioni da approvare", desc: "Per l'amministratore: timbrature mancanti segnalate dai dipendenti, da approvare o rifiutare." },
+  { file: "history", label: "Tutte le correzioni", desc: "Storico completo delle correzioni con esito e motivazione." },
+  { file: "notifications", label: "Approvazioni dal telefono", desc: "Per l'amministratore: approva richieste e annullamenti di ferie direttamente dall'app." },
+  { file: "profile", label: "Centro notifiche", desc: "Esiti di approvazioni di ferie e correzioni in tempo reale." },
 ];
 
 const src = (file: string) => `/screenshots/${file}.png`;

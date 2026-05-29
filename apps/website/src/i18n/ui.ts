@@ -10,7 +10,7 @@ export const ui = {
     'nav.web': 'Dashboard',
     'nav.faq': 'FAQ',
     'nav.contact': 'Contatti',
-    'nav.download': 'Scarica',
+    'nav.download': "Richiedi l'accesso",
 
     // Hero
     'hero.tagline': 'La timbratura è qui.',
