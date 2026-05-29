@@ -7,25 +7,80 @@ const t = useTranslations(lang);
 // Labels match the actual captured screen (see Specs/images/web). The file
 // names don't reflect content (they were assigned before review), so each
 // entry maps a file to its real screen.
-const shots = [
-  { file: "stamps", label: "Panoramica giornaliera", desc: "Chi è presente, chi è in pausa, chi è assente, cosa c'è da approvare e le anomalie della settimana. Tutto in tempo reale." },
-  { file: "anomalies", label: "Timbrature", desc: "Tutte le timbrature dei dipendenti, filtrabili per persona, sede e periodo. Modifica o aggiungi una timbratura a mano quando serve." },
-  { file: "branches", label: "Anomalie orario", desc: "Ritardi, uscite anticipate, ore insufficienti, pause anomale e timbrature mancanti: evidenziate e giustificabili con un click." },
-  { file: "leaves", label: "Correzioni", desc: "Le richieste di correzione dei dipendenti, con motivazione. Approvi o rifiuti e resta tutto tracciato." },
-  { file: "settings", label: "Ferie e permessi", desc: "Ferie, permessi e malattia in un unico elenco con periodo, ore, stato e chi ha deciso." },
-  { file: "login", label: "Quote ferie e modelli", desc: "Modelli di quota con accredito automatico (es. 176 ore ogni anno): le ferie residue si aggiornano da sole." },
-  { file: "leave-detail", label: "Dipendenti", desc: "Gestisci ruoli, sedi e attivazione. Invita nuovi dipendenti, importa ed esporta in Excel." },
-  { file: "corrections", label: "Sedi di lavoro", desc: "Ogni sede sulla mappa con il proprio raggio. Lo smart working è una sede senza verifica GPS." },
-  { file: "export", label: "Raggio e geofence", desc: "Per ogni sede imposti il raggio (50–1500 m), la politica di tolleranza e l'accuratezza GPS massima." },
-  { file: "users", label: "Orari e tolleranze", desc: "Modelli di orario con fasce, tolleranze di entrata/uscita e pausa, penalità e gestione dello straordinario." },
+
+// The core admin story, shown as large alternating rows.
+const rows = [
+  {
+    file: "stamps",
+    eyebrow: "In tempo reale",
+    label: "Panoramica giornaliera",
+    desc: "Apri la dashboard e vedi subito com'è andata la giornata: chi è presente, chi è in pausa, chi è assente e cosa c'è da approvare.",
+    points: [
+      "Presenti, in pausa e assenti aggiornati al secondo",
+      "Code di approvazione e anomalie della settimana in evidenza",
+      "Assenze programmate per i prossimi 14 giorni",
+    ],
+  },
+  {
+    file: "branches",
+    eyebrow: "Sotto controllo",
+    label: "Anomalie orario",
+    desc: "Ritardi, uscite anticipate, ore insufficienti, pause anomale e timbrature mancanti emergono da soli, confrontati con l'orario assegnato.",
+    points: [
+      "Ogni anomalia spiegata: atteso contro effettivo, con lo scarto in minuti",
+      "La giustifichi con un click e resta tutto tracciato",
+      "Filtra per dipendente e periodo",
+    ],
+  },
+  {
+    file: "anomalies",
+    eyebrow: "Registro",
+    label: "Timbrature",
+    desc: "Tutte le timbrature dei dipendenti in un unico elenco, filtrabile per persona, sede e periodo.",
+    points: [
+      "Vedi l'origine di ogni timbratura: app, web o correzione",
+      "Modifica o aggiungi una timbratura a mano quando serve",
+      "Esporti l'elenco in un click",
+    ],
+  },
+  {
+    file: "settings",
+    eyebrow: "Assenze",
+    label: "Ferie e permessi",
+    desc: "Ferie, permessi e malattia in un'unica scheda, con periodo, ore, stato e chi ha deciso.",
+    points: [
+      "Richieste, quote e modelli di accredito tutti insieme",
+      "Numero di protocollo INPS sulle malattie",
+      "Gestisci anche gli annullamenti richiesti",
+    ],
+  },
+  {
+    file: "leave-detail",
+    eyebrow: "Team",
+    label: "Dipendenti",
+    desc: "Gestisci ruoli, sedi e attivazione. Inviti nuovi dipendenti e li importi o esporti in Excel.",
+    points: [
+      "Importa ed esporta gli utenti in XLSX",
+      "Assegna sede di riferimento e orario a ciascuno",
+      "Abiliti la timbratura web per singolo utente",
+    ],
+  },
+];
+
+// Everything else, shown compactly so the breadth resta visibile.
+const more = [
+  { file: "leaves", label: "Correzioni", desc: "Le richieste di correzione dei dipendenti, con motivazione: approvi o rifiuti." },
+  { file: "login", label: "Quote ferie e modelli", desc: "Accredito automatico (es. 176 ore l'anno): le ferie residue si aggiornano da sole." },
+  { file: "corrections", label: "Sedi di lavoro", desc: "Ogni sede sulla mappa con il proprio raggio. Lo smart working è una sede senza GPS." },
+  { file: "export", label: "Raggio e geofence", desc: "Raggio da 50 a 1500 m, politica di tolleranza e accuratezza GPS massima per sede." },
+  { file: "users", label: "Orari e tolleranze", desc: "Modelli di orario con fasce, tolleranze di entrata/uscita, penalità e straordinario." },
   { file: "dashboard", label: "Accesso amministratore", desc: "Login con email e password. Solo gli account abilitati come amministratori vedono la dashboard." },
 ];
 
 const src = (file: string) => `/screenshots-web/${file}.png`;
-const hero = shots[0];
 ---
 
-<section id="web" class="bg-white py-20 sm:py-28 scroll-mt-20">
+<section id="web" class="bg-surface py-20 sm:py-28 scroll-mt-20">
   <div class="mx-auto max-w-6xl px-4 sm:px-6">
     <div class="text-center">
       <span class="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-success">
@@ -40,93 +95,159 @@ const hero = shots[0];
       </p>
     </div>
 
-    <div class="mt-14">
-      <div class="relative mx-auto max-w-5xl">
-        <div class="overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 shadow-2xl">
-          <div class="flex items-center gap-1.5 border-b border-gray-200 bg-gray-50 px-4 py-2.5">
-            <span class="h-2.5 w-2.5 rounded-full bg-red-400"></span>
-            <span class="h-2.5 w-2.5 rounded-full bg-yellow-400"></span>
-            <span class="h-2.5 w-2.5 rounded-full bg-green-400"></span>
-            <span class="ml-3 truncate rounded-md bg-white px-3 py-1 text-xs text-on-surface-variant">app-sonoqui.xdevapp.it</span>
+    <div class="mt-16 space-y-16 sm:mt-20 sm:space-y-24">
+      {rows.map((row, idx) => (
+        <div class="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
+          <div class={idx % 2 === 1 ? "lg:order-2" : ""}>
+            <button
+              type="button"
+              data-zoom
+              data-src={src(row.file)}
+              data-label={row.label}
+              aria-label={`Ingrandisci: ${row.label}`}
+              class="group block w-full cursor-zoom-in overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 text-left shadow-2xl transition-all hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              <div class="flex items-center gap-1.5 border-b border-gray-200 bg-gray-50 px-4 py-2.5">
+                <span class="h-2.5 w-2.5 rounded-full bg-red-400"></span>
+                <span class="h-2.5 w-2.5 rounded-full bg-yellow-400"></span>
+                <span class="h-2.5 w-2.5 rounded-full bg-green-400"></span>
+                <span class="ml-3 truncate rounded-md bg-white px-3 py-1 text-xs text-on-surface-variant">app-sonoqui.xdevapp.it</span>
+              </div>
+              <div class="relative">
+                <img src={src(row.file)} alt={row.label} class="block w-full" loading="lazy" />
+                <span class="pointer-events-none absolute inset-0 flex items-center justify-center bg-on-surface/0 opacity-0 transition-all duration-200 group-hover:bg-on-surface/10 group-hover:opacity-100">
+                  <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-on-surface shadow-lg">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 8v6M8 11h6M19 11a8 8 0 11-16 0 8 8 0 0116 0z"/></svg>
+                  </span>
+                </span>
+              </div>
+            </button>
           </div>
-          <img id="web-hero-img" src={src(hero.file)} alt={hero.label} class="block w-full transition-opacity duration-150" loading="lazy" />
-        </div>
-        <p id="web-hero-label" class="mt-4 text-center text-sm font-semibold text-on-surface">{hero.label}</p>
-        <p id="web-hero-desc" class="mx-auto max-w-2xl text-center text-sm text-on-surface-variant">{hero.desc}</p>
-      </div>
-    </div>
 
-    <div class="mt-12 grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-      {shots.map((shot, idx) => (
-        <button
-          type="button"
-          data-web-thumb
-          data-file={shot.file}
-          data-label={shot.label}
-          data-desc={shot.desc}
-          data-active={idx === 0 ? "true" : "false"}
-          class:list={[
-            "group rounded-xl border-2 bg-white p-1.5 text-left transition-all hover:border-primary",
-            idx === 0 ? "border-primary ring-2 ring-primary/30" : "border-gray-100",
-          ]}
-          aria-label={shot.label}
-          aria-pressed={idx === 0 ? "true" : "false"}
-        >
-          <div class="overflow-hidden rounded-lg border border-gray-100 bg-gray-50">
-            <img src={src(shot.file)} alt={shot.label} class="block w-full" loading="lazy" />
+          <div class={idx % 2 === 1 ? "lg:order-1" : ""}>
+            <span class="text-xs font-semibold uppercase tracking-wide text-primary">{row.eyebrow}</span>
+            <h3 class="mt-2 text-2xl font-bold tracking-tight text-on-surface sm:text-3xl">{row.label}</h3>
+            <p class="mt-3 text-base leading-relaxed text-on-surface-variant">{row.desc}</p>
+            <ul class="mt-5 space-y-3">
+              {row.points.map((p) => (
+                <li class="flex items-start gap-3">
+                  <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  <span class="text-sm leading-relaxed text-on-surface">{p}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-          <p class="mt-1.5 px-1 text-[11px] font-semibold leading-tight text-on-surface line-clamp-2">{shot.label}</p>
-        </button>
+        </div>
       ))}
     </div>
+
+    <div class="mt-20 sm:mt-28">
+      <p class="text-center text-sm font-semibold uppercase tracking-wide text-on-surface-variant">E tutto il resto della gestione</p>
+      <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {more.map((shot) => (
+          <div class="flex flex-col">
+            <button
+              type="button"
+              data-zoom
+              data-src={src(shot.file)}
+              data-label={shot.label}
+              aria-label={`Ingrandisci: ${shot.label}`}
+              class="group block w-full cursor-zoom-in overflow-hidden rounded-xl border border-gray-200 bg-gray-100 text-left shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              <div class="flex items-center gap-1 border-b border-gray-200 bg-gray-50 px-3 py-1.5">
+                <span class="h-2 w-2 rounded-full bg-red-400"></span>
+                <span class="h-2 w-2 rounded-full bg-yellow-400"></span>
+                <span class="h-2 w-2 rounded-full bg-green-400"></span>
+              </div>
+              <div class="relative">
+                <img src={src(shot.file)} alt={shot.label} class="block w-full" loading="lazy" />
+                <span class="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                  <span class="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-on-surface shadow-md">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 8v6M8 11h6M19 11a8 8 0 11-16 0 8 8 0 0116 0z"/></svg>
+                  </span>
+                </span>
+              </div>
+            </button>
+            <h3 class="mt-3 text-base font-semibold text-on-surface">{shot.label}</h3>
+            <p class="mt-1 text-sm leading-relaxed text-on-surface-variant">{shot.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <div
+    id="web-lightbox"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-on-surface/80 p-4 backdrop-blur-sm sm:p-8"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Anteprima schermata"
+  >
+    <button
+      type="button"
+      id="web-lightbox-close"
+      class="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-on-surface shadow-lg transition-colors hover:bg-white"
+      aria-label="Chiudi anteprima"
+    >
+      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+    <figure class="mx-auto flex max-w-6xl flex-col items-center">
+      <div class="overflow-hidden rounded-xl border border-white/20 bg-gray-100 shadow-2xl">
+        <div class="flex items-center gap-1.5 border-b border-gray-200 bg-gray-50 px-4 py-2.5">
+          <span class="h-2.5 w-2.5 rounded-full bg-red-400"></span>
+          <span class="h-2.5 w-2.5 rounded-full bg-yellow-400"></span>
+          <span class="h-2.5 w-2.5 rounded-full bg-green-400"></span>
+          <span class="ml-3 truncate rounded-md bg-white px-3 py-1 text-xs text-on-surface-variant">app-sonoqui.xdevapp.it</span>
+        </div>
+        <img id="web-lightbox-img" src="" alt="" class="block max-h-[78vh] w-auto max-w-full object-contain" />
+      </div>
+      <figcaption id="web-lightbox-cap" class="mt-4 text-center text-sm font-semibold text-white"></figcaption>
+    </figure>
   </div>
 </section>
 
 <script>
-  function init() {
-    const hero = document.getElementById("web-hero-img") as HTMLImageElement | null;
-    const heroLabel = document.getElementById("web-hero-label");
-    const heroDesc = document.getElementById("web-hero-desc");
-    const thumbs = document.querySelectorAll<HTMLButtonElement>("[data-web-thumb]");
-    if (!hero || !heroLabel || !heroDesc || !thumbs.length) return;
+  function closeLightbox() {
+    const box = document.getElementById("web-lightbox");
+    const img = document.getElementById("web-lightbox-img") as HTMLImageElement | null;
+    if (!box) return;
+    box.classList.add("hidden");
+    box.classList.remove("flex");
+    if (img) img.src = "";
+    document.body.style.overflow = "";
+  }
 
-    const baseSrc = "/screenshots-web/";
+  function initWebLightbox() {
+    const box = document.getElementById("web-lightbox");
+    const img = document.getElementById("web-lightbox-img") as HTMLImageElement | null;
+    const cap = document.getElementById("web-lightbox-cap");
+    const closeBtn = document.getElementById("web-lightbox-close");
+    if (!box || !img || !cap || !closeBtn) return;
 
-    thumbs.forEach((btn) => {
+    document.querySelectorAll<HTMLButtonElement>("#web [data-zoom]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const file = btn.dataset.file;
-        const label = btn.dataset.label || "";
-        const desc = btn.dataset.desc || "";
-        if (!file) return;
-
-        hero.style.opacity = "0";
-        const newSrc = `${baseSrc}${file}.png`;
-        const preload = new Image();
-        preload.onload = () => {
-          hero.src = newSrc;
-          hero.alt = label;
-          heroLabel.textContent = label;
-          heroDesc.textContent = desc;
-          hero.style.opacity = "1";
-        };
-        preload.src = newSrc;
-
-        thumbs.forEach((other) => {
-          const isActive = other === btn;
-          other.dataset.active = isActive ? "true" : "false";
-          other.setAttribute("aria-pressed", isActive ? "true" : "false");
-          if (isActive) {
-            other.classList.add("border-primary", "ring-2", "ring-primary/30");
-            other.classList.remove("border-gray-100");
-          } else {
-            other.classList.remove("border-primary", "ring-2", "ring-primary/30");
-            other.classList.add("border-gray-100");
-          }
-        });
+        img.src = btn.dataset.src || "";
+        img.alt = btn.dataset.label || "";
+        cap.textContent = btn.dataset.label || "";
+        box.classList.remove("hidden");
+        box.classList.add("flex");
+        document.body.style.overflow = "hidden";
+        (closeBtn as HTMLButtonElement).focus();
       });
+    });
+
+    closeBtn.addEventListener("click", closeLightbox);
+    box.addEventListener("click", (e) => {
+      if (e.target === box) closeLightbox();
     });
   }
 
-  init();
-  document.addEventListener("astro:page-load", init);
+  // Bound once at module load so it survives view-transition swaps without leaking.
+  document.addEventListener("keydown", (e) => {
+    const box = document.getElementById("web-lightbox");
+    if (e.key === "Escape" && box && !box.classList.contains("hidden")) closeLightbox();
+  });
+
+  initWebLightbox();
+  document.addEventListener("astro:page-load", initWebLightbox);
 </script>

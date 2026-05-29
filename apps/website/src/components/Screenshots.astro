@@ -43,11 +43,23 @@ for (let i = 0; i < screenshots.length; i += 3) {
       <div class="flex snap-x snap-mandatory overflow-x-auto gap-6 px-8 pb-4 -mx-4 scrollbar-hide" id="mobile-scroll">
         {screenshots.map((s, i) => (
           <div class="flex-shrink-0 w-[70vw] max-w-[220px] snap-center flex flex-col items-center text-center" data-mobile-item={i}>
-            <div class="w-full">
+            <button
+              type="button"
+              data-zoom
+              data-src={src(s.file)}
+              data-label={s.label}
+              aria-label={`Ingrandisci: ${s.label}`}
+              class="group relative block w-full cursor-zoom-in rounded-[1.8rem] transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
               <div class="rounded-[1.8rem] border-[5px] border-on-surface bg-on-surface p-0.5 shadow-xl">
                 <img src={src(s.file)} alt={s.label} class="rounded-[1.5rem] w-full" loading="lazy" />
               </div>
-            </div>
+              <span class="pointer-events-none absolute inset-0 flex items-center justify-center rounded-[1.8rem] bg-on-surface/0 opacity-0 transition-all duration-200 group-hover:bg-on-surface/20 group-hover:opacity-100">
+                <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-on-surface shadow-lg">
+                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 8v6M8 11h6M19 11a8 8 0 11-16 0 8 8 0 0116 0z"/></svg>
+                </span>
+              </span>
+            </button>
             <h3 class="mt-4 text-base font-semibold text-on-surface">{s.label}</h3>
             <p class="mt-1.5 text-sm leading-relaxed text-on-surface-variant">{s.desc}</p>
           </div>
@@ -71,11 +83,23 @@ for (let i = 0; i < screenshots.length; i += 3) {
               <div class={`grid gap-8 justify-items-center ${group.length === 3 ? "grid-cols-3" : group.length === 2 ? "grid-cols-2 max-w-3xl mx-auto" : "grid-cols-1 max-w-xs mx-auto"}`}>
                 {group.map((s) => (
                   <div class="flex flex-col items-center text-center max-w-[200px]">
-                    <div class="w-full">
+                    <button
+                      type="button"
+                      data-zoom
+                      data-src={src(s.file)}
+                      data-label={s.label}
+                      aria-label={`Ingrandisci: ${s.label}`}
+                      class="group relative block w-full cursor-zoom-in rounded-[1.8rem] transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                    >
                       <div class="rounded-[1.8rem] border-[5px] border-on-surface bg-on-surface p-0.5 shadow-xl">
                         <img src={src(s.file)} alt={s.label} class="rounded-[1.5rem] w-full" loading="lazy" />
                       </div>
-                    </div>
+                      <span class="pointer-events-none absolute inset-0 flex items-center justify-center rounded-[1.8rem] bg-on-surface/0 opacity-0 transition-all duration-200 group-hover:bg-on-surface/20 group-hover:opacity-100">
+                        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-on-surface shadow-lg">
+                          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 8v6M8 11h6M19 11a8 8 0 11-16 0 8 8 0 0116 0z"/></svg>
+                        </span>
+                      </span>
+                    </button>
                     <h3 class="mt-4 text-base font-semibold text-on-surface">{s.label}</h3>
                     <p class="mt-1.5 text-sm leading-relaxed text-on-surface-variant">{s.desc}</p>
                   </div>
@@ -111,6 +135,29 @@ for (let i = 0; i < screenshots.length; i += 3) {
         ))}
       </div>
     </div>
+  </div>
+
+  <div
+    id="mobile-lightbox"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-on-surface/80 p-4 backdrop-blur-sm sm:p-8"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Anteprima schermata"
+  >
+    <button
+      type="button"
+      id="mobile-lightbox-close"
+      class="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-on-surface shadow-lg transition-colors hover:bg-white"
+      aria-label="Chiudi anteprima"
+    >
+      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+    <figure class="flex max-h-full flex-col items-center">
+      <div class="rounded-[2.2rem] border-[6px] border-on-surface bg-on-surface p-0.5 shadow-2xl">
+        <img id="mobile-lightbox-img" src="" alt="" class="block max-h-[80vh] w-auto rounded-[1.9rem]" />
+      </div>
+      <figcaption id="mobile-lightbox-cap" class="mt-4 text-center text-sm font-semibold text-white"></figcaption>
+    </figure>
   </div>
 </section>
 
@@ -188,7 +235,49 @@ for (let i = 0; i < screenshots.length; i += 3) {
     goTo(0);
   }
 
+  function closeMobileLightbox() {
+    const box = document.getElementById("mobile-lightbox");
+    const img = document.getElementById("mobile-lightbox-img") as HTMLImageElement | null;
+    if (!box) return;
+    box.classList.add("hidden");
+    box.classList.remove("flex");
+    if (img) img.src = "";
+    document.body.style.overflow = "";
+  }
+
+  function initMobileLightbox() {
+    const box = document.getElementById("mobile-lightbox");
+    const img = document.getElementById("mobile-lightbox-img") as HTMLImageElement | null;
+    const cap = document.getElementById("mobile-lightbox-cap");
+    const closeBtn = document.getElementById("mobile-lightbox-close");
+    if (!box || !img || !cap || !closeBtn) return;
+
+    document.querySelectorAll<HTMLButtonElement>("#screenshots [data-zoom]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        img.src = btn.dataset.src || "";
+        img.alt = btn.dataset.label || "";
+        cap.textContent = btn.dataset.label || "";
+        box.classList.remove("hidden");
+        box.classList.add("flex");
+        document.body.style.overflow = "hidden";
+        (closeBtn as HTMLButtonElement).focus();
+      });
+    });
+
+    closeBtn.addEventListener("click", closeMobileLightbox);
+    box.addEventListener("click", (e) => {
+      if (e.target === box) closeMobileLightbox();
+    });
+  }
+
+  // Bound once at module load so it survives view-transition swaps without leaking.
+  document.addEventListener("keydown", (e) => {
+    const box = document.getElementById("mobile-lightbox");
+    if (e.key === "Escape" && box && !box.classList.contains("hidden")) closeMobileLightbox();
+  });
+
   initSlider();
   initMobileScroll();
-  document.addEventListener("astro:page-load", () => { initSlider(); initMobileScroll(); });
+  initMobileLightbox();
+  document.addEventListener("astro:page-load", () => { initSlider(); initMobileScroll(); initMobileLightbox(); });
 </script>
