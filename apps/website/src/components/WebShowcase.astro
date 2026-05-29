@@ -4,18 +4,21 @@ import { getLangFromUrl, useTranslations } from "../i18n/utils";
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 
+// Labels match the actual captured screen (see Specs/images/web). The file
+// names don't reflect content (they were assigned before review), so each
+// entry maps a file to its real screen.
 const shots = [
-  { file: "dashboard", label: t("web.shot.dashboard"), desc: t("web.shot.dashboard.desc") },
-  { file: "stamps", label: t("web.shot.stamps"), desc: t("web.shot.stamps.desc") },
-  { file: "anomalies", label: t("web.shot.anomalies"), desc: t("web.shot.anomalies.desc") },
-  { file: "leaves", label: t("web.shot.leaves"), desc: t("web.shot.leaves.desc") },
-  { file: "leave-detail", label: t("web.shot.leave-detail"), desc: t("web.shot.leave-detail.desc") },
-  { file: "corrections", label: t("web.shot.corrections"), desc: t("web.shot.corrections.desc") },
-  { file: "export", label: t("web.shot.export"), desc: t("web.shot.export.desc") },
-  { file: "users", label: t("web.shot.users"), desc: t("web.shot.users.desc") },
-  { file: "branches", label: t("web.shot.branches"), desc: t("web.shot.branches.desc") },
-  { file: "settings", label: t("web.shot.settings"), desc: t("web.shot.settings.desc") },
-  { file: "login", label: t("web.shot.login"), desc: t("web.shot.login.desc") },
+  { file: "stamps", label: "Panoramica giornaliera", desc: "Chi è presente, chi è in pausa, chi è assente, cosa c'è da approvare e le anomalie della settimana. Tutto in tempo reale." },
+  { file: "anomalies", label: "Timbrature", desc: "Tutte le timbrature dei dipendenti, filtrabili per persona, sede e periodo. Modifica o aggiungi una timbratura a mano quando serve." },
+  { file: "branches", label: "Anomalie orario", desc: "Ritardi, uscite anticipate, ore insufficienti, pause anomale e timbrature mancanti: evidenziate e giustificabili con un click." },
+  { file: "leaves", label: "Correzioni", desc: "Le richieste di correzione dei dipendenti, con motivazione. Approvi o rifiuti e resta tutto tracciato." },
+  { file: "settings", label: "Ferie e permessi", desc: "Ferie, permessi e malattia in un unico elenco con periodo, ore, stato e chi ha deciso." },
+  { file: "login", label: "Quote ferie e modelli", desc: "Modelli di quota con accredito automatico (es. 176 ore ogni anno): le ferie residue si aggiornano da sole." },
+  { file: "leave-detail", label: "Dipendenti", desc: "Gestisci ruoli, sedi e attivazione. Invita nuovi dipendenti, importa ed esporta in Excel." },
+  { file: "corrections", label: "Sedi di lavoro", desc: "Ogni sede sulla mappa con il proprio raggio. Lo smart working è una sede senza verifica GPS." },
+  { file: "export", label: "Raggio e geofence", desc: "Per ogni sede imposti il raggio (50–1500 m), la politica di tolleranza e l'accuratezza GPS massima." },
+  { file: "users", label: "Orari e tolleranze", desc: "Modelli di orario con fasce, tolleranze di entrata/uscita e pausa, penalità e gestione dello straordinario." },
+  { file: "dashboard", label: "Accesso amministratore", desc: "Login con email e password. Solo gli account abilitati come amministratori vedono la dashboard." },
 ];
 
 const src = (file: string) => `/screenshots-web/${file}.png`;
