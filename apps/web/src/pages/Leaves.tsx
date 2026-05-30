@@ -4,6 +4,7 @@ import { api } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { IconButton } from '../components/IconButton.tsx';
 import { LeaveCalendar, type CalendarEvent } from '../components/LeaveCalendar.tsx';
+import { NewLeaveModal } from '../components/NewLeaveModal.tsx';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
 
 type LeaveType = 'ferie' | 'permessi' | 'malattia' | 'assenza';
@@ -213,6 +214,7 @@ function RequestsTab() {
   const [err, setErr] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<LeaveRequest | null>(null);
   const [cancelTarget, setCancelTarget] = useState<LeaveRequest | null>(null);
+  const [showNew, setShowNew] = useState(false);
 
   async function load() {
     try {
@@ -254,6 +256,11 @@ function RequestsTab() {
       {err && (
         <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>
       )}
+      <div className="flex justify-end">
+        <button type="button" className="btn btn-primary" onClick={() => setShowNew(true)}>
+          + Nuova richiesta
+        </button>
+      </div>
       <RequestsDataGrid
         rows={rows}
         onApprove={approve}
@@ -261,6 +268,12 @@ function RequestsTab() {
         onDecideCancel={decideCancel}
         onCancelApproved={setCancelTarget}
       />
+      {showNew && (
+        <NewLeaveModal
+          onClose={() => setShowNew(false)}
+          onDone={() => { setShowNew(false); void load(); }}
+        />
+      )}
       {rejectTarget && (
         <ReasonDialog
           title="Rifiuta richiesta"

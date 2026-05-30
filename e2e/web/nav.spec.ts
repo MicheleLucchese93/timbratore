@@ -11,6 +11,7 @@ const ADMIN_PAGES: Array<{ label: string; url: RegExp; heading: RegExp | string 
   { label: 'Orari', url: /\/shifts$/, heading: /Orari|Turni/i },
   { label: 'Anomalie', url: /\/anomalies$/, heading: /Anomalie/i },
   { label: 'Ferie & Permessi', url: /\/leaves$/, heading: /Ferie|Permessi/i },
+  { label: 'Residui', url: /\/residui$/, heading: /Residui/i },
   { label: 'Esportazioni', url: /\/exports$/, heading: /Esportazioni/i },
   { label: 'Impostazioni', url: /\/settings$/, heading: /Impostazioni/i },
 ];

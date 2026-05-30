@@ -13,6 +13,7 @@ const adminNav: NavItem[] = [
   { to: '/shifts', label: 'Orari', icon: <IconClock /> },
   { to: '/anomalies', label: 'Anomalie', icon: <IconAlert /> },
   { to: '/leaves', label: 'Ferie & Permessi', icon: <IconCalendar /> },
+  { to: '/residui', label: 'Residui', icon: <IconWallet /> },
   { to: '/exports', label: 'Esportazioni', icon: <IconDownload /> },
   { to: '/settings', label: 'Impostazioni', icon: <IconCog /> },
   { to: '/manual', label: 'Manuale Utente', icon: <IconBook /> },
@@ -23,6 +24,7 @@ const userNav: NavItem[] = [
   { to: '/me/stamps', label: 'Le mie timbrature', icon: <IconStamp /> },
   { to: '/me/corrections', label: 'Le mie richieste', icon: <IconEdit /> },
   { to: '/me/leaves', label: 'Ferie & Permessi', icon: <IconCalendar /> },
+  { to: '/me/residui', label: 'Residui', icon: <IconWallet /> },
   { to: '/manual', label: 'Manuale Utente', icon: <IconBook /> },
 ];
 
@@ -293,6 +295,14 @@ function IconCalendar() {
       <line x1="16" y1="2" x2="16" y2="6" />
       <line x1="8" y1="2" x2="8" y2="6" />
       <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+function IconWallet() {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
+      <path d="M16 12h4v-2h-4a1 1 0 0 0 0 2Z" />
     </svg>
   );
 }

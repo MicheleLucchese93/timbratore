@@ -13,6 +13,17 @@ test.describe('web — Ferie & Permessi tabs (admin)', () => {
     await expect(page.getByRole('button', { name: 'Modelli', exact: true })).toBeVisible();
   });
 
+  test('"+ Nuova richiesta" lets the admin file a self-request', async ({ page }) => {
+    // Default tab is Richieste. The admin can submit their own leave, mirroring
+    // the mobile flow — same modal the employee page uses.
+    await page.getByRole('button', { name: /Nuova richiesta/i }).click();
+    await expect(page.getByRole('heading', { name: 'Nuova richiesta' })).toBeVisible({ timeout: 10_000 });
+    // "Invia richiesta" is unique to the modal ("Tipo" would also match the
+    // Richieste DataGrid column header).
+    await expect(page.getByRole('button', { name: 'Invia richiesta' })).toBeVisible();
+    await page.getByRole('button', { name: 'Annulla', exact: true }).click();
+  });
+
   test('Richieste DataGrid lists the expected columns', async ({ page }) => {
     // Default tab is "Richieste". Wait for the DataGrid to render.
     const grid = page.locator('.MuiDataGrid-root');

@@ -200,6 +200,53 @@ leaveQuotasRouter.get(
   })
 );
 
+// Residui roster: one row per tenant member, INCLUDING members with no active
+// quota (LEFT JOIN → type/template null, zero usage). Distinct from
+// /assignments which returns only existing assignments (used for quota editing).
+leaveQuotasRouter.get(
+  '/residui',
+  requireAdmin,
+  tenantHandler(async (_req, res, client) => {
+    const r = await client.query(
+      `SELECT COALESCE(a.id::text, m.user_id::text) AS id,
+              m.user_id,
+              COALESCE(au.email, m.user_id::text) AS user_email,
+              au.display_name AS user_display_name,
+              a.type,
+              t.name AS template_name,
+              COALESCE(a.initial_balance, 0)::float8 AS initial_balance,
+              COALESCE(
+                (SELECT SUM(ac.hours)::float8 FROM leave_accruals ac
+                  WHERE ac.assignment_id = a.id),
+                0
+              ) AS accrued_total,
+              COALESCE(
+                (SELECT SUM(lr.duration_hours)::float8
+                   FROM leave_requests lr
+                  WHERE lr.user_id = m.user_id
+                    AND lr.type = a.type
+                    AND lr.status = 'approved'),
+                0
+              ) AS used_approved,
+              COALESCE(
+                (SELECT SUM(lr.duration_hours)::float8
+                   FROM leave_requests lr
+                  WHERE lr.user_id = m.user_id
+                    AND lr.type = a.type
+                    AND lr.status IN ('pending','cancellation_pending')),
+                0
+              ) AS used_pending
+         FROM memberships m
+         LEFT JOIN auth_users au ON au.id = m.user_id
+         LEFT JOIN leave_quota_assignments a
+                ON a.user_id = m.user_id AND a.ended_on IS NULL
+         LEFT JOIN leave_quota_templates t ON t.id = a.template_id
+        ORDER BY au.display_name NULLS LAST, au.email, a.type NULLS FIRST`
+    );
+    ok(res, r.rows);
+  })
+);
+
 leaveQuotasRouter.post(
   '/assignments',
   requireAdmin,

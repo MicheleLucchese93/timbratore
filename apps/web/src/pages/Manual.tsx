@@ -22,6 +22,7 @@ const MANUAL_BODY = `
       <a href="#web-admin-orari" class="sub">Orari</a>
       <a href="#web-admin-anomalie" class="sub">Anomalie</a>
       <a href="#web-admin-ferie" class="sub">Ferie &amp; Permessi</a>
+      <a href="#web-admin-residui" class="sub">Residui</a>
       <a href="#web-admin-esportazioni" class="sub">Esportazioni</a>
       <a href="#web-admin-impostazioni" class="sub">Impostazioni</a>
 
@@ -30,6 +31,7 @@ const MANUAL_BODY = `
       <a href="#web-user-dashboard" class="sub">La mia Dashboard</a>
       <a href="#web-user-stamps" class="sub">Le mie timbrature</a>
       <a href="#web-user-corr" class="sub">Le mie richieste</a>
+      <a href="#web-user-residui" class="sub">Residui</a>
 
       <h3>App Mobile · Dipendente</h3>
       <a href="#mob-user">Panoramica</a>
@@ -206,6 +208,7 @@ const MANUAL_BODY = `
           <div class="mini-card"><div class="mini-title">Orari</div><div class="mini-desc">Modelli settimanali di turni</div></div>
           <div class="mini-card"><div class="mini-title">Anomalie</div><div class="mini-desc">Deviazioni rispetto agli orari attesi</div></div>
           <div class="mini-card"><div class="mini-title">Ferie &amp; Permessi</div><div class="mini-desc">Richieste, quote e modelli</div></div>
+          <div class="mini-card"><div class="mini-title">Residui</div><div class="mini-desc">Ore residue ferie/permessi per dipendente</div></div>
           <div class="mini-card"><div class="mini-title">Esportazioni</div><div class="mini-desc">Export XLSX/JSON per il commercialista</div></div>
           <div class="mini-card"><div class="mini-title">Impostazioni</div><div class="mini-desc">Configurazione azienda</div></div>
         </div>
@@ -522,6 +525,7 @@ const MANUAL_BODY = `
           <li><strong>Revoca</strong> (su richieste già approvate) — annulla una ferie già concessa, motivando.</li>
           <li><strong>Accetta / Rifiuta annullamento</strong> — quando il dipendente chiede l'annullamento di una ferie già approvata.</li>
         </ul>
+        <p>Con il pulsante <strong>+ Nuova richiesta</strong> (in alto a destra) anche l'amministratore può inviare una propria richiesta di Ferie, Permesso, Malattia o Assenza, esattamente come dall'app mobile.</p>
       </div>
 
       <div class="feature">
@@ -567,6 +571,20 @@ const MANUAL_BODY = `
 
       <div class="callout callout-warn">
         Le richieste di <strong>malattia</strong> sono auto-approvate al momento della creazione e richiedono obbligatoriamente il protocollo INPS. Una malattia sovrapposta a una ferie già approvata fa apparire sulla ferie il badge "Sostituita da malattia".
+      </div>
+
+      <div class="feature" id="web-admin-residui">
+        <h3>Menu Residui</h3>
+        <p>La voce <strong>Residui</strong> nella barra laterale apre una tabella con le ore residue di ferie e permessi di <strong>tutti i dipendenti</strong>. Anche chi non ha una quota assegnata compare in elenco, con i valori indicati come «—». Una riga per dipendente e tipo, con le colonne:</p>
+        <ul class="tidy">
+          <li><strong>Saldo iniziale</strong> — ore assegnate all'avvio della quota.</li>
+          <li><strong>Maturato</strong> — accantonamenti accumulati nel tempo.</li>
+          <li><strong>Usato</strong> — ore già approvate e consumate.</li>
+          <li><strong>In attesa</strong> — ore di richieste pending non ancora decise.</li>
+          <li><strong>Residuo</strong> — saldo iniziale + maturato − usato approvato.</li>
+          <li><strong>Residuo con pending</strong> — cosa resterebbe se tutte le richieste in attesa venissero approvate.</li>
+        </ul>
+        <p>La tabella è ordinabile, filtrabile ed esportabile dai pulsanti in alto a destra. È una vista in sola lettura: per <em>modificare</em> le quote usa la tab <strong>Quote</strong> di Ferie &amp; Permessi.</p>
       </div>
     </section>
 
@@ -659,12 +677,13 @@ const MANUAL_BODY = `
 
       <div class="feature">
         <h3>Menu di navigazione</h3>
-        <p>La sidebar di un dipendente contiene quattro voci:</p>
+        <p>La sidebar di un dipendente contiene cinque voci:</p>
         <div class="grid-2">
           <div class="mini-card"><div class="mini-title">Dashboard</div><div class="mini-desc">Il tuo stato attuale e ultime timbrature</div></div>
           <div class="mini-card"><div class="mini-title">Le mie timbrature</div><div class="mini-desc">Storico delle tue timbrature</div></div>
           <div class="mini-card"><div class="mini-title">Le mie richieste</div><div class="mini-desc">Richieste di correzione inviate</div></div>
           <div class="mini-card"><div class="mini-title">Ferie &amp; Permessi</div><div class="mini-desc">Le tue assenze, il calendario, le richieste da approvare</div></div>
+          <div class="mini-card"><div class="mini-title">Residui</div><div class="mini-desc">Le tue ore residue di ferie e permessi</div></div>
         </div>
         <p>In basso trovi il tuo avatar con email, ruolo <em>Dipendente</em> e il pulsante <strong>Esci</strong>.</p>
         <div class="callout callout-info">
@@ -680,6 +699,14 @@ const MANUAL_BODY = `
           <li><strong>Calendario</strong> — vista Giorno/Settimana/Mese/Anno delle tue assenze, con festività nazionali evidenziate.</li>
           <li><strong>Da approvare</strong> — compare solo se sei stato designato approvatore di altri dipendenti.</li>
         </ul>
+      </div>
+
+      <div class="feature" id="web-user-residui">
+        <h3>Menu Residui</h3>
+        <p>La voce <strong>Residui</strong> mostra una scheda per i tuoi residui di <strong>Ferie</strong> e <strong>Permessi</strong>. Per ciascuno vedi il <strong>residuo disponibile</strong> in evidenza e il dettaglio: saldo iniziale, maturato, usato approvato e ore di richieste ancora in attesa.</p>
+        <div class="callout callout-info">
+          Le richieste <em>in attesa</em> non vengono scalate finché non sono approvate. Sotto al residuo trovi quindi anche cosa resterebbe se quelle pending venissero approvate.
+        </div>
       </div>
     </section>
 
