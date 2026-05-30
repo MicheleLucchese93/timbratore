@@ -25,10 +25,11 @@ test.describe('mobile — Notifications bell tap', () => {
 
   test('tapping Notifiche opens the notifications modal', async ({ page }) => {
     await page.getByRole('button', { name: 'Notifiche' }).click();
-    // Modal shows either "Notifiche" header text or a list/empty state.
-    // Use a permissive locator — content depends on tenant push events.
+    // Modal shows the "Notifiche" header plus either a list or the empty
+    // state — so both texts can be present at once. `.first()` keeps the
+    // assertion strict-mode-safe (we only need one of them visible).
     await expect(
-      page.getByText('Notifiche', { exact: true }).or(page.getByText(/Nessuna notifica/i)),
+      page.getByText('Notifiche', { exact: true }).or(page.getByText(/Nessuna notifica/i)).first(),
     ).toBeVisible({ timeout: 10_000 });
   });
 });
