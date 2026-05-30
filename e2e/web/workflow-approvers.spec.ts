@@ -26,9 +26,12 @@ test.describe('web — Approver workflow (Utenti page)', () => {
     // Each user row exposes a "Modifica" button in the "Approvatori ferie"
     // column. Clicking it opens ApproverEditor with the canonical IT copy
     // that documents the fallback + multi-approver policy.
-    const editButtons = page.getByRole('button', { name: 'Modifica' });
-    await expect(editButtons.first()).toBeVisible({ timeout: 10_000 });
-    await editButtons.first().click();
+    // The leave-approver "Modifica" lives in the "Approvatori ferie" column.
+    // Other columns (sedi, timbratura/stamp-modes) also render "… · Modifica"
+    // buttons before it, so target this one by its title rather than .first().
+    const leaveBtn = page.locator('button[title*="approvare ferie" i]').first();
+    await expect(leaveBtn).toBeVisible({ timeout: 10_000 });
+    await leaveBtn.click();
     await expect(page.getByRole('heading', { name: /Approvatori ferie\/permessi/ })).toBeVisible({ timeout: 10_000 });
     // The explainer encodes BOTH rules: admin-fallback + first-to-commit.
     await expect(page.getByText(/Se nessuno è configurato, gli admin possono decidere/i)).toBeVisible();
@@ -60,7 +63,7 @@ test.describe('web — Approver workflow (Utenti page)', () => {
     // approvers for test3, the candidate list must show at least the two
     // admins (test1, test2) — verifies the admin-fallback is *configurable*,
     // not just a hidden default.
-    await page.getByRole('button', { name: 'Modifica' }).first().click();
+    await page.locator('button[title*="approvare ferie" i]').first().click();
     await expect(page.getByRole('heading', { name: /Approvatori/ })).toBeVisible();
     // The candidate list is a <ul> with <li><label><input type=checkbox>… per
     // user. Wait for at least one checkbox to render (loading state shows
