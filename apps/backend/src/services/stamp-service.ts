@@ -5,7 +5,7 @@ import {
   withinGeofence,
   distanceMeters,
 } from '@sonoqui/shared';
-import type { StampEventType, GeofencePolicy, MockLocationAction } from '@sonoqui/shared';
+import type { StampEventType, GeofencePolicy, MockLocationAction, StampMode } from '@sonoqui/shared';
 import { ConflictError, ValidationError, ForbiddenError } from '../errors/index.js';
 
 export interface StampInputBody {
@@ -16,6 +16,7 @@ export interface StampInputBody {
   gps_accuracy_m?: number;
   branch_id?: string;
   is_mock_location?: boolean;
+  device_platform?: string;
 }
 
 export interface EvaluateInput {
@@ -55,8 +56,32 @@ export async function evaluateStamp(
 
   let branchId: string | null = body.branch_id ?? null;
   let smartWorking = false;
+  let enforceGeofence = false;
 
   if (input.source !== 'admin_manual') {
+    const memberModes = await client.query(
+      `SELECT stamp_modes FROM memberships
+        WHERE user_id = $1 AND deleted_at IS NULL`,
+      [input.userId]
+    );
+    const modes: StampMode[] = memberModes.rows[0]?.stamp_modes ?? [];
+    const isWeb = body.device_platform === 'web';
+    if (modes.length === 0) {
+      throw new ForbiddenError('Stamping disabled for this user', 'STAMPING_DISABLED');
+    }
+    if (isWeb && !modes.includes('remote')) {
+      throw new ForbiddenError('Web clock-in disabled for this user', 'WEB_CLOCK_IN_DISABLED');
+    }
+    if (!isWeb && !modes.includes('gps') && !modes.includes('remote')) {
+      // Only an unimplemented mode (e.g. 'wifi') — cannot clock in yet.
+      throw new ForbiddenError('Stamping disabled for this user', 'STAMPING_DISABLED');
+    }
+    // Geofence is enforced only for mobile GPS clock-in. Remote clock-in
+    // (web, or mobile for a user without the 'gps' mode) skips the geofence.
+    enforceGeofence = !isWeb && modes.includes('gps');
+  }
+
+  if (enforceGeofence) {
     if (branchId) {
       const b = await client.query(
         `SELECT b.id, b.latitude, b.longitude, b.radius_m, b.enforce_radius, b.smart_working,

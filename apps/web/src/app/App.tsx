@@ -15,6 +15,7 @@ import { Shifts } from '../pages/Shifts.tsx';
 import { Anomalies } from '../pages/Anomalies.tsx';
 import { Leaves } from '../pages/Leaves.tsx';
 import { MyStamps } from '../pages/MyStamps.tsx';
+import { MyLeaves } from '../pages/MyLeaves.tsx';
 import { MyDashboard } from '../pages/MyDashboard.tsx';
 import { Manual } from '../pages/Manual.tsx';
 
@@ -73,6 +74,7 @@ export function App() {
         <Route path="/" element={<MyDashboard />} />
         <Route path="/me/stamps" element={<MyStamps />} />
         <Route path="/me/corrections" element={<Corrections />} />
+        <Route path="/me/leaves" element={<MyLeaves />} />
         <Route path="/manual" element={<Manual />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

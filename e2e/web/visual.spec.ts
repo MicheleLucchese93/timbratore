@@ -12,12 +12,15 @@ test.describe('web — Visual regression baselines', () => {
 
   test('Dashboard layout', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('.dash-stat-grid')).toBeVisible({ timeout: 15_000 });
-    // Mask dynamic content (numbers, timestamps) so the baseline stays
-    // stable across runs.
-    await expect(page).toHaveScreenshot('dashboard.png', {
-      fullPage: true,
-      mask: [page.locator('.stat-card-value'), page.locator('text=/\\d{2}:\\d{2}/')],
+    const statGrid = page.locator('.dash-stat-grid');
+    await expect(statGrid).toBeVisible({ timeout: 15_000 });
+    // Screenshot only the fixed 6-card stat grid, NOT fullPage: the "Da
+    // approvare" inbox and "Stato attuale" sections vary in height with
+    // pending/user counts, which changed the full-page image dimensions
+    // run-to-run (1114↔1171px) — the same instability that got the Utenti
+    // baseline removed below. Card values are still masked.
+    await expect(statGrid).toHaveScreenshot('dashboard.png', {
+      mask: [page.locator('.stat-card-value')],
       maxDiffPixelRatio: 0.02,
     });
   });

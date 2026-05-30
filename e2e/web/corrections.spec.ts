@@ -16,12 +16,6 @@ test.describe('web — Correzioni (admin) — static UI', () => {
     await expect(page.getByRole('heading', { name: 'Correzioni' })).toBeVisible({ timeout: 10_000 });
   });
 
-  test('page header copy is the admin variant', async ({ page }) => {
-    await expect(
-      page.getByText('Richieste dei dipendenti da approvare o rifiutare.'),
-    ).toBeVisible();
-  });
-
   test('status filter has "Solo in attesa" and "Tutte"', async ({ page }) => {
     const filter = page.locator('select').first();
     await expect(filter).toBeVisible();

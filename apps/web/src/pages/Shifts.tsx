@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { api, type ApiError } from '../lib/api.ts';
+import { useConfirm } from '../components/ConfirmDialog.tsx';
 
 interface Slot {
   id?: string;
@@ -18,7 +19,7 @@ interface ShiftTemplate {
   expected_break_max_min: number;
   expected_lunch_min_min: number;
   expected_lunch_max_min: number;
-  extraordinary_threshold_min: 1 | 15 | 30;
+  extraordinary_threshold_min: 15 | 30 | 60;
   count_extraordinary: boolean;
   tolerance_in_breach_deduct_min: number;
   tolerance_out_breach_deduct_min: number;
@@ -47,6 +48,7 @@ export function Shifts() {
   const [showCreate, setShowCreate] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [notDeployed, setNotDeployed] = useState(false);
+  const confirm = useConfirm();
 
   async function load() {
     setList(await api<ShiftTemplate[]>('/api/v1/shifts/templates'));
@@ -60,7 +62,7 @@ export function Shifts() {
   }, []);
 
   async function remove(t: ShiftTemplate) {
-    if (!confirm(`Eliminare l'orario "${t.name}"?`)) return;
+    if (!(await confirm({ title: `Eliminare l'orario "${t.name}"?`, danger: true, confirmLabel: 'Elimina' }))) return;
     try {
       await api(`/api/v1/shifts/templates/${t.id}`, { method: 'DELETE' });
       await load();
@@ -71,13 +73,8 @@ export function Shifts() {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="page-title">Orari di lavoro</h1>
-          <p className="muted text-sm mt-0.5">
-            Modelli settimanali assegnabili agli utenti. Le anomalie vengono calcolate confrontando le timbrature con questi orari.
-          </p>
-        </div>
+      <header className="flex items-center justify-end gap-4 flex-wrap">
+        <h1 className="sr-only">Orari di lavoro</h1>
         <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
           Nuovo orario
         </button>
@@ -205,7 +202,7 @@ interface FormState {
   expected_break_max_min: number;
   expected_lunch_min_min: number;
   expected_lunch_max_min: number;
-  extraordinary_threshold_min: 1 | 15 | 30;
+  extraordinary_threshold_min: 15 | 30 | 60;
   count_extraordinary: boolean;
   tolerance_in_breach_deduct_min: number;
   tolerance_out_breach_deduct_min: number;
@@ -486,23 +483,23 @@ function ShiftForm({
             </label>
             {state.count_extraordinary && (
               <label className="block">
-                <span className="label">Soglia oltre orario previsto</span>
+                <span className="label">Conteggio straordinario a blocchi di</span>
                 <select
                   className="input"
                   value={state.extraordinary_threshold_min}
                   onChange={(e) =>
                     setState({
                       ...state,
-                      extraordinary_threshold_min: Number(e.target.value) as 1 | 15 | 30,
+                      extraordinary_threshold_min: Number(e.target.value) as 15 | 30 | 60,
                     })
                   }
                 >
-                  <option value={1}>1 minuto</option>
                   <option value={15}>15 minuti</option>
                   <option value={30}>30 minuti</option>
+                  <option value={60}>60 minuti</option>
                 </select>
                 <p className="text-xs text-neutral-500 mt-1">
-                  Oltre l'orario previsto + questa soglia, il tempo eccedente è contato come straordinario.
+                  Lo straordinario oltre l'orario previsto è conteggiato in blocchi interi: un blocco non completo non viene contato. Es. uscita prevista 18:00, uscita reale 18:28 → con blocchi da 30 min nessuno straordinario, da 15 min conta 15 min.
                 </p>
               </label>
             )}

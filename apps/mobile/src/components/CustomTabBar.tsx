@@ -3,6 +3,7 @@ import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { color } from '@sonoqui/shared';
+import { useSession } from '../store/session';
 
 const TAB_BAR_CONTENT_HEIGHT = 54;
 const TAB_ICON_SIZE = 24;
@@ -22,6 +23,12 @@ const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const bottomInset = Math.max(insets.bottom, 4);
+  const me = useSession((s) => s.me);
+  const canStamp = (me?.user.stamp_modes ?? []).length > 0;
+  const focusedKey = state.routes[state.index]?.key;
+  const routes = canStamp
+    ? state.routes
+    : state.routes.filter((r) => r.name !== 'timbrature');
 
   return (
     <View
@@ -34,9 +41,9 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
         },
       ]}>
       <View style={styles.tabBar}>
-        {state.routes.map((route, index) => {
+        {routes.map((route) => {
           const { options } = descriptors[route.key];
-          const isFocused = state.index === index;
+          const isFocused = route.key === focusedKey;
           const label =
             typeof options.tabBarLabel === 'string'
               ? options.tabBarLabel

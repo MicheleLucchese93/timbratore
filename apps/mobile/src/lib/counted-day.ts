@@ -8,8 +8,9 @@
 // and apply only the breaches that are already realized:
 //   - late clock-in beyond tolerance_in_min          → subtract tolerance_in_breach_deduct_min
 //   - break total over expected_break_max_min        → subtract tolerance_break_breach_deduct_min
-// Overtime treats `now` as a virtual clock-out only when count_extraordinary
-// is on and now is past expected_end + extraordinary_threshold_min.
+// Overtime treats `now` as a virtual clock-out: surplus past expected_end is
+// counted in whole blocks of extraordinary_threshold_min (15/30/60), a partial
+// block not counted. Only when count_extraordinary is on.
 
 import type { DayStamp, DayTotals } from './day-totals';
 import { computeDayTotals } from './day-totals';
@@ -30,7 +31,7 @@ export interface ActiveAssignment {
   expected_break_max_min: number;
   expected_lunch_min_min: number;
   expected_lunch_max_min: number;
-  extraordinary_threshold_min: 1 | 15 | 30;
+  extraordinary_threshold_min: 15 | 30 | 60;
   count_extraordinary: boolean;
   tolerance_in_breach_deduct_min: number;
   tolerance_out_breach_deduct_min: number;
@@ -43,8 +44,8 @@ export interface CountedDay extends DayTotals {
   workedMs: number;
   /** Standard counted minutes (worked - breach deductions, clamped at 0). */
   countedMs: number;
-  /** Overtime minutes (only when count_extraordinary is on and we are past
-   *  expected_end + extraordinary_threshold_min). */
+  /** Overtime minutes — surplus past expected_end, counted in whole blocks of
+   *  extraordinary_threshold_min. Only when count_extraordinary is on. */
   overtimeMs: number;
   /** countedMs + overtimeMs — the value to show as "Ore conteggiate". */
   countedTotalMs: number;
@@ -122,22 +123,24 @@ export function computeCountedDay(
     deductMs += assignment.tolerance_break_breach_deduct_min * MINUTE_MS;
   }
 
-  // overtime: only when feature on and now is past expectedEnd + threshold
+  // overtime: surplus past expectedEnd, counted in whole blocks of
+  // extraordinary_threshold_min (a partial block is not counted). Mirrors
+  // backend export-service.ts.
   let overtimeMs = 0;
   if (assignment.count_extraordinary) {
-    const cutoff = expectedEnd.getTime() + assignment.extraordinary_threshold_min * MINUTE_MS;
-    if (now.getTime() > cutoff) {
-      overtimeMs = now.getTime() - cutoff;
+    const overMs = now.getTime() - expectedEnd.getTime();
+    const blockMs = assignment.extraordinary_threshold_min * MINUTE_MS;
+    if (overMs > 0) {
+      overtimeMs = Math.floor(overMs / blockMs) * blockMs;
     }
   }
 
   const countedMs = floorQuarter(totals.workedMs - deductMs);
-  const overtimeMsQuarter = floorQuarter(overtimeMs);
   return {
     ...totals,
     countedMs,
-    overtimeMs: overtimeMsQuarter,
-    countedTotalMs: countedMs + overtimeMsQuarter,
+    overtimeMs,
+    countedTotalMs: countedMs + overtimeMs,
   };
 }
 

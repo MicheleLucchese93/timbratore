@@ -147,15 +147,7 @@ export function Anomalies() {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="page-title">Anomalie orario</h1>
-          <p className="muted text-sm mt-0.5">
-            Timbrature che deviano dall'orario assegnato. Configura tolleranze in{' '}
-            <strong>Orari</strong> e assegna un orario per utente in <strong>Utenti</strong>.
-          </p>
-        </div>
-      </header>
+      <h1 className="sr-only">Anomalie orario</h1>
 
       <div className="card flex flex-wrap items-end gap-3">
         <div>

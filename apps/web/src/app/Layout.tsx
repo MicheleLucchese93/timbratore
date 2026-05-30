@@ -22,6 +22,7 @@ const userNav: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: <IconHome /> },
   { to: '/me/stamps', label: 'Le mie timbrature', icon: <IconStamp /> },
   { to: '/me/corrections', label: 'Le mie richieste', icon: <IconEdit /> },
+  { to: '/me/leaves', label: 'Ferie & Permessi', icon: <IconCalendar /> },
   { to: '/manual', label: 'Manuale Utente', icon: <IconBook /> },
 ];
 

@@ -48,7 +48,7 @@ const TemplateBody = z.object({
   expected_lunch_min_min: z.number().int().min(0).max(480).default(0),
   expected_lunch_max_min: z.number().int().min(0).max(480).default(90),
   extraordinary_threshold_min: z
-    .union([z.literal(1), z.literal(15), z.literal(30)])
+    .union([z.literal(15), z.literal(30), z.literal(60)])
     .default(15),
   count_extraordinary: z.boolean().default(false),
   tolerance_in_breach_deduct_min: z.number().int().min(0).max(240).default(0),

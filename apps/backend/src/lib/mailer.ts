@@ -58,6 +58,7 @@ const TYPE_LABEL: Record<string, { it: string; en: string }> = {
   permessi: { it: 'Permesso', en: 'Time off' },
   malattia: { it: 'Malattia', en: 'Sick leave' },
   assenza: { it: 'Assenza', en: 'Absence' },
+  chiusura: { it: 'Chiusura aziendale', en: 'Company closure' },
 };
 
 const SUBJECTS = {
@@ -367,4 +368,99 @@ export function buildCancellationDecidedMail(
     DecisionVerb: verb,
   });
   return { subject, text, html };
+}
+
+/* ----- 24h reminder + company-event emails (inline HTML, no template file) ----- */
+
+function inlineMail(heading: string, bodyLines: string[]): string {
+  const rows = bodyLines.map((l) => `<p style="margin:4px 0;color:#334155">${l}</p>`).join('');
+  return (
+    `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px">` +
+    `<h2 style="color:#0f172a;font-size:18px;margin:0 0 12px">${escapeHtml(heading)}</h2>` +
+    rows +
+    `<p style="margin-top:20px;color:#94a3b8;font-size:12px">sonoQui</p>` +
+    `</div>`
+  );
+}
+
+export interface ReminderMailPayload {
+  type: string;
+  from_ts: string;
+  to_ts: string;
+  title?: string | null;
+  language?: 'it' | 'en';
+}
+
+/** "Tomorrow you have ferie" reminder, sent the evening before from_ts. */
+export function buildReminderMail(p: ReminderMailPayload): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const language = p.language ?? 'it';
+  const label = p.title || labelFor(p.type, language);
+  const range = fmtRange(p.from_ts, p.to_ts, p.type, language);
+  const subject =
+    language === 'it'
+      ? `[sonoQui] Promemoria: domani ${label}`
+      : `[sonoQui] Reminder: ${label} starts tomorrow`;
+  const lines =
+    language === 'it'
+      ? [`Domani inizia: <strong>${escapeHtml(label)}</strong>.`, `Periodo: ${escapeHtml(range)}`]
+      : [`Starting tomorrow: <strong>${escapeHtml(label)}</strong>.`, `Period: ${escapeHtml(range)}`];
+  const text =
+    language === 'it'
+      ? `Promemoria: domani inizia ${label}.\nPeriodo: ${range}\n`
+      : `Reminder: ${label} starts tomorrow.\nPeriod: ${range}\n`;
+  return { subject, text, html: inlineMail(language === 'it' ? 'Promemoria' : 'Reminder', lines) };
+}
+
+export interface BulkEventMailPayload {
+  title: string;
+  from_ts: string;
+  to_ts: string;
+  deducts_ferie: boolean;
+  language?: 'it' | 'en';
+}
+
+/** Notice sent to each user when an admin pushes a company event to them. */
+export function buildBulkEventMail(p: BulkEventMailPayload): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const language = p.language ?? 'it';
+  const range = fmtRange(p.from_ts, p.to_ts, 'chiusura', language);
+  const subject =
+    language === 'it'
+      ? `[sonoQui] Nuovo evento aziendale: ${p.title}`
+      : `[sonoQui] New company event: ${p.title}`;
+  const ferieLine = p.deducts_ferie
+    ? language === 'it'
+      ? 'Questo periodo è conteggiato come ferie.'
+      : 'This period is counted as holiday.'
+    : language === 'it'
+      ? 'Questo periodo non intacca le tue ferie.'
+      : 'This period does not affect your holiday balance.';
+  const lines =
+    language === 'it'
+      ? [
+          `È stato aggiunto un evento al tuo calendario: <strong>${escapeHtml(p.title)}</strong>.`,
+          `Periodo: ${escapeHtml(range)}`,
+          escapeHtml(ferieLine),
+        ]
+      : [
+          `An event was added to your calendar: <strong>${escapeHtml(p.title)}</strong>.`,
+          `Period: ${escapeHtml(range)}`,
+          escapeHtml(ferieLine),
+        ];
+  const text =
+    language === 'it'
+      ? `Nuovo evento aziendale: ${p.title}.\nPeriodo: ${range}\n${ferieLine}\n`
+      : `New company event: ${p.title}.\nPeriod: ${range}\n${ferieLine}\n`;
+  return {
+    subject,
+    text,
+    html: inlineMail(language === 'it' ? 'Evento aziendale' : 'Company event', lines),
+  };
 }

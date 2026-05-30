@@ -27,19 +27,23 @@ test.describe('web — Impostazioni (admin)', () => {
     await expect(langSelect.locator('option', { hasText: 'English' })).toHaveCount(1);
   });
 
-  test('Email-notifications switch is present and clickable', async ({ page }) => {
-    // The switch is `<label class="switch"><input checked type="checkbox" />`.
+  test('Notifiche email section lists the per-category toggles', async ({ page }) => {
+    // The single master toggle was replaced by one switch per category,
+    // mirroring the push split (migration 030).
+    await expect(page.getByRole('heading', { name: /Notifiche email/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/Esiti delle mie richieste/i)).toBeVisible();
+    await expect(page.getByText(/Promemoria 24h prima/i)).toBeVisible();
+    // Five category switches.
+    await expect(page.locator('label.switch')).toHaveCount(5);
+  });
+
+  test('toggling an email category shows the saved toast', async ({ page }) => {
     // The <input> is visually hidden behind .switch-track / .switch-thumb, so
-    // .click() must target the parent label with force.
+    // .click() must target the parent label with force. We flip one category
+    // once — toggling twice in quick succession races the PATCH /api/v1/me.
     const switchLabel = page.locator('label.switch').first();
     await expect(switchLabel).toBeVisible({ timeout: 10_000 });
     await switchLabel.click({ force: true });
-    // Confirmation toast appears with the new state. We don't flip back —
-    // toggling twice in quick succession races the PATCH /api/v1/me request
-    // and leaves the input in a non-deterministic state. The test tenant
-    // tolerates one preference flip per run.
-    await expect(
-      page.getByText(/Notifiche email (attivate|disattivate)\./i),
-    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/Preferenza salvata\./i)).toBeVisible({ timeout: 10_000 });
   });
 });

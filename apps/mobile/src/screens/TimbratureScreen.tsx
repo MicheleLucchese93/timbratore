@@ -60,6 +60,9 @@ export function TimbratureScreen() {
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
 
   const branches = me?.branches ?? [];
+  const stampModes = me?.user.stamp_modes ?? [];
+  const canStamp = stampModes.length > 0;
+  const needsGps = stampModes.includes('gps');
 
   useEffect(() => {
     if (!selectedBranchId && branches.length > 0) {
@@ -117,7 +120,7 @@ export function TimbratureScreen() {
       branch_id: selectedBranch.id,
     };
     try {
-      if (!selectedBranch.smart_working) {
+      if (needsGps && !selectedBranch.smart_working) {
         const loc = await acquireLocation();
         payload = {
           ...payload,
@@ -292,16 +295,29 @@ export function TimbratureScreen() {
         )}
 
         <View style={styles.actions}>
-          {buttons.map((b) => (
-            <ActionButton
-              key={b.event}
-              label={b.label}
-              icon={b.icon}
-              variant={b.variant}
-              loading={working === b.event}
-              onPress={() => stamp(b.event)}
-            />
-          ))}
+          {!canStamp && (
+            <View style={styles.disabledNotice}>
+              <Ionicons
+                name="information-circle-outline"
+                size={18}
+                color={color.onSurfaceVariant}
+              />
+              <Text style={styles.disabledNoticeText}>
+                La timbratura non è abilitata per il tuo profilo. Contatta l'amministratore.
+              </Text>
+            </View>
+          )}
+          {canStamp &&
+            buttons.map((b) => (
+              <ActionButton
+                key={b.event}
+                label={b.label}
+                icon={b.icon}
+                variant={b.variant}
+                loading={working === b.event}
+                onPress={() => stamp(b.event)}
+              />
+            ))}
           {undoVisible && (
             <TouchableOpacity onPress={undo} activeOpacity={0.7} style={styles.undoBtn}>
               <Ionicons name="arrow-undo-outline" size={16} color={color.error} />
@@ -412,6 +428,7 @@ function humanError(err: unknown): string {
     case 'LOCATION_PERMISSION_DENIED': return 'Permesso posizione negato. Vai alle Impostazioni.';
     case 'ACQUISITION_TIMEOUT': return 'GPS non disponibile. Spostati all\'aperto e riprova.';
     case 'WEB_CLOCK_IN_DISABLED': return 'Timbratura da web non consentita per questo utente.';
+    case 'STAMPING_DISABLED': return 'La timbratura non è abilitata per il tuo profilo.';
     default: return e.message ?? 'Errore sconosciuto.';
   }
 }
@@ -590,4 +607,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   lastEventText: { fontSize: 12, color: color.onSurfaceVariant },
+
+  disabledNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 14,
+    backgroundColor: color.surfaceVariant,
+    borderRadius: 14,
+  },
+  disabledNoticeText: { flex: 1, fontSize: 13, color: color.onSurfaceVariant },
 });

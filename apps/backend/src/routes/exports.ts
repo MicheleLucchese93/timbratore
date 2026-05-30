@@ -5,7 +5,7 @@ import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { NotFoundError, ValidationError } from '../errors/index.js';
 import { processExportJobs } from '../services/jobs/process-exports.js';
-import { readExportFile } from '../services/export-service.js';
+import { readExportFile, deleteExportFile } from '../services/export-service.js';
 import { env } from '../env.js';
 
 export const exportsRouter = Router();
@@ -74,5 +74,20 @@ exportsRouter.get(
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(buf);
+  })
+);
+
+exportsRouter.delete(
+  '/:id',
+  tenantHandler(async (req, res, client) => {
+    const r = await client.query(`DELETE FROM export_jobs WHERE id = $1 RETURNING *`, [
+      req.params.id,
+    ]);
+    if (r.rowCount === 0) throw new NotFoundError('export job');
+    const job = r.rows[0];
+    if (job.r2_key) {
+      await deleteExportFile(job.r2_key).catch(() => {});
+    }
+    ok(res, { deleted: true });
   })
 );

@@ -95,6 +95,9 @@ const MANUAL_BODY = `
             <tr><td><strong>Permesso</strong></td><td>Assenza a ore, con granularità di 15 minuti. Consuma la quota permessi.</td></tr>
             <tr><td><strong>Malattia</strong></td><td>Assenza per motivi sanitari con protocollo INPS. Auto-approvata.</td></tr>
             <tr><td><strong>Assenza</strong></td><td>Assenza generica (motivi personali, lutto, congedo, ecc.) retribuita o non retribuita. Non consuma quote.</td></tr>
+            <tr><td><strong>Chiusura aziendale</strong></td><td>Evento creato dall'admin per più dipendenti in una volta (es. agosto). Può scalare le ferie o non intaccarle.</td></tr>
+            <tr><td><strong>Festività</strong></td><td>Festività nazionali italiane (Capodanno, Pasqua, 15 agosto, Natale…) evidenziate automaticamente sul calendario.</td></tr>
+            <tr><td><strong>Promemoria 24h</strong></td><td>Avviso inviato la sera prima dell'inizio di un'assenza approvata (es. "domani ferie").</td></tr>
             <tr><td><strong>Quota</strong></td><td>Saldo di ore disponibili per ferie/permessi, con accantonamento periodico.</td></tr>
             <tr><td><strong>Approvatore</strong></td><td>Utente (di solito admin) designato a decidere richieste di un dipendente.</td></tr>
             <tr><td><strong>Geofence</strong></td><td>Area geografica intorno alla sede entro cui sono accettate le timbrature.</td></tr>
@@ -362,7 +365,7 @@ const MANUAL_BODY = `
         <ul class="tidy">
           <li>Cambiare il <strong>ruolo</strong> (Admin / Utente) tramite select.</li>
           <li>Attivare o disattivare l'utente con il toggle <strong>Attivo</strong>.</li>
-          <li>Bloccare l'uso del clock-in da Web con il toggle <strong>Desktop clock-in disabilitato</strong>.</li>
+          <li>Scegliere i <strong>metodi di timbratura</strong> consentiti (colonna <em>Timbratura</em>): <strong>GPS</strong> (da app mobile, presso la sede) e/o <strong>Da remoto</strong> (da web, senza verifica della posizione). Nessun metodo selezionato = l'utente non può timbrare e l'app non mostra il menu di timbratura.</li>
           <li>Modificare le <strong>sedi</strong> assegnate (multi-select).</li>
           <li>Assegnare un <strong>orario di lavoro</strong> (template + data inizio validità).</li>
           <li>Configurare gli <strong>approvatori</strong> per Correzioni, Ferie, Permessi, Malattia.</li>
@@ -388,6 +391,7 @@ const MANUAL_BODY = `
           <li><strong>Esporta XLSX</strong> — scarica la lista utenti corrente.</li>
           <li><strong>Importa XLSX</strong> — carica un file Excel per creare/aggiornare utenti in massa (la chiave è l'email).</li>
         </ul>
+        <p>La colonna <strong>Metodi timbratura</strong> è inclusa nell'export ed è riconosciuta in import: valori <em>GPS</em>, <em>Da remoto</em> (anche combinati con la virgola) oppure <em>Nessuno</em>. Se la colonna è assente o la cella è vuota, i metodi dell'utente restano invariati.</p>
         <div class="callout callout-info">
           In caso di errori nel file importato vengono mostrati i primi 5 errori riga per riga, con il totale se sono di più.
         </div>
@@ -446,7 +450,7 @@ const MANUAL_BODY = `
           <li>Indica <strong>nome</strong> e <strong>descrizione</strong> opzionale.</li>
           <li>Imposta le <strong>tolleranze</strong> in minuti per entrata e uscita (default ±10').</li>
           <li>Definisci pausa minima/massima e pausa pranzo minima/massima attese.</li>
-          <li>Scegli la <strong>soglia straordinari</strong> (1, 15 o 30 minuti) e se conteggiarli.</li>
+          <li>Scegli se conteggiare gli <strong>straordinari</strong> e il <strong>blocco</strong> di calcolo (15, 30 o 60 minuti): il tempo oltre l'orario previsto è contato in blocchi interi, un blocco non completo non viene contato (es. uscita prevista 18:00, reale 18:28 → con blocchi da 30 min nessuno straordinario, da 15 min vengono contati 15 minuti).</li>
           <li>Per ogni giorno della settimana aggiungi uno o più <strong>slot</strong> (orario inizio - orario fine).</li>
           <li>Imposta le <strong>penalità</strong> per superamento tolleranze su entrata, uscita e pausa.</li>
           <li>Premi <strong>Salva</strong>.</li>
@@ -521,6 +525,26 @@ const MANUAL_BODY = `
       </div>
 
       <div class="feature">
+        <h3>Tab Calendario</h3>
+        <p>Una vista calendario di tutte le assenze aziendali, con selettore <strong>Giorno / Settimana / Mese / Anno</strong>. Ogni evento è colorato per tipo (Ferie, Permesso, Malattia, Assenza, Chiusura) e le <strong>festività nazionali italiane</strong> (Capodanno, Pasqua, 25 aprile, Ferragosto, Natale…) sono evidenziate automaticamente.</p>
+        <ul class="tidy">
+          <li><strong>Filtro utenti</strong> — i chip in alto attivano/disattivano i singoli dipendenti; "Tutti"/"Nessuno" per selezione rapida.</li>
+          <li><strong>+ Inserisci evento</strong> — apre il modulo per assegnare un evento a più dipendenti in una volta (es. <em>Chiusura aziendale agosto</em>).</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h3>Inserire un evento aziendale</h3>
+        <p>Dal pulsante <strong>+ Inserisci evento</strong> nel Calendario indichi:</p>
+        <ul class="tidy">
+          <li><strong>Titolo</strong> (es. "Chiusura aziendale agosto"), <strong>Dal</strong> e <strong>Al</strong>.</li>
+          <li><strong>Conteggia come ferie</strong> — se attivo l'evento scala dal monte ore ferie di ciascun dipendente; se disattivo è una chiusura che non intacca le ferie.</li>
+          <li><strong>Destinatari</strong> — Tutti i dipendenti attivi, oppure una selezione.</li>
+        </ul>
+        <p>Alla conferma ogni destinatario riceve una <strong>notifica</strong> (push ed email, secondo le sue preferenze) e l'evento compare subito sul suo calendario.</p>
+      </div>
+
+      <div class="feature">
         <h3>Tab Quote</h3>
         <p>Per ogni utente vedi due colonne (Ferie e Permessi) con saldo iniziale, accrediti totali, usati approvati, usati in attesa e residuo.</p>
         <p>Premi <strong>Modifica</strong> per cambiare l'assegnazione: template, saldo iniziale e data inizio.</p>
@@ -563,20 +587,26 @@ const MANUAL_BODY = `
       <div class="feature">
         <h3>Storico esportazioni</h3>
         <p>La tabella mostra periodo, formato, stato (<span class="pill">In coda</span> <span class="pill pill-warn">In elaborazione</span> <span class="pill pill-ok">Pronta</span> <span class="pill pill-err">Errore</span>) e data di creazione.</p>
-        <p>Per i job pronti l'icona di download avvia lo scaricamento. L'icona rossa elimina lo storico.</p>
+        <p>Per i job pronti il pulsante <strong>Scarica</strong> avvia lo scaricamento. L'icona rossa del cestino rimuove la voce dallo storico (dopo conferma) ed è disponibile per qualsiasi stato: utile per ripulire i job in errore o in coda.</p>
         <div class="callout callout-tip">
           La tabella si aggiorna automaticamente ogni 2 secondi finché ci sono job in coda o in elaborazione.
         </div>
       </div>
 
       <div class="feature">
-        <h3>Cosa contiene il file</h3>
+        <h3>Cosa contiene il file XLSX</h3>
+        <p>Il file XLSX è un foglio di calcolo multi-scheda pensato per il commercialista e per la busta paga. Contiene:</p>
         <ul class="tidy">
-          <li>Timbrature: evento, ora, sede, GPS, device.</li>
-          <li>Ferie e permessi: durata, approvazione, motivo rifiuto.</li>
-          <li>Anomalie rilevate nel periodo.</li>
-          <li>Filtrabile per utente, sede e periodo prima della generazione.</li>
+          <li><strong>Riepilogo</strong>: una riga per dipendente con ore lavorate, straordinari, pause, ferie, permessi, malattia, giorni lavorati e residui di ferie e permessi.</li>
+          <li><strong>Una scheda per dipendente</strong>: dettaglio giorno per giorno (ore lavorate, straordinari, ferie/permessi/malattia, pause, marker assenza).</li>
+          <li><strong>Timbrature</strong>: ogni timbratura con data e ora, evento, origine, sede, GPS, dispositivo e note.</li>
+          <li><strong>Correzioni</strong>: le richieste di correzione del periodo con stato, esito e nota di risoluzione.</li>
+          <li><strong>Ferie e Permessi</strong>: ferie, permessi, malattia e assenze con ore, retribuzione, sottotipo, protocollo INPS ed esito.</li>
+          <li><strong>Eventi aziendali</strong>: chiusure e altri eventi imposti dall'azienda, con dipendenti coinvolti e ore totali.</li>
+          <li><strong>Ferie residue</strong>: saldo iniziale, maturato, usato e residuo per ogni dipendente.</li>
+          <li><strong>Metadati</strong>: periodo, data di generazione e conteggi.</li>
         </ul>
+        <p>Il formato <strong>JSON</strong> contiene il riepilogo aggregato per dipendente, utile per integrazioni con altri software.</p>
       </div>
     </section>
 
@@ -625,20 +655,31 @@ const MANUAL_BODY = `
 
     <section class="chapter" id="web-user">
       <h2><span class="chapter-num">16</span>Panoramica Web Dipendente</h2>
-      <p class="lead">Sul Web il dipendente ha accesso a poche schermate: consultazione della propria posizione e storico, senza possibilità di gestione.</p>
+      <p class="lead">Sul Web il dipendente consulta la propria posizione e storico e, dalla sezione Ferie &amp; Permessi, invia richieste e consulta il calendario.</p>
 
       <div class="feature">
         <h3>Menu di navigazione</h3>
-        <p>La sidebar di un dipendente contiene solo tre voci:</p>
+        <p>La sidebar di un dipendente contiene quattro voci:</p>
         <div class="grid-2">
           <div class="mini-card"><div class="mini-title">Dashboard</div><div class="mini-desc">Il tuo stato attuale e ultime timbrature</div></div>
           <div class="mini-card"><div class="mini-title">Le mie timbrature</div><div class="mini-desc">Storico delle tue timbrature</div></div>
           <div class="mini-card"><div class="mini-title">Le mie richieste</div><div class="mini-desc">Richieste di correzione inviate</div></div>
+          <div class="mini-card"><div class="mini-title">Ferie &amp; Permessi</div><div class="mini-desc">Le tue assenze, il calendario, le richieste da approvare</div></div>
         </div>
         <p>In basso trovi il tuo avatar con email, ruolo <em>Dipendente</em> e il pulsante <strong>Esci</strong>.</p>
         <div class="callout callout-info">
           Le funzioni di timbratura ingresso/uscita si trovano nell'app mobile, non sul Web (se non esplicitamente abilitato dall'amministratore).
         </div>
+      </div>
+
+      <div class="feature">
+        <h3>Ferie &amp; Permessi (web)</h3>
+        <p>La pagina ha tre tab:</p>
+        <ul class="tidy">
+          <li><strong>Le mie</strong> — elenco delle tue richieste con stato; pulsante <strong>+ Nuova richiesta</strong> per inviarne una (Ferie, Permesso, Malattia, Assenza), <strong>Annulla</strong> sulle pending e <strong>Richiedi annullamento</strong> sulle approvate.</li>
+          <li><strong>Calendario</strong> — vista Giorno/Settimana/Mese/Anno delle tue assenze, con festività nazionali evidenziate.</li>
+          <li><strong>Da approvare</strong> — compare solo se sei stato designato approvatore di altri dipendenti.</li>
+        </ul>
       </div>
     </section>
 
@@ -835,8 +876,13 @@ const MANUAL_BODY = `
       <p class="lead">Tutte le richieste di assenza si gestiscono dalla scheda Richieste.</p>
 
       <div class="feature">
-        <h3>Tab "Le mie" e "Da approvare"</h3>
-        <p>Se sei amministratore vedi due tab: <strong>Le mie</strong> (le tue richieste) e <strong>Da approvare</strong> (quelle dei tuoi dipendenti, con badge sul numero pending). Tocca le tab oppure <strong>scorri a destra/sinistra</strong> sull'elenco per cambiare vista.</p>
+        <h3>Tab "Le mie", "Calendario" e "Da approvare"</h3>
+        <p>La scheda Richieste ha tre tab: <strong>Le mie</strong> (le tue richieste), <strong>Calendario</strong> e — per gli approvatori/amministratori — <strong>Da approvare</strong> (con badge sul numero pending). Tocca le tab oppure <strong>scorri a destra/sinistra</strong> per cambiare vista.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Tab "Calendario"</h3>
+        <p>Vista calendario delle assenze con selettore <strong>Giorno / Settimana / Mese / Anno</strong>. I giorni con assenze mostrano puntini colorati per tipo e le <strong>festività nazionali</strong> sono evidenziate. Il dipendente vede le proprie assenze; l'amministratore vede tutti, con i chip in alto per filtrare per dipendente.</p>
       </div>
 
       <div class="feature">
@@ -918,6 +964,7 @@ const MANUAL_BODY = `
         <ul class="tidy">
           <li><strong>Esiti ferie e permessi</strong> — quando vengono approvate o rifiutate.</li>
           <li><strong>Esiti correzioni</strong> — decisioni sulle tue correzioni.</li>
+          <li><strong>Promemoria 24h prima</strong> — avviso la sera prima di una tua assenza (es. "domani ferie").</li>
         </ul>
         <p>Se le push sono <strong>non attive</strong>: devi abilitarle nelle impostazioni del telefono.</p>
       </div>
@@ -1047,17 +1094,22 @@ const MANUAL_BODY = `
           <tbody>
             <tr><td>Decisione ferie/permessi</td><td>Quando l'admin decide</td><td>Dipendente</td></tr>
             <tr><td>Decisione correzione</td><td>Quando l'admin decide</td><td>Dipendente</td></tr>
-            <tr><td>Nuova richiesta ferie</td><td>All'invio da un dipendente</td><td>Admin</td></tr>
-            <tr><td>Nuova correzione</td><td>All'invio da un dipendente</td><td>Admin</td></tr>
+            <tr><td>Nuova richiesta ferie</td><td>All'invio da un dipendente</td><td>Admin / approvatore</td></tr>
+            <tr><td>Nuova correzione</td><td>All'invio da un dipendente</td><td>Admin / approvatore</td></tr>
+            <tr><td>Promemoria 24h</td><td>La sera prima di una tua assenza approvata (es. "domani ferie")</td><td>Dipendente</td></tr>
+            <tr><td>Evento aziendale</td><td>Quando l'admin inserisce un evento sul tuo calendario</td><td>Dipendente</td></tr>
           </tbody>
         </table>
+        <div class="callout callout-info">
+          Il <strong>promemoria 24h</strong> parte ogni sera per le assenze che iniziano il giorno successivo (escluse le malattie). La malattia, essendo registrata a posteriori, non genera promemoria.
+        </div>
       </div>
 
       <div class="feature">
         <h3>Configurare le notifiche</h3>
         <ul class="tidy">
-          <li><strong>Email</strong>: toggle nelle Impostazioni (web) o nel Profilo (mobile).</li>
-          <li><strong>Push</strong>: toggle granulari per ciascun tipo nel Profilo dell'app mobile. Le push richiedono il permesso del sistema operativo.</li>
+          <li><strong>Email</strong>: nelle Impostazioni (web) puoi attivare/disattivare l'email <em>per categoria</em>, esattamente come le push: esiti richieste, nuove richieste da approvare, esiti correzioni, nuove correzioni e <strong>promemoria 24h</strong>. Disattivate di default.</li>
+          <li><strong>Push</strong>: toggle granulari per ciascun tipo nel Profilo dell'app mobile, incluso il <strong>Promemoria 24h prima</strong>. Le push richiedono il permesso del sistema operativo.</li>
         </ul>
       </div>
     </section>
@@ -1092,14 +1144,17 @@ const MANUAL_BODY = `
             <tr><td><strong>Assenza</strong></td><td>Richiesta generica con tipologia (motivi personali, lutto, congedo, ecc.) e flag retribuita/non retribuita. Motivazione facoltativa.</td></tr>
             <tr><td><strong>Audit log</strong></td><td>Registro delle modifiche manuali su timbrature (chi, quando, perché).</td></tr>
             <tr><td><strong>Badge</strong></td><td>Pillola colorata che indica stato o tipo (ferie, malattia, ecc.).</td></tr>
+            <tr><td><strong>Chiusura aziendale</strong></td><td>Evento che l'admin assegna a più dipendenti insieme; tipo <em>chiusura</em> (non scala ferie) o conteggiato come ferie.</td></tr>
             <tr><td><strong>Correzione</strong></td><td>Richiesta del dipendente di modificare o aggiungere una timbratura.</td></tr>
             <tr><td><strong>Esportazione</strong></td><td>Job che produce un file XLSX o JSON con dati di un periodo.</td></tr>
             <tr><td><strong>Ferie</strong></td><td>Assenza retribuita a giornate, consuma quota ferie.</td></tr>
+            <tr><td><strong>Festività</strong></td><td>Giorni festivi nazionali italiani, evidenziati sul calendario (festivi mobili come Pasqua inclusi).</td></tr>
             <tr><td><strong>Geofence</strong></td><td>Area circolare attorno a una sede, definita da centro GPS e raggio in metri.</td></tr>
             <tr><td><strong>Lenient (geofence)</strong></td><td>Politica permissiva: timbratura fuori area passa ma viene segnalata.</td></tr>
             <tr><td><strong>Malattia</strong></td><td>Assenza per motivi sanitari, auto-approvata, richiede protocollo INPS.</td></tr>
             <tr><td><strong>Mock location</strong></td><td>Posizione GPS finta generata da app esterne.</td></tr>
             <tr><td><strong>Permesso</strong></td><td>Assenza retribuita a ore, granularità 15 minuti.</td></tr>
+            <tr><td><strong>Promemoria 24h</strong></td><td>Notifica (push/email) inviata la sera prima dell'inizio di un'assenza approvata.</td></tr>
             <tr><td><strong>Quota</strong></td><td>Saldo di ore disponibili per ferie o permessi.</td></tr>
             <tr><td><strong>Revoca</strong></td><td>Annullamento di una ferie già approvata, su iniziativa dell'admin.</td></tr>
             <tr><td><strong>Sede</strong></td><td>Luogo di lavoro, con o senza geofencing. Il raggio può essere disattivato: in tal caso il GPS è registrato ma non confrontato con un'area.</td></tr>
@@ -1136,7 +1191,7 @@ const MANUAL_BODY = `
 
       <div class="feature">
         <h3>Posso timbrare dal browser sul PC?</h3>
-        <p>Solo se l'admin lo ha esplicitamente abilitato per te. Di default il clock-in da Web è disabilitato per evitare timbrature non geolocalizzate.</p>
+        <p>Solo se l'amministratore ha abilitato il metodo <strong>Da remoto</strong> per il tuo profilo (in Utenti → colonna <em>Timbratura</em>). Di default è attivo solo il <strong>GPS</strong> da app mobile, per evitare timbrature non geolocalizzate.</p>
       </div>
 
       <div class="feature">
@@ -1177,6 +1232,21 @@ const MANUAL_BODY = `
       <div class="feature">
         <h3>Sono admin: dove gestisco gli utenti?</h3>
         <p>Sul Web → <strong>Utenti</strong>. L'app mobile non ha questa funzione: per modificare ruoli, sedi, orari o invitare nuovi dipendenti usa il browser.</p>
+      </div>
+
+      <div class="feature">
+        <h3>C'è un calendario delle assenze?</h3>
+        <p>Sì. Sul Web in <strong>Ferie &amp; Permessi → Calendario</strong> (anche per i dipendenti su <em>/me/leaves</em>) e nell'app mobile nella scheda <strong>Richieste → Calendario</strong>. Puoi scegliere la vista Giorno, Settimana, Mese o Anno. Il dipendente vede le proprie assenze, l'amministratore quelle di tutti (con filtro per dipendente). Le festività nazionali sono evidenziate automaticamente.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Ricevo un avviso prima dell'inizio delle ferie?</h3>
+        <p>Sì: la sera prima ricevi un <strong>promemoria 24h</strong> ("domani inizia…"). Puoi attivarlo/disattivarlo come push dall'app mobile (<strong>Profilo → Notifiche → Promemoria 24h prima</strong>) e come email dal Web (<strong>Impostazioni → Notifiche email</strong>). Le malattie, registrate a posteriori, non generano promemoria.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Sono admin: come imposto una chiusura aziendale per tutti?</h3>
+        <p>Sul Web → <strong>Ferie &amp; Permessi → Calendario → + Inserisci evento</strong>. Indica titolo (es. "Chiusura aziendale agosto") e periodo, scegli se <strong>conteggiarla come ferie</strong> o no, e seleziona tutti i dipendenti o un sottoinsieme. Ognuno riceve una notifica e l'evento compare sul suo calendario. Puoi revocare l'intero blocco in un secondo momento.</p>
       </div>
     </section>
 

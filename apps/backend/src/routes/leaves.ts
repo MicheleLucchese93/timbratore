@@ -15,6 +15,7 @@ import {
   notifyLeaveDecided,
   notifyCancellationRequested,
   notifyCancellationDecided,
+  notifyBulkEvent,
 } from '../lib/notifications.js';
 
 export const leavesRouter = Router();
@@ -219,9 +220,13 @@ leavesRouter.post(
   })
 );
 
+// Filter enum is wider than TypeEnum: it also accepts 'chiusura' (company
+// events) which users cannot create but the calendar must be able to filter.
+const FilterTypeEnum = z.enum(['ferie', 'permessi', 'malattia', 'assenza', 'chiusura']);
+
 const ListQuery = z.object({
   status: z.string().optional(),
-  type: TypeEnum.optional(),
+  type: FilterTypeEnum.optional(),
   user_id: z.string().uuid().optional(),
   scope: z.enum(['mine', 'inbox', 'all']).optional(),
   from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -584,5 +589,105 @@ leavesRouter.post(
     await logEvent(client, String(req.params.id), 'admin_revoke', { reason: parse.data.reason });
     const updated = await loadRequest(client, String(req.params.id));
     ok(res, updated);
+  })
+);
+
+/* ----- Admin bulk company events (e.g. "Chiusura aziendale agosto") ----- */
+
+const BulkBody = z.object({
+  title: z.string().min(1).max(200),
+  from_ts: z.string().datetime({ offset: true }),
+  to_ts: z.string().datetime({ offset: true }),
+  // false → non-deducting 'chiusura'; true → approved 'ferie' that consumes quota.
+  deduct_ferie: z.boolean().default(false),
+  // Omitted/empty → every active member of the tenant.
+  user_ids: z.array(z.string().uuid()).optional(),
+  user_note: z.string().max(1000).optional(),
+});
+
+leavesRouter.post(
+  '/bulk',
+  requireAdmin,
+  tenantHandler(async (req, res, client) => {
+    const parse = BulkBody.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const b = parse.data;
+    if (new Date(b.to_ts).getTime() <= new Date(b.from_ts).getTime()) {
+      throw new ValidationError('to_ts deve essere maggiore di from_ts');
+    }
+
+    let userIds = b.user_ids ?? [];
+    if (userIds.length === 0) {
+      const all = await client.query(
+        `SELECT user_id FROM memberships
+          WHERE tenant_id = current_setting('app.current_tenant_id')::uuid
+            AND active = TRUE
+            AND deleted_at IS NULL`
+      );
+      userIds = all.rows.map((r) => r.user_id as string);
+    }
+    userIds = Array.from(new Set(userIds));
+    if (userIds.length === 0) throw new ValidationError('nessun utente selezionato');
+
+    const type = b.deduct_ferie ? 'ferie' : 'chiusura';
+    const batchRow = await client.query(`SELECT gen_random_uuid() AS id`);
+    const batchId = batchRow.rows[0].id as string;
+
+    const created: string[] = [];
+    for (const uid of userIds) {
+      // Closures span whole days; hours follow the user's shift template, same
+      // path 'ferie' uses. Per-day cap intentionally NOT enforced — the closure
+      // is mandatory and admin-imposed.
+      const duration = await computeDurationHours(client, uid, 'ferie', b.from_ts, b.to_ts);
+      const ins = await client.query(
+        `INSERT INTO leave_requests(
+           tenant_id, user_id, type, status, from_ts, to_ts, duration_hours,
+           decided_by, decided_at, created_by_admin, batch_id, title, user_note
+         ) VALUES (
+           current_setting('app.current_tenant_id')::uuid, $1, $2, 'approved',
+           $3, $4, $5,
+           current_setting('app.current_user_id')::uuid, now(), TRUE, $6, $7, $8
+         ) RETURNING id`,
+        [uid, type, b.from_ts, b.to_ts, duration, batchId, b.title, b.user_note ?? null]
+      );
+      await logEvent(client, ins.rows[0].id, 'admin_bulk_create', {
+        batch_id: batchId,
+        title: b.title,
+        type,
+        deduct_ferie: b.deduct_ferie,
+      });
+      created.push(uid);
+    }
+
+    await notifyBulkEvent(created, {
+      title: b.title,
+      from_ts: b.from_ts,
+      to_ts: b.to_ts,
+      deducts_ferie: b.deduct_ferie,
+      batchId,
+    });
+
+    ok(res, { batch_id: batchId, created_count: created.length, user_ids: created }, 201);
+  })
+);
+
+leavesRouter.post(
+  '/bulk/:batchId/revoke',
+  requireAdmin,
+  tenantHandler(async (req, res, client) => {
+    const parsed = z.string().uuid().safeParse(req.params.batchId);
+    if (!parsed.success) throw new ValidationError('batchId non valido');
+    const r = await client.query(
+      `UPDATE leave_requests
+          SET status = 'cancelled_post_approval',
+              cancellation_decided_by = current_setting('app.current_user_id')::uuid,
+              cancellation_decided_at = now(),
+              cancellation_reason = COALESCE(cancellation_reason, 'Evento aziendale annullato')
+        WHERE batch_id = $1
+          AND status = 'approved'
+        RETURNING id`,
+      [parsed.data]
+    );
+    ok(res, { revoked_count: r.rowCount ?? 0 });
   })
 );

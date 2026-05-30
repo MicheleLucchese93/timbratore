@@ -282,6 +282,34 @@ export async function createLeave(token: string, body: LeaveCreateBody): Promise
   return r.data;
 }
 
+export interface BulkEventBody {
+  title: string;
+  from_ts: string;
+  to_ts: string;
+  deduct_ferie?: boolean;
+  user_ids?: string[];
+  user_note?: string;
+}
+
+export async function createBulkEvent(
+  adminToken: string,
+  body: BulkEventBody,
+): Promise<{ batch_id: string; created_count: number; user_ids: string[] }> {
+  const r = await apiPost<{ batch_id: string; created_count: number; user_ids: string[] }>(
+    adminToken,
+    '/api/v1/leaves/bulk',
+    body,
+  );
+  if (r.status !== 201 || !r.data) {
+    throw new Error(`createBulkEvent failed: ${r.status} ${r.code ?? ''} ${r.message ?? ''}`.trim());
+  }
+  return r.data;
+}
+
+export async function revokeBulkEvent(adminToken: string, batchId: string): Promise<void> {
+  await apiPost(adminToken, `/api/v1/leaves/bulk/${batchId}/revoke`, {});
+}
+
 export async function approveLeave(adminToken: string, id: string): Promise<LeaveRow> {
   const r = await apiPost<LeaveRow>(adminToken, `/api/v1/leaves/${id}/approve`, {});
   if (r.status !== 200 || !r.data) throw new Error(`approveLeave failed: ${r.status}`);
@@ -397,6 +425,26 @@ export async function createExportJob(
 
 export async function getExportJob(adminToken: string, id: string): Promise<{ id: string; status: string; r2_key?: string | null }> {
   return apiGet(adminToken, `/api/v1/exports/${id}`);
+}
+
+export async function deleteExportJob(adminToken: string, id: string): Promise<void> {
+  return apiDelete(adminToken, `/api/v1/exports/${id}`);
+}
+
+export async function downloadExport(
+  adminToken: string,
+  id: string,
+): Promise<{ ok: boolean; status: number; contentType: string | null; isZip: boolean }> {
+  const r = await fetch(`${API_BASE}/api/v1/exports/${id}/download`, {
+    headers: { Authorization: `Bearer ${adminToken}` },
+  });
+  let isZip = false;
+  if (r.ok) {
+    const buf = Buffer.from(await r.arrayBuffer());
+    // XLSX is a ZIP container — first two bytes are 'PK'.
+    isZip = buf.length > 4 && buf[0] === 0x50 && buf[1] === 0x4b;
+  }
+  return { ok: r.ok, status: r.status, contentType: r.headers.get('content-type'), isZip };
 }
 
 /* Shift template + assignment helpers */

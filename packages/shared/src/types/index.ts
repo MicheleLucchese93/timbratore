@@ -17,6 +17,13 @@ export type GeofencePolicy = 'lenient' | 'strict';
 
 export type MockLocationAction = 'allow' | 'flag' | 'block';
 
+// Allowed clock-in methods per user (memberships.stamp_modes).
+//   'gps'    → mobile, geofence enforced
+//   'remote' → web/desktop, no geofence
+//   'wifi'   → reserved, not yet implemented (see Specs/WIFI_STAMPING.md)
+// An empty array means the user cannot clock in at all.
+export type StampMode = 'gps' | 'remote' | 'wifi';
+
 export interface Tenant {
   id: string;
   ragione_sociale: string;
@@ -38,7 +45,7 @@ export interface Membership {
   user_id: string;
   role: Role;
   active: boolean;
-  disable_desktop_clock_in: boolean;
+  stamp_modes: StampMode[];
   deleted_at: string | null;
   created_at: string;
 }
@@ -108,7 +115,7 @@ export interface ShiftTemplate {
   expected_break_max_min: number;
   expected_lunch_min_min: number;
   expected_lunch_max_min: number;
-  extraordinary_threshold_min: 1 | 15 | 30;
+  extraordinary_threshold_min: 15 | 30 | 60;
   count_extraordinary: boolean;
   tolerance_in_breach_deduct_min: number;
   tolerance_out_breach_deduct_min: number;

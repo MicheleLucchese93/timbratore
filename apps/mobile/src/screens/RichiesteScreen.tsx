@@ -23,6 +23,7 @@ import { AppHeader } from '../components/AppHeader';
 import { WorkStateChip } from '../components/WorkStateChip';
 import { DateField } from '../components/DateField';
 import { SwipeableTabs } from '../components/SwipeableTabs';
+import { LeaveCalendarMobile, type MobileCalEvent } from '../components/LeaveCalendarMobile';
 
 interface Approver {
   user_id: string;
@@ -135,13 +136,23 @@ const STATUS_LABEL: Record<LeaveStatus, string> = {
   superseded_by_malattia: 'Sostituita da malattia',
 };
 
-type RichiesteTab = 'mine' | 'inbox';
+type RichiesteTab = 'mine' | 'calendar' | 'inbox';
+
+interface CalUser {
+  user_id: string;
+  email: string;
+  display_name: string | null;
+}
 
 export function RichiesteScreen() {
   const { me } = useSession();
+  const isAdmin = me?.user.role === 'admin';
   const [tab, setTab] = useState<RichiesteTab>('mine');
   const [mineRows, setMineRows] = useState<LeaveRequest[]>([]);
   const [inboxRows, setInboxRows] = useState<LeaveRequest[]>([]);
+  const [calendarRows, setCalendarRows] = useState<LeaveRequest[]>([]);
+  const [calUsers, setCalUsers] = useState<CalUser[]>([]);
+  const [hiddenUsers, setHiddenUsers] = useState<Set<string>>(new Set());
   const [loadingMine, setLoadingMine] = useState(true);
   const [loadingInbox, setLoadingInbox] = useState(true);
   const [refreshingMine, setRefreshingMine] = useState(false);
@@ -177,6 +188,22 @@ export function RichiesteScreen() {
     }
   }, []);
 
+  // Calendar: admins see everyone (scope=all), users see their own (scope=mine).
+  const loadCalendar = useCallback(
+    async (from: string, to: string) => {
+      try {
+        const scope = isAdmin ? 'all' : 'mine';
+        const list = await api<LeaveRequest[]>(
+          `/api/v1/leaves?scope=${scope}&from=${from}&to=${to}`
+        );
+        setCalendarRows(list);
+      } catch {
+        /* ignore */
+      }
+    },
+    [isAdmin]
+  );
+
   const load = useCallback(async () => {
     await Promise.all([loadMine(), loadInbox()]);
   }, [loadMine, loadInbox]);
@@ -185,6 +212,14 @@ export function RichiesteScreen() {
     loadMine();
     loadInbox();
   }, [loadMine, loadInbox]);
+
+  // Admin-only: user roster to drive the calendar filter chips.
+  useEffect(() => {
+    if (!isAdmin) return;
+    api<CalUser[]>('/api/v1/users')
+      .then(setCalUsers)
+      .catch(() => undefined);
+  }, [isAdmin]);
 
   async function cancel(r: LeaveRequest) {
     confirmAction('Annullare richiesta?', 'Verrà annullata definitivamente.', async () => {
@@ -262,6 +297,68 @@ export function RichiesteScreen() {
   const pendingInboxCount = useMemo(
     () => inboxRows.filter((r) => r.status === 'pending').length,
     [inboxRows]
+  );
+
+  const calendarEvents: MobileCalEvent[] = useMemo(
+    () =>
+      calendarRows
+        .filter((r) => !hiddenUsers.has(r.user_id))
+        .map((r) => ({
+          id: r.id,
+          type: r.type,
+          status: r.status,
+          from_ts: r.from_ts,
+          to_ts: r.to_ts,
+          user_label: isAdmin ? r.user_display_name || r.user_email : null,
+          title: (r as { title?: string | null }).title ?? null,
+        })),
+    [calendarRows, hiddenUsers, isAdmin]
+  );
+
+  const presentUsers = useMemo(() => {
+    const ids = new Set(calendarRows.map((r) => r.user_id));
+    return calUsers.filter((u) => ids.has(u.user_id));
+  }, [calendarRows, calUsers]);
+
+  function toggleUser(id: string) {
+    setHiddenUsers((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const renderCalendarPage = (
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+      {isAdmin && presentUsers.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 6, paddingHorizontal: space.s3, paddingBottom: space.s2 }}>
+          {presentUsers.map((u) => {
+            const on = !hiddenUsers.has(u.user_id);
+            return (
+              <Pressable
+                key={u.user_id}
+                onPress={() => toggleUser(u.user_id)}
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 999,
+                  backgroundColor: on ? color.primaryContainer : color.surfaceVariant,
+                  opacity: on ? 1 : 0.5,
+                }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: on ? color.primary : color.onSurfaceVariant }}>
+                  {u.display_name || u.email}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
+      <LeaveCalendarMobile events={calendarEvents} onRangeChange={loadCalendar} />
+    </ScrollView>
   );
 
   const renderMinePage = (
@@ -388,11 +485,12 @@ export function RichiesteScreen() {
       <SwipeableTabs
         tabs={[
           { id: 'mine', label: 'Le mie' },
+          { id: 'calendar', label: 'Calendario' },
           { id: 'inbox', label: 'Da approvare', badge: pendingInboxCount },
         ]}
         activeId={tab}
         onChange={setTab}>
-        {[renderMinePage, renderInboxPage]}
+        {[renderMinePage, renderCalendarPage, renderInboxPage]}
       </SwipeableTabs>
 
       {tab === 'mine' && (

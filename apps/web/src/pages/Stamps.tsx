@@ -51,11 +51,8 @@ export function Stamps() {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="page-title">Timbrature</h1>
-          <p className="muted text-sm mt-0.5">Tutte le timbrature dei dipendenti.</p>
-        </div>
+      <header className="flex items-center justify-end gap-4 flex-wrap">
+        <h1 className="sr-only">Timbrature</h1>
         <button className="btn btn-primary" onClick={() => setCreating(true)}>Nuova timbratura</button>
       </header>
 

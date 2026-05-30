@@ -31,18 +31,6 @@ stampsRouter.post(
     const parse = StampBody.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     const body = parse.data;
-    if (body.device_platform === 'web') {
-      const m = await client.query(
-        `SELECT disable_desktop_clock_in FROM memberships WHERE id = $1`,
-        [req.user!.membershipId]
-      );
-      if (m.rows[0]?.disable_desktop_clock_in) {
-        throw new ForbiddenError(
-          'Web clock-in disabled for this user',
-          'WEB_CLOCK_IN_DISABLED'
-        );
-      }
-    }
     const evaluated = await evaluateStamp(client, {
       userId: req.user!.id,
       tenantId: req.user!.tenantId,

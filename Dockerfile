@@ -16,7 +16,15 @@ COPY gotrue-templates ./apps/backend/public/templates
 # Install full deps for tsx + zod + pg + jose etc.
 RUN npm ci --workspace=@sonoqui/backend --include-workspace-root
 
+# Export storage mount point. Created + owned by `node` BEFORE dropping
+# privileges so a fresh named volume mounted here inherits node:node
+# ownership (Docker seeds an empty volume from the image dir, perms included).
+# STORAGE_DISK_PATH defaults to /data via docker-compose.
+RUN mkdir -p /data && chown -R node:node /data
+VOLUME ["/data"]
+
 ENV NODE_ENV=production
+ENV STORAGE_DISK_PATH=/data
 EXPOSE 4000
 USER node
 

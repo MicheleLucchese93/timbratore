@@ -79,10 +79,7 @@ export function MyStamps() {
 
   return (
     <div className="space-y-5">
-      <header>
-        <h1 className="page-title">Le mie timbrature</h1>
-        <p className="muted text-sm mt-0.5">Storico delle tue timbrature. Vedi solo le tue.</p>
-      </header>
+      <h1 className="sr-only">Le mie timbrature</h1>
 
       <div className="card" style={{ padding: 0 }}>
         <DataGrid<Stamp>

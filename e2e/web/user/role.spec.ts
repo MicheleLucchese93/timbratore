@@ -25,9 +25,6 @@ test.describe('web — employee role (test3)', () => {
   test('/ lands on MyDashboard with personalised greeting', async ({ page }) => {
     // Email prefix "test3" → "Ciao, test3" (no last_name fallback on backend).
     await expect(page.getByRole('heading', { name: /Ciao,/ })).toBeVisible();
-    await expect(page.getByText('Il tuo stato attuale e le ultime timbrature.')).toBeVisible();
-    // Scope to the heading — strict mode would fail on the helper paragraph
-    // that also contains "ultime timbrature".
     await expect(page.getByRole('heading', { name: 'Ultime timbrature' })).toBeVisible();
   });
 

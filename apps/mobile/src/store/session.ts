@@ -15,6 +15,7 @@ export interface Me {
     first_name: string | null;
     last_name: string | null;
     display_name: string | null;
+    stamp_modes: Array<'gps' | 'remote' | 'wifi'>;
   };
   tenant: { id: string; ragione_sociale: string; language: 'it' | 'en' };
   branches: Array<{ id: string; name: string; smart_working: boolean }>;
@@ -27,6 +28,7 @@ export interface Me {
       push_correction_decisions: boolean;
       push_leave_submissions: boolean;
       push_correction_submissions: boolean;
+      push_leave_reminders: boolean;
     };
   };
 }

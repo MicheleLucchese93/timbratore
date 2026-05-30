@@ -1,8 +1,10 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { IconButton } from '../components/IconButton.tsx';
+import { LeaveCalendar, type CalendarEvent } from '../components/LeaveCalendar.tsx';
+import { useConfirm } from '../components/ConfirmDialog.tsx';
 
 type LeaveType = 'ferie' | 'permessi' | 'malattia' | 'assenza';
 type AssenzaSubtype =
@@ -52,6 +54,7 @@ interface LeaveRequest {
   duration_hours: number;
   inps_protocol: string | null;
   user_note: string | null;
+  title: string | null;
   rejection_reason: string | null;
   cancellation_reason: string | null;
   assenza_subtype: AssenzaSubtype | null;
@@ -150,19 +153,17 @@ function fmtRange(from: string, to: string, type: LeaveType): string {
 }
 
 export function Leaves() {
-  const [tab, setTab] = useState<'requests' | 'quotas' | 'templates'>('requests');
+  const [tab, setTab] = useState<'requests' | 'calendar' | 'quotas' | 'templates'>('requests');
   return (
     <div className="space-y-5">
-      <header>
-        <h1 className="page-title">Ferie & Permessi</h1>
-        <p className="muted text-sm mt-0.5">
-          Richieste di ferie, permessi e malattia; quote e modelli.
-        </p>
-      </header>
+      <h1 className="sr-only">Ferie & Permessi</h1>
       <div className="card p-0">
         <div className="flex border-b" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>
           <TabButton active={tab === 'requests'} onClick={() => setTab('requests')}>
             Richieste
+          </TabButton>
+          <TabButton active={tab === 'calendar'} onClick={() => setTab('calendar')}>
+            Calendario
           </TabButton>
           <TabButton active={tab === 'quotas'} onClick={() => setTab('quotas')}>
             Quote
@@ -173,6 +174,7 @@ export function Leaves() {
         </div>
         <div className="p-4">
           {tab === 'requests' && <RequestsTab />}
+          {tab === 'calendar' && <CalendarTab />}
           {tab === 'quotas' && <QuotasTab />}
           {tab === 'templates' && <TemplatesTab />}
         </div>
@@ -297,6 +299,245 @@ function RequestsTab() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+/* ---------- Calendar (admin: all users, with per-user filter) ---------- */
+
+function toCalEvent(r: LeaveRequest): CalendarEvent {
+  return {
+    id: r.id,
+    type: r.type,
+    status: r.status,
+    from_ts: r.from_ts,
+    to_ts: r.to_ts,
+    user_label: r.user_display_name || r.user_email,
+    title: r.title,
+  };
+}
+
+function CalendarTab() {
+  const [all, setAll] = useState<LeaveRequest[]>([]);
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [showBulk, setShowBulk] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    api<UserRow[]>('/api/v1/users')
+      .then(setUsers)
+      .catch(() => undefined);
+  }, []);
+
+  const load = useCallback(async (from: string, to: string) => {
+    try {
+      const r = await api<LeaveRequest[]>(`/api/v1/leaves?scope=all&from=${from}&to=${to}`);
+      setAll(r);
+      setErr(null);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'errore');
+    }
+  }, []);
+
+  const events = useMemo(
+    () => all.filter((r) => !hidden.has(r.user_id)).map(toCalEvent),
+    [all, hidden]
+  );
+
+  // Only users that actually appear in the loaded range are worth filtering.
+  const presentUsers = useMemo(() => {
+    const ids = new Set(all.map((r) => r.user_id));
+    return users.filter((u) => ids.has(u.user_id));
+  }, [all, users]);
+
+  function toggle(id: string) {
+    setHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  return (
+    <div className="space-y-3">
+      {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
+      <div className="flex items-center justify-between gap-2">
+        <p className="muted text-sm">Calendario di tutte le assenze aziendali.</p>
+        <button type="button" className="btn btn-primary" onClick={() => setShowBulk(true)}>
+          + Inserisci evento
+        </button>
+      </div>
+
+      {presentUsers.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => setHidden(new Set())}
+          >
+            Tutti
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => setHidden(new Set(presentUsers.map((u) => u.user_id)))}
+          >
+            Nessuno
+          </button>
+          {presentUsers.map((u) => {
+            const on = !hidden.has(u.user_id);
+            return (
+              <button
+                key={u.user_id}
+                type="button"
+                onClick={() => toggle(u.user_id)}
+                className="rounded-full border px-2 py-0.5 text-xs"
+                style={{
+                  borderColor: 'var(--color-border, #e5e7eb)',
+                  opacity: on ? 1 : 0.4,
+                  background: on ? 'var(--color-surface-variant, #f3f4f6)' : 'transparent',
+                }}
+                title={on ? 'Clicca per nascondere' : 'Clicca per mostrare'}
+              >
+                {u.display_name || u.email}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <LeaveCalendar events={events} onRangeChange={load} />
+
+      {showBulk && (
+        <BulkEventModal
+          users={users}
+          onClose={() => setShowBulk(false)}
+          onDone={() => {
+            setShowBulk(false);
+            // Reload current year so the new event appears immediately.
+            const y = new Date().getFullYear();
+            void load(`${y}-01-01`, `${y}-12-31`);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function BulkEventModal({
+  users,
+  onClose,
+  onDone,
+}: {
+  users: UserRow[];
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [title, setTitle] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [deduct, setDeduct] = useState(false);
+  const [allUsers, setAllUsers] = useState(true);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  function toggleUser(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function submit() {
+    setErr(null);
+    if (!title.trim()) return setErr('Inserisci un titolo.');
+    if (!from || !to) return setErr('Inserisci le date.');
+    if (to < from) return setErr('La data di fine precede quella di inizio.');
+    if (!allUsers && selected.size === 0) return setErr('Seleziona almeno un utente.');
+    setBusy(true);
+    try {
+      await api('/api/v1/leaves/bulk', {
+        method: 'POST',
+        json: {
+          title: title.trim(),
+          from_ts: new Date(`${from}T00:00:00`).toISOString(),
+          to_ts: new Date(`${to}T23:59:00`).toISOString(),
+          deduct_ferie: deduct,
+          user_ids: allUsers ? undefined : [...selected],
+          user_note: note.trim() || undefined,
+        },
+      });
+      onDone();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'errore');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50" onClick={onClose}>
+      <div className="card w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+        <h2 className="section-title mb-3">Inserisci evento aziendale</h2>
+        <div className="space-y-3">
+          <div>
+            <label className="label">Titolo</label>
+            <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Chiusura aziendale agosto" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Dal</label>
+              <input type="date" className="input" value={from} onChange={(e) => setFrom(e.target.value)} />
+            </div>
+            <div>
+              <label className="label">Al</label>
+              <input type="date" className="input" value={to} onChange={(e) => setTo(e.target.value)} />
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={deduct} onChange={(e) => setDeduct(e.target.checked)} />
+            Conteggia come ferie (scala dal monte ore). Lascia deselezionato per chiusura non retributiva.
+          </label>
+          <div>
+            <label className="label">Destinatari</label>
+            <div className="flex gap-3 text-sm">
+              <label className="flex items-center gap-1.5">
+                <input type="radio" checked={allUsers} onChange={() => setAllUsers(true)} /> Tutti
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input type="radio" checked={!allUsers} onChange={() => setAllUsers(false)} /> Seleziona
+              </label>
+            </div>
+            {!allUsers && (
+              <div className="mt-2 max-h-40 overflow-auto rounded border p-2" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>
+                {users.map((u) => (
+                  <label key={u.user_id} className="flex items-center gap-2 py-0.5 text-sm">
+                    <input type="checkbox" checked={selected.has(u.user_id)} onChange={() => toggleUser(u.user_id)} />
+                    {u.display_name || u.email}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="label">Nota (facoltativa)</label>
+            <input className="input" value={note} onChange={(e) => setNote(e.target.value)} />
+          </div>
+          {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>Annulla</button>
+          <button type="button" className="btn btn-primary" onClick={submit} disabled={busy}>
+            {busy ? 'Invio…' : 'Crea e notifica'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -467,6 +708,7 @@ function AssignmentEditor({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const confirm = useConfirm();
   const [templateId, setTemplateId] = useState<string>(
     existing?.template_id ?? templates[0]?.id ?? ''
   );
@@ -516,7 +758,7 @@ function AssignmentEditor({
 
   async function remove() {
     if (!existing) return;
-    if (!confirm('Chiudere assegnazione? Lo storico accrediti resta visibile.')) return;
+    if (!(await confirm({ title: 'Chiudere assegnazione?', message: 'Lo storico accrediti resta visibile.', confirmLabel: 'Chiudi' }))) return;
     try {
       await api(`/api/v1/leave-quotas/assignments/${existing.id}`, { method: 'DELETE' });
       onSaved();
@@ -610,6 +852,7 @@ function TemplatesTab() {
   const [rows, setRows] = useState<Template[]>([]);
   const [editor, setEditor] = useState<Partial<Template> | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const confirm = useConfirm();
 
   async function load() {
     try {
@@ -652,7 +895,7 @@ function TemplatesTab() {
         rows={rows}
         onEdit={setEditor}
         onDelete={async (r) => {
-          if (!confirm('Eliminare modello?')) return;
+          if (!(await confirm({ title: 'Eliminare modello?', danger: true, confirmLabel: 'Elimina' }))) return;
           try {
             await api(`/api/v1/leave-quotas/templates/${r.id}`, { method: 'DELETE' });
             await load();

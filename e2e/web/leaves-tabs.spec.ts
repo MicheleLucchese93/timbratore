@@ -6,8 +6,9 @@ test.describe('web — Ferie & Permessi tabs (admin)', () => {
     await expect(page.getByRole('heading', { name: 'Ferie & Permessi' })).toBeVisible({ timeout: 15_000 });
   });
 
-  test('renders all three tabs', async ({ page }) => {
+  test('renders all four tabs', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'Richieste', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Calendario', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Quote', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Modelli', exact: true })).toBeVisible();
   });

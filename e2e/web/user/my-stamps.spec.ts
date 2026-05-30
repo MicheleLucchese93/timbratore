@@ -5,13 +5,10 @@ test.describe('web — Le mie timbrature (employee)', () => {
     await page.goto('/me/stamps');
   });
 
-  test('renders the personal title and helper text', async ({ page }) => {
+  test('renders the personal title', async ({ page }) => {
     await expect(
       page.getByRole('heading', { name: 'Le mie timbrature' }),
     ).toBeVisible({ timeout: 10_000 });
-    await expect(
-      page.getByText('Storico delle tue timbrature. Vedi solo le tue.'),
-    ).toBeVisible();
   });
 
   test('renders a DataGrid (own stamps only)', async ({ page }) => {

@@ -11,7 +11,7 @@ import {
 // Verify the realtime polling pipeline:
 //  1. Admin baseline-polls /api/v1/realtime/since → grabs last_id.
 //  2. test3 (user) creates a stamp via API (admin via stamps router as
-//     test3 can't because disable_desktop_clock_in=true on the test
+//     test3 can't because their stamp_modes has no 'remote' on the test
 //     tenant — use admin endpoint POST /api/v1/admin/stamps to seed).
 //  3. Admin polls again → expect a new event in the response payload.
 const ENABLED = process.env.E2E_MUTATING === '1';

@@ -19,4 +19,10 @@ test.describe('mobile — Profilo screen (employee)', () => {
     // the email-prefix fallback.
     await expect(page.getByText(CREDS.user.displayName)).toBeVisible();
   });
+
+  test('notification settings include the 24h reminder toggle', async ({ page }) => {
+    // The "Promemoria 24h prima" push toggle governs the server-sent
+    // "tomorrow you have ferie" reminder (migration 030 / push_leave_reminders).
+    await expect(page.getByText('Promemoria 24h prima', { exact: true })).toBeVisible({ timeout: 15_000 });
+  });
 });

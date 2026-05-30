@@ -56,7 +56,7 @@ usersRouter.get(
   tenantHandler(async (_req, res, client) => {
     const r = await client.query(
       `SELECT m.id AS membership_id, m.user_id, m.role, m.active, m.created_at,
-              m.disable_desktop_clock_in,
+              m.stamp_modes,
               COALESCE(au.email, m.user_id::text) AS email,
               au.first_name, au.last_name, au.display_name,
               (SELECT MAX(occurred_at) FROM stamps s
@@ -331,7 +331,9 @@ usersRouter.post(
 
 const PatchUser = z.object({
   role: z.enum(['admin', 'user']).optional(),
-  disable_desktop_clock_in: z.boolean().optional(),
+  // Allowed clock-in methods. Empty array = user cannot clock in.
+  // 'wifi' is not yet implemented, so it is rejected here for now.
+  stamp_modes: z.array(z.enum(['gps', 'remote'])).max(2).optional(),
   first_name: NameField.optional(),
   last_name: NameField.optional(),
 });
@@ -373,13 +375,13 @@ usersRouter.patch(
     const r = await client.query(
       `UPDATE memberships
        SET role = COALESCE($2, role),
-           disable_desktop_clock_in = COALESCE($3, disable_desktop_clock_in)
+           stamp_modes = COALESCE($3::text[], stamp_modes)
        WHERE user_id = $1 AND deleted_at IS NULL
        RETURNING *`,
       [
         req.params.id,
         parse.data.role ?? null,
-        parse.data.disable_desktop_clock_in ?? null,
+        parse.data.stamp_modes ?? null,
       ]
     );
     if (r.rowCount === 0) throw new NotFoundError('user');
@@ -587,15 +589,23 @@ const EXPORT_COLUMNS: Array<{ header: string; key: string; width: number }> = [
   { header: 'Cognome', key: 'last_name', width: 22 },
   { header: 'Ruolo', key: 'role', width: 12 },
   { header: 'Stato', key: 'stato', width: 14 },
+  { header: 'Metodi timbratura', key: 'stamp_modes', width: 22 },
   { header: 'Ultima timbratura', key: 'last_stamp_at', width: 22 },
 ];
+
+// Round-trippable with parseStampModes: export labels are re-parsed on import.
+function formatStampModes(modes: string[] | null | undefined): string {
+  const m = modes ?? [];
+  if (m.length === 0) return 'Nessuno';
+  return m.map((x) => (x === 'gps' ? 'GPS' : x === 'remote' ? 'Da remoto' : x)).join(', ');
+}
 
 usersRouter.get(
   '/export.xlsx',
   requireAdmin,
   tenantHandler(async (_req, res, client) => {
     const r = await client.query(
-      `SELECT m.role, m.active,
+      `SELECT m.role, m.active, m.stamp_modes,
               COALESCE(au.email, m.user_id::text) AS email,
               au.first_name, au.last_name,
               (SELECT MAX(occurred_at) FROM stamps s
@@ -616,6 +626,7 @@ usersRouter.get(
         last_name: row.last_name ?? '',
         role: row.role === 'admin' ? 'admin' : 'utente',
         stato: row.active ? 'attivo' : 'disattivato',
+        stamp_modes: formatStampModes(row.stamp_modes),
         last_stamp_at: row.last_stamp_at
           ? new Date(row.last_stamp_at).toISOString()
           : '',
@@ -635,6 +646,8 @@ interface ImportRow {
   first_name?: string | null;
   last_name?: string | null;
   role: 'admin' | 'user';
+  // undefined = column absent or blank → leave membership.stamp_modes unchanged.
+  stamp_modes?: Array<'gps' | 'remote'>;
 }
 
 function normalizeRole(raw: unknown): 'admin' | 'user' | null {
@@ -644,6 +657,22 @@ function normalizeRole(raw: unknown): 'admin' | 'user' | null {
   if (v === 'admin' || v === 'amministratore') return 'admin';
   if (v === 'user' || v === 'utente') return 'user';
   return null;
+}
+
+// Parse the "Metodi timbratura" cell. '' → undefined (leave unchanged);
+// 'nessuno'/'none'/'-' → [] (cannot stamp); else a list of gps/remote.
+// Returns 'invalid' on an unrecognised token.
+function parseStampModes(raw: string): Array<'gps' | 'remote'> | undefined | 'invalid' {
+  const s = raw.trim().toLowerCase();
+  if (s === '') return undefined;
+  if (s === 'nessuno' || s === 'none' || s === '-') return [];
+  const out = new Set<'gps' | 'remote'>();
+  for (const tk of s.split(/[,;/]+/).map((t) => t.trim()).filter(Boolean)) {
+    if (tk === 'gps') out.add('gps');
+    else if (tk === 'remote' || tk === 'remoto' || tk === 'da remoto') out.add('remote');
+    else return 'invalid';
+  }
+  return [...out];
 }
 
 function cellString(cell: ExcelJS.Cell): string {
@@ -688,6 +717,7 @@ async function parseSheet(buf: Buffer): Promise<ImportRow[]> {
   const colNome = idx['nome'];
   const colCognome = idx['cognome'];
   const colRuolo = idx['ruolo'];
+  const colModes = idx['metodi timbratura'] ?? idx['metodi'];
 
   const rows: ImportRow[] = [];
   const errors: Array<{ row: number; message: string }> = [];
@@ -714,12 +744,23 @@ async function parseSheet(buf: Buffer): Promise<ImportRow[]> {
     }
     const first = colNome ? cellString(r.getCell(colNome)) : '';
     const last = colCognome ? cellString(r.getCell(colCognome)) : '';
+    let stampModes: Array<'gps' | 'remote'> | undefined;
+    if (colModes) {
+      const rawModes = cellString(r.getCell(colModes));
+      const parsed = parseStampModes(rawModes);
+      if (parsed === 'invalid') {
+        errors.push({ row: i, message: `Metodi timbratura non validi: "${rawModes}"` });
+        continue;
+      }
+      stampModes = parsed;
+    }
     rows.push({
       rowNumber: i,
       email,
       first_name: first || null,
       last_name: last || null,
       role,
+      stamp_modes: stampModes,
     });
   }
   if (errors.length > 0) {
@@ -756,6 +797,13 @@ usersRouter.post(
       if (outcome.was_active_already) updated += 1;
       else if (outcome.created_user) created += 1;
       else reactivated += 1;
+      if (row.stamp_modes !== undefined) {
+        await client.query(
+          `UPDATE memberships SET stamp_modes = $2::text[]
+            WHERE user_id = $1 AND deleted_at IS NULL`,
+          [outcome.user_id, row.stamp_modes]
+        );
+      }
       await emitAudit(client, 'user.import', outcome.user_id, null, {
         email: row.email,
         role: row.role,

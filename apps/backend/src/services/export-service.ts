@@ -212,21 +212,22 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
       if (breakTotal > cfg.expected_break_max_min) {
         day.worked_minutes = Math.max(0, day.worked_minutes - cfg.tolerance_break_breach_deduct_min);
       }
-      // overtime: surplus past expected_end + threshold, only if flag on
+      // overtime: surplus past expected_end, counted in whole blocks of
+      // extraordinary_threshold_min (a partial block is not counted). Only if
+      // flag on. e.g. block=30, 28 min over → 0; block=15, 28 min over → 15.
       if (cfg.count_extraordinary && day.lastOut) {
-        const cutoff = new Date(expectedEnd.getTime() + cfg.extraordinary_threshold_min * 60_000);
-        if (day.lastOut.getTime() > cutoff.getTime()) {
-          day.overtime_minutes = diffMin(cutoff, day.lastOut);
-        }
+        const overMin = diffMin(expectedEnd, day.lastOut);
+        const block = cfg.extraordinary_threshold_min;
+        day.overtime_minutes = Math.floor(overMin / block) * block;
       }
     }
 
-    // "Ore conteggiate" rounds down to 15-minute blocks: anything below 15 min
-    // counts as 0. Applied to both worked and overtime per day. Mirrors mobile
-    // counted-day.ts.
+    // "Ore conteggiate" rounds worked time down to 15-minute blocks: anything
+    // below 15 min counts as 0. Overtime is already block-aligned by the
+    // extraordinary_threshold_min step above, so no extra rounding here.
+    // Mirrors mobile counted-day.ts.
     for (const day of days.values()) {
       day.worked_minutes = Math.floor(Math.max(0, day.worked_minutes) / 15) * 15;
-      day.overtime_minutes = Math.floor(Math.max(0, day.overtime_minutes) / 15) * 15;
     }
 
     const dayList = [...days.values()]
@@ -412,6 +413,291 @@ function sum(a: number[]): number {
   return a.reduce((acc, v) => acc + v, 0);
 }
 
+/* ─────────────────────── Payroll detail: labels + loaders ─────────────────────── */
+
+const EVENT_LABEL: Record<string, string> = {
+  clock_in: 'Entrata',
+  clock_out: 'Uscita',
+  break_start: 'Inizio pausa',
+  break_end: 'Fine pausa',
+  lunch_start: 'Inizio pranzo',
+  lunch_end: 'Fine pranzo',
+};
+const SOURCE_LABEL: Record<string, string> = {
+  employee_app: 'App dipendente',
+  employee_correction: 'Correzione',
+  admin_manual: 'Manuale (admin)',
+};
+const LEAVE_TYPE_LABEL: Record<string, string> = {
+  ferie: 'Ferie',
+  permessi: 'Permessi',
+  malattia: 'Malattia',
+  assenza: 'Assenza',
+  chiusura: 'Chiusura aziendale',
+};
+const LEAVE_STATUS_LABEL: Record<string, string> = {
+  pending: 'In attesa',
+  approved: 'Approvata',
+  rejected: 'Rifiutata',
+  cancelled: 'Annullata',
+  cancellation_pending: 'Annullamento in attesa',
+  cancelled_post_approval: 'Annullata (post-approvazione)',
+  superseded_by_malattia: 'Sostituita da malattia',
+};
+const CORRECTION_STATUS_LABEL: Record<string, string> = {
+  pending: 'In attesa',
+  approved: 'Approvata',
+  rejected: 'Rifiutata',
+  superseded: 'Sostituita',
+};
+
+const ROME_TZ = 'Europe/Rome';
+
+function fmtRome(d: Date | string | null | undefined, withTime = true): string {
+  if (!d) return '';
+  const date = typeof d === 'string' ? new Date(d) : d;
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('it-IT', {
+    timeZone: ROME_TZ,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+  }).format(date);
+}
+
+function boolLabel(v: boolean | null | undefined): string {
+  if (v === null || v === undefined) return '';
+  return v ? 'Sì' : 'No';
+}
+
+interface UserMeta {
+  name: string;
+  email: string;
+}
+
+async function loadUserMeta(job: ExportJobRow): Promise<Map<string, UserMeta>> {
+  const r = await adminPool.query(
+    `SELECT m.user_id,
+            COALESCE(au.email, m.user_id::text) AS email,
+            COALESCE(
+              NULLIF(au.display_name, ''),
+              NULLIF(trim(COALESCE(au.first_name, '') || ' ' || COALESCE(au.last_name, '')), ''),
+              au.email,
+              m.user_id::text
+            ) AS name
+       FROM memberships m
+       LEFT JOIN auth_users au ON au.id = m.user_id
+      WHERE m.tenant_id = $1`,
+    [job.tenant_id]
+  );
+  const map = new Map<string, UserMeta>();
+  for (const row of r.rows) map.set(row.user_id, { name: row.name, email: row.email });
+  return map;
+}
+
+function metaName(meta: Map<string, UserMeta>, userId: string, fallback?: string): string {
+  return meta.get(userId)?.name ?? fallback ?? userId;
+}
+function metaEmail(meta: Map<string, UserMeta>, userId: string, fallback?: string): string {
+  return meta.get(userId)?.email ?? fallback ?? userId;
+}
+
+async function loadBranchMeta(job: ExportJobRow): Promise<Map<string, string>> {
+  const r = await adminPool.query(`SELECT id, name FROM branches WHERE tenant_id = $1`, [
+    job.tenant_id,
+  ]);
+  const map = new Map<string, string>();
+  for (const row of r.rows) map.set(row.id, row.name);
+  return map;
+}
+
+interface StampDetailRow {
+  user_id: string;
+  event_type: string;
+  occurred_at: Date;
+  source: string;
+  branch_id: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  gps_accuracy_m: number | null;
+  device_platform: string | null;
+  device_app_version: string | null;
+  suspicious_mock_location: boolean;
+  notes: string | null;
+}
+
+async function loadStampsDetail(job: ExportJobRow): Promise<StampDetailRow[]> {
+  const r = await adminPool.query(
+    `SELECT user_id, event_type, occurred_at, source, branch_id,
+            latitude, longitude, gps_accuracy_m,
+            device_platform, device_app_version, suspicious_mock_location, notes
+       FROM stamps
+      WHERE tenant_id = $1
+        AND deleted_at IS NULL
+        AND occurred_at >= $2::date
+        AND occurred_at < ($3::date + INTERVAL '1 day')
+      ORDER BY user_id, occurred_at`,
+    [job.tenant_id, job.period_from, job.period_to]
+  );
+  return r.rows as StampDetailRow[];
+}
+
+interface CorrectionRow {
+  user_id: string;
+  claimed_event_type: string;
+  claimed_occurred_at: Date;
+  claimed_branch_id: string | null;
+  justification: string;
+  status: string;
+  resolved_by: string | null;
+  resolved_at: Date | null;
+  resolution_note: string | null;
+  created_at: Date;
+}
+
+async function loadCorrections(job: ExportJobRow): Promise<CorrectionRow[]> {
+  // Corrections about stamps that fall inside the payroll period.
+  const r = await adminPool.query(
+    `SELECT user_id, claimed_event_type, claimed_occurred_at, claimed_branch_id,
+            justification, status, resolved_by, resolved_at, resolution_note, created_at
+       FROM correction_requests
+      WHERE tenant_id = $1
+        AND claimed_occurred_at >= $2::date
+        AND claimed_occurred_at < ($3::date + INTERVAL '1 day')
+      ORDER BY user_id, claimed_occurred_at`,
+    [job.tenant_id, job.period_from, job.period_to]
+  );
+  return r.rows as CorrectionRow[];
+}
+
+interface LeaveDetailRow {
+  user_id: string;
+  type: string;
+  status: string;
+  from_ts: Date;
+  to_ts: Date;
+  duration_hours: string;
+  inps_protocol: string | null;
+  assenza_subtype: string | null;
+  is_paid: boolean | null;
+  user_note: string | null;
+  decided_by: string | null;
+  decided_at: Date | null;
+  rejection_reason: string | null;
+}
+
+async function loadLeaveDetail(job: ExportJobRow): Promise<LeaveDetailRow[]> {
+  // Individual leave events overlapping the period. Company-wide closures
+  // (chiusura) go to the dedicated "Eventi aziendali" sheet instead.
+  const r = await adminPool.query(
+    `SELECT user_id, type, status, from_ts, to_ts, duration_hours,
+            inps_protocol, assenza_subtype, is_paid, user_note,
+            decided_by, decided_at, rejection_reason
+       FROM leave_requests
+      WHERE tenant_id = $1
+        AND type IN ('ferie','permessi','malattia','assenza')
+        AND to_ts > $2::date
+        AND from_ts < ($3::date + INTERVAL '1 day')
+      ORDER BY user_id, from_ts`,
+    [job.tenant_id, job.period_from, job.period_to]
+  );
+  return r.rows as LeaveDetailRow[];
+}
+
+interface EventRow {
+  title: string | null;
+  type: string;
+  from_ts: Date;
+  to_ts: Date;
+  users_count: string;
+  total_hours: string;
+}
+
+async function loadEventi(job: ExportJobRow): Promise<EventRow[]> {
+  // Admin-pushed events: company closures + any batch the admin created.
+  // Grouped by batch (one logical event = many per-user rows).
+  const r = await adminPool.query(
+    `SELECT MIN(title) AS title,
+            MIN(type) AS type,
+            MIN(from_ts) AS from_ts,
+            MAX(to_ts) AS to_ts,
+            COUNT(*) AS users_count,
+            SUM(duration_hours) AS total_hours
+       FROM leave_requests
+      WHERE tenant_id = $1
+        AND (type = 'chiusura' OR created_by_admin = true)
+        AND to_ts > $2::date
+        AND from_ts < ($3::date + INTERVAL '1 day')
+      GROUP BY COALESCE(batch_id::text, id::text)
+      ORDER BY MIN(from_ts)`,
+    [job.tenant_id, job.period_from, job.period_to]
+  );
+  return r.rows as EventRow[];
+}
+
+interface ResidueRow {
+  type: 'ferie' | 'permessi';
+  initial: number;
+  accrued: number;
+  used: number;
+  residual: number;
+}
+
+async function loadResidue(job: ExportJobRow): Promise<Map<string, ResidueRow[]>> {
+  // Mirrors getQuotaSummary (lib/leave-quota.ts): residual = initial_balance
+  // + Σ accruals − Σ approved leave of the same type. Point-in-time (all-time
+  // totals), matching the residue shown in the app's Ferie & Permessi page.
+  const r = await adminPool.query(
+    `SELECT a.user_id,
+            a.type,
+            a.initial_balance::float8 AS initial,
+            COALESCE((SELECT SUM(ac.hours)::float8 FROM leave_accruals ac
+                       WHERE ac.assignment_id = a.id), 0) AS accrued,
+            COALESCE((SELECT SUM(lr.duration_hours)::float8 FROM leave_requests lr
+                       WHERE lr.user_id = a.user_id
+                         AND lr.type = a.type
+                         AND lr.status = 'approved'), 0) AS used
+       FROM leave_quota_assignments a
+      WHERE a.tenant_id = $1
+        AND a.ended_on IS NULL`,
+    [job.tenant_id]
+  );
+  const map = new Map<string, ResidueRow[]>();
+  for (const row of r.rows) {
+    const initial = Number(row.initial);
+    const accrued = Number(row.accrued);
+    const used = Number(row.used);
+    const list = map.get(row.user_id) ?? [];
+    list.push({ type: row.type, initial, accrued, used, residual: initial + accrued - used });
+    map.set(row.user_id, list);
+  }
+  return map;
+}
+
+function residualOf(rows: ResidueRow[] | undefined, type: 'ferie' | 'permessi'): number | null {
+  const row = rows?.find((r) => r.type === type);
+  return row ? row.residual : null;
+}
+
+/** Bold + freeze the header row and enable an auto-filter across all columns. */
+function styleHeader(ws: ExcelJS.Worksheet): void {
+  const header = ws.getRow(1);
+  header.font = { bold: true };
+  header.alignment = { vertical: 'middle' };
+  ws.views = [{ state: 'frozen', ySplit: 1 }];
+  if (ws.columnCount > 0) {
+    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: ws.columnCount } };
+  }
+}
+
+function setHourFormat(ws: ExcelJS.Worksheet, keys: string[]): void {
+  for (const k of keys) {
+    const col = ws.getColumn(k);
+    if (col) col.numFmt = '0.00';
+  }
+}
+
 async function writeJson(job: ExportJobRow, data: UserAgg[]): Promise<ExportResult> {
   const body = {
     schema_version: 'v1',
@@ -426,10 +712,26 @@ async function writeJson(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
 }
 
 async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResult> {
+  // Load all payroll detail in parallel — each is a single tenant-scoped query.
+  const [userMeta, branchMeta, residueByUser, stamps, corrections, leaves, eventi] =
+    await Promise.all([
+      loadUserMeta(job),
+      loadBranchMeta(job),
+      loadResidue(job),
+      loadStampsDetail(job),
+      loadCorrections(job),
+      loadLeaveDetail(job),
+      loadEventi(job),
+    ]);
+
   const wb = new ExcelJS.Workbook();
+  wb.creator = 'sonoQui';
+
+  /* 1. Riepilogo — one row per employee, totals + residual balances. */
   const riep = wb.addWorksheet('Riepilogo');
   riep.columns = [
-    { header: 'Utente', key: 'email', width: 30 },
+    { header: 'Dipendente', key: 'name', width: 26 },
+    { header: 'Email', key: 'email', width: 28 },
     { header: 'Ore lavorate', key: 'worked', width: 14 },
     { header: 'Ore straordinarie', key: 'overtime', width: 18 },
     { header: 'Pausa retribuita', key: 'paid', width: 18 },
@@ -437,11 +739,15 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
     { header: 'Ore ferie', key: 'ferie', width: 12 },
     { header: 'Ore permessi', key: 'permessi', width: 14 },
     { header: 'Ore malattia', key: 'malattia', width: 14 },
-    { header: 'Giorni lavorati', key: 'days', width: 18 },
+    { header: 'Giorni lavorati', key: 'days', width: 16 },
+    { header: 'Residuo ferie (h)', key: 'res_ferie', width: 18 },
+    { header: 'Residuo permessi (h)', key: 'res_permessi', width: 20 },
   ];
   for (const u of data) {
+    const res = residueByUser.get(u.user_id);
     riep.addRow({
-      email: u.email,
+      name: metaName(userMeta, u.user_id, u.email),
+      email: metaEmail(userMeta, u.user_id, u.email),
       worked: u.worked_minutes_total / 60,
       overtime: u.overtime_minutes_total / 60,
       paid: u.paid_break_minutes_total / 60,
@@ -450,18 +756,31 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
       permessi: u.permessi_minutes_total / 60,
       malattia: u.malattia_minutes_total / 60,
       days: u.worked_days,
+      res_ferie: residualOf(res, 'ferie'),
+      res_permessi: residualOf(res, 'permessi'),
     });
   }
+  setHourFormat(riep, [
+    'worked', 'overtime', 'paid', 'unpaid', 'ferie', 'permessi', 'malattia',
+    'res_ferie', 'res_permessi',
+  ]);
+  styleHeader(riep);
 
-  const usedNames = new Set<string>();
+  /* 2. One sheet per employee — daily breakdown. */
+  const RESERVED = [
+    'riepilogo', 'timbrature', 'correzioni', 'ferie e permessi',
+    'eventi aziendali', 'ferie residue', 'metadati',
+  ];
+  const usedNames = new Set<string>(RESERVED);
   for (const u of data) {
-    let name = u.email.replace(/[\\/?*\[\]:]/g, '_').slice(0, 28);
-    let candidate = name;
+    const label = metaName(userMeta, u.user_id, u.email);
+    const base = (label.replace(/[\\/?*\[\]:]/g, '_').slice(0, 28) || 'Utente');
+    let candidate = base;
     let i = 2;
-    while (usedNames.has(candidate)) {
-      candidate = `${name}_${i++}`.slice(0, 31);
+    while (usedNames.has(candidate.toLowerCase())) {
+      candidate = `${base}_${i++}`.slice(0, 31);
     }
-    usedNames.add(candidate);
+    usedNames.add(candidate.toLowerCase());
     const ws = wb.addWorksheet(candidate);
     ws.columns = [
       { header: 'Giorno', key: 'day', width: 14 },
@@ -487,14 +806,179 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
         unpaid: d.unpaid_break_minutes,
       });
     }
+    setHourFormat(ws, ['worked', 'overtime', 'ferie', 'permessi', 'malattia']);
+    styleHeader(ws);
   }
 
+  /* 3. Timbrature — raw stamp detail (audit trail). */
+  const tb = wb.addWorksheet('Timbrature');
+  tb.columns = [
+    { header: 'Dipendente', key: 'name', width: 24 },
+    { header: 'Data e ora', key: 'when', width: 18 },
+    { header: 'Evento', key: 'event', width: 14 },
+    { header: 'Origine', key: 'source', width: 18 },
+    { header: 'Sede', key: 'branch', width: 20 },
+    { header: 'Lat', key: 'lat', width: 12 },
+    { header: 'Lon', key: 'lon', width: 12 },
+    { header: 'Accuratezza GPS (m)', key: 'acc', width: 18 },
+    { header: 'Dispositivo', key: 'device', width: 14 },
+    { header: 'Versione app', key: 'appv', width: 14 },
+    { header: 'Pos. sospetta', key: 'mock', width: 14 },
+    { header: 'Note', key: 'notes', width: 30 },
+  ];
+  for (const s of stamps) {
+    tb.addRow({
+      name: metaName(userMeta, s.user_id),
+      when: fmtRome(s.occurred_at),
+      event: EVENT_LABEL[s.event_type] ?? s.event_type,
+      source: SOURCE_LABEL[s.source] ?? s.source,
+      branch: s.branch_id ? branchMeta.get(s.branch_id) ?? '' : '',
+      lat: s.latitude ?? '',
+      lon: s.longitude ?? '',
+      acc: s.gps_accuracy_m ?? '',
+      device: s.device_platform ?? '',
+      appv: s.device_app_version ?? '',
+      mock: s.suspicious_mock_location ? 'Sì' : '',
+      notes: s.notes ?? '',
+    });
+  }
+  styleHeader(tb);
+
+  /* 4. Correzioni — correction requests touching this period. */
+  const co = wb.addWorksheet('Correzioni');
+  co.columns = [
+    { header: 'Dipendente', key: 'name', width: 24 },
+    { header: 'Evento richiesto', key: 'event', width: 16 },
+    { header: 'Data/ora richiesta', key: 'when', width: 18 },
+    { header: 'Sede', key: 'branch', width: 20 },
+    { header: 'Giustificazione', key: 'just', width: 36 },
+    { header: 'Stato', key: 'status', width: 14 },
+    { header: 'Risolta da', key: 'by', width: 24 },
+    { header: 'Risolta il', key: 'at', width: 18 },
+    { header: 'Nota risoluzione', key: 'note', width: 30 },
+    { header: 'Inviata il', key: 'created', width: 18 },
+  ];
+  for (const c of corrections) {
+    co.addRow({
+      name: metaName(userMeta, c.user_id),
+      event: EVENT_LABEL[c.claimed_event_type] ?? c.claimed_event_type,
+      when: fmtRome(c.claimed_occurred_at),
+      branch: c.claimed_branch_id ? branchMeta.get(c.claimed_branch_id) ?? '' : '',
+      just: c.justification,
+      status: CORRECTION_STATUS_LABEL[c.status] ?? c.status,
+      by: c.resolved_by ? metaName(userMeta, c.resolved_by, c.resolved_by) : '',
+      at: fmtRome(c.resolved_at),
+      note: c.resolution_note ?? '',
+      created: fmtRome(c.created_at),
+    });
+  }
+  styleHeader(co);
+
+  /* 5. Ferie e Permessi — individual leave events (ferie/permessi/malattia/assenza). */
+  const fp = wb.addWorksheet('Ferie e Permessi');
+  fp.columns = [
+    { header: 'Dipendente', key: 'name', width: 24 },
+    { header: 'Tipo', key: 'type', width: 14 },
+    { header: 'Stato', key: 'status', width: 18 },
+    { header: 'Dal', key: 'from', width: 18 },
+    { header: 'Al', key: 'to', width: 18 },
+    { header: 'Ore', key: 'hours', width: 10 },
+    { header: 'Retribuito', key: 'paid', width: 12 },
+    { header: 'Sottotipo assenza', key: 'subtype', width: 18 },
+    { header: 'Protocollo INPS', key: 'inps', width: 18 },
+    { header: 'Nota dipendente', key: 'note', width: 30 },
+    { header: 'Deciso da', key: 'by', width: 24 },
+    { header: 'Deciso il', key: 'at', width: 18 },
+    { header: 'Motivo rifiuto', key: 'reject', width: 28 },
+  ];
+  for (const l of leaves) {
+    fp.addRow({
+      name: metaName(userMeta, l.user_id),
+      type: LEAVE_TYPE_LABEL[l.type] ?? l.type,
+      status: LEAVE_STATUS_LABEL[l.status] ?? l.status,
+      from: fmtRome(l.from_ts),
+      to: fmtRome(l.to_ts),
+      hours: Number(l.duration_hours),
+      paid: l.type === 'assenza' ? boolLabel(l.is_paid) : '',
+      subtype: l.assenza_subtype ?? '',
+      inps: l.inps_protocol ?? '',
+      note: l.user_note ?? '',
+      by: l.decided_by ? metaName(userMeta, l.decided_by, l.decided_by) : '',
+      at: fmtRome(l.decided_at),
+      reject: l.rejection_reason ?? '',
+    });
+  }
+  setHourFormat(fp, ['hours']);
+  styleHeader(fp);
+
+  /* 6. Eventi aziendali — admin-pushed batches / company closures. */
+  const ev = wb.addWorksheet('Eventi aziendali');
+  ev.columns = [
+    { header: 'Titolo', key: 'title', width: 32 },
+    { header: 'Tipo', key: 'type', width: 18 },
+    { header: 'Dal', key: 'from', width: 18 },
+    { header: 'Al', key: 'to', width: 18 },
+    { header: 'Dipendenti coinvolti', key: 'users', width: 20 },
+    { header: 'Ore totali', key: 'hours', width: 12 },
+  ];
+  for (const e of eventi) {
+    ev.addRow({
+      title: e.title ?? '(senza titolo)',
+      type: LEAVE_TYPE_LABEL[e.type] ?? e.type,
+      from: fmtRome(e.from_ts),
+      to: fmtRome(e.to_ts),
+      users: Number(e.users_count),
+      hours: Number(e.total_hours),
+    });
+  }
+  setHourFormat(ev, ['hours']);
+  styleHeader(ev);
+
+  /* 7. Ferie residue — quota balance per employee/type (point-in-time). */
+  const rs = wb.addWorksheet('Ferie residue');
+  rs.columns = [
+    { header: 'Dipendente', key: 'name', width: 26 },
+    { header: 'Tipo', key: 'type', width: 14 },
+    { header: 'Saldo iniziale (h)', key: 'initial', width: 18 },
+    { header: 'Maturato (h)', key: 'accrued', width: 14 },
+    { header: 'Usato approvato (h)', key: 'used', width: 20 },
+    { header: 'Residuo (h)', key: 'residual', width: 14 },
+  ];
+  const residueIds = [...residueByUser.keys()].sort((a, b) =>
+    metaName(userMeta, a).localeCompare(metaName(userMeta, b))
+  );
+  for (const uid of residueIds) {
+    for (const r of residueByUser.get(uid)!) {
+      rs.addRow({
+        name: metaName(userMeta, uid),
+        type: LEAVE_TYPE_LABEL[r.type] ?? r.type,
+        initial: r.initial,
+        accrued: r.accrued,
+        used: r.used,
+        residual: r.residual,
+      });
+    }
+  }
+  setHourFormat(rs, ['initial', 'accrued', 'used', 'residual']);
+  styleHeader(rs);
+
+  /* 8. Metadati — provenance + counts. */
   const meta = wb.addWorksheet('Metadati');
-  meta.addRow(['tenant_id', job.tenant_id]);
-  meta.addRow(['period_from', job.period_from]);
-  meta.addRow(['period_to', job.period_to]);
-  meta.addRow(['generated_at', new Date().toISOString()]);
-  meta.addRow(['schema_version', 'v1']);
+  meta.columns = [
+    { header: 'Campo', key: 'k', width: 24 },
+    { header: 'Valore', key: 'v', width: 46 },
+  ];
+  meta.addRow({ k: 'tenant_id', v: job.tenant_id });
+  meta.addRow({ k: 'period_from', v: job.period_from });
+  meta.addRow({ k: 'period_to', v: job.period_to });
+  meta.addRow({ k: 'generated_at', v: new Date().toISOString() });
+  meta.addRow({ k: 'schema_version', v: 'v2' });
+  meta.addRow({ k: 'Dipendenti', v: data.length });
+  meta.addRow({ k: 'Timbrature', v: stamps.length });
+  meta.addRow({ k: 'Correzioni', v: corrections.length });
+  meta.addRow({ k: 'Ferie / permessi / assenze', v: leaves.length });
+  meta.addRow({ k: 'Eventi aziendali', v: eventi.length });
+  styleHeader(meta);
 
   const buf = (await wb.xlsx.writeBuffer()) as ArrayBuffer;
   const key = `tenants/${job.tenant_id}/exports/${job.id}.xlsx`;
@@ -517,6 +1001,15 @@ export async function readExportFile(storageKey: string): Promise<Buffer> {
   if (env.STORAGE_DRIVER === 'disk') {
     const fs = await import('node:fs/promises');
     return await fs.readFile(join(env.STORAGE_DISK_PATH, storageKey));
+  }
+  throw new Error('R2 driver not implemented in this scaffold');
+}
+
+export async function deleteExportFile(storageKey: string): Promise<void> {
+  if (env.STORAGE_DRIVER === 'disk') {
+    const fs = await import('node:fs/promises');
+    await fs.rm(join(env.STORAGE_DISK_PATH, storageKey), { force: true });
+    return;
   }
   throw new Error('R2 driver not implemented in this scaffold');
 }

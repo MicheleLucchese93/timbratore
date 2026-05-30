@@ -57,11 +57,8 @@ export function Corrections() {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="page-title">Correzioni</h1>
-          <p className="muted text-sm mt-0.5">Richieste dei dipendenti da approvare o rifiutare.</p>
-        </div>
+      <header className="flex items-center justify-end gap-4 flex-wrap">
+        <h1 className="sr-only">Correzioni</h1>
         <select
           className="input max-w-xs"
           value={filter}

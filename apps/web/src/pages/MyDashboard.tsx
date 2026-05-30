@@ -46,10 +46,7 @@ export function MyDashboard() {
 
   return (
     <div className="space-y-5">
-      <header>
-        <h1 className="page-title">Ciao, {me.user.email.split('@')[0]}</h1>
-        <p className="muted text-sm mt-0.5">Il tuo stato attuale e le ultime timbrature.</p>
-      </header>
+      <h1 className="sr-only">Ciao, {me.user.email.split('@')[0]}</h1>
 
       <section className="card flex items-center justify-between gap-3 flex-wrap">
         <div>

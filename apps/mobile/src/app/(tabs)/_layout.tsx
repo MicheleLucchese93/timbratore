@@ -14,9 +14,10 @@ export default function TabsLayout() {
     );
   }
   if (!me) return <Redirect href="/" />;
+  const canStamp = (me.user.stamp_modes ?? []).length > 0;
   return (
     <Tabs
-      initialRouteName="timbrature"
+      initialRouteName={canStamp ? 'timbrature' : 'storico'}
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="timbrature" options={{ title: 'Timbrature' }} />

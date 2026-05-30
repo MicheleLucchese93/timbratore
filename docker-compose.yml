@@ -17,6 +17,11 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+    # Persistent disk for generated export files (XLSX/JSON). Mount point is
+    # created node:node in the image so the empty volume is writable by the
+    # unprivileged runtime user. STORAGE_DISK_PATH=/data is baked in the image.
+    volumes:
+      - sonoqui_export_data:/data
     networks:
       - default
       - gateway
@@ -151,6 +156,9 @@ services:
         limits:
           memory: 64M
           cpus: '0.10'
+
+volumes:
+  sonoqui_export_data:
 
 networks:
   gateway:

@@ -32,7 +32,17 @@ interface MePrefs {
   language: 'it' | 'en';
   email_notifications_enabled: boolean;
   push_token_registered: boolean;
+  notification_preferences?: Record<string, boolean>;
 }
+
+// Per-category email toggles, mirroring the push split (migration 030).
+const EMAIL_PREFS: Array<{ key: string; label: string }> = [
+  { key: 'email_leave_decisions', label: 'Esiti delle mie richieste (ferie, permessi, assenze)' },
+  { key: 'email_leave_submissions', label: 'Nuove richieste di ferie/permessi da approvare' },
+  { key: 'email_correction_decisions', label: 'Esiti delle mie correzioni timbratura' },
+  { key: 'email_correction_submissions', label: 'Nuove correzioni timbratura da approvare' },
+  { key: 'email_leave_reminders', label: 'Promemoria 24h prima di un’assenza' },
+];
 
 interface MeResponse {
   preferences?: MePrefs;
@@ -56,21 +66,21 @@ export function Settings() {
     load().catch((e) => setToast({ kind: 'err', text: e.message }));
   }, []);
 
-  async function saveEmailPref(next: boolean) {
+  async function saveNotifPref(key: string, next: boolean) {
     if (!prefs) return;
-    const prev = prefs.email_notifications_enabled;
-    setPrefs({ ...prefs, email_notifications_enabled: next });
+    const np = { ...(prefs.notification_preferences ?? {}) };
+    const prev = np[key];
+    setPrefs({ ...prefs, notification_preferences: { ...np, [key]: next } });
     try {
       await api('/api/v1/me', {
         method: 'PATCH',
-        json: { email_notifications_enabled: next },
+        json: { notification_preferences: { [key]: next } },
       });
-      setToast({
-        kind: 'ok',
-        text: next ? 'Notifiche email attivate.' : 'Notifiche email disattivate.',
-      });
+      setToast({ kind: 'ok', text: 'Preferenza salvata.' });
     } catch (e) {
-      setPrefs((cur) => (cur ? { ...cur, email_notifications_enabled: prev } : cur));
+      setPrefs((cur) =>
+        cur ? { ...cur, notification_preferences: { ...cur.notification_preferences, [key]: !!prev } } : cur
+      );
       setToast({ kind: 'err', text: e instanceof Error ? e.message : 'Errore' });
     }
   }
@@ -123,12 +133,7 @@ export function Settings() {
 
   return (
     <form onSubmit={onFormSubmit} className="max-w-5xl">
-      <header className="mb-2">
-        <h1 className="page-title">Impostazioni</h1>
-        <p className="muted text-sm mt-1">Configurazione globale dell'azienda. Le modifiche si applicano a tutti gli utenti.</p>
-      </header>
-
-      <div className="hairline my-6" />
+      <h1 className="sr-only">Impostazioni</h1>
 
       <SettingsRow
         icon={<IconBuilding />}
@@ -191,40 +196,30 @@ export function Settings() {
 
       <SettingsRow
         icon={<IconBell />}
-        title="Notifiche personali"
-        description="Le notifiche push sono sempre attive se hai installato l'app mobile. L'email è disattivata di default — accendila se vuoi ricevere anche le notifiche via posta elettronica."
+        title="Notifiche email"
+        description="Le notifiche push sull'app mobile sono sempre attive (gestibili dall'app). Qui scegli, per categoria, quali notifiche ricevere anche via email. Disattivate di default."
       >
-        <div className="flex items-center justify-between gap-4">
-          <div className="text-sm" style={{ flex: 1 }}>
-            Invia notifiche via email per correzioni, ferie, permessi e malattia
-          </div>
-          <label
-            className="switch"
-            title={
-              prefs?.email_notifications_enabled
-                ? 'Email attive — clicca per disattivare'
-                : 'Email disattivate — clicca per attivare'
-            }
-          >
-            <input
-              type="checkbox"
-              checked={prefs?.email_notifications_enabled ?? false}
-              disabled={!prefs}
-              onChange={(e) => void saveEmailPref(e.target.checked)}
-            />
-            <span className="switch-track">
-              <span className="switch-thumb" />
-            </span>
-          </label>
+        <div className="space-y-2.5">
+          {EMAIL_PREFS.map((p) => {
+            const on = prefs?.notification_preferences?.[p.key] ?? false;
+            return (
+              <div key={p.key} className="flex items-center justify-between gap-4">
+                <div className="text-sm" style={{ flex: 1 }}>{p.label}</div>
+                <label className="switch" title={on ? 'Attiva — clicca per disattivare' : 'Disattivata — clicca per attivare'}>
+                  <input
+                    type="checkbox"
+                    checked={on}
+                    disabled={!prefs}
+                    onChange={(e) => void saveNotifPref(p.key, e.target.checked)}
+                  />
+                  <span className="switch-track">
+                    <span className="switch-thumb" />
+                  </span>
+                </label>
+              </div>
+            );
+          })}
         </div>
-        {prefs && (
-          <p className="field-hint">
-            Push:{' '}
-            {prefs.push_token_registered
-              ? 'dispositivo mobile registrato'
-              : 'nessun dispositivo mobile registrato (apri l\'app per attivarlo)'}.
-          </p>
-        )}
       </SettingsRow>
 
       {toast && (

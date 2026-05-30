@@ -221,11 +221,8 @@ export function Dashboard() {
   return (
     <div className="space-y-6">
       <header className="page-header">
-        <div className="page-header-title">
-          <h1>Dashboard</h1>
-          <p>Stato in tempo reale, richieste in coda e anomalie della settimana.</p>
-        </div>
-        <div className="page-header-actions">
+        <h1 className="sr-only">Dashboard</h1>
+        <div className="page-header-actions ml-auto">
           <button className="btn btn-secondary" onClick={load}>
             <IconRefresh /> Aggiorna
           </button>

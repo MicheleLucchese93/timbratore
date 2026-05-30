@@ -6,6 +6,7 @@ import { cleanupExpiredIdempotency } from './jobs/cleanup-idempotency.js';
 import { forgottenClockoutReminder } from './jobs/forgotten-clockout.js';
 import { retentionEnforcement } from './jobs/retention-enforcement.js';
 import { leaveDailyAccrual } from './jobs/leave-daily-accrual.js';
+import { leaveReminder } from './jobs/leave-reminder.js';
 
 const logger = createLogger('scheduler');
 
@@ -59,6 +60,14 @@ class SchedulerService {
       cron.schedule(
         '30 0 * * *',
         () => safeRun('leave_daily_accrual', leaveDailyAccrual),
+        { timezone: 'Europe/Rome' }
+      )
+    );
+    // Daily at 18:00 Europe/Rome — remind users of leaves starting tomorrow.
+    this.jobs.push(
+      cron.schedule(
+        '0 18 * * *',
+        () => safeRun('leave_reminder', leaveReminder),
         { timezone: 'Europe/Rome' }
       )
     );

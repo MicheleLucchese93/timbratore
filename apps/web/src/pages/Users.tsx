@@ -11,7 +11,7 @@ interface UserRow {
   email: string;
   role: 'admin' | 'user';
   active: boolean;
-  disable_desktop_clock_in: boolean;
+  stamp_modes: Array<'gps' | 'remote'>;
   created_at: string;
   last_stamp_at: string | null;
   branch_ids: string[];
@@ -69,6 +69,7 @@ export function Users() {
   const [confirmDelete, setConfirmDelete] = useState<UserRow | null>(null);
   const [branchEditor, setBranchEditor] = useState<UserRow | null>(null);
   const [userEditor, setUserEditor] = useState<UserRow | null>(null);
+  const [modesEditor, setModesEditor] = useState<UserRow | null>(null);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: 'include',
     ids: new Set<string>(),
@@ -191,20 +192,20 @@ export function Users() {
     }
   }
 
-  async function setWebDisabled(u: UserRow, disable_desktop_clock_in: boolean) {
-    const prev = u.disable_desktop_clock_in;
+  async function saveModes(u: UserRow, stamp_modes: Array<'gps' | 'remote'>) {
+    const prev = u.stamp_modes;
     setList((cur) =>
-      cur.map((row) => (row.user_id === u.user_id ? { ...row, disable_desktop_clock_in } : row))
+      cur.map((row) => (row.user_id === u.user_id ? { ...row, stamp_modes } : row))
     );
     try {
       await api(`/api/v1/users/${u.user_id}`, {
         method: 'PATCH',
-        json: { disable_desktop_clock_in },
+        json: { stamp_modes },
       });
     } catch (e) {
       setList((cur) =>
         cur.map((row) =>
-          row.user_id === u.user_id ? { ...row, disable_desktop_clock_in: prev } : row
+          row.user_id === u.user_id ? { ...row, stamp_modes: prev } : row
         )
       );
       setErr(e instanceof Error ? e.message : 'errore');
@@ -283,11 +284,8 @@ export function Users() {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="page-title">Utenti</h1>
-          <p className="muted text-sm mt-0.5">Gestisci ruoli, sedi e attivazione.</p>
-        </div>
+      <header className="flex items-center justify-end gap-4 flex-wrap">
+        <h1 className="sr-only">Utenti</h1>
         <div className="flex items-center gap-2 flex-wrap">
           <input
             ref={fileRef}
@@ -393,7 +391,7 @@ export function Users() {
           rowSelection={rowSelection}
           onRowSelectionChange={setRowSelection}
           onSetRole={setRole}
-          onSetWebDisabled={setWebDisabled}
+          onEditModes={setModesEditor}
           onEditBranches={setBranchEditor}
           onEditShift={setShiftEditor}
           onEditApprovers={(user, kind) => setApproverEditor({ user, kind })}
@@ -507,6 +505,18 @@ export function Users() {
             const target = userEditor;
             setUserEditor(null);
             await saveUser(target, patch);
+          }}
+        />
+      )}
+
+      {modesEditor && (
+        <ModesEditor
+          user={modesEditor}
+          onClose={() => setModesEditor(null)}
+          onSave={async (modes) => {
+            const target = modesEditor;
+            setModesEditor(null);
+            await saveModes(target, modes);
           }}
         />
       )}
@@ -921,6 +931,86 @@ function BulkBranchesDialog({
   );
 }
 
+function ModesEditor({
+  user,
+  onClose,
+  onSave,
+}: {
+  user: UserRow;
+  onClose: () => void;
+  onSave: (modes: Array<'gps' | 'remote'>) => Promise<void> | void;
+}) {
+  const [gps, setGps] = useState(user.stamp_modes?.includes('gps') ?? false);
+  const [remote, setRemote] = useState(user.stamp_modes?.includes('remote') ?? false);
+  const [busy, setBusy] = useState(false);
+
+  const modes: Array<'gps' | 'remote'> = [
+    ...(gps ? (['gps'] as const) : []),
+    ...(remote ? (['remote'] as const) : []),
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
+      <div className="card w-full max-w-md space-y-3">
+        <h2 className="section-title">
+          Metodi di timbratura di {user.display_name || user.email}
+        </h2>
+        <p className="text-xs muted">
+          Scegli con quali metodi l'utente può timbrare. Nessun metodo selezionato = l'utente non
+          può timbrare.
+        </p>
+        <ul className="space-y-2" style={{ paddingLeft: 0, listStyle: 'none' }}>
+          <li>
+            <label className="flex items-start gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={gps} onChange={(e) => setGps(e.target.checked)} />
+              <span>
+                <strong>GPS</strong> — da app mobile, presso la sede (geofence)
+              </span>
+            </label>
+          </li>
+          <li>
+            <label className="flex items-start gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={remote}
+                onChange={(e) => setRemote(e.target.checked)}
+              />
+              <span>
+                <strong>Da remoto</strong> — da web, senza verifica della posizione
+              </span>
+            </label>
+          </li>
+        </ul>
+        {modes.length === 0 && (
+          <p className="text-sm" style={{ color: 'var(--color-error)' }}>
+            Nessun metodo selezionato: l'utente non potrà timbrare.
+          </p>
+        )}
+        <div className="flex gap-2 justify-end">
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
+            Annulla
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await onSave(modes);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? 'Salvataggio…' : 'Salva'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function BranchEditor({
   user,
   branches,
@@ -1129,7 +1219,7 @@ interface UsersDataGridProps {
   rowSelection: GridRowSelectionModel;
   onRowSelectionChange: (m: GridRowSelectionModel) => void;
   onSetRole: (u: UserRow, role: 'admin' | 'user') => void;
-  onSetWebDisabled: (u: UserRow, disabled: boolean) => void;
+  onEditModes: (u: UserRow) => void;
   onEditBranches: (u: UserRow) => void;
   onEditShift: (u: UserRow) => void;
   onEditApprovers: (u: UserRow, kind: ApproverKind) => void;
@@ -1148,7 +1238,7 @@ function UsersDataGrid({
   rowSelection,
   onRowSelectionChange,
   onSetRole,
-  onSetWebDisabled,
+  onEditModes,
   onEditBranches,
   onEditShift,
   onEditApprovers,
@@ -1278,31 +1368,33 @@ function UsersDataGrid({
         ),
       },
       {
-        field: 'disable_desktop_clock_in',
-        headerName: 'Timbratura web',
+        field: 'stamp_modes',
+        headerName: 'Timbratura',
         width: 180,
-        type: 'boolean',
-        align: 'left',
-        headerAlign: 'left',
-        renderCell: (p) => (
-          <label
-            className="switch"
-            title={
-              p.row.disable_desktop_clock_in
-                ? 'Timbratura web disabilitata — clicca per abilitare'
-                : 'Timbratura web abilitata — clicca per disabilitare'
-            }
-          >
-            <input
-              type="checkbox"
-              checked={!p.row.disable_desktop_clock_in}
-              onChange={(e) => onSetWebDisabled(p.row, !e.target.checked)}
-            />
-            <span className="switch-track">
-              <span className="switch-thumb" />
-            </span>
-          </label>
-        ),
+        sortable: false,
+        filterable: false,
+        valueGetter: (_v, row) => (row.stamp_modes ?? []).join(','),
+        renderCell: (p) => {
+          const modes = p.row.stamp_modes ?? [];
+          const label =
+            modes.length === 0
+              ? 'Non timbra'
+              : modes.map((m) => (m === 'gps' ? 'GPS' : 'Remoto')).join(' · ');
+          return (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => onEditModes(p.row)}
+              title="Scegli con quali metodi l'utente può timbrare"
+            >
+              {modes.length === 0 ? (
+                <span style={{ color: 'var(--color-error)' }}>{label} · Modifica</span>
+              ) : (
+                <>{label} · Modifica</>
+              )}
+            </button>
+          );
+        },
       },
       {
         field: 'leave_approvers',
@@ -1401,7 +1493,7 @@ function UsersDataGrid({
       me?.user.id,
       shiftAssignments,
       onSetRole,
-      onSetWebDisabled,
+      onEditModes,
       onEditBranches,
       onEditShift,
       onEditApprovers,

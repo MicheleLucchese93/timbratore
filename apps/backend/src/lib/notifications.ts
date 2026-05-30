@@ -8,6 +8,8 @@ import {
   buildCancellationDecidedMail,
   buildCorrectionSubmittedMail,
   buildCorrectionDecidedMail,
+  buildReminderMail,
+  buildBulkEventMail,
   sendMail,
   type LeaveMailPayload,
   type CorrectionMailPayload,
@@ -16,12 +18,22 @@ import {
 const logger = createLogger('notifications');
 
 // Per-kind push opt-out keys stored in user_preferences.notification_preferences.
-// Missing keys are treated as `true` (defaults from migration 021).
+// Missing keys are treated as `true` (defaults from migrations 021/030).
 type PushPrefKey =
   | 'push_leave_decisions'
   | 'push_correction_decisions'
   | 'push_leave_submissions'
-  | 'push_correction_submissions';
+  | 'push_correction_submissions'
+  | 'push_leave_reminders';
+
+// Per-kind email opt-in keys (migration 030). Missing key falls back to the
+// legacy single master switch email_notifications_enabled.
+type EmailPrefKey =
+  | 'email_leave_decisions'
+  | 'email_correction_decisions'
+  | 'email_leave_submissions'
+  | 'email_correction_submissions'
+  | 'email_leave_reminders';
 
 interface RecipientRow {
   user_id: string;
@@ -36,6 +48,13 @@ interface RecipientRow {
 function pushAllowed(recipient: RecipientRow, key: PushPrefKey): boolean {
   const v = recipient.notification_preferences?.[key];
   return typeof v === 'boolean' ? v : true;
+}
+
+// Email is opt-in. Use the per-category key when present; otherwise fall back
+// to the legacy master switch so pre-migration rows still behave.
+function emailAllowed(recipient: RecipientRow, key: EmailPrefKey): boolean {
+  const v = recipient.notification_preferences?.[key];
+  return typeof v === 'boolean' ? v : recipient.email_notifications_enabled;
 }
 
 async function loadRecipients(userIds: string[]): Promise<RecipientRow[]> {
@@ -150,12 +169,12 @@ async function deliver(
   push:
     | { title: string; body: string; data?: Record<string, unknown>; prefKey: PushPrefKey }
     | null,
-  email: { subject: string; text: string; html: string } | null
+  email: { subject: string; text: string; html: string; prefKey: EmailPrefKey } | null
 ): Promise<void> {
   if (push && recipient.push_token && pushAllowed(recipient, push.prefKey)) {
     await sendExpoPush(recipient.push_token, push.title, push.body, push.data);
   }
-  if (email && recipient.email && recipient.email_notifications_enabled) {
+  if (email && recipient.email && emailAllowed(recipient, email.prefKey)) {
     await sendMail({
       to: recipient.email,
       subject: email.subject,
@@ -205,7 +224,7 @@ export async function notifyLeaveSubmitted(
         data: { kind: 'leave_submitted', request_id: ctx.requestId },
         prefKey: 'push_leave_submissions',
       },
-      mail
+      { ...mail, prefKey: 'email_leave_submissions' }
     );
   }
 }
@@ -238,7 +257,7 @@ export async function notifyLeaveDecided(
       data: { kind: 'leave_decided', request_id: ctx.requestId, decision },
       prefKey: 'push_leave_decisions',
     },
-    mail
+    { ...mail, prefKey: 'email_leave_decisions' }
   );
   void client;
 }
@@ -270,7 +289,7 @@ export async function notifyCancellationRequested(
         data: { kind: 'leave_cancellation_requested', request_id: ctx.requestId },
         prefKey: 'push_leave_submissions',
       },
-      mail
+      { ...mail, prefKey: 'email_leave_submissions' }
     );
   }
 }
@@ -298,8 +317,77 @@ export async function notifyCancellationDecided(
       data: { kind: 'leave_cancellation_decided', request_id: ctx.requestId, accepted },
       prefKey: 'push_leave_decisions',
     },
-    mail
+    { ...mail, prefKey: 'email_leave_decisions' }
   );
+}
+
+/**
+ * 24h-before reminder for a single upcoming leave. Called by the daily cron
+ * (cross-tenant via adminPool) once per qualifying row.
+ */
+export async function notifyLeaveReminder(
+  userId: string,
+  leave: {
+    requestId: string;
+    type: string;
+    from_ts: string;
+    to_ts: string;
+    title?: string | null;
+  }
+): Promise<void> {
+  const [recipient] = await loadRecipients([userId]);
+  if (!recipient) return;
+  const language = (recipient.language as 'it' | 'en') ?? 'it';
+  const label = leave.title || labelOf(leave.type);
+  const mail = buildReminderMail({
+    type: leave.type,
+    from_ts: leave.from_ts,
+    to_ts: leave.to_ts,
+    title: leave.title,
+    language,
+  });
+  await deliver(
+    recipient,
+    {
+      title: 'Promemoria',
+      body: `Domani: ${label}`,
+      data: { kind: 'leave_reminder', request_id: leave.requestId },
+      prefKey: 'push_leave_reminders',
+    },
+    { ...mail, prefKey: 'email_leave_reminders' }
+  );
+}
+
+/**
+ * Notice to each user an admin pushed a company event to (bulk insert). Gated
+ * under the user-facing leave channel (decisions). adminPool-backed, so it can
+ * run inside or outside a request transaction.
+ */
+export async function notifyBulkEvent(
+  userIds: string[],
+  event: { title: string; from_ts: string; to_ts: string; deducts_ferie: boolean; batchId: string }
+): Promise<void> {
+  const recipients = await loadRecipients(userIds);
+  for (const r of recipients) {
+    const language = (r.language as 'it' | 'en') ?? 'it';
+    const mail = buildBulkEventMail({
+      title: event.title,
+      from_ts: event.from_ts,
+      to_ts: event.to_ts,
+      deducts_ferie: event.deducts_ferie,
+      language,
+    });
+    await deliver(
+      r,
+      {
+        title: 'Evento aziendale',
+        body: event.title,
+        data: { kind: 'company_event', batch_id: event.batchId },
+        prefKey: 'push_leave_decisions',
+      },
+      { ...mail, prefKey: 'email_leave_decisions' }
+    );
+  }
 }
 
 /* ----- Correction-request notifications ----- */
@@ -341,7 +429,7 @@ export async function notifyCorrectionSubmitted(
         data: { kind: 'correction_submitted', request_id: ctx.requestId },
         prefKey: 'push_correction_submissions',
       },
-      mail
+      { ...mail, prefKey: 'email_correction_submissions' }
     );
   }
 }
@@ -375,7 +463,7 @@ export async function notifyCorrectionDecided(
       data: { kind: 'correction_decided', request_id: ctx.requestId, decision },
       prefKey: 'push_correction_decisions',
     },
-    mail
+    { ...mail, prefKey: 'email_correction_decisions' }
   );
 }
 
@@ -384,6 +472,7 @@ function labelOf(type: string): string {
   if (type === 'permessi') return 'Permesso';
   if (type === 'malattia') return 'Malattia';
   if (type === 'assenza') return 'Assenza';
+  if (type === 'chiusura') return 'Chiusura aziendale';
   return type;
 }
 

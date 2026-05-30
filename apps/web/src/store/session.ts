@@ -9,7 +9,7 @@ export interface MeResponse {
     first_name: string | null;
     last_name: string | null;
     display_name: string | null;
-    disable_desktop_clock_in: boolean;
+    stamp_modes: Array<'gps' | 'remote' | 'wifi'>;
   };
   tenant: {
     id: string;

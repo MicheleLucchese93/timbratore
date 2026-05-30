@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { api, getToken, apiUrl } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
+import { useConfirm } from '../components/ConfirmDialog.tsx';
 
 interface ExportJob {
   id: string;
@@ -20,6 +21,7 @@ export function Exports() {
   const [to, setTo] = useState(() => lastOfPrevMonth());
   const [format, setFormat] = useState<'xlsx' | 'json'>('xlsx');
   const [busy, setBusy] = useState(false);
+  const confirm = useConfirm();
 
   async function load() {
     setList(await api<ExportJob[]>('/api/v1/exports'));
@@ -55,12 +57,16 @@ export function Exports() {
     URL.revokeObjectURL(url);
   }
 
+  async function remove(j: ExportJob) {
+    if (!(await confirm({ title: 'Eliminare questa esportazione?', danger: true, confirmLabel: 'Elimina' }))) return;
+    setList((prev) => prev.filter((x) => x.id !== j.id));
+    await api(`/api/v1/exports/${j.id}`, { method: 'DELETE' }).catch(() => {});
+    await load().catch(() => {});
+  }
+
   return (
     <div className="space-y-5">
-      <header>
-        <h1 className="page-title">Esportazioni</h1>
-        <p className="muted text-sm mt-0.5">XLSX commercialista o JSON, sull'intero tenant.</p>
-      </header>
+      <h1 className="sr-only">Esportazioni</h1>
 
       <form onSubmit={enqueue} className="card grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
         <div>
@@ -82,7 +88,7 @@ export function Exports() {
       </form>
 
       <div className="card" style={{ padding: 0 }}>
-        <ExportsDataGrid list={list} onDownload={download} />
+        <ExportsDataGrid list={list} onDownload={download} onRemove={remove} />
       </div>
     </div>
   );
@@ -91,9 +97,11 @@ export function Exports() {
 function ExportsDataGrid({
   list,
   onDownload,
+  onRemove,
 }: {
   list: ExportJob[];
   onDownload: (j: ExportJob) => void;
+  onRemove: (j: ExportJob) => void;
 }) {
   const columns = useMemo<GridColDef<ExportJob>[]>(
     () => [
@@ -147,7 +155,7 @@ function ExportsDataGrid({
         sortable: false,
         filterable: false,
         renderCell: (p) => (
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             {p.row.status === 'ready' && (
               <button
                 className="btn btn-secondary btn-sm"
@@ -161,11 +169,26 @@ function ExportsDataGrid({
                 {p.row.error}
               </span>
             )}
+            <button
+              type="button"
+              className="icon-btn icon-btn-danger"
+              onClick={() => onRemove(p.row)}
+              aria-label="Elimina esportazione"
+              title="Elimina"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                <path d="M10 11v6" />
+                <path d="M14 11v6" />
+                <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+              </svg>
+            </button>
           </div>
         ),
       },
     ],
-    [onDownload]
+    [onDownload, onRemove]
   );
 
   return (

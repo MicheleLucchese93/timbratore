@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useState } from 'react';
 import { api } from '../lib/api.ts';
 import { PlaceSearchInput, type PlaceDetail } from '../components/PlaceSearchInput.tsx';
 import { BranchMapPreview } from '../components/BranchMapPreview.tsx';
+import { useConfirm } from '../components/ConfirmDialog.tsx';
 
 interface Branch {
   id: string;
@@ -22,6 +23,7 @@ export function Branches() {
   const [editing, setEditing] = useState<Branch | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const confirm = useConfirm();
 
   async function load() {
     setList(await api<Branch[]>('/api/v1/branches'));
@@ -31,18 +33,15 @@ export function Branches() {
   }, []);
 
   async function remove(id: string) {
-    if (!confirm('Eliminare questa sede?')) return;
+    if (!(await confirm({ title: 'Eliminare questa sede?', danger: true, confirmLabel: 'Elimina' }))) return;
     await api(`/api/v1/branches/${id}`, { method: 'DELETE' });
     await load();
   }
 
   return (
     <div className="space-y-5">
-      <header className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="page-title">Sedi</h1>
-          <p className="muted text-sm mt-0.5">Luoghi di lavoro. Smart working è una sede senza GPS.</p>
-        </div>
+      <header className="flex items-center justify-end gap-4 flex-wrap">
+        <h1 className="sr-only">Sedi</h1>
         <button className="btn btn-primary" onClick={() => setShowCreate(true)}>Nuova sede</button>
       </header>
       {err && <div className="card text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}

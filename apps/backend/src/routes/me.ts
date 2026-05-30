@@ -5,25 +5,33 @@ import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { ValidationError } from '../errors/index.js';
 
-// Keep in sync with migration 021_push_notification_prefs.sql.
-const PUSH_PREF_DEFAULTS = {
+// Keep in sync with migrations 021_push_notification_prefs.sql and
+// 030_leave_reminders_and_email_prefs.sql. Push keys default ON (opt-out),
+// email keys default OFF (opt-in).
+const NOTIF_PREF_DEFAULTS = {
   push_leave_decisions: true,
   push_correction_decisions: true,
   push_leave_submissions: true,
   push_correction_submissions: true,
+  push_leave_reminders: true,
+  email_leave_decisions: false,
+  email_correction_decisions: false,
+  email_leave_submissions: false,
+  email_correction_submissions: false,
+  email_leave_reminders: false,
 } as const;
 
-type PushPrefKey = keyof typeof PUSH_PREF_DEFAULTS;
+type NotifPrefKey = keyof typeof NOTIF_PREF_DEFAULTS;
 
-function mergePushPrefs(stored: unknown): Record<PushPrefKey, boolean> {
-  const out: Record<string, boolean> = { ...PUSH_PREF_DEFAULTS };
+function mergeNotifPrefs(stored: unknown): Record<NotifPrefKey, boolean> {
+  const out: Record<string, boolean> = { ...NOTIF_PREF_DEFAULTS };
   if (stored && typeof stored === 'object') {
-    for (const k of Object.keys(PUSH_PREF_DEFAULTS) as PushPrefKey[]) {
+    for (const k of Object.keys(NOTIF_PREF_DEFAULTS) as NotifPrefKey[]) {
       const v = (stored as Record<string, unknown>)[k];
       if (typeof v === 'boolean') out[k] = v;
     }
   }
-  return out as Record<PushPrefKey, boolean>;
+  return out as Record<NotifPrefKey, boolean>;
 }
 
 export const meRouter = Router();
@@ -41,7 +49,7 @@ meRouter.get(
       [req.user!.tenantId]
     );
     const membership = await client.query(
-      `SELECT disable_desktop_clock_in
+      `SELECT stamp_modes
        FROM memberships
        WHERE id = $1`,
       [req.user!.membershipId]
@@ -63,7 +71,7 @@ meRouter.get(
       [req.user!.id]
     );
     const pref = prefs.rows[0] ?? {};
-    const pushPrefs = mergePushPrefs(pref.notification_preferences);
+    const notifPrefs = mergeNotifPrefs(pref.notification_preferences);
     const branches = await client.query(
       `SELECT b.id, b.name, b.address, b.latitude, b.longitude, b.radius_m, b.enforce_radius,
               b.smart_working, b.geofence_policy, b.gps_accuracy_ceiling_m
@@ -80,7 +88,7 @@ meRouter.get(
         first_name: p.first_name ?? null,
         last_name: p.last_name ?? null,
         display_name: p.display_name ?? null,
-        disable_desktop_clock_in: membership.rows[0]?.disable_desktop_clock_in ?? true,
+        stamp_modes: membership.rows[0]?.stamp_modes ?? ['gps'],
       },
       tenant: tenant.rows[0],
       branches: branches.rows,
@@ -88,7 +96,7 @@ meRouter.get(
         language: pref.language ?? 'it',
         email_notifications_enabled: !!pref.email_notifications_enabled,
         push_token_registered: !!pref.push_token,
-        notification_preferences: pushPrefs,
+        notification_preferences: notifPrefs,
       },
     });
   })
@@ -100,6 +108,12 @@ const NotificationPrefsPatch = z
     push_correction_decisions: z.boolean().optional(),
     push_leave_submissions: z.boolean().optional(),
     push_correction_submissions: z.boolean().optional(),
+    push_leave_reminders: z.boolean().optional(),
+    email_leave_decisions: z.boolean().optional(),
+    email_correction_decisions: z.boolean().optional(),
+    email_leave_submissions: z.boolean().optional(),
+    email_correction_submissions: z.boolean().optional(),
+    email_leave_reminders: z.boolean().optional(),
   })
   .strict();
 
@@ -129,7 +143,7 @@ meRouter.patch(
       b.notification_preferences !== undefined
         ? JSON.stringify(b.notification_preferences)
         : null;
-    const defaultsJson = JSON.stringify(PUSH_PREF_DEFAULTS);
+    const defaultsJson = JSON.stringify(NOTIF_PREF_DEFAULTS);
     await client.query(
       `INSERT INTO user_preferences(
          user_id, language, email_notifications_enabled, push_token, notification_preferences

@@ -395,6 +395,11 @@ Tests that assert on the **URL** mid-bootstrap are flaky; tests that assert on
 the **rendered content** after a `getByRole('heading', …)` wait are stable.
 Prefer the latter — see `e2e/web/user/role.spec.ts` for the working pattern.
 
+> Note: each page's `<h1>` title is now `sr-only` (visually hidden — the
+> sidebar already labels the page). It is still in the accessibility tree, so
+> `getByRole('heading', { name })` keeps working. The old visible subtitle
+> paragraphs were removed, so do **not** assert on that helper copy.
+
 ## Adding new tests
 
 ### 1. Use Italian-localised selectors
@@ -513,10 +518,10 @@ test('non-admin sees the employee dashboard', async ({ page }) => {
 | Login             | `/login`          | `input#email`, `input#password`, button `Accedi`                                |
 | ForgotPassword    | `/forgot-password`| `input[type=email]`, button `Invia`                                             |
 | Dashboard (admin) | `/`               | heading `Dashboard`, `.stat-grid`, tablist `Elenco` / `Per sede`                |
-| MyDashboard       | `/`               | heading `Ciao, …`, helper `Il tuo stato attuale e le ultime timbrature.`, section `Ultime timbrature` |
+| MyDashboard       | `/`               | heading `Ciao, …` (sr-only), section `Ultime timbrature` |
 | Stamps            | `/stamps`         | button `Nuova timbratura`, `.MuiDataGrid-root`                                  |
-| MyStamps          | `/me/stamps`      | heading `Le mie timbrature`, helper `Storico delle tue timbrature. Vedi solo le tue.` |
-| Corrections       | `/corrections`    | helper `Richieste dei dipendenti da approvare o rifiutare.`, filter `Solo in attesa` / `Tutte`, buttons `Approva` / `Rifiuta`, section `Motivazione` |
+| MyStamps          | `/me/stamps`      | heading `Le mie timbrature` (sr-only), `.MuiDataGrid-root` |
+| Corrections       | `/corrections`    | heading `Correzioni` (sr-only), filter `Solo in attesa` / `Tutte`, buttons `Approva` / `Rifiuta`, section `Motivazione` |
 | /me/corrections   | `/me/corrections` | Same component as Corrections, but accessible to employees.                     |
 | Users             | `/users`          | DataGrid, row selection toolbar, shift/approver edit modals.                    |
 | Branches          | `/branches`       | button `Nuova sede`, branch list cards.                                         |

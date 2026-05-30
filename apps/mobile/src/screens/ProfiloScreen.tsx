@@ -49,13 +49,15 @@ type PushPrefKey =
   | 'push_leave_decisions'
   | 'push_correction_decisions'
   | 'push_leave_submissions'
-  | 'push_correction_submissions';
+  | 'push_correction_submissions'
+  | 'push_leave_reminders';
 
 const PUSH_PREF_DEFAULTS: Record<PushPrefKey, boolean> = {
   push_leave_decisions: true,
   push_correction_decisions: true,
   push_leave_submissions: true,
   push_correction_submissions: true,
+  push_leave_reminders: true,
 };
 
 const SITE_BASE = 'https://sonoqui.xdevapp.it/it';
@@ -266,6 +268,14 @@ export function ProfiloScreen() {
             value={pushPrefs.push_correction_decisions}
             disabled={!pushEnabled || savingPushKey !== null}
             onChange={(v) => togglePushPref('push_correction_decisions', v)}
+          />
+          <View style={styles.divider} />
+          <PushToggleRow
+            label="Promemoria 24h prima"
+            hint="Avviso il giorno prima di una tua assenza (es. domani ferie)"
+            value={pushPrefs.push_leave_reminders}
+            disabled={!pushEnabled || savingPushKey !== null}
+            onChange={(v) => togglePushPref('push_leave_reminders', v)}
           />
           {isAdmin && (
             <>
