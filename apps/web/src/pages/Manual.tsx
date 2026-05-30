@@ -1052,6 +1052,17 @@ const MANUAL_BODY = `
       <p class="lead">Come funziona il controllo della posizione durante le timbrature.</p>
 
       <div class="feature">
+        <h3>Metodi di timbratura per utente</h3>
+        <p>Per ogni utente l'admin sceglie (in <strong>Utenti → colonna Timbratura</strong>) con quali metodi può timbrare:</p>
+        <ul class="tidy">
+          <li><strong>GPS</strong> — timbratura dall'app mobile, con verifica della posizione (geofence) come descritto sotto.</li>
+          <li><strong>Da remoto</strong> — timbratura dal web senza verifica della posizione. Utile per chi lavora da remoto.</li>
+          <li><strong>Nessun metodo</strong> — l'utente non può timbrare: nell'app mobile la voce <em>Timbrature</em> non viene nemmeno mostrata.</li>
+        </ul>
+        <p>I metodi si combinano (es. GPS + Da remoto). Il controllo del geofence descritto qui sotto si applica solo al metodo GPS.</p>
+      </div>
+
+      <div class="feature">
         <h3>Geofence</h3>
         <p>Per ogni sede l'admin definisce coordinate GPS e — opzionalmente — un <strong>raggio</strong> in metri. Quando il raggio è attivo, la timbratura è valida solo se sei entro questa area circolare.</p>
         <p>Se sei fuori vedi il messaggio <em>"Sei fuori dell'area consentita"</em> e — in base alla politica — la timbratura viene rifiutata (Strict) o solo segnalata (Lenient).</p>
