@@ -1,11 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { CREDS, STORAGE } from '../fixtures/test-data';
 import {
+  adminRevokeLeave,
   apiPost,
   assignShift,
   createShiftTemplate,
   deleteShiftTemplate,
   deleteStampAdmin,
+  listLeaves,
   loadHandleFromStorage,
   type ApiHandle,
 } from '../fixtures/api-client';
@@ -58,6 +60,22 @@ test.describe('web — Anomalie short_hours via seeded under-worked day (mutatin
     const inStamp = lastWeekdayISOAt(9, 0);
     const outStamp = lastWeekdayISOAt(13, 0);
     validFrom = inStamp.date;
+
+    // Isolation: a sibling spec (mutating-malattia-overlap) can leave an
+    // approved leave on test3 covering recent days. Approved leave legitimately
+    // suppresses short_hours (it covers the day's expected hours), which would
+    // mask this spec's seeded under-worked day. Revoke anything overlapping the
+    // seeded day so we measure a clean day, independent of run order.
+    const overlapping = await listLeaves(admin.token, {
+      scope: 'all',
+      status: 'approved',
+      user_id: user.userId,
+      from: validFrom,
+      to: validFrom,
+    });
+    for (const lv of overlapping) {
+      await adminRevokeLeave(admin.token, lv.id, 'e2e short_hours isolation').catch(() => {});
+    }
 
     await assignShift(admin.token, {
       user_id: user.userId,

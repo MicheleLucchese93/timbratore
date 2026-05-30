@@ -320,6 +320,24 @@ export async function adminRevokeLeave(adminToken: string, id: string, reason: s
   await apiPost(adminToken, `/api/v1/leaves/${id}/admin-revoke`, { reason });
 }
 
+export interface LeaveListRow {
+  id: string;
+  user_id: string;
+  status: string;
+  type: string;
+  from_ts: string;
+  to_ts: string;
+}
+
+/** Admin list of leaves; server filters by user/status and date overlap (from/to). */
+export async function listLeaves(
+  adminToken: string,
+  query: { scope?: string; status?: string; user_id?: string; from?: string; to?: string } = {},
+): Promise<LeaveListRow[]> {
+  const qs = new URLSearchParams(query as Record<string, string>).toString();
+  return apiGet<LeaveListRow[]>(adminToken, `/api/v1/leaves${qs ? `?${qs}` : ''}`);
+}
+
 export async function requestLeaveCancellation(
   userToken: string,
   id: string,
