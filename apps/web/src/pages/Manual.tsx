@@ -849,6 +849,18 @@ const MANUAL_BODY = `
       </div>
 
       <div class="feature">
+        <h3>Hai dimenticato di timbrare l'uscita?</h3>
+        <p>Niente panico, ci sono due reti di sicurezza:</p>
+        <ul class="tidy">
+          <li>Dopo <strong>14 ore</strong> dall'ingresso ricevi un <strong>promemoria</strong> che ti invita a timbrare l'uscita.</li>
+          <li>Se il turno resta aperto oltre <strong>15 ore</strong>, il sistema lo chiude da solo inserendo l'uscita a <strong>ingresso + 15 ore</strong> (può cadere il giorno successivo). La timbratura risulta di origine <em>automatica</em>.</li>
+        </ul>
+        <div class="callout callout-info">
+          Se l'orario reale di uscita era diverso da quello calcolato in automatico, invia una richiesta di <strong>correzione</strong> dalla scheda Correzioni: l'amministratore la sistemerà.
+        </div>
+      </div>
+
+      <div class="feature">
         <h3>Cosa fare se la timbratura fallisce</h3>
         <ul class="tidy">
           <li><strong>"Senza connessione"</strong> — la timbratura viene messa in coda e inviata quando torni online. Apparirà l'avviso: <em>"Timbratura accodata. Verrà inviata quando torni online."</em></li>
