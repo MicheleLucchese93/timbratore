@@ -277,9 +277,9 @@ const MANUAL_BODY = `
           <li><strong>Quando</strong> — data e ora in formato italiano.</li>
           <li><strong>Utente</strong> — email del dipendente.</li>
           <li><strong>Evento</strong> — badge colorato (Ingresso, Uscita, Inizio/Fine pausa, Inizio/Fine pausa pranzo).</li>
-          <li><strong>Origine</strong> — app mobile, correzione approvata o inserimento admin.</li>
+          <li><strong>Origine</strong> — <em>app</em> (mobile), <em>correz.</em> (correzione approvata), <em>admin</em> (inserimento manuale) o <em>auto</em> (generata dal sistema, es. chiusura automatica oltre 15h).</li>
           <li><strong>Sede</strong> — la filiale registrata, o "—" se nessuna.</li>
-          <li><strong>Note</strong> — eventuali annotazioni. Compare un indicatore <em>mock</em> se la posizione GPS è sospetta.</li>
+          <li><strong>Note</strong> — eventuali annotazioni. Compare un indicatore <em>mock</em> se la posizione GPS è sospetta e <em>fuori area</em> se l'uscita è stata timbrata fuori dall'area della sede.</li>
           <li><strong>Azioni</strong> — modifica e elimina.</li>
         </ul>
       </div>
@@ -306,6 +306,19 @@ const MANUAL_BODY = `
         </ul>
         <div class="callout callout-warn">
           Ogni intervento manuale viene registrato in audit log. Inserire sempre una motivazione chiara: serve sia al dipendente sia in caso di controlli.
+        </div>
+      </div>
+
+      <div class="feature">
+        <h3>Chiusura automatica dei turni oltre 15 ore</h3>
+        <p>Per evitare turni rimasti aperti all'infinito (un dipendente che dimentica di timbrare l'uscita), il sistema chiude automaticamente ogni turno ancora aperto dopo <strong>15 ore</strong> dall'ingresso.</p>
+        <ul class="tidy">
+          <li>Viene inserita una timbratura di <strong>uscita</strong> esattamente a <strong>ingresso + 15h</strong> (può cadere il giorno successivo).</li>
+          <li>L'origine della timbratura è <em>auto</em>, così la distingui da quelle inserite manualmente.</li>
+          <li>Il controllo gira di continuo: un turno viene chiuso entro pochi minuti dal superamento delle 15h.</li>
+        </ul>
+        <div class="callout callout-info">
+          A 14 ore il dipendente riceve già un <strong>promemoria</strong> "hai dimenticato di timbrare l'uscita?". La chiusura automatica a 15h è la rete di sicurezza se il promemoria viene ignorato. Se l'orario reale di uscita era diverso, correggi la timbratura manualmente.
         </div>
       </div>
     </section>
@@ -500,6 +513,7 @@ const MANUAL_BODY = `
             <tr><td><span class="pill pill-info">Pausa troppo lunga</span></td><td>Pausa superiore al massimo atteso.</td></tr>
             <tr><td><span class="pill pill-info">Pausa pranzo troppo breve</span></td><td>Pausa pranzo inferiore al minimo atteso.</td></tr>
             <tr><td><span class="pill pill-info">Pausa pranzo troppo lunga</span></td><td>Pausa pranzo superiore al massimo atteso.</td></tr>
+            <tr><td><span class="pill pill-purple">Uscita fuori area</span></td><td>Uscita timbrata fuori dall'area della sede (es. da casa). L'uscita è sempre permessa ma viene registrata con questa anomalia, con la distanza dalla sede quando disponibile. Indipendente dal turno: compare anche per utenti senza orario assegnato.</td></tr>
           </tbody>
         </table>
       </div>
@@ -821,6 +835,9 @@ const MANUAL_BODY = `
           <li>Invia la timbratura al server.</li>
           <li>Mostra "Timbratura riuscita" e aggiorna la schermata.</li>
         </ol>
+        <div class="callout callout-info">
+          <strong>Uscita sempre possibile.</strong> La <strong>Timbra uscita</strong> non viene mai bloccata dal controllo dell'area: se hai dimenticato di timbrare e sei lontano dalla sede (es. da casa), l'uscita viene comunque registrata. Se la posizione risulta fuori area, vedrai l'avviso <em>"Uscita fuori area"</em> e la timbratura viene salvata con un'<strong>anomalia</strong> visibile all'amministratore. Ingresso e pause restano invece soggetti al controllo dell'area.
+        </div>
       </div>
 
       <div class="feature">
@@ -835,7 +852,7 @@ const MANUAL_BODY = `
         <h3>Cosa fare se la timbratura fallisce</h3>
         <ul class="tidy">
           <li><strong>"Senza connessione"</strong> — la timbratura viene messa in coda e inviata quando torni online. Apparirà l'avviso: <em>"Timbratura accodata. Verrà inviata quando torni online."</em></li>
-          <li><strong>"Sei fuori dell'area consentita"</strong> — sei troppo distante dalla sede: avvicinati o cambia sede.</li>
+          <li><strong>"Sei fuori dell'area consentita"</strong> — vale per <strong>ingresso</strong> e <strong>pause</strong>: sei troppo distante dalla sede, avvicinati o cambia sede. La <strong>uscita</strong> non viene mai bloccata (viene registrata con anomalia, vedi sopra).</li>
           <li><strong>"Il segnale GPS è troppo debole"</strong> — l'accuratezza è insufficiente: esci all'aperto o riprova.</li>
           <li><strong>"Operazione non valida per lo stato attuale"</strong> — non puoi timbrare ingresso se sei già al lavoro, ecc.</li>
           <li><strong>"Hai già timbrato pochi secondi fa"</strong> — protezione contro doppio click.</li>

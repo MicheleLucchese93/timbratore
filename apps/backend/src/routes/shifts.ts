@@ -418,7 +418,9 @@ shiftsRouter.get(
               COALESCE(
                 (SELECT json_agg(json_build_object(
                   'event_type', s.event_type,
-                  'occurred_at', s.occurred_at
+                  'occurred_at', s.occurred_at,
+                  'out_of_geofence', s.out_of_geofence,
+                  'geofence_distance_m', s.geofence_distance_m
                 ) ORDER BY s.occurred_at)
                  FROM stamps s
                 WHERE s.user_id = m.user_id
@@ -470,7 +472,12 @@ export interface AnomalyRow {
   expected_lunch_min_min: number | null;
   expected_lunch_max_min: number | null;
   slots: { day_of_week: number; start_time: string; end_time: string }[];
-  stamps: { event_type: string; occurred_at: string }[];
+  stamps: {
+    event_type: string;
+    occurred_at: string;
+    out_of_geofence?: boolean;
+    geofence_distance_m?: number | null;
+  }[];
   leaves: { type: 'ferie' | 'permessi' | 'malattia'; from_ts: string; to_ts: string }[];
 }
 
@@ -491,7 +498,8 @@ export interface Anomaly {
     | 'break_too_short'
     | 'break_too_long'
     | 'lunch_too_short'
-    | 'lunch_too_long';
+    | 'lunch_too_long'
+    | 'clock_out_out_of_area';
   expected_start_at: string | null;
   expected_end_at: string | null;
   actual_start_at: string | null;
@@ -516,8 +524,24 @@ function combineDateTime(dateStr: string, hhmm: string): Date {
 export function computeAnomalies(rows: AnomalyRow[]): Anomaly[] {
   const out: Anomaly[] = [];
   for (const row of rows) {
-    if (!row.shift_template_id) continue;
     const date = row.day.slice(0, 10);
+
+    // Out-of-area clock-out is a per-stamp anomaly that does NOT depend on an
+    // assigned shift template — a leaver who closed an open shift from home
+    // surfaces here even with no shift. Emitted before the template gate below.
+    for (const s of row.stamps) {
+      if (s.event_type === 'clock_out' && s.out_of_geofence) {
+        const a = buildAnomaly(row, date, 'clock_out_out_of_area', null, null, row.stamps);
+        a.actual_end_at = s.occurred_at;
+        a.details =
+          s.geofence_distance_m != null
+            ? `Uscita timbrata fuori area (~${Math.round(s.geofence_distance_m)} m dalla sede)`
+            : 'Uscita timbrata fuori area (posizione non verificata)';
+        out.push(a);
+      }
+    }
+
+    if (!row.shift_template_id) continue;
     const dow = isoDow(new Date(date + 'T00:00:00Z'));
     const slots = row.slots.filter((s) => s.day_of_week === dow);
     const stamps = row.stamps;

@@ -427,6 +427,7 @@ const SOURCE_LABEL: Record<string, string> = {
   employee_app: 'App dipendente',
   employee_correction: 'Correzione',
   admin_manual: 'Manuale (admin)',
+  system_auto: 'Automatica (sistema)',
 };
 const LEAVE_TYPE_LABEL: Record<string, string> = {
   ferie: 'Ferie',
@@ -524,6 +525,7 @@ interface StampDetailRow {
   device_platform: string | null;
   device_app_version: string | null;
   suspicious_mock_location: boolean;
+  out_of_geofence: boolean;
   notes: string | null;
 }
 
@@ -531,7 +533,7 @@ async function loadStampsDetail(job: ExportJobRow): Promise<StampDetailRow[]> {
   const r = await adminPool.query(
     `SELECT user_id, event_type, occurred_at, source, branch_id,
             latitude, longitude, gps_accuracy_m,
-            device_platform, device_app_version, suspicious_mock_location, notes
+            device_platform, device_app_version, suspicious_mock_location, out_of_geofence, notes
        FROM stamps
       WHERE tenant_id = $1
         AND deleted_at IS NULL
@@ -824,6 +826,7 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
     { header: 'Dispositivo', key: 'device', width: 14 },
     { header: 'Versione app', key: 'appv', width: 14 },
     { header: 'Pos. sospetta', key: 'mock', width: 14 },
+    { header: 'Fuori area', key: 'oog', width: 12 },
     { header: 'Note', key: 'notes', width: 30 },
   ];
   for (const s of stamps) {
@@ -839,6 +842,7 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
       device: s.device_platform ?? '',
       appv: s.device_app_version ?? '',
       mock: s.suspicious_mock_location ? 'Sì' : '',
+      oog: s.out_of_geofence ? 'Sì' : '',
       notes: s.notes ?? '',
     });
   }

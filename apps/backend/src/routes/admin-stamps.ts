@@ -15,6 +15,7 @@ const AdminCreate = z.object({
   occurred_at: z.string().datetime({ offset: true }),
   branch_id: z.string().uuid().nullable().optional(),
   notes: z.string().max(500).optional(),
+  out_of_geofence: z.boolean().optional(),
   justification: z.string().min(3).max(500),
 });
 
@@ -35,10 +36,10 @@ adminStampsRouter.post(
       `admin_manual:${b.justification}`,
     ]);
     const ins = await client.query(
-      `INSERT INTO stamps(tenant_id, user_id, event_type, occurred_at, source, branch_id, notes)
-       VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, 'admin_manual', $4, $5)
+      `INSERT INTO stamps(tenant_id, user_id, event_type, occurred_at, source, branch_id, notes, out_of_geofence)
+       VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, 'admin_manual', $4, $5, $6)
        RETURNING *`,
-      [b.user_id, b.event_type, b.occurred_at, b.branch_id ?? null, b.notes ?? null]
+      [b.user_id, b.event_type, b.occurred_at, b.branch_id ?? null, b.notes ?? null, b.out_of_geofence ?? false]
     );
     await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_create', ins.rows[0].id, null, ins.rows[0]);
     ok(res, ins.rows[0], 201);

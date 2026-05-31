@@ -30,6 +30,13 @@ export interface EvaluateInput {
 export interface EvaluateResult {
   branchId: string | null;
   suspiciousMockLocation: boolean;
+  // clock_out is never blocked by the geofence: a worker who forgot to stamp
+  // out (e.g. a leaver) must always be able to close an open shift, even from
+  // home. When the exit can't be confirmed inside the branch radius we let it
+  // through but flag it — surfaced to admins as a 'clock_out_out_of_area'
+  // anomaly. distance is null when GPS was missing entirely.
+  outOfGeofence: boolean;
+  geofenceDistanceM: number | null;
 }
 
 export async function evaluateStamp(
@@ -81,6 +88,11 @@ export async function evaluateStamp(
     enforceGeofence = !isWeb && modes.includes('gps');
   }
 
+  // clock_out is allowed even when the geofence check fails — see EvaluateResult.
+  const allowOutOfArea = body.event_type === 'clock_out';
+  let outOfGeofence = false;
+  let geofenceDistanceM: number | null = null;
+
   if (enforceGeofence) {
     if (branchId) {
       const b = await client.query(
@@ -95,12 +107,15 @@ export async function evaluateStamp(
       smartWorking = b.rows[0].smart_working;
       if (!smartWorking) {
         if (body.latitude == null || body.longitude == null) {
-          throw new ValidationError('GPS required', { code: 'GPS_REQUIRED' });
-        }
-        if (b.rows[0].enforce_radius) {
+          if (allowOutOfArea) {
+            outOfGeofence = true; // exit with no GPS — location unverifiable
+          } else {
+            throw new ValidationError('GPS required', { code: 'GPS_REQUIRED' });
+          }
+        } else if (b.rows[0].enforce_radius) {
           const ceiling = b.rows[0].gps_accuracy_ceiling_m as number;
           const policy = b.rows[0].geofence_policy as GeofencePolicy;
-          if (body.gps_accuracy_m != null && body.gps_accuracy_m > ceiling) {
+          if (body.gps_accuracy_m != null && body.gps_accuracy_m > ceiling && !allowOutOfArea) {
             throw new ValidationError('GPS accuracy too low', {
               code: 'GPS_ACCURACY_TOO_LOW',
               value: body.gps_accuracy_m,
@@ -118,18 +133,26 @@ export async function evaluateStamp(
             policy,
           });
           if (!gf.allowed) {
-            throw new ConflictError(
-              'Out of geofence',
-              'OUT_OF_GEOFENCE',
-              { distance_m: gf.distanceM, branch_id: branchId }
-            );
+            if (allowOutOfArea) {
+              outOfGeofence = true;
+              geofenceDistanceM = gf.distanceM;
+            } else {
+              throw new ConflictError(
+                'Out of geofence',
+                'OUT_OF_GEOFENCE',
+                { distance_m: gf.distanceM, branch_id: branchId }
+              );
+            }
           }
         }
       }
-    } else {
-      if (body.latitude == null || body.longitude == null) {
+    } else if (body.latitude == null || body.longitude == null) {
+      if (allowOutOfArea) {
+        outOfGeofence = true; // exit with no GPS — location unverifiable
+      } else {
         throw new ValidationError('GPS required', { code: 'GPS_REQUIRED' });
       }
+    } else {
       const branches = await client.query(
         `SELECT b.id, b.latitude, b.longitude, b.radius_m, b.enforce_radius, b.smart_working,
                 b.geofence_policy, b.gps_accuracy_ceiling_m
@@ -178,13 +201,6 @@ export async function evaluateStamp(
         }
       }
       if (!best) {
-        if (accuracyFailure) {
-          throw new ValidationError('GPS accuracy too low', {
-            code: 'GPS_ACCURACY_TOO_LOW',
-            value: accuracyFailure.value,
-            ceiling: accuracyFailure.ceiling,
-          });
-        }
         const fallbackDistance =
           branches.rows.length > 0 && branches.rows[0].latitude != null
             ? distanceMeters(
@@ -192,11 +208,23 @@ export async function evaluateStamp(
                 { lat: branches.rows[0].latitude, lng: branches.rows[0].longitude }
               )
             : null;
-        throw new ConflictError('Out of geofence', 'OUT_OF_GEOFENCE', {
-          distance_m: fallbackDistance,
-        });
+        if (allowOutOfArea) {
+          outOfGeofence = true;
+          geofenceDistanceM = fallbackDistance;
+        } else if (accuracyFailure) {
+          throw new ValidationError('GPS accuracy too low', {
+            code: 'GPS_ACCURACY_TOO_LOW',
+            value: accuracyFailure.value,
+            ceiling: accuracyFailure.ceiling,
+          });
+        } else {
+          throw new ConflictError('Out of geofence', 'OUT_OF_GEOFENCE', {
+            distance_m: fallbackDistance,
+          });
+        }
+      } else {
+        branchId = best.id;
       }
-      branchId = best.id;
     }
   }
 
@@ -230,7 +258,7 @@ export async function evaluateStamp(
       suspiciousMock = true;
     }
   }
-  return { branchId, suspiciousMockLocation: suspiciousMock };
+  return { branchId, suspiciousMockLocation: suspiciousMock, outOfGeofence, geofenceDistanceM };
 }
 
 export interface CurrentState {

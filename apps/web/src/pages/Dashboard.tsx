@@ -48,7 +48,8 @@ type AnomalyKind =
   | 'break_too_short'
   | 'break_too_long'
   | 'lunch_too_short'
-  | 'lunch_too_long';
+  | 'lunch_too_long'
+  | 'clock_out_out_of_area';
 
 interface Anomaly {
   date: string;
@@ -127,6 +128,7 @@ const ANOMALY_LABEL: Record<AnomalyKind, string> = {
   break_too_long: 'Pausa troppo lunga',
   lunch_too_short: 'Pausa pranzo troppo breve',
   lunch_too_long: 'Pausa pranzo troppo lunga',
+  clock_out_out_of_area: 'Uscita fuori area',
 };
 
 export function Dashboard() {

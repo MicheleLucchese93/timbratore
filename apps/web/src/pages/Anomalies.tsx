@@ -19,7 +19,8 @@ interface Anomaly {
     | 'break_too_short'
     | 'break_too_long'
     | 'lunch_too_short'
-    | 'lunch_too_long';
+    | 'lunch_too_long'
+    | 'clock_out_out_of_area';
   expected_start_at: string | null;
   expected_end_at: string | null;
   actual_start_at: string | null;
@@ -47,6 +48,7 @@ const KIND_LABEL: Record<Anomaly['kind'], string> = {
   break_too_long: 'Pausa troppo lunga',
   lunch_too_short: 'Pausa pranzo troppo breve',
   lunch_too_long: 'Pausa pranzo troppo lunga',
+  clock_out_out_of_area: 'Uscita fuori area',
 };
 
 const KIND_COLOR: Record<Anomaly['kind'], string> = {
@@ -60,6 +62,7 @@ const KIND_COLOR: Record<Anomaly['kind'], string> = {
   break_too_long: '#0369a1',
   lunch_too_short: '#0369a1',
   lunch_too_long: '#0369a1',
+  clock_out_out_of_area: '#7c3aed',
 };
 
 const JUSTIFIABLE_KINDS: Anomaly['kind'][] = [

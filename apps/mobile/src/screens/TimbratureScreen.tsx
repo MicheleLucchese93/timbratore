@@ -131,7 +131,7 @@ export function TimbratureScreen() {
         };
       }
       try {
-        const created = await api<{ id: string }>('/api/v1/stamps', {
+        const created = await api<{ id: string; out_of_geofence?: boolean }>('/api/v1/stamps', {
           method: 'POST',
           headers: { 'Idempotency-Key': idem },
           json: payload,
@@ -139,6 +139,15 @@ export function TimbratureScreen() {
         setLastSubmittedAt(occurredAt);
         setLastUndoId(created.id);
         await fetchAll();
+        // clock_out is allowed even outside the geofence (e.g. closing a shift
+        // from home), but the server flags it — tell the user it was recorded
+        // as an anomaly rather than silently succeeding.
+        if (event === 'clock_out' && created.out_of_geofence) {
+          alertCross(
+            'Uscita fuori area',
+            'Eri fuori dall\'area della sede: l\'uscita è stata registrata con un\'anomalia.'
+          );
+        }
       } catch (err) {
         const e = err as { code?: string; message?: string };
         if (!e.code || e.code === 'NETWORK' || e.message?.includes('Network')) {

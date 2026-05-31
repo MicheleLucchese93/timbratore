@@ -45,9 +45,9 @@ stampsRouter.post(
       `INSERT INTO stamps(
          tenant_id, user_id, event_type, occurred_at, source, branch_id,
          latitude, longitude, gps_accuracy_m, device_platform, device_app_version,
-         suspicious_mock_location, notes, queued_hours
+         suspicious_mock_location, notes, queued_hours, out_of_geofence, geofence_distance_m
        )
-       VALUES ($1, $2, $3, $4, 'employee_app', $5, $6, $7, $8, $9, $10, $11, $12, $13)
+       VALUES ($1, $2, $3, $4, 'employee_app', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        RETURNING *`,
       [
         req.user!.tenantId,
@@ -63,6 +63,8 @@ stampsRouter.post(
         evaluated.suspiciousMockLocation,
         body.notes ?? null,
         req.header('x-queued-hours') ? Number(req.header('x-queued-hours')) : null,
+        evaluated.outOfGeofence,
+        evaluated.geofenceDistanceM,
       ]
     );
     await client.query(

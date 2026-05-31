@@ -4,6 +4,7 @@ import { processExportJobs } from './jobs/process-exports.js';
 import { cleanupOldGps } from './jobs/cleanup-old-gps.js';
 import { cleanupExpiredIdempotency } from './jobs/cleanup-idempotency.js';
 import { forgottenClockoutReminder } from './jobs/forgotten-clockout.js';
+import { autoClockout } from './jobs/auto-clockout.js';
 import { retentionEnforcement } from './jobs/retention-enforcement.js';
 import { leaveDailyAccrual } from './jobs/leave-daily-accrual.js';
 import { leaveReminder } from './jobs/leave-reminder.js';
@@ -46,6 +47,12 @@ class SchedulerService {
         },
         { timezone: 'Europe/Rome' }
       )
+    );
+    // Every 15 min, all day — a shift can cross the 15h ceiling at any hour
+    // (e.g. an evening clock-in hits it past midday next day). Force-closes
+    // open shifts at clock_in + 15h.
+    this.jobs.push(
+      cron.schedule('*/15 * * * *', () => safeRun('auto_clockout', autoClockout))
     );
     this.jobs.push(
       cron.schedule(

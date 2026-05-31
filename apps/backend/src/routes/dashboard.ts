@@ -203,6 +203,7 @@ dashboardRouter.get(
       break_too_long: 0,
       lunch_too_short: 0,
       lunch_too_long: 0,
+      clock_out_out_of_area: 0,
     };
     for (const a of anomalies) byKind[a.kind]++;
     const recentAnomalies = anomalies

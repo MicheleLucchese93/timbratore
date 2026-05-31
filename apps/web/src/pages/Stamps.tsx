@@ -13,6 +13,7 @@ interface Stamp {
   branch_id: string | null;
   notes: string | null;
   suspicious_mock_location: boolean;
+  out_of_geofence?: boolean;
 }
 
 interface Branch { id: string; name: string }
@@ -89,7 +90,7 @@ function EventBadge({ event }: { event: Stamp['event_type'] }) {
 }
 
 function SourceBadge({ source }: { source: string }) {
-  const label = source === 'employee_app' ? 'app' : source === 'employee_correction' ? 'correz.' : source === 'admin_manual' ? 'admin' : source;
+  const label = source === 'employee_app' ? 'app' : source === 'employee_correction' ? 'correz.' : source === 'admin_manual' ? 'admin' : source === 'system_auto' ? 'auto' : source;
   return <span className="badge badge-muted">{label}</span>;
 }
 
@@ -282,6 +283,7 @@ function StampsDataGrid({
           { value: 'employee_app', label: 'app' },
           { value: 'employee_correction', label: 'correz.' },
           { value: 'admin_manual', label: 'admin' },
+          { value: 'system_auto', label: 'auto' },
         ],
         renderCell: (p) => <SourceBadge source={p.row.source} />,
       },
@@ -308,6 +310,9 @@ function StampsDataGrid({
           <span className="text-xs">
             {p.row.suspicious_mock_location && (
               <span className="badge badge-warn mr-1">mock</span>
+            )}
+            {p.row.out_of_geofence && (
+              <span className="badge badge-warn mr-1">fuori area</span>
             )}
             {p.row.notes ?? ''}
           </span>
