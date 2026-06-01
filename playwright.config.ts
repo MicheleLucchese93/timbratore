@@ -98,6 +98,19 @@ export default defineConfig({
         storageState: STORAGE.mobileUserAuth,
       },
     },
+
+    // --- Smoke (read-only prod monitor) ----------------------------------
+    // Self-logs-in (no setup dependency), creates/mutates nothing. Run against
+    // prod as a synthetic monitor:
+    //   E2E_NO_WEBSERVER=1 E2E_SKIP_PURGE=1 npx playwright test --project=smoke
+    {
+      name: 'smoke',
+      testMatch: /smoke\/.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: process.env.E2E_SMOKE_URL ?? 'https://app-sonoqui.xdevapp.it',
+      },
+    },
   ],
   webServer: process.env.E2E_NO_WEBSERVER
     ? undefined

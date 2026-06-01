@@ -11,6 +11,11 @@
 const API_BASE = process.env.E2E_API_URL ?? 'https://api-sonoqui.xdevapp.it';
 
 export default async function globalTeardown(): Promise<void> {
+  if (process.env.E2E_SKIP_PURGE) {
+    // eslint-disable-next-line no-console
+    console.log('[teardown] E2E_SKIP_PURGE set — skipping fixture purge (read-only run)');
+    return;
+  }
   const secret = process.env.E2E_PURGE_SECRET;
   if (!secret) {
     // eslint-disable-next-line no-console
