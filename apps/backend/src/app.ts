@@ -8,7 +8,6 @@ import { env } from './env.js';
 import { requestId } from './middleware/request-id.js';
 import { requestLogger } from './middleware/request-logger.js';
 import { errorHandler } from './middleware/error-handler.js';
-import { sanitizeBody } from './middleware/sanitize.js';
 import { healthRouter } from './routes/health.js';
 import { authRouter } from './routes/auth.js';
 import { meRouter } from './routes/me.js';
@@ -57,8 +56,12 @@ export function createApp(): Express {
     })
   );
 
+  // Input is validated per-route with Zod and persisted via parameterized
+  // queries; output is escaped at every sink (React on the web, escapeHtml in
+  // email templates/renderer). We deliberately do NOT mutate request bodies
+  // here — a blanket xss() pass corrupts legitimate values (passwords, notes
+  // containing < or >) and is the wrong layer for XSS defense.
   app.use(express.json({ limit: '1mb' }));
-  app.use(sanitizeBody);
 
   const limiter = rateLimit({
     windowMs: env.RATE_LIMIT_WINDOW_MS,

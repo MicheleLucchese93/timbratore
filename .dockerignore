@@ -1,0 +1,29 @@
+# Secrets — never copy env files into image layers
+**/.env
+**/.env.*
+!**/.env*.example
+
+# Dependencies & logs (npm ci reinstalls inside the image; logs are noise)
+**/node_modules
+*.log
+
+# Build caches / outputs not needed in the build context
+**/.expo
+apps/backend/dist
+apps/backend/storage
+apps/mobile/ios/Pods
+apps/mobile/ios/build
+apps/mobile/android/.gradle
+apps/mobile/android/build
+apps/mobile/android/app/build
+
+# Test / CI / editor artifacts
+e2e/.auth
+e2e/playwright-report
+e2e/test-results
+test-results
+playwright-report
+coverage
+.vscode
+.claude
+**/.DS_Store
