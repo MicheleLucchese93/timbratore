@@ -59,6 +59,10 @@ test.describe('web — Manual leave-quota adjustment + audit (mutating)', () => 
   });
 
   test('add then remove hours; both logged in the audit timeline', async ({ page }) => {
+    // Unique per run so audit assertions survive ledger rows left by earlier runs.
+    const tag = `e2e-adj-${Date.now()}`;
+    const form = page.locator('form').filter({ hasText: 'Modifica manuale ore' });
+
     await page.goto('/leaves');
     await page.getByRole('button', { name: 'Quote', exact: true }).click();
 
@@ -69,37 +73,32 @@ test.describe('web — Manual leave-quota adjustment + audit (mutating)', () => 
 
     // --- Add 8h ---
     await row.getByRole('button', { name: 'Aggiungi/Rimuovi ore' }).click();
-    await expect(page.getByRole('heading', { name: /Modifica manuale ore/ })).toBeVisible();
-    await page.getByLabel('Ore').fill('8');
-    await page.getByLabel('Nota').fill('e2e add');
-    await page.getByRole('button', { name: 'Salva' }).click();
-    await expect(page.getByRole('heading', { name: /Modifica manuale ore/ })).toBeHidden({
-      timeout: 10_000,
-    });
+    await expect(form).toBeVisible();
+    await form.getByRole('spinbutton', { name: 'Ore' }).fill('8');
+    await form.getByLabel('Nota').fill(`${tag} add`);
+    await form.getByRole('button', { name: 'Salva' }).click();
+    await expect(form).toBeHidden({ timeout: 10_000 });
     await expect(row.getByRole('button', { name: '8.00h' })).toBeVisible({ timeout: 10_000 });
 
-    // --- Remove 3h ---
+    // --- Remove 3h (same day → exercises migration 034) ---
     await row.getByRole('button', { name: 'Aggiungi/Rimuovi ore' }).click();
-    await expect(page.getByRole('heading', { name: /Modifica manuale ore/ })).toBeVisible();
-    await page.getByRole('radio', { name: 'Rimuovi' }).check();
-    await page.getByLabel('Ore').fill('3');
-    await page.getByRole('button', { name: 'Salva' }).click();
-    await expect(page.getByRole('heading', { name: /Modifica manuale ore/ })).toBeHidden({
-      timeout: 10_000,
-    });
+    await expect(form).toBeVisible();
+    await form.getByRole('radio', { name: 'Rimuovi' }).check();
+    await form.getByRole('spinbutton', { name: 'Ore' }).fill('3');
+    await form.getByLabel('Nota').fill(`${tag} rem`);
+    await form.getByRole('button', { name: 'Salva' }).click();
+    await expect(form).toBeHidden({ timeout: 10_000 });
     await expect(row.getByRole('button', { name: '5.00h' })).toBeVisible({ timeout: 10_000 });
 
-    // --- Audit log lists both operations with the acting admin ---
+    // --- Audit log lists both operations, by unique note + signed amount ---
     await row.getByRole('button', { name: 'Storico modifiche manuali' }).click();
     await expect(page.getByRole('heading', { name: /Storico modifiche/ })).toBeVisible();
-    await expect(page.getByText('+8.00h')).toBeVisible();
-    await expect(page.getByText('-3.00h')).toBeVisible();
-    await expect(page.getByText('e2e add')).toBeVisible();
+    await expect(page.getByRole('row').filter({ hasText: `${tag} add` })).toContainText('+8.00h');
+    await expect(page.getByRole('row').filter({ hasText: `${tag} rem` })).toContainText('-3.00h');
 
-    // Backend ledger confirms the two signed manual rows.
+    // Backend ledger confirms the two signed manual rows for this run.
     const ledger = await listUserAccruals(admin.token, targetUserId);
-    const mine = ledger.filter((l) => l.source === 'manual');
-    expect(mine.some((l) => l.hours === 8)).toBeTruthy();
-    expect(mine.some((l) => l.hours === -3)).toBeTruthy();
+    expect(ledger.some((l) => l.note === `${tag} add` && l.hours === 8)).toBeTruthy();
+    expect(ledger.some((l) => l.note === `${tag} rem` && l.hours === -3)).toBeTruthy();
   });
 });
