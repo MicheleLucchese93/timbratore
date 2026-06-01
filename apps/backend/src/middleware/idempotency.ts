@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
+import { createHash } from 'node:crypto';
 import { pool } from '../lib/db.js';
 import { ValidationError } from '../errors/index.js';
 
@@ -6,15 +7,22 @@ const KEY_TTL_HOURS = 24;
 
 export function idempotencyMiddleware(scope: string) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const key = req.header('idempotency-key');
-    if (!key) {
+    const rawKey = req.header('idempotency-key');
+    if (!rawKey) {
       next(new ValidationError('Missing Idempotency-Key header', { code: 'MISSING_IDEMPOTENCY_KEY' }));
       return;
     }
-    if (!/^[a-zA-Z0-9-]{8,128}$/.test(key)) {
+    if (!/^[a-zA-Z0-9-]{8,128}$/.test(rawKey)) {
       next(new ValidationError('Invalid Idempotency-Key', { code: 'MISSING_IDEMPOTENCY_KEY' }));
       return;
     }
+    // idempotency_keys is a global table (RLS policy is USING(true)), so a key
+    // collision across tenants would otherwise replay another tenant's cached
+    // response_body. Namespace the stored key by hashing the
+    // (tenant, user, client-key) triple — collisions stay within one user.
+    // This middleware runs after `authenticate`, so req.user is populated.
+    const ns = `${req.user?.tenantId ?? 'anon'}:${req.user?.id ?? 'anon'}`;
+    const key = createHash('sha256').update(`${ns}:${rawKey}`).digest('hex');
     try {
       const claim = await pool.query(
         `INSERT INTO idempotency_keys(key, scope, expires_at)
