@@ -93,8 +93,16 @@ export function createApp(): Express {
   app.use('/api/v1/leaves', leavesRouter);
   app.use('/api/v1/leave-quotas', leaveQuotasRouter);
   app.use('/api/v1/helpdesk', helpdeskRouter);
-  if (env.E2E_PURGE_SECRET) {
+  // The internal-e2e router runs destructive cross-table deletes. It mounts
+  // ONLY when both the bearer secret AND the tenant pin are configured — so a
+  // misconfigured deploy fails closed (endpoint absent) instead of exposing an
+  // unscoped purge. Every query inside is then hard-scoped to E2E_TEST_TENANT_ID.
+  if (env.E2E_PURGE_SECRET && env.E2E_TEST_TENANT_ID) {
     app.use('/api/v1/_internal/e2e', internalE2eRouter);
+  } else if (env.E2E_PURGE_SECRET) {
+    console.warn(
+      'E2E_PURGE_SECRET is set but E2E_TEST_TENANT_ID is missing — e2e purge endpoint NOT mounted (refusing an unscoped destructive route).'
+    );
   }
 
   app.use(errorHandler);

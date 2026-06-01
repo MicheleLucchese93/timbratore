@@ -70,6 +70,13 @@ const Env = z.object({
   // Bearer secret for the e2e fixture purge endpoint. Endpoint is only
   // registered when this is set; required length keeps brute-force out of reach.
   E2E_PURGE_SECRET: z.string().min(32).optional(),
+  // Demo/test tenant the e2e purge + fixture endpoints are HARD-pinned to.
+  // Required for the internal-e2e router to mount (see app.ts): every
+  // destructive query is scoped to this tenant, so the endpoint can never
+  // touch a real customer tenant — even running against production, where
+  // the demo tenant lives alongside real ones. This is what makes running
+  // e2e against prod safe.
+  E2E_TEST_TENANT_ID: z.string().uuid().optional(),
 });
 
 export const env = Env.parse(process.env);

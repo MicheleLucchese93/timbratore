@@ -17,6 +17,11 @@ export default async function globalTeardown(): Promise<void> {
     console.log('[teardown] E2E_PURGE_SECRET unset — skipping fixture purge');
     return;
   }
+  // Surface the target so a prod run is never silent. The endpoint itself is
+  // hard-pinned server-side to the demo tenant (E2E_TEST_TENANT_ID), so this
+  // purge can only ever touch test data — but log where it lands regardless.
+  // eslint-disable-next-line no-console
+  console.log(`[teardown] purging e2e fixtures against ${API_BASE}`);
   try {
     const r = await fetch(`${API_BASE}/api/v1/_internal/e2e/purge-fixtures`, {
       method: 'POST',
