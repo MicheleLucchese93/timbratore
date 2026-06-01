@@ -1,10 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import type { Ref } from 'react';
 import './Manual.css';
 
-const MANUAL_BODY = `
-<div class="layout">
-
-  <aside class="toc">
+const TOC_HTML = `
     <nav>
       <h3>Introduzione</h3>
       <a href="#intro">Benvenuto</a>
@@ -54,9 +52,9 @@ const MANUAL_BODY = `
       <a href="#glossario">Glossario</a>
       <a href="#faq">Domande frequenti</a>
     </nav>
-  </aside>
+`;
 
-  <main>
+const MAIN_HTML = `
 
     <section class="chapter" id="intro">
       <h2><span class="chapter-num">01</span>Benvenuto</h2>
@@ -1320,14 +1318,191 @@ const MANUAL_BODY = `
     <footer>
       <p><strong>sonoQui · Manuale Utente</strong></p>
     </footer>
-
-  </main>
-</div>
 `;
+
+const SEARCH_HL = 'manual-search-hl';
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/* ---------- HTML → Markdown (powers "Scarica Markdown") ---------- */
+
+function inlineMd(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) return (node.nodeValue ?? '').replace(/\s+/g, ' ');
+  if (node.nodeType !== Node.ELEMENT_NODE) return '';
+  const el = node as HTMLElement;
+  const tag = el.tagName.toLowerCase();
+  const inner = Array.from(el.childNodes).map(inlineMd).join('');
+  switch (tag) {
+    case 'strong':
+    case 'b':
+      return `**${inner.trim()}**`;
+    case 'em':
+    case 'i':
+      return `*${inner.trim()}*`;
+    case 'code':
+      return `\`${inner.trim()}\``;
+    case 'br':
+      return '\n';
+    case 'a': {
+      const href = el.getAttribute('href') ?? '';
+      return href && !href.startsWith('#') ? `[${inner.trim()}](${href})` : inner;
+    }
+    case 'span':
+      if (el.classList.contains('chapter-num')) return inner.trim() ? `${inner.trim()} ` : '';
+      if (el.classList.contains('badge') || el.classList.contains('pill'))
+        return inner.trim() ? ` (${inner.trim()})` : '';
+      return inner;
+    default:
+      return inner;
+  }
+}
+
+function listMd(el: Element, depth: number, ordered: boolean): string {
+  const pad = '  '.repeat(depth);
+  const lines: string[] = [];
+  let i = 1;
+  for (const li of Array.from(el.children).filter((c) => c.tagName === 'LI')) {
+    const clone = li.cloneNode(true) as HTMLElement;
+    Array.from(clone.children)
+      .filter((c) => c.tagName === 'UL' || c.tagName === 'OL')
+      .forEach((c) => c.remove());
+    const text = inlineMd(clone).replace(/\s+/g, ' ').trim();
+    lines.push(`${pad}${ordered ? `${i}.` : '-'} ${text}`);
+    for (const nested of Array.from(li.children).filter((c) => c.tagName === 'UL' || c.tagName === 'OL')) {
+      lines.push(listMd(nested, depth + 1, nested.tagName === 'OL'));
+    }
+    i++;
+  }
+  return lines.join('\n');
+}
+
+function tableMd(table: Element): string {
+  const cellsOf = (row: Element) =>
+    Array.from(row.children).map((c) => inlineMd(c).replace(/\s+/g, ' ').replace(/\|/g, '\\|').trim());
+  const head = table.querySelector('thead tr');
+  const header = head ? cellsOf(head) : [];
+  const bodyRows = head
+    ? Array.from(table.querySelectorAll('tbody tr'))
+    : Array.from(table.querySelectorAll('tr'));
+  const cols = header.length || (bodyRows[0] ? bodyRows[0].children.length : 0);
+  if (!cols) return '';
+  const headerCells = header.length ? header : Array(cols).fill('');
+  const lines = [
+    `| ${headerCells.join(' | ')} |`,
+    `| ${headerCells.map(() => '---').join(' | ')} |`,
+    ...bodyRows.map((r) => `| ${cellsOf(r).join(' | ')} |`),
+  ];
+  return lines.join('\n');
+}
+
+function serializeBlocks(el: Element): string[] {
+  const out: string[] = [];
+  for (const child of Array.from(el.childNodes)) {
+    if (child.nodeType === Node.TEXT_NODE) {
+      const t = (child.nodeValue ?? '').replace(/\s+/g, ' ').trim();
+      if (t) out.push(t);
+      continue;
+    }
+    if (child.nodeType !== Node.ELEMENT_NODE) continue;
+    const e = child as HTMLElement;
+    const tag = e.tagName.toLowerCase();
+    if (e.classList.contains('callout')) {
+      const hasBlock = !!e.querySelector('p,ul,ol,table,div,h1,h2,h3,h4,hr,blockquote,section,footer');
+      const blocks = hasBlock ? serializeBlocks(e) : [inlineMd(e).replace(/\s+/g, ' ').trim()];
+      out.push(
+        blocks
+          .filter((b) => b.trim().length)
+          .map((b) => b.split('\n').map((l) => `> ${l}`).join('\n'))
+          .join('\n>\n'),
+      );
+      continue;
+    }
+    switch (tag) {
+      case 'h1':
+        out.push(`# ${inlineMd(e).replace(/\s+/g, ' ').trim()}`);
+        break;
+      case 'h2':
+        out.push(`${e.closest('.platform-header') ? '# ' : '## '}${inlineMd(e).replace(/\s+/g, ' ').trim()}`);
+        break;
+      case 'h3':
+        out.push(`### ${inlineMd(e).replace(/\s+/g, ' ').trim()}`);
+        break;
+      case 'h4':
+        out.push(`#### ${inlineMd(e).replace(/\s+/g, ' ').trim()}`);
+        break;
+      case 'p': {
+        const t = inlineMd(e).replace(/\s+/g, ' ').trim();
+        if (t) out.push(t);
+        break;
+      }
+      case 'ul':
+        out.push(listMd(e, 0, false));
+        break;
+      case 'ol':
+        out.push(listMd(e, 0, true));
+        break;
+      case 'table':
+        out.push(tableMd(e));
+        break;
+      case 'hr':
+        out.push('---');
+        break;
+      case 'footer':
+        break;
+      default:
+        if (e.classList.contains('icon')) break;
+        if (e.classList.contains('mini-title')) {
+          out.push(`**${inlineMd(e).replace(/\s+/g, ' ').trim()}**`);
+          break;
+        }
+        out.push(...serializeBlocks(e));
+    }
+  }
+  return out;
+}
+
+function contentToMarkdown(root: Element): string {
+  const blocks = serializeBlocks(root).filter((b) => b.trim().length);
+  return ['# sonoQui — Manuale Utente', ...blocks].join('\n\n') + '\n';
+}
+
+const IconSearch = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+    <circle cx="11" cy="11" r="7" />
+    <line x1="21" y1="21" x2="16.5" y2="16.5" />
+  </svg>
+);
+
+const IconDownload = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 3v12" />
+    <path d="m7 11 5 5 5-5" />
+    <path d="M5 20h14" />
+  </svg>
+);
+
+// The manual body is injected once via dangerouslySetInnerHTML. It must NOT be
+// reconciled on the parent's state changes (search highlights are live-DOM
+// mutations that a re-render would wipe), so it lives in a memo'd child with a
+// stable ref prop — it renders exactly once.
+const ManualContent = memo(function ManualContent({ innerRef }: { innerRef: Ref<HTMLDivElement> }) {
+  return <div ref={innerRef} className="manual-content" dangerouslySetInnerHTML={{ __html: MAIN_HTML }} />;
+});
 
 export function Manual() {
   const rootRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const marksRef = useRef<HTMLElement[]>([]);
 
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [total, setTotal] = useState(0);
+  const [cur, setCur] = useState(0);
+
+  // Smooth-scroll for the in-manual table-of-contents anchors.
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
@@ -1354,12 +1529,192 @@ export function Manual() {
     return () => root.removeEventListener('click', onClick);
   }, []);
 
+  const clearMarks = useCallback(() => {
+    const root = contentRef.current;
+    if (!root) return;
+    const parents = new Set<Node>();
+    root.querySelectorAll(`mark.${SEARCH_HL}`).forEach((m) => {
+      const p = m.parentNode;
+      if (!p) return;
+      p.replaceChild(document.createTextNode(m.textContent ?? ''), m);
+      parents.add(p);
+    });
+    parents.forEach((p) => (p as Element).normalize());
+    marksRef.current = [];
+  }, []);
+
+  const focusMatch = useCallback((idx: number) => {
+    const marks = marksRef.current;
+    if (!marks.length) return;
+    const n = ((idx % marks.length) + marks.length) % marks.length;
+    marks.forEach((m, j) => m.classList.toggle('is-current', j === n));
+    marks[n]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setCur(n);
+  }, []);
+
+  // Highlight + count matches whenever the query changes while search is open.
+  useEffect(() => {
+    if (!searchOpen) return;
+    clearMarks();
+    const root = contentRef.current;
+    const q = query.trim();
+    if (!root || q.length < 2) {
+      setTotal(0);
+      setCur(0);
+      return;
+    }
+    const re = new RegExp(escapeRegExp(q), 'gi');
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: (n) => (n.nodeValue && n.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT),
+    });
+    const textNodes: Text[] = [];
+    while (walker.nextNode()) textNodes.push(walker.currentNode as Text);
+
+    const collected: HTMLElement[] = [];
+    for (const tn of textNodes) {
+      const text = tn.nodeValue ?? '';
+      re.lastIndex = 0;
+      if (!re.test(text)) continue;
+      re.lastIndex = 0;
+      const frag = document.createDocumentFragment();
+      let last = 0;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(text))) {
+        const start = m.index;
+        const end = start + m[0].length;
+        if (start > last) frag.appendChild(document.createTextNode(text.slice(last, start)));
+        const mark = document.createElement('mark');
+        mark.className = SEARCH_HL;
+        mark.textContent = m[0];
+        frag.appendChild(mark);
+        collected.push(mark);
+        last = end;
+        if (m[0].length === 0) re.lastIndex++;
+      }
+      if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+      tn.parentNode?.replaceChild(frag, tn);
+    }
+    marksRef.current = collected;
+    setTotal(collected.length);
+    if (collected.length) focusMatch(0);
+    else setCur(0);
+  }, [query, searchOpen, clearMarks, focusMatch]);
+
+  useEffect(() => {
+    if (searchOpen) inputRef.current?.focus();
+  }, [searchOpen]);
+
+  const closeSearch = useCallback(() => {
+    clearMarks();
+    setQuery('');
+    setTotal(0);
+    setCur(0);
+    setSearchOpen(false);
+  }, [clearMarks]);
+
+  const downloadMarkdown = useCallback(() => {
+    const content = contentRef.current;
+    if (!content) return;
+    const clone = content.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll(`mark.${SEARCH_HL}`).forEach((m) => m.replaceWith(document.createTextNode(m.textContent ?? '')));
+    const blob = new Blob([contentToMarkdown(clone)], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sonoqui-manuale.md';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }, []);
+
+  const downloadPdf = useCallback(() => {
+    const content = contentRef.current;
+    if (!content) return;
+    const win = window.open('', '_blank');
+    if (!win) return;
+    const clone = content.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll(`mark.${SEARCH_HL}`).forEach((m) => m.replaceWith(document.createTextNode(m.textContent ?? '')));
+    const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map((n) => n.outerHTML)
+      .join('\n');
+    win.document.open();
+    win.document.write(
+      `<!doctype html><html lang="it"><head><meta charset="utf-8"><title>sonoQui — Manuale Utente</title>${styles}` +
+        `<style>body{margin:0;background:#fff}.manuale-root .layout{display:block}.manuale-root main{padding:24px;max-width:920px;margin:0 auto}</style>` +
+        `</head><body class="manuale-root"><main>${clone.innerHTML}</main></body></html>`,
+    );
+    win.document.close();
+    win.focus();
+    const print = () => win.print();
+    if (win.document.readyState === 'complete') setTimeout(print, 300);
+    else win.addEventListener('load', () => setTimeout(print, 300));
+  }, []);
+
+  const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (total) focusMatch(e.shiftKey ? cur - 1 : cur + 1);
+    } else if (e.key === 'Escape') {
+      closeSearch();
+    }
+  };
+
   return (
-    <div
-      ref={rootRef}
-      className="manuale-root"
-      style={{ margin: '-1.5rem -2rem -2.5rem' }}
-      dangerouslySetInnerHTML={{ __html: MANUAL_BODY }}
-    />
+    <div ref={rootRef} className="manuale-root" style={{ margin: '-1.5rem -2rem -2.5rem' }}>
+      <div className="layout">
+        <aside className="toc" dangerouslySetInnerHTML={{ __html: TOC_HTML }} />
+        <main>
+          <div className="manual-toolbar" role="toolbar" aria-label="Strumenti manuale">
+            <div className="tb-left">
+              {searchOpen ? (
+                <div className="tb-search" role="search">
+                  <span className="tb-search-ic">
+                    <IconSearch />
+                  </span>
+                  <input
+                    ref={inputRef}
+                    type="search"
+                    aria-label="Cerca nel manuale"
+                    placeholder="Cerca nel manuale…"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={onSearchKeyDown}
+                  />
+                  <span className="tb-count">{query.trim().length >= 2 ? `${total ? cur + 1 : 0}/${total}` : ''}</span>
+                  <button type="button" className="tb-iconbtn" aria-label="Risultato precedente" onClick={() => focusMatch(cur - 1)} disabled={!total}>
+                    ‹
+                  </button>
+                  <button type="button" className="tb-iconbtn" aria-label="Risultato successivo" onClick={() => focusMatch(cur + 1)} disabled={!total}>
+                    ›
+                  </button>
+                  <button type="button" className="tb-iconbtn" aria-label="Chiudi ricerca" onClick={closeSearch}>
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <button type="button" className="manual-btn" aria-label="Cerca nel manuale" onClick={() => setSearchOpen(true)}>
+                  <IconSearch /> Cerca
+                </button>
+              )}
+            </div>
+
+            <div className="tb-actions">
+              <button type="button" className="manual-btn" aria-label="Scarica PDF" onClick={downloadPdf}>
+                <IconDownload /> PDF
+              </button>
+              <div className="tb-md">
+                <button type="button" className="manual-btn manual-btn-primary" aria-label="Scarica Markdown" onClick={downloadMarkdown}>
+                  <IconDownload /> Markdown
+                </button>
+                <span className="tb-md-hint">Caricalo nel tuo LLM preferito, come ChatGPT</span>
+              </div>
+            </div>
+          </div>
+
+          <ManualContent innerRef={contentRef} />
+        </main>
+      </div>
+    </div>
   );
 }
