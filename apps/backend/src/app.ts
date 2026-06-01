@@ -1,4 +1,4 @@
-import express, { type Express } from 'express';
+import express, { type Express, type Response } from 'express';
 import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -75,8 +75,19 @@ export function createApp(): Express {
   // Static helpers served same-origin so GoTrue invite / recovery links land here.
   // publicDir resolves relative to the apps/backend working dir.
   const publicDir = path.resolve(process.cwd(), 'public');
-  app.use(express.static(publicDir, { extensions: ['html'], maxAge: '5m' }));
-  app.use('/templates', express.static(path.join(publicDir, 'templates'), { extensions: ['html'] }));
+  // Defense-in-depth CSP for the static auth HTML pages (reset-password,
+  // confirm-email, email templates). JSON API responses don't need a CSP;
+  // these served documents do. 'unsafe-inline' stays because each page has a
+  // small inline bootstrap script and Cloudflare injects an edge beacon.
+  const HTML_CSP =
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; " +
+    "img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'; " +
+    "frame-ancestors 'none'; object-src 'none'";
+  const setHtmlCsp = (res: Response, filePath: string): void => {
+    if (filePath.endsWith('.html')) res.setHeader('Content-Security-Policy', HTML_CSP);
+  };
+  app.use(express.static(publicDir, { extensions: ['html'], maxAge: '5m', setHeaders: setHtmlCsp }));
+  app.use('/templates', express.static(path.join(publicDir, 'templates'), { extensions: ['html'], setHeaders: setHtmlCsp }));
 
   app.use('/health', healthRouter);
   app.use('/api/v1/auth', authRouter);
