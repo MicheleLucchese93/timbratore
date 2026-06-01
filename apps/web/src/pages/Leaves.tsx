@@ -105,6 +105,25 @@ interface UserRow {
   display_name: string | null;
 }
 
+interface Accrual {
+  id: number;
+  type: 'ferie' | 'permessi';
+  hours: number;
+  accrued_on: string;
+  source: 'cron' | 'manual' | 'adjustment';
+  note: string | null;
+  created_at: string;
+  created_by: string | null;
+  created_by_display_name: string | null;
+  created_by_email: string | null;
+}
+
+const ACCRUAL_SOURCE_LABEL: Record<Accrual['source'], string> = {
+  cron: 'Automatico',
+  manual: 'Manuale',
+  adjustment: 'Rettifica',
+};
+
 interface QuotaSummary {
   type: 'ferie' | 'permessi';
   assignment_id: string | null;
@@ -625,6 +644,8 @@ function QuotasTab() {
     type: 'ferie' | 'permessi';
     existing?: Assignment;
   } | null>(null);
+  const [adjustTarget, setAdjustTarget] = useState<QuotaRow | null>(null);
+  const [historyTarget, setHistoryTarget] = useState<UserRow | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   async function load() {
@@ -675,7 +696,12 @@ function QuotasTab() {
           Crea prima un modello quota nella tab <strong>Modelli</strong>.
         </div>
       )}
-      <QuotasDataGrid grid={grid} onEdit={(u, type, existing) => setEditor({ user: u, type, existing })} />
+      <QuotasDataGrid
+        grid={grid}
+        onEdit={(u, type, existing) => setEditor({ user: u, type, existing })}
+        onAdjust={setAdjustTarget}
+        onHistory={setHistoryTarget}
+      />
       {editor && (
         <AssignmentEditor
           user={editor.user}
@@ -688,6 +714,19 @@ function QuotasTab() {
             await load();
           }}
         />
+      )}
+      {adjustTarget && (
+        <ManualAdjustModal
+          row={adjustTarget}
+          onClose={() => setAdjustTarget(null)}
+          onSaved={async () => {
+            setAdjustTarget(null);
+            await load();
+          }}
+        />
+      )}
+      {historyTarget && (
+        <AuditLogModal user={historyTarget} onClose={() => setHistoryTarget(null)} />
       )}
     </div>
   );
@@ -855,6 +894,241 @@ function AssignmentEditor({
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+/* ---------- Manual hours adjustment + audit log ---------- */
+
+function ManualAdjustModal({
+  row,
+  onClose,
+  onSaved,
+}: {
+  row: QuotaRow;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const available = useMemo(
+    () =>
+      (['ferie', 'permessi'] as const).filter(
+        (t) => (t === 'ferie' ? row.ferie : row.permessi) !== undefined
+      ),
+    [row]
+  );
+  const [type, setType] = useState<'ferie' | 'permessi'>(available[0] ?? 'ferie');
+  const [direction, setDirection] = useState<'add' | 'remove'>('add');
+  const [hours, setHours] = useState<number>(0);
+  const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const assignment = type === 'ferie' ? row.ferie : row.permessi;
+  const userLabel = row.user.display_name || row.user.email;
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    if (!assignment) {
+      setErr('Nessuna quota attiva per questo tipo.');
+      return;
+    }
+    if (!(hours > 0)) {
+      setErr('Inserisci un numero di ore maggiore di zero.');
+      return;
+    }
+    const signed = direction === 'remove' ? -hours : hours;
+    setBusy(true);
+    try {
+      await api(`/api/v1/leave-quotas/assignments/${assignment.id}/accruals`, {
+        method: 'POST',
+        json: { hours: signed, accrued_on: date, note: note.trim() || undefined, source: 'manual' },
+      });
+      onSaved();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'errore');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
+      <form onSubmit={submit} className="card w-full max-w-md space-y-3">
+        <h2 className="section-title">Modifica manuale ore — {userLabel}</h2>
+        <p className="text-xs muted">
+          Aggiungi o rimuovi ore dal saldo. Ogni operazione resta tracciata nello storico.
+        </p>
+        {available.length > 1 ? (
+          <div>
+            <label className="label">Tipo</label>
+            <select
+              className="input"
+              aria-label="Tipo"
+              value={type}
+              onChange={(e) => setType(e.target.value as 'ferie' | 'permessi')}
+            >
+              <option value="ferie">Ferie</option>
+              <option value="permessi">Permessi</option>
+            </select>
+          </div>
+        ) : (
+          <div className="text-sm">
+            Tipo: <strong>{type === 'ferie' ? 'Ferie' : 'Permessi'}</strong>
+          </div>
+        )}
+        <div>
+          <label className="label">Operazione</label>
+          <div className="flex gap-3">
+            <label className="flex items-center gap-1.5 text-sm">
+              <input
+                type="radio"
+                name="direction"
+                checked={direction === 'add'}
+                onChange={() => setDirection('add')}
+              />
+              Aggiungi
+            </label>
+            <label className="flex items-center gap-1.5 text-sm">
+              <input
+                type="radio"
+                name="direction"
+                checked={direction === 'remove'}
+                onChange={() => setDirection('remove')}
+              />
+              Rimuovi
+            </label>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">Ore</label>
+            <input
+              type="number"
+              step="0.25"
+              min={0}
+              className="input"
+              aria-label="Ore"
+              value={hours}
+              onChange={(e) => setHours(Number(e.target.value))}
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="label">Data</label>
+            <input
+              type="date"
+              className="input"
+              aria-label="Data"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </div>
+        </div>
+        <div>
+          <label className="label">Nota (facoltativa)</label>
+          <input
+            className="input"
+            aria-label="Nota"
+            maxLength={500}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Motivo della modifica"
+          />
+        </div>
+        {assignment && (
+          <p className="text-xs muted">
+            Saldo attuale {type === 'ferie' ? 'ferie' : 'permessi'}: <strong>{balance(assignment).toFixed(2)}h</strong>
+            {hours > 0 && (
+              <>
+                {' → '}
+                <strong>{(balance(assignment) + (direction === 'remove' ? -hours : hours)).toFixed(2)}h</strong>
+              </>
+            )}
+          </p>
+        )}
+        {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
+        <div className="flex justify-end gap-2">
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
+            Annulla
+          </button>
+          <button type="submit" className="btn btn-primary" disabled={busy}>
+            {busy ? 'Salvataggio…' : 'Salva'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function fmtSignedHours(h: number): string {
+  return `${h > 0 ? '+' : ''}${h.toFixed(2)}h`;
+}
+
+function AuditLogModal({ user, onClose }: { user: UserRow; onClose: () => void }) {
+  const [rows, setRows] = useState<Accrual[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    api<Accrual[]>(`/api/v1/leave-quotas/users/${user.user_id}/accruals`)
+      .then(setRows)
+      .catch((e) => setErr(e instanceof Error ? e.message : 'errore'));
+  }, [user.user_id]);
+
+  return (
+    <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50" onClick={onClose}>
+      <div className="card w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
+        <h2 className="section-title mb-3">
+          Storico modifiche — {user.display_name || user.email}
+        </h2>
+        {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
+        {rows && rows.length === 0 && (
+          <p className="text-sm muted">Nessun accredito o modifica registrata.</p>
+        )}
+        {rows && rows.length > 0 && (
+          <div className="max-h-[60vh] overflow-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left muted text-xs">
+                  <th className="py-1 pr-3">Data</th>
+                  <th className="py-1 pr-3">Tipo</th>
+                  <th className="py-1 pr-3">Variazione</th>
+                  <th className="py-1 pr-3">Sorgente</th>
+                  <th className="py-1 pr-3">Nota</th>
+                  <th className="py-1 pr-3">Eseguito da</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id} className="border-t" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>
+                    <td className="py-1 pr-3 whitespace-nowrap">{r.accrued_on}</td>
+                    <td className="py-1 pr-3">{r.type === 'ferie' ? 'Ferie' : 'Permessi'}</td>
+                    <td
+                      className="py-1 pr-3 num whitespace-nowrap"
+                      style={{ color: r.hours < 0 ? 'var(--color-error)' : 'var(--color-success, #16a34a)' }}
+                    >
+                      {fmtSignedHours(r.hours)}
+                    </td>
+                    <td className="py-1 pr-3">{ACCRUAL_SOURCE_LABEL[r.source]}</td>
+                    <td className="py-1 pr-3 muted">{r.note || '—'}</td>
+                    <td className="py-1 pr-3">
+                      {r.source === 'cron'
+                        ? 'Sistema'
+                        : r.created_by_display_name || r.created_by_email || '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div className="mt-4 flex justify-end">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
+            Chiudi
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1358,9 +1632,13 @@ interface QuotaRow {
 function QuotasDataGrid({
   grid,
   onEdit,
+  onAdjust,
+  onHistory,
 }: {
   grid: QuotaRow[];
   onEdit: (user: UserRow, type: 'ferie' | 'permessi', existing?: Assignment) => void;
+  onAdjust: (row: QuotaRow) => void;
+  onHistory: (user: UserRow) => void;
 }) {
   const columns = useMemo<GridColDef<QuotaRow>[]>(
     () => [
@@ -1425,8 +1703,33 @@ function QuotasDataGrid({
           <span className="text-xs muted">{p.row.permessi ? fmtAccrual(p.row.permessi) : '—'}</span>
         ),
       },
+      {
+        field: 'actions',
+        headerName: 'Azioni',
+        width: 110,
+        sortable: false,
+        filterable: false,
+        renderCell: (p: GridRenderCellParams<QuotaRow>) => {
+          const hasQuota = Boolean(p.row.ferie || p.row.permessi);
+          return (
+            <div className="flex gap-1">
+              <IconButton
+                kind="adjust"
+                title={hasQuota ? 'Aggiungi/Rimuovi ore' : 'Assegna prima una quota'}
+                disabled={!hasQuota}
+                onClick={() => onAdjust(p.row)}
+              />
+              <IconButton
+                kind="history"
+                title="Storico modifiche manuali"
+                onClick={() => onHistory(p.row.user)}
+              />
+            </div>
+          );
+        },
+      },
     ],
-    [onEdit]
+    [onEdit, onAdjust, onHistory]
   );
 
   return (

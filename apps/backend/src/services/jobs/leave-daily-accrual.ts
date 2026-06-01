@@ -7,9 +7,9 @@ const logger = createLogger('leave_daily_accrual');
  * Daily cron — for each active assignment whose template anchor matches today
  * in Europe/Rome, insert one accrual row + bump last_accrual_on.
  *
- * Idempotent: the UNIQUE (assignment_id, accrued_on, source='cron') constraint
- * silently absorbs duplicate runs on the same day. last_accrual_on is then
- * only refreshed when an INSERT actually happened.
+ * Idempotent: the partial UNIQUE index on (assignment_id, accrued_on) WHERE
+ * source = 'cron' silently absorbs duplicate runs on the same day.
+ * last_accrual_on is then only refreshed when an INSERT actually happened.
  */
 export async function leaveDailyAccrual(): Promise<void> {
   const r = await adminPool.query(
@@ -42,7 +42,7 @@ export async function leaveDailyAccrual(): Promise<void> {
        SELECT c.tenant_id, c.assignment_id, c.user_id, c.type,
               c.accrual_amount, (SELECT d FROM today), 'cron'
          FROM candidates c
-       ON CONFLICT (assignment_id, accrued_on, source) DO NOTHING
+       ON CONFLICT (assignment_id, accrued_on) WHERE source = 'cron' DO NOTHING
        RETURNING assignment_id, accrued_on
      )
      UPDATE leave_quota_assignments a

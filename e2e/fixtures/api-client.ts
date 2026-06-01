@@ -249,6 +249,41 @@ export async function closeAssignment(adminToken: string, id: string): Promise<v
   await apiDelete(adminToken, `/api/v1/leave-quotas/assignments/${id}`);
 }
 
+export interface AccrualRow {
+  id: number;
+  type: 'ferie' | 'permessi';
+  hours: number;
+  accrued_on: string;
+  source: 'cron' | 'manual' | 'adjustment';
+  note: string | null;
+  created_by_display_name: string | null;
+  created_by_email: string | null;
+}
+
+/** Manual signed accrual: positive credits hours, negative debits them. */
+export async function addManualAccrual(
+  adminToken: string,
+  assignmentId: string,
+  body: { hours: number; note?: string; accrued_on?: string },
+): Promise<AccrualRow> {
+  const r = await apiPost<AccrualRow>(
+    adminToken,
+    `/api/v1/leave-quotas/assignments/${assignmentId}/accruals`,
+    { source: 'manual', ...body },
+  );
+  if (r.status !== 201 || !r.data) {
+    throw new Error(`addManualAccrual failed: ${r.status} ${r.code ?? ''} ${r.message ?? ''}`.trim());
+  }
+  return r.data;
+}
+
+export async function listUserAccruals(
+  adminToken: string,
+  userId: string,
+): Promise<AccrualRow[]> {
+  return apiGet<AccrualRow[]>(adminToken, `/api/v1/leave-quotas/users/${userId}/accruals`);
+}
+
 /* Leave-request helpers */
 
 export interface LeaveCreateBody {

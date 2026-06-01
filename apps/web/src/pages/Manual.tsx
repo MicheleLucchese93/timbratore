@@ -562,10 +562,17 @@ const MAIN_HTML = `
 
       <div class="feature">
         <h3>Tab Quote</h3>
-        <p>Per ogni utente vedi due colonne (Ferie e Permessi) con saldo iniziale, accrediti totali, usati approvati, usati in attesa e residuo.</p>
-        <p>Premi <strong>Modifica</strong> per cambiare l'assegnazione: template, saldo iniziale e data inizio.</p>
+        <p>Per ogni utente vedi il <strong>saldo Ferie</strong> e il <strong>saldo Permessi</strong> con il relativo accredito automatico. Premi sul saldo (o su <strong>Assegna</strong> se manca) per cambiare l'assegnazione: template, saldo iniziale e data inizio.</p>
+        <p>Nella colonna <strong>Azioni</strong> trovi due strumenti per ogni dipendente:</p>
+        <ul class="tidy">
+          <li><strong>Modifica manuale ore</strong> (icona ±) — apre una finestra dove scegli il tipo (Ferie o Permessi), l'operazione <strong>Aggiungi</strong> o <strong>Rimuovi</strong>, il numero di ore, la data e una nota facoltativa. È il modo per correggere a mano il saldo di un singolo dipendente (es. accreditare ore residue dell'anno precedente o scalare un permesso gestito fuori sistema). La modifica si riflette <em>subito</em> sul residuo del dipendente, anche nella sua app.</li>
+          <li><strong>Storico modifiche</strong> (icona orologio) — apre il registro completo di tutti gli accrediti e le modifiche di quell'utente: data, tipo, variazione (in verde le aggiunte, in rosso le rimozioni), sorgente (<em>Automatico</em> per gli accrediti periodici, <em>Manuale</em> o <em>Rettifica</em> per gli interventi dell'admin), nota e <strong>chi</strong> ha eseguito l'operazione.</li>
+        </ul>
         <div class="callout callout-info">
-          <strong>Residuo</strong> = saldo iniziale + accantonamenti − usati approvati. I "pending" non si contano subito, quindi il counter può diventare negativo se le richieste in attesa superano il residuo.
+          <strong>Residuo</strong> = saldo iniziale + accantonamenti (automatici e manuali) − usati approvati. I "pending" non si contano subito, quindi il counter può diventare negativo se le richieste in attesa superano il residuo.
+        </div>
+        <div class="callout callout-info">
+          Il registro è <strong>append-only</strong>: una rimozione viene salvata come riga negativa, non cancella lo storico. Così ogni intervento manuale resta sempre tracciato e verificabile.
         </div>
       </div>
 

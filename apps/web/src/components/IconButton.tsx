@@ -5,7 +5,9 @@ export type IconButtonKind =
   | 'delete'
   | 'approve'
   | 'reject'
-  | 'revoke';
+  | 'revoke'
+  | 'adjust'
+  | 'history';
 
 const TONE: Record<IconButtonKind, '' | 'danger' | 'success'> = {
   edit: '',
@@ -15,6 +17,8 @@ const TONE: Record<IconButtonKind, '' | 'danger' | 'success'> = {
   approve: 'success',
   reject: 'danger',
   revoke: 'danger',
+  adjust: '',
+  history: '',
 };
 
 interface IconButtonProps {
@@ -102,6 +106,25 @@ function renderIcon(kind: IconButtonKind) {
         <svg {...common}>
           <circle cx="12" cy="12" r="9" />
           <path d="M5.6 5.6l12.8 12.8" />
+        </svg>
+      );
+    case 'adjust':
+      // Plus/minus — manual add/remove of hours.
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" />
+          <line x1="8" y1="9.5" x2="16" y2="9.5" />
+          <line x1="12" y1="5.5" x2="12" y2="13.5" />
+          <line x1="8" y1="17" x2="16" y2="17" />
+        </svg>
+      );
+    case 'history':
+      // Clock with a counter-clockwise arrow — audit timeline.
+      return (
+        <svg {...common}>
+          <path d="M3 3v5h5" />
+          <path d="M3.05 13a9 9 0 1 0 2.6-6.36L3 8" />
+          <path d="M12 7v5l3 2" />
         </svg>
       );
   }

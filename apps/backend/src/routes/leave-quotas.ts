@@ -367,11 +367,42 @@ leaveQuotasRouter.get(
   '/assignments/:id/accruals',
   tenantHandler(async (req, res, client) => {
     const r = await client.query(
-      `SELECT id, hours::float8 AS hours, accrued_on, source, note, created_at
-         FROM leave_accruals
-        WHERE assignment_id = $1
-        ORDER BY accrued_on DESC, id DESC
+      `SELECT ac.id, ac.type,
+              ac.hours::float8 AS hours,
+              ac.accrued_on, ac.source, ac.note, ac.created_at,
+              ac.created_by,
+              cb.display_name AS created_by_display_name,
+              cb.email AS created_by_email
+         FROM leave_accruals ac
+         LEFT JOIN auth_users cb ON cb.id = ac.created_by
+        WHERE ac.assignment_id = $1
+        ORDER BY ac.accrued_on DESC, ac.id DESC
         LIMIT 200`,
+      [req.params.id]
+    );
+    ok(res, r.rows);
+  })
+);
+
+// All accrual ledger rows for one user, across every assignment (both types).
+// Powers the per-user audit log in the admin Quote tab — a single timeline of
+// automatic accruals and manual add/remove operations, with the acting admin.
+leaveQuotasRouter.get(
+  '/users/:id/accruals',
+  requireAdmin,
+  tenantHandler(async (req, res, client) => {
+    const r = await client.query(
+      `SELECT ac.id, ac.type,
+              ac.hours::float8 AS hours,
+              ac.accrued_on, ac.source, ac.note, ac.created_at,
+              ac.created_by,
+              cb.display_name AS created_by_display_name,
+              cb.email AS created_by_email
+         FROM leave_accruals ac
+         LEFT JOIN auth_users cb ON cb.id = ac.created_by
+        WHERE ac.user_id = $1
+        ORDER BY ac.accrued_on DESC, ac.id DESC
+        LIMIT 500`,
       [req.params.id]
     );
     ok(res, r.rows);
@@ -380,7 +411,8 @@ leaveQuotasRouter.get(
 
 // Manual one-off accrual / adjustment (admin only).
 const ManualAccrualBody = z.object({
-  hours: z.number(),
+  // Signed: positive credits hours (add), negative debits them (remove).
+  hours: z.number().refine((h) => h !== 0, 'hours must be non-zero'),
   accrued_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   note: z.string().max(500).optional(),
   source: z.enum(['manual', 'adjustment']).default('manual'),
