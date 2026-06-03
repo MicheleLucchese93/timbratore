@@ -2,7 +2,7 @@
   "expo": {
     "name": "sonoQui",
     "slug": "traduttore",
-    "version": "4.0.1",
+    "version": "5.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "sonoqui",
@@ -10,9 +10,11 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "app.cisono.cisono",
+      "buildNumber": "2",
       "supportsTablet": false,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "sonoQui usa la posizione SOLO al momento della timbratura per verificare che tu sia presso la sede di lavoro. La posizione NON viene mai tracciata in background. sonoQui uses your location ONLY at clock-in to verify you are at the work site. Location is NEVER tracked in the background.",
+        "NSMotionUsageDescription": "sonoQui può usare i sensori di movimento solo per migliorare la precisione della posizione al momento della timbratura. Nessun dato di movimento viene tracciato in background. sonoQui may use motion sensors only to improve location accuracy at clock-in. No motion data is tracked in the background.",
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": ["remote-notification"]
       }

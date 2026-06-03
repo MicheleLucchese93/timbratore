@@ -19,7 +19,7 @@
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.1.0</string>
+	<string>5.1.0</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
@@ -33,7 +33,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>2</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSMinimumSystemVersion</key>
@@ -49,6 +49,8 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>sonoQui usa la posizione SOLO al momento della timbratura per verificare che tu sia presso la sede di lavoro. La posizione NON viene mai tracciata in background. sonoQui uses your location ONLY at clock-in to verify you are at the work site. Location is NEVER tracked in the background.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>sonoQui può usare i sensori di movimento solo per migliorare la precisione della posizione al momento della timbratura. Nessun dato di movimento viene tracciato in background. sonoQui may use motion sensors only to improve location accuracy at clock-in. No motion data is tracked in the background.</string>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>
