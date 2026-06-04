@@ -30,11 +30,14 @@ test.describe('mobile — login', () => {
     await expect(page.getByText(/Inserisci l'email/i)).toBeVisible({ timeout: 5_000 });
   });
 
-  test('signs in and lands on Timbrature', async ({ page }) => {
+  test('signs in and lands on the Dashboard', async ({ page }) => {
+    // Admins now open on the Dashboard recap (employees still land on
+    // Timbrature — covered by mobile.user-auth.setup.ts and the
+    // employee Dashboard-gating spec).
     await page.goto(URLS.mobile);
     await page.getByPlaceholder('email@azienda.it').fill(CREDS.admin.email);
     await page.getByPlaceholder('••••••••').fill(CREDS.admin.password);
     await page.getByRole('button', { name: 'Accedi' }).click();
-    await expect(page.getByText('Ore lavorate', { exact: false })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText('Presenti ora').first()).toBeVisible({ timeout: 30_000 });
   });
 });

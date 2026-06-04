@@ -41,6 +41,7 @@ const TOC_HTML = `
 
       <h3>App Mobile · Amministratore</h3>
       <a href="#mob-admin">Panoramica</a>
+      <a href="#mob-admin-dashboard" class="sub">Dashboard</a>
       <a href="#mob-admin-correzioni" class="sub">Approvazione correzioni</a>
       <a href="#mob-admin-richieste" class="sub">Approvazione richieste</a>
       <a href="#mob-admin-notifiche" class="sub">Notifiche push</a>
@@ -157,7 +158,7 @@ const MAIN_HTML = `
           <li>Inserisci la password (l'icona occhio permette di mostrarla/nasconderla).</li>
           <li>Premi <strong>Accedi</strong>.</li>
         </ol>
-        <p>Al primo accesso verrai indirizzato alla pagina iniziale del tuo ruolo: <em>Dashboard</em> per gli amministratori, <em>La mia dashboard</em> o <em>Timbrature</em> per i dipendenti.</p>
+        <p>Al primo accesso verrai indirizzato alla pagina iniziale del tuo ruolo: <em>Dashboard</em> per gli amministratori (sia su Web sia su Mobile), <em>La mia dashboard</em> (Web) o <em>Timbrature</em> (Mobile) per i dipendenti.</p>
       </div>
 
       <div class="feature">
@@ -1048,10 +1049,21 @@ const MAIN_HTML = `
 
     <section class="chapter" id="mob-admin">
       <h2><span class="chapter-num">26</span>Panoramica Mobile Admin</h2>
-      <p class="lead">Se sei amministratore, sull'app mobile puoi anche timbrare per te stesso, ma in più hai una tab di approvazioni e ricevi notifiche push per le nuove richieste.</p>
+      <p class="lead">Se sei amministratore, sull'app mobile apri direttamente sulla <strong>Dashboard</strong>: una tab dedicata con il riepilogo della giornata. In più hai una tab di approvazioni e ricevi notifiche push per le nuove richieste. Puoi comunque timbrare per te stesso dalla tab Timbrature.</p>
 
       <div class="callout callout-info">
         Sull'app mobile l'admin <strong>non</strong> gestisce utenti, sedi, orari, esportazioni o impostazioni: per queste funzioni serve il Web.
+      </div>
+
+      <div class="feature" id="mob-admin-dashboard">
+        <h3>Dashboard — il riepilogo della giornata</h3>
+        <p>All'avvio l'amministratore vede la <strong>Dashboard</strong> (primo tab della barra in basso), pensata per capire a colpo d'occhio chi sta lavorando e chi è assente. Mostra:</p>
+        <ul class="tidy">
+          <li><strong>Schede riepilogo</strong> — Presenti ora (sul totale dipendenti), In pausa, Assenti oggi, Da approvare, Anomalie ultimi 7 giorni e numero di Sedi.</li>
+          <li><strong>Assenti ora</strong> — l'elenco di chi è in ferie, permesso o malattia in questo momento, con il tipo e la data di fine.</li>
+          <li><strong>Stato attuale</strong> — la lista dei dipendenti con il loro stato (<span class="pill pill-ok">Al lavoro</span>, <span class="pill pill-warn">In pausa</span> o <span class="pill">Fuori servizio</span>) e la sede; chi sta lavorando appare in cima.</li>
+        </ul>
+        <p>Trascina verso il basso per aggiornare i dati. La Dashboard è visibile solo agli amministratori; i dipendenti aprono come sempre sulla tab Timbrature.</p>
       </div>
     </section>
 

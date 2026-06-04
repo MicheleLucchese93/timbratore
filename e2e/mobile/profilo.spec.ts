@@ -10,10 +10,15 @@ test.describe('mobile — Profilo screen (admin)', () => {
   });
 
   test('shows the user identity (email + role badge)', async ({ page }) => {
-    await expect(page.getByText(CREDS.admin.email)).toBeVisible({ timeout: 15_000 });
-    // Admin role pill reads "Amministratore". The non-admin variant says
-    // "Dipendente" — verified by the employee-role spec below.
-    await expect(page.getByText('Amministratore').first()).toBeVisible();
+    // The admin's own email also renders in the Dashboard "Stato attuale"
+    // list, which stays mounted behind the pushed Profilo screen (RN-Web
+    // keeps prior routes in the DOM). Assert presence (count) rather than
+    // strict visibility to avoid the duplicate-match — same idiom as the
+    // Sede assertion below.
+    await expect(page.getByText(CREDS.admin.email)).not.toHaveCount(0);
+    // Admin role pill reads "Amministratore" (unique to the Profilo identity
+    // card). The non-admin variant says "Dipendente".
+    await expect(page.getByText('Amministratore').first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('Azienda section lists the tenant name', async ({ page }) => {

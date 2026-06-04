@@ -10,7 +10,7 @@ setup('authenticate mobile user', async ({ page }) => {
   await page.getByPlaceholder('email@azienda.it').fill(CREDS.admin.email);
   await page.getByPlaceholder('••••••••').fill(CREDS.admin.password);
   await page.getByRole('button', { name: 'Accedi' }).click();
-  // After login the Timbrature tab is the initial route.
-  await expect(page.getByText('Ore lavorate')).toBeVisible({ timeout: 30_000 });
+  // Admins land on the Dashboard recap (its first stat card is "Presenti ora").
+  await expect(page.getByText('Presenti ora').first()).toBeVisible({ timeout: 30_000 });
   await page.context().storageState({ path: STORAGE.mobileAuth });
 });

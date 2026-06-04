@@ -14,6 +14,7 @@ const LINE_TO_ICON_GAP = 6;
 const ICON_TO_LABEL_GAP = 3;
 
 const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  dashboard: 'grid-outline',
   timbrature: 'time-outline',
   storico: 'calendar-outline',
   correzioni: 'create-outline',
@@ -24,11 +25,15 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
   const insets = useSafeAreaInsets();
   const bottomInset = Math.max(insets.bottom, 4);
   const me = useSession((s) => s.me);
+  const isAdmin = me?.user.role === 'admin';
   const canStamp = (me?.user.stamp_modes ?? []).length > 0;
   const focusedKey = state.routes[state.index]?.key;
-  const routes = canStamp
-    ? state.routes
-    : state.routes.filter((r) => r.name !== 'timbrature');
+  // Dashboard is admin-only; Timbrature hides when no stamp method is enabled.
+  const routes = state.routes.filter((r) => {
+    if (r.name === 'dashboard') return isAdmin;
+    if (r.name === 'timbrature') return canStamp;
+    return true;
+  });
 
   return (
     <View

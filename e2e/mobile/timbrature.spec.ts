@@ -3,6 +3,9 @@ import { test, expect } from '@playwright/test';
 test.describe('mobile — Timbrature tab', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    // Admins now open on the Dashboard tab — step into Timbrature first.
+    await expect(page.getByRole('button', { name: 'Timbrature' })).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('button', { name: 'Timbrature' }).click();
     // Ensure the home-tab content (hero card) is visible before each assertion.
     await expect(page.getByText('Ore lavorate').first()).toBeVisible({ timeout: 30_000 });
   });
@@ -19,7 +22,8 @@ test.describe('mobile — Timbrature tab', () => {
     await expect(page.getByText('Uscita').first()).toBeVisible();
   });
 
-  test('shows the bottom tab bar with 4 tabs', async ({ page }) => {
+  test('shows the bottom tab bar with the admin tabs (incl. Dashboard)', async ({ page }) => {
+    await expect(page.getByRole('button', { name: 'Dashboard' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Timbrature' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Storico' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Correzioni' })).toBeVisible();

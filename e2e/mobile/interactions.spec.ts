@@ -37,7 +37,9 @@ test.describe('mobile — Notifications bell tap', () => {
 test.describe('mobile — Timbrature branch picker (multi-branch)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    // Admins open on Dashboard — step into Timbrature to reach the picker.
     await expect(page.getByRole('button', { name: 'Timbrature' })).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('button', { name: 'Timbrature' }).click();
   });
 
   test('multi-branch tenant exposes pill selector under "Sede"', async ({ page }) => {

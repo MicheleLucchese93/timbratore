@@ -60,6 +60,6 @@ export default function Index() {
       </View>
     );
   }
-  if (me) return <Redirect href="/timbrature" />;
+  if (me) return <Redirect href={me.user.role === 'admin' ? '/dashboard' : '/timbrature'} />;
   return <LoginScreen />;
 }

@@ -14,12 +14,17 @@ export default function TabsLayout() {
     );
   }
   if (!me) return <Redirect href="/" />;
+  const isAdmin = me.user.role === 'admin';
   const canStamp = (me.user.stamp_modes ?? []).length > 0;
+  // Admins open on the Dashboard recap; everyone else on their stamp screen
+  // (or Storico when no stamp method is enabled).
+  const initialRouteName = isAdmin ? 'dashboard' : canStamp ? 'timbrature' : 'storico';
   return (
     <Tabs
-      initialRouteName={canStamp ? 'timbrature' : 'storico'}
+      initialRouteName={initialRouteName}
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false }}>
+      <Tabs.Screen name="dashboard" options={{ title: 'Dashboard' }} />
       <Tabs.Screen name="timbrature" options={{ title: 'Timbrature' }} />
       <Tabs.Screen name="storico" options={{ title: 'Storico' }} />
       <Tabs.Screen name="correzioni" options={{ title: 'Correzioni' }} />
