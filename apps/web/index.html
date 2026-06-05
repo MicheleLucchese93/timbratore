@@ -10,9 +10,101 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#fffbf8" />
     <title>sonoQui — Admin</title>
+    <style>
+      /* Boot skeleton — mirrors the app shell (sidebar + page header + content)
+         so the first paint (before main.tsx loads) and the React session-loading
+         state (AppShellSkeleton) share one silhouette: the hand-off is seamless,
+         no spinner flash. Colours hard-coded (index.css vars aren't loaded yet on
+         first paint). The same .sq-* classes are reused by src/app/Skeleton.tsx. */
+      @keyframes sq-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+      .sq-b {
+        background: linear-gradient(90deg, rgba(132,120,114,0.16) 25%, rgba(132,120,114,0.07) 50%, rgba(132,120,114,0.16) 75%);
+        background-size: 200% 100%; animation: sq-shimmer 1.4s ease-in-out infinite; border-radius: 8px;
+      }
+      @media (prefers-reduced-motion: reduce) { .sq-b { animation: none; } }
+      .sq-shell { position: fixed; inset: 0; display: flex; background: #fffbf8; }
+      .sq-rail {
+        width: 240px; flex-shrink: 0; box-sizing: border-box; height: 100%;
+        background: #fff; border-right: 1px solid #f3ece5; display: flex; flex-direction: column;
+      }
+      .sq-rail-brand {
+        display: flex; align-items: center; gap: 0.625rem; padding: 1rem 0.875rem;
+        min-height: 64px; box-sizing: border-box; border-bottom: 1px solid #f3ece5;
+      }
+      .sq-rail-logo { width: 36px; height: 36px; border-radius: 0.5rem; flex-shrink: 0; }
+      .sq-rail-brandtxt { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+      .sq-rail-brandtxt > span { height: 11px; border-radius: 5px; }
+      .sq-rail-brandtxt > span:first-child { width: 60px; }
+      .sq-rail-brandtxt > span:last-child { width: 90%; }
+      .sq-rail-nav { flex: 1; padding: 0.5rem; display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+      .sq-rail-item { height: 36px; border-radius: 0.5rem; }
+      .sq-rail-foot { border-top: 1px solid #f3ece5; padding: 0.625rem; display: flex; align-items: center; gap: 0.625rem; }
+      .sq-rail-avatar { width: 32px; height: 32px; border-radius: 999px; flex-shrink: 0; }
+      .sq-rail-lines { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+      .sq-rail-lines > span { height: 10px; border-radius: 5px; }
+      .sq-rail-lines > span:first-child { width: 85%; }
+      .sq-rail-lines > span:last-child { width: 50%; }
+      .sq-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+      .sq-hd { padding: 1rem 2rem; border-bottom: 1px solid #f3ece5; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+      .sq-hd-txt { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+      .sq-hd-title { width: 220px; max-width: 60vw; height: 22px; border-radius: 6px; }
+      .sq-hd-sub { width: 150px; max-width: 40vw; height: 12px; border-radius: 5px; }
+      .sq-hd-act { width: 120px; height: 38px; border-radius: 8px; flex-shrink: 0; }
+      .sq-bd { flex: 1; min-height: 0; padding: 1.5rem 2rem; overflow: hidden; }
+      .sq-cards { display: flex; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+      .sq-card { flex: 1; min-width: 150px; height: 88px; border-radius: 0.75rem; }
+      .sq-panel { height: 360px; border-radius: 0.75rem; }
+      /* Page-only fallback: rendered inside the already-mounted Layout (sidebar is real). */
+      .sq-page { display: flex; flex-direction: column; }
+      .sq-page .sq-hd { padding: 0 0 1.25rem; }
+      .sq-page .sq-bd { padding: 1.25rem 0 0; }
+      @media (max-width: 768px) {
+        .sq-rail { display: none; }
+        .sq-shell .sq-hd { padding: 0.875rem 1rem 0.875rem 3.5rem; }
+        .sq-shell .sq-bd { padding: 1rem; }
+      }
+    </style>
   </head>
   <body class="bg-neutral-50 text-neutral-900 antialiased">
-    <div id="root"></div>
+    <div id="root">
+      <div class="sq-shell" aria-busy="true" aria-label="Caricamento">
+        <div class="sq-rail">
+          <div class="sq-rail-brand">
+            <div class="sq-rail-logo sq-b"></div>
+            <div class="sq-rail-brandtxt"><span class="sq-b"></span><span class="sq-b"></span></div>
+          </div>
+          <div class="sq-rail-nav">
+            <div class="sq-rail-item sq-b"></div>
+            <div class="sq-rail-item sq-b"></div>
+            <div class="sq-rail-item sq-b"></div>
+            <div class="sq-rail-item sq-b"></div>
+            <div class="sq-rail-item sq-b"></div>
+            <div class="sq-rail-item sq-b"></div>
+            <div class="sq-rail-item sq-b"></div>
+            <div class="sq-rail-item sq-b"></div>
+          </div>
+          <div class="sq-rail-foot">
+            <div class="sq-rail-avatar sq-b"></div>
+            <div class="sq-rail-lines"><span class="sq-b"></span><span class="sq-b"></span></div>
+          </div>
+        </div>
+        <div class="sq-main">
+          <div class="sq-hd">
+            <div class="sq-hd-txt"><div class="sq-hd-title sq-b"></div><div class="sq-hd-sub sq-b"></div></div>
+            <div class="sq-hd-act sq-b"></div>
+          </div>
+          <div class="sq-bd">
+            <div class="sq-cards">
+              <div class="sq-card sq-b"></div>
+              <div class="sq-card sq-b"></div>
+              <div class="sq-card sq-b"></div>
+              <div class="sq-card sq-b"></div>
+            </div>
+            <div class="sq-panel sq-b"></div>
+          </div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

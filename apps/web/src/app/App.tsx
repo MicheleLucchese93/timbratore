@@ -4,6 +4,7 @@ import { useSession } from '../store/session.ts';
 import { Login } from '../pages/Login.tsx';
 import { ForgotPassword } from '../pages/ForgotPassword.tsx';
 import { Layout } from './Layout.tsx';
+import { AppShellSkeleton, PageSkeleton } from './Skeleton.tsx';
 
 // Route pages are code-split so employees never download the admin-only
 // MUI DataGrid / Google Maps chunks and first paint stays small. Pages are
@@ -25,14 +26,6 @@ const MyLeaves = lazy(() => import('../pages/MyLeaves.tsx').then((m) => ({ defau
 const MyDashboard = lazy(() => import('../pages/MyDashboard.tsx').then((m) => ({ default: m.MyDashboard })));
 const Manual = lazy(() => import('../pages/Manual.tsx').then((m) => ({ default: m.Manual })));
 
-function PageFallback() {
-  return (
-    <div className="flex h-full items-center justify-center p-8 text-sm text-neutral-500">
-      Caricamento…
-    </div>
-  );
-}
-
 export function App() {
   const { me, loading, refresh } = useSession();
   const nav = useNavigate();
@@ -43,11 +36,7 @@ export function App() {
   }, [refresh]);
 
   if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center text-sm text-neutral-500">
-        Caricamento…
-      </div>
-    );
+    return <AppShellSkeleton />;
   }
 
   if (!me) {
@@ -63,7 +52,7 @@ export function App() {
   if (me.user.role === 'admin') {
     return (
       <Layout>
-        <Suspense fallback={<PageFallback />}>
+        <Suspense fallback={<PageSkeleton />}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/branches" element={<Branches />} />
@@ -87,7 +76,7 @@ export function App() {
   // role = user — own-data only, no admin pages.
   return (
     <Layout>
-      <Suspense fallback={<PageFallback />}>
+      <Suspense fallback={<PageSkeleton />}>
         <Routes>
           <Route path="/" element={<MyDashboard />} />
           <Route path="/me/stamps" element={<MyStamps />} />
