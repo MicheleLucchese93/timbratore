@@ -53,6 +53,25 @@ test.describe('web — Utenti CRUD (mutating)', () => {
     await expect(page.getByText(email).first()).toBeVisible({ timeout: 15_000 });
   });
 
+  test('reset-password endpoint returns 200 for a tenant member', async () => {
+    const r = await apiPost(admin.token, `/api/v1/users/${createdUserId}/reset-password`, {});
+    expect(r.status).toBe(200);
+    expect(r.data).toMatchObject({ sent: true, email });
+  });
+
+  test('reset-password action shows a confirmation in the Utenti grid', async ({ page }) => {
+    await page.goto('/users');
+    await expect(page.locator('.MuiDataGrid-root')).toBeVisible({ timeout: 15_000 });
+    const row = page.locator('.MuiDataGrid-row', { hasText: email });
+    await expect(row).toBeVisible({ timeout: 15_000 });
+    await row
+      .getByRole('button', { name: 'Invia email per reimpostare la password' })
+      .click();
+    await expect(
+      page.getByText(`Email per reimpostare la password inviata a ${email}.`)
+    ).toBeVisible({ timeout: 10_000 });
+  });
+
   test('hard-deleted user is removed from the visible list', async ({ page }) => {
     await page.goto('/users');
     await expect(page.getByText(email).first()).toBeVisible({ timeout: 15_000 });

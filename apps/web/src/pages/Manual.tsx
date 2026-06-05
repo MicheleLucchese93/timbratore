@@ -173,6 +173,7 @@ const MAIN_HTML = `
         <div class="callout callout-info">
           Per ragioni di sicurezza il sistema mostra sempre lo stesso messaggio di conferma, anche se l'email non è registrata. Non riveliamo se un account esiste o meno.
         </div>
+        <p class="muted">In alternativa, l'amministratore può reinviarti l'email di reimpostazione dalla pagina <strong>Utenti</strong> (icona a forma di chiave sulla tua riga).</p>
       </div>
 
       <div class="feature">
@@ -385,6 +386,7 @@ const MAIN_HTML = `
           <li>Assegnare un <strong>orario di lavoro</strong> (template + data inizio validità).</li>
           <li>Configurare gli <strong>approvatori</strong> per Correzioni, Ferie, Permessi, Malattia.</li>
           <li>Modificare nome e cognome.</li>
+          <li><strong>Reimpostare la password</strong> (icona a forma di chiave) — invia all'utente un'email per scegliere una nuova password. Utile se ha smarrito l'invito iniziale o ha dimenticato la password.</li>
           <li>Disattivare o eliminare definitivamente l'utente.</li>
         </ul>
       </div>

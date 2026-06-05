@@ -7,7 +7,7 @@ import { authenticate, requireAdmin, invalidateMembershipCache } from '../middle
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { ConflictError, NotFoundError, ValidationError } from '../errors/index.js';
-import { inviteUser } from '../lib/gotrue-admin.js';
+import { inviteUser, triggerRecovery } from '../lib/gotrue-admin.js';
 import { env } from '../env.js';
 import { createLogger } from '../lib/logger.js';
 
@@ -326,6 +326,31 @@ usersRouter.post(
     await emitAudit(client, 'user.reactivate', String(req.params.id), null, null);
     invalidateMembershipCache(String(req.params.id));
     ok(res, { reactivated: true });
+  })
+);
+
+// Admin-triggered password reset: re-sends the GoTrue recovery email so a
+// member who lost their invite / forgot their password can set a new one.
+// Scoped to the caller's tenant — can only target an existing member.
+usersRouter.post(
+  '/:id/reset-password',
+  requireAdmin,
+  tenantHandler(async (req, res, client) => {
+    const r = await client.query(
+      `SELECT au.email
+         FROM memberships m
+         JOIN auth_users au ON au.id = m.user_id
+        WHERE m.user_id = $1
+          AND m.tenant_id = current_setting('app.current_tenant_id')::uuid
+          AND m.deleted_at IS NULL`,
+      [req.params.id]
+    );
+    if (r.rowCount === 0) throw new NotFoundError('user');
+    const email = r.rows[0].email as string | null;
+    if (!email) throw new ValidationError('user has no email on file');
+    await triggerRecovery(email);
+    await emitAudit(client, 'user.reset_password', String(req.params.id), null, { email });
+    ok(res, { sent: true, email });
   })
 );
 

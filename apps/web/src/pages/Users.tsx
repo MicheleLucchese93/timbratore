@@ -144,6 +144,17 @@ export function Users() {
     }
   }
 
+  async function resetPassword(u: UserRow) {
+    setErr(null);
+    setInfo(null);
+    try {
+      await api(`/api/v1/users/${u.user_id}/reset-password`, { method: 'POST' });
+      setInfo(`Email per reimpostare la password inviata a ${u.email}.`);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'errore');
+    }
+  }
+
   async function saveBranches(u: UserRow, branch_ids: string[]) {
     try {
       await api(`/api/v1/users/${u.user_id}/branches`, {
@@ -396,6 +407,7 @@ export function Users() {
           onEditShift={setShiftEditor}
           onEditApprovers={(user, kind) => setApproverEditor({ user, kind })}
           onEditUser={setUserEditor}
+          onResetPassword={resetPassword}
           onToggleActive={(u) => (u.active ? setConfirmDeactivate(u) : toggleActive(u))}
           onDelete={setConfirmDelete}
         />
@@ -1224,6 +1236,7 @@ interface UsersDataGridProps {
   onEditShift: (u: UserRow) => void;
   onEditApprovers: (u: UserRow, kind: ApproverKind) => void;
   onEditUser: (u: UserRow) => void;
+  onResetPassword: (u: UserRow) => void;
   onToggleActive: (u: UserRow) => void;
   onDelete: (u: UserRow) => void;
 }
@@ -1243,6 +1256,7 @@ function UsersDataGrid({
   onEditShift,
   onEditApprovers,
   onEditUser,
+  onResetPassword,
   onToggleActive,
   onDelete,
 }: UsersDataGridProps) {
@@ -1446,7 +1460,7 @@ function UsersDataGrid({
       {
         field: 'actions',
         headerName: 'Azioni',
-        width: 130,
+        width: 160,
         sortable: false,
         filterable: false,
         renderCell: (p) => {
@@ -1458,6 +1472,11 @@ function UsersDataGrid({
                 kind="edit"
                 title="Modifica nome / cognome"
                 onClick={() => onEditUser(u)}
+              />
+              <IconButton
+                kind="reset-password"
+                title="Invia email per reimpostare la password"
+                onClick={() => onResetPassword(u)}
               />
               <IconButton
                 kind={u.active ? 'deactivate' : 'reactivate'}
@@ -1498,6 +1517,7 @@ function UsersDataGrid({
       onEditShift,
       onEditApprovers,
       onEditUser,
+      onResetPassword,
       onToggleActive,
       onDelete,
     ]

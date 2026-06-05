@@ -7,7 +7,8 @@ export type IconButtonKind =
   | 'reject'
   | 'revoke'
   | 'adjust'
-  | 'history';
+  | 'history'
+  | 'reset-password';
 
 const TONE: Record<IconButtonKind, '' | 'danger' | 'success'> = {
   edit: '',
@@ -19,6 +20,7 @@ const TONE: Record<IconButtonKind, '' | 'danger' | 'success'> = {
   revoke: 'danger',
   adjust: '',
   history: '',
+  'reset-password': '',
 };
 
 interface IconButtonProps {
@@ -125,6 +127,15 @@ function renderIcon(kind: IconButtonKind) {
           <path d="M3 3v5h5" />
           <path d="M3.05 13a9 9 0 1 0 2.6-6.36L3 8" />
           <path d="M12 7v5l3 2" />
+        </svg>
+      );
+    case 'reset-password':
+      // Key — resend password-reset email.
+      return (
+        <svg {...common}>
+          <circle cx="7.5" cy="15.5" r="5.5" />
+          <path d="m21 2-9.6 9.6" />
+          <path d="m15.5 7.5 3 3" />
         </svg>
       );
   }
