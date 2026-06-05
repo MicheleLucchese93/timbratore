@@ -13,7 +13,7 @@
   {{ if eq .HasNote "1" }}<tr><td style="color:#666">Nota</td><td>{{ .Note }}</td></tr>{{ else }}{{ end }}
   {{ if eq .HasApprover "1" }}<tr><td style="color:#666">Decisa da</td><td>{{ .ApproverName }}</td></tr>{{ else }}{{ end }}
 </table>
-<p style="color:#666;font-size:12px">sonoQui — gestione presenze per piccole imprese.</p>
+<p style="color:#666;font-size:12px">sonoQui — gestione presenze per PMI.</p>
 {{ else }}
 <h2 style="color:#b25500;margin:0 0 12px">Your correction was {{ .DecisionVerb }}</h2>
 <table cellpadding="6" cellspacing="0" style="border-collapse:collapse;margin:12px 0">
