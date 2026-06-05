@@ -1,5 +1,9 @@
 const ACCESS_KEY = 'sonoqui.access_token';
 const REFRESH_KEY = 'sonoqui.refresh_token';
+// Which company the user is currently working in. Sent as X-Tenant-Id on every
+// request so the backend scopes to the chosen membership (users may belong to
+// several companies). Absent → backend falls back to the most-recent one.
+const TENANT_KEY = 'sonoqui.tenant_id';
 
 // In dev, Vite proxies /api → http://localhost:4000. In prod, VITE_API_URL
 // is baked at build time (see apps/web/Dockerfile build args).
@@ -29,6 +33,15 @@ export function setTokens(access: string, refresh: string): void {
 export function clearTokens(): void {
   localStorage.removeItem(ACCESS_KEY);
   localStorage.removeItem(REFRESH_KEY);
+  localStorage.removeItem(TENANT_KEY);
+}
+
+export function getTenantId(): string | null {
+  return localStorage.getItem(TENANT_KEY);
+}
+export function setTenantId(id: string | null): void {
+  if (id) localStorage.setItem(TENANT_KEY, id);
+  else localStorage.removeItem(TENANT_KEY);
 }
 
 export interface ApiError extends Error {
@@ -64,13 +77,19 @@ async function refreshAccessToken(): Promise<boolean> {
 
 export async function api<T = unknown>(
   path: string,
-  init: RequestInit & { json?: unknown } = {}
+  init: RequestInit & { json?: unknown; noTenant?: boolean } = {}
 ): Promise<T> {
   const exec = async (): Promise<Response> => {
     const headers = new Headers(init.headers ?? {});
     headers.set('Accept', 'application/json');
     const token = getToken();
     if (token) headers.set('Authorization', `Bearer ${token}`);
+    // Tenant scope. Skipped for the company-list call (noTenant), which must
+    // stay agnostic so a stale stored id can't 403 us out of our own list.
+    if (!init.noTenant) {
+      const tid = getTenantId();
+      if (tid) headers.set('X-Tenant-Id', tid);
+    }
     let body = init.body;
     if (init.json !== undefined) {
       headers.set('Content-Type', 'application/json');

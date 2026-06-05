@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { api } from '../lib/api.ts';
+import { useSession } from '../store/session.ts';
 
 interface TenantSettings {
   id: string;
@@ -53,6 +54,25 @@ export function Settings() {
   const [prefs, setPrefs] = useState<MePrefs | null>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<Toast>(null);
+  const tenants = useSession((st) => st.tenants);
+  const activeTenantId = useSession((st) => st.activeTenantId);
+  const chooseTenant = useSession((st) => st.chooseTenant);
+  const [switching, setSwitching] = useState(false);
+
+  async function onSwitchTenant(id: string) {
+    if (id === activeTenantId || switching) return;
+    setSwitching(true);
+    // chooseTenant reloads the whole session for the new company. Role may
+    // change (admin↔user), so App re-routes; if the new role has no /settings,
+    // the catch-all sends us to the dashboard. No need to clear `switching`
+    // on success — the component unmounts.
+    try {
+      await chooseTenant(id);
+    } catch (e) {
+      setToast({ kind: 'err', text: e instanceof Error ? e.message : 'Errore' });
+      setSwitching(false);
+    }
+  }
 
   async function load() {
     const [data, me] = await Promise.all([
@@ -191,6 +211,35 @@ export function Settings() {
           </Field>
         </div>
       </SettingsRow>
+
+      {tenants.length > 1 && (
+        <>
+          <div className="hairline my-6" />
+          <SettingsRow
+            icon={<IconBuilding />}
+            title="Azienda attiva"
+            description="Il tuo account è collegato a più aziende. Cambia quella su cui stai lavorando: la pagina si ricaricherà con i dati della nuova azienda."
+          >
+            <Field label="Azienda" className="md:max-w-md">
+              <select
+                className="input"
+                value={activeTenantId ?? ''}
+                disabled={switching}
+                onChange={(e) => void onSwitchTenant(e.target.value)}
+              >
+                {tenants.map((t) => (
+                  <option key={t.tenant_id} value={t.tenant_id}>
+                    {t.ragione_sociale} {t.role === 'admin' ? '(Amministratore)' : '(Dipendente)'}
+                  </option>
+                ))}
+              </select>
+              <p className="field-hint">
+                {switching ? 'Cambio azienda in corso…' : 'Cambiando azienda verrai reindirizzato alla dashboard.'}
+              </p>
+            </Field>
+          </SettingsRow>
+        </>
+      )}
 
       <div className="hairline my-6" />
 

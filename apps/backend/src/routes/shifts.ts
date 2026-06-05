@@ -454,7 +454,80 @@ shiftsRouter.get(
     );
 
     const anomalies = computeAnomalies(r.rows);
+
+    // Attach note-only justifications, keyed by (user, day, kind).
+    const jq = await client.query(
+      `SELECT user_id,
+              to_char(anomaly_date, 'YYYY-MM-DD') AS anomaly_date,
+              anomaly_kind, note, updated_at
+         FROM anomaly_justifications
+        WHERE anomaly_date >= $1::date AND anomaly_date <= $2::date
+          ${user_id ? 'AND user_id = $3::uuid' : ''}`,
+      user_id ? [from, to, user_id] : [from, to]
+    );
+    if (jq.rowCount && jq.rowCount > 0) {
+      const byKey = new Map<string, { note: string; at: string }>();
+      for (const j of jq.rows) {
+        byKey.set(`${j.user_id}|${j.anomaly_date}|${j.anomaly_kind}`, {
+          note: j.note,
+          at: j.updated_at instanceof Date ? j.updated_at.toISOString() : String(j.updated_at),
+        });
+      }
+      for (const a of anomalies) {
+        const hit = byKey.get(`${a.user_id}|${a.date}|${a.kind}`);
+        if (hit) {
+          a.justification_note = hit.note;
+          a.justified_at = hit.at;
+        }
+      }
+    }
     ok(res, anomalies);
+  })
+);
+
+// Note-only justification for an anomaly: the deviation stays surfaced but is
+// annotated with the admin's explanation. Upsert per (user, day, kind).
+const JustifyBody = z.object({
+  user_id: z.string().uuid(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  kind: z.enum([
+    'missing_clock_in',
+    'missing_clock_out',
+    'late_clock_in',
+    'early_clock_out',
+    'short_hours',
+    'worked_on_rest_day',
+    'break_too_short',
+    'break_too_long',
+    'lunch_too_short',
+    'lunch_too_long',
+    'clock_out_out_of_area',
+  ]),
+  note: z.string().min(1).max(1000),
+});
+
+shiftsRouter.post(
+  '/anomalies/justify',
+  requireAdmin,
+  tenantHandler(async (req, res, client) => {
+    const parse = JustifyBody.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const b = parse.data;
+    const ins = await client.query(
+      `INSERT INTO anomaly_justifications(
+         tenant_id, user_id, anomaly_date, anomaly_kind, note, created_by
+       ) VALUES (
+         current_setting('app.current_tenant_id')::uuid, $1, $2::date, $3, $4,
+         current_setting('app.current_user_id')::uuid
+       )
+       ON CONFLICT (tenant_id, user_id, anomaly_date, anomaly_kind)
+       DO UPDATE SET note = EXCLUDED.note,
+                     created_by = EXCLUDED.created_by,
+                     updated_at = now()
+       RETURNING *`,
+      [b.user_id, b.date, b.kind, b.note]
+    );
+    ok(res, ins.rows[0], 201);
   })
 );
 
@@ -508,6 +581,10 @@ export interface Anomaly {
   break_total_min: number | null;
   lunch_total_min: number | null;
   details: string | null;
+  // Note-only justification attached by an admin (see anomaly_justifications).
+  // Null when the anomaly has not been justified.
+  justification_note: string | null;
+  justified_at: string | null;
 }
 
 function isoDow(d: Date): number {
@@ -519,6 +596,26 @@ function combineDateTime(dateStr: string, hhmm: string): Date {
   const [h, m] = hhmm.split(':').map(Number) as [number, number];
   const [y, mo, d] = dateStr.split('-').map(Number) as [number, number, number];
   return new Date(Date.UTC(y, mo - 1, d, h, m, 0));
+}
+
+// Minutes of approved leave overlapping a [startMs, endMs] window. Lets the
+// presence anomalies (missing/late/early) treat an approved ferie/permesso as
+// covering the gap, so an admin who inserts the leave actually clears the
+// anomaly (short_hours already accounts for leave via effectiveExpected).
+function leaveOverlapMin(
+  leaves: AnomalyRow['leaves'],
+  startMs: number,
+  endMs: number
+): number {
+  if (endMs <= startMs) return 0;
+  let covered = 0;
+  for (const lv of leaves ?? []) {
+    const f = new Date(lv.from_ts).getTime();
+    const t = new Date(lv.to_ts).getTime();
+    const ov = Math.min(t, endMs) - Math.max(f, startMs);
+    if (ov > 0) covered += Math.round(ov / 60000);
+  }
+  return covered;
 }
 
 export function computeAnomalies(rows: AnomalyRow[]): Anomaly[] {
@@ -569,21 +666,33 @@ export function computeAnomalies(rows: AnomalyRow[]): Anomaly[] {
     const tolIn = row.tolerance_in_min ?? 0;
     const tolOut = row.tolerance_out_min ?? 0;
 
+    const expStartMs = expectedStart.getTime();
+    const expEndMs = expectedEnd.getTime();
+    const fullExpectedMin = Math.max(0, Math.round((expEndMs - expStartMs) / 60000));
+    // The whole scheduled window is covered by approved leave (e.g. a full-day
+    // ferie inserted by the admin) → no clock-in/out is expected at all.
+    const fullyCoveredByLeave =
+      fullExpectedMin > 0 && leaveOverlapMin(row.leaves, expStartMs, expEndMs) + 1 >= fullExpectedMin;
+
     if (!firstIn) {
-      out.push(
-        buildAnomaly(
-          row,
-          date,
-          'missing_clock_in',
-          expectedStart.toISOString(),
-          expectedEnd.toISOString(),
-          stamps
-        )
-      );
+      if (!fullyCoveredByLeave) {
+        out.push(
+          buildAnomaly(
+            row,
+            date,
+            'missing_clock_in',
+            expectedStart.toISOString(),
+            expectedEnd.toISOString(),
+            stamps
+          )
+        );
+      }
     } else {
       const actual = new Date(firstIn.occurred_at);
       const deltaMin = Math.round((actual.getTime() - expectedStart.getTime()) / 60000);
-      if (deltaMin > tolIn) {
+      // A permesso covering the late stretch [expectedStart, actualIn] justifies it.
+      const lateCoveredMin = leaveOverlapMin(row.leaves, expStartMs, actual.getTime());
+      if (deltaMin - lateCoveredMin > tolIn) {
         const a = buildAnomaly(
           row,
           date,
@@ -599,20 +708,24 @@ export function computeAnomalies(rows: AnomalyRow[]): Anomaly[] {
     }
 
     if (!lastOut) {
-      out.push(
-        buildAnomaly(
-          row,
-          date,
-          'missing_clock_out',
-          expectedStart.toISOString(),
-          expectedEnd.toISOString(),
-          stamps
-        )
-      );
+      if (!fullyCoveredByLeave) {
+        out.push(
+          buildAnomaly(
+            row,
+            date,
+            'missing_clock_out',
+            expectedStart.toISOString(),
+            expectedEnd.toISOString(),
+            stamps
+          )
+        );
+      }
     } else {
       const actual = new Date(lastOut.occurred_at);
       const deltaMin = Math.round((expectedEnd.getTime() - actual.getTime()) / 60000);
-      if (deltaMin > tolOut) {
+      // A permesso covering the early stretch [actualOut, expectedEnd] justifies it.
+      const earlyCoveredMin = leaveOverlapMin(row.leaves, actual.getTime(), expEndMs);
+      if (deltaMin - earlyCoveredMin > tolOut) {
         const a = buildAnomaly(
           row,
           date,
@@ -783,6 +896,8 @@ function buildAnomaly(
     break_total_min: null,
     lunch_total_min: null,
     details: null,
+    justification_note: null,
+    justified_at: null,
   };
 }
 

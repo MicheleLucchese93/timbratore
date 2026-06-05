@@ -82,10 +82,6 @@ async function openExternal(url: string) {
 export function ProfiloScreen() {
   const { me, logout, refresh } = useSession();
   const router = useRouter();
-  const [emailOn, setEmailOn] = useState<boolean>(
-    me?.preferences?.email_notifications_enabled ?? false
-  );
-  const [savingEmail, setSavingEmail] = useState(false);
 
   const initialPushPrefs = {
     ...PUSH_PREF_DEFAULTS,
@@ -96,35 +92,11 @@ export function ProfiloScreen() {
   const [savingPushKey, setSavingPushKey] = useState<PushPrefKey | null>(null);
 
   useEffect(() => {
-    setEmailOn(me?.preferences?.email_notifications_enabled ?? false);
-  }, [me?.preferences?.email_notifications_enabled]);
-
-  useEffect(() => {
     setPushPrefs({
       ...PUSH_PREF_DEFAULTS,
       ...(me?.preferences?.notification_preferences ?? {}),
     });
   }, [me?.preferences?.notification_preferences]);
-
-  async function toggleEmail(next: boolean) {
-    const prev = emailOn;
-    setEmailOn(next);
-    setSavingEmail(true);
-    try {
-      await api('/api/v1/me', {
-        method: 'PATCH',
-        json: { email_notifications_enabled: next },
-      });
-      await refresh();
-    } catch (e) {
-      setEmailOn(prev);
-      const msg = e instanceof Error ? e.message : 'Errore di salvataggio';
-      if (Platform.OS === 'web') window.alert(msg);
-      else Alert.alert('Errore', msg);
-    } finally {
-      setSavingEmail(false);
-    }
-  }
 
   async function togglePushPref(key: PushPrefKey, next: boolean) {
     const prev = pushPrefs[key];
@@ -233,7 +205,7 @@ export function ProfiloScreen() {
               <Row
                 icon={b.smart_working ? 'laptop-outline' : 'business-outline'}
                 label={b.name}
-                value={b.smart_working ? 'Smart working' : 'In sede'}
+                value={b.smart_working ? 'Fuori sede' : 'In sede'}
               />
               {i < me.branches.length - 1 && <View style={styles.divider} />}
             </View>
@@ -297,23 +269,6 @@ export function ProfiloScreen() {
               />
             </>
           )}
-          <View style={styles.divider} />
-          <View style={styles.row}>
-            <View style={styles.rowIcon}>
-              <Ionicons name="mail-outline" size={18} color={color.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.rowLabel}>EMAIL</Text>
-              <Text style={styles.rowValue}>
-                Ricevi anche via email
-              </Text>
-            </View>
-            <Switch
-              value={emailOn}
-              onValueChange={toggleEmail}
-              disabled={savingEmail}
-            />
-          </View>
         </View>
 
         <Text style={styles.sectionLabel}>Informazioni e supporto</Text>

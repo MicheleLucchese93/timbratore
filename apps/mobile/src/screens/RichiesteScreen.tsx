@@ -299,6 +299,22 @@ export function RichiesteScreen() {
     [inboxRows]
   );
 
+  // KPI counts over my own requests: how many I've asked, by outcome.
+  const mineStats = useMemo(() => {
+    let pending = 0;
+    let approved = 0;
+    let rejected = 0;
+    for (const r of mineRows) {
+      if (r.status === 'pending' || r.status === 'cancellation_pending') pending += 1;
+      else if (r.status === 'approved') approved += 1;
+      else if (r.status === 'rejected') rejected += 1;
+    }
+    return { pending, approved, rejected };
+  }, [mineRows]);
+
+  const ferieQuota = quotas.find((q) => q.type === 'ferie');
+  const permessiQuota = quotas.find((q) => q.type === 'permessi');
+
   const calendarEvents: MobileCalEvent[] = useMemo(
     () =>
       calendarRows
@@ -374,6 +390,49 @@ export function RichiesteScreen() {
           }}
         />
       }>
+      <View style={styles.kpiRow}>
+        {ferieQuota && (
+          <KpiTile
+            label="Ferie residue"
+            value={fmtH(ferieQuota.residual_strict)}
+            sub={`Richieste ${fmtH(ferieQuota.used_approved + ferieQuota.used_pending)}`}
+            icon="sunny-outline"
+            fg={typeFg('ferie')}
+            bg={typeBg('ferie')}
+          />
+        )}
+        {permessiQuota && (
+          <KpiTile
+            label="Permessi residui"
+            value={fmtH(permessiQuota.residual_strict)}
+            sub={`Richieste ${fmtH(permessiQuota.used_approved + permessiQuota.used_pending)}`}
+            icon="time-outline"
+            fg={typeFg('permessi')}
+            bg={typeBg('permessi')}
+          />
+        )}
+        <KpiTile
+          label="In attesa"
+          value={String(mineStats.pending)}
+          icon="hourglass-outline"
+          fg={color.warning}
+          bg="#fff3d1"
+        />
+        <KpiTile
+          label="Approvate"
+          value={String(mineStats.approved)}
+          icon="checkmark-circle-outline"
+          fg={color.success}
+          bg="#e8f3ec"
+        />
+        <KpiTile
+          label="Rifiutate"
+          value={String(mineStats.rejected)}
+          icon="close-circle-outline"
+          fg={color.error}
+          bg="#fde4e4"
+        />
+      </View>
       {quotas.length > 0 && (
         <View style={styles.quotaCard}>
           <Text style={styles.quotaCardTitle}>Disponibilità</Text>
@@ -1150,6 +1209,45 @@ function QuotaStat({ label, value }: { label: string; value: number }) {
   );
 }
 
+function KpiTile({
+  label,
+  value,
+  sub,
+  icon,
+  fg,
+  bg,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  fg: string;
+  bg: string;
+}) {
+  return (
+    <View style={styles.kpiTile}>
+      <View style={[styles.kpiIcon, { backgroundColor: bg }]}>
+        <Ionicons name={icon} size={16} color={fg} />
+      </View>
+      <Text style={styles.kpiLabel} numberOfLines={1}>
+        {label}
+      </Text>
+      <Text style={[styles.kpiValue, { color: fg }]}>{value}</Text>
+      {sub ? (
+        <Text style={styles.kpiSub} numberOfLines={1}>
+          {sub}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+// Hours, trimmed: 120 → "120h", 15.75 → "15.75h".
+function fmtH(n: number): string {
+  const r = Math.round(n * 100) / 100;
+  return `${Number.isInteger(r) ? r : r.toFixed(2)}h`;
+}
+
 function typeIcon(t: LeaveType): keyof typeof Ionicons.glyphMap {
   if (t === 'ferie') return 'sunny-outline';
   if (t === 'permessi') return 'time-outline';
@@ -1223,6 +1321,39 @@ const styles = StyleSheet.create({
 
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 6, paddingBottom: 96 },
+
+  kpiRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: space.s3,
+  },
+  kpiTile: {
+    flexGrow: 1,
+    flexBasis: '30%',
+    minWidth: 96,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 10,
+    gap: 2,
+  },
+  kpiIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  kpiLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    color: color.onSurfaceVariant,
+  },
+  kpiValue: { fontSize: 20, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  kpiSub: { fontSize: 10, color: color.onSurfaceVariant, fontVariant: ['tabular-nums'] },
 
   quotaCard: {
     backgroundColor: '#ffffff',

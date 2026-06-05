@@ -1,8 +1,10 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useSession } from '../store/session.ts';
+import { getToken } from '../lib/api.ts';
 import { Login } from '../pages/Login.tsx';
 import { ForgotPassword } from '../pages/ForgotPassword.tsx';
+import { ChooseTenant } from '../pages/ChooseTenant.tsx';
 import { Layout } from './Layout.tsx';
 import { AppShellSkeleton, PageSkeleton } from './Skeleton.tsx';
 
@@ -27,7 +29,7 @@ const MyDashboard = lazy(() => import('../pages/MyDashboard.tsx').then((m) => ({
 const Manual = lazy(() => import('../pages/Manual.tsx').then((m) => ({ default: m.Manual })));
 
 export function App() {
-  const { me, loading, refresh } = useSession();
+  const { me, loading, tenants, activeTenantId, refresh } = useSession();
   const nav = useNavigate();
   const loc = useLocation();
 
@@ -37,6 +39,12 @@ export function App() {
 
   if (loading) {
     return <AppShellSkeleton />;
+  }
+
+  // Authenticated but a member of several companies with none chosen yet:
+  // pick one before any role-specific UI loads.
+  if (!me && getToken() && tenants.length > 1 && !activeTenantId) {
+    return <ChooseTenant />;
   }
 
   if (!me) {

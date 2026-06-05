@@ -36,4 +36,9 @@ test.describe('web — manuale utente toolbar', () => {
     ]);
     expect(download.suggestedFilename()).toBe('sonoqui-manuale.md');
   });
+
+  test('documents the anomaly correction menu', async ({ page }) => {
+    await expect(page.getByText("Correggere un'anomalia").first()).toBeVisible();
+    await expect(page.getByText('Tracciabilità nelle esportazioni').first()).toBeVisible();
+  });
 });

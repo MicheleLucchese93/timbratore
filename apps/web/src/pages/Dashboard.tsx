@@ -10,6 +10,7 @@ interface Usage {
   active_admins: string | number;
   max_users: number;
   max_admins: number;
+  max_branches: number;
   branches_count: string | number;
 }
 
@@ -268,6 +269,7 @@ export function Dashboard() {
         <StatCard
           label="Sedi"
           value={String(summary?.usage.branches_count ?? '–')}
+          suffix={`/ ${summary?.usage.max_branches ?? '–'}`}
           icon={<IconMapPin />}
         />
       </section>

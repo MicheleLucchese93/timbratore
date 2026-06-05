@@ -220,6 +220,91 @@ leavesRouter.post(
   })
 );
 
+// Admin inserts a single ferie/permesso on behalf of one employee — used to
+// resolve a schedule anomaly. Unlike POST '/', the row is created already
+// approved with the admin as decider, flagged created_by_admin, and the
+// employee is notified. Quota is informational (never blocks), same as submit.
+const AdminCreateBody = z.object({
+  user_id: z.string().uuid(),
+  type: z.enum(['ferie', 'permessi']),
+  from_ts: z.string().datetime({ offset: true }),
+  to_ts: z.string().datetime({ offset: true }),
+  user_note: z.string().max(1000).optional(),
+});
+
+leavesRouter.post(
+  '/admin-create',
+  requireAdmin,
+  tenantHandler(async (req, res, client) => {
+    const parse = AdminCreateBody.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const b = parse.data;
+    const from = new Date(b.from_ts);
+    const to = new Date(b.to_ts);
+    if (to.getTime() <= from.getTime()) {
+      throw new ValidationError('to_ts deve essere maggiore di from_ts');
+    }
+    if (b.type === 'permessi') {
+      const span = to.getTime() - from.getTime();
+      if (span % quarterMs() !== 0) {
+        throw new ValidationError('il permesso deve essere multiplo di 15 minuti');
+      }
+      if (span < quarterMs()) {
+        throw new ValidationError('durata minima del permesso: 15 minuti');
+      }
+    }
+    const member = await client.query(
+      `SELECT 1 FROM memberships
+        WHERE tenant_id = current_setting('app.current_tenant_id')::uuid
+          AND user_id = $1 AND deleted_at IS NULL`,
+      [b.user_id]
+    );
+    if (member.rowCount === 0) throw new NotFoundError('user not in tenant');
+
+    const duration = await computeDurationHours(client, b.user_id, b.type, b.from_ts, b.to_ts);
+    if (duration <= 0) {
+      throw new ValidationError(
+        'la richiesta non copre ore lavorative (verifica l\'orario assegnato)'
+      );
+    }
+    await assertPerDayCap(client, b.user_id, b.type, b.from_ts, b.to_ts, null);
+
+    const ins = await client.query(
+      `INSERT INTO leave_requests(
+         tenant_id, user_id, type, status,
+         from_ts, to_ts, duration_hours,
+         user_note, created_by_admin,
+         decided_by, decided_at
+       ) VALUES (
+         current_setting('app.current_tenant_id')::uuid,
+         $1, $2, 'approved', $3, $4, $5, $6, true,
+         current_setting('app.current_user_id')::uuid, now()
+       ) RETURNING *`,
+      [b.user_id, b.type, b.from_ts, b.to_ts, duration, b.user_note ?? null]
+    );
+    const row = ins.rows[0];
+    await logEvent(client, row.id, 'admin_create', {
+      type: b.type,
+      duration_hours: duration,
+      on_behalf_of: b.user_id,
+    });
+    await notifyLeaveDecided(
+      client,
+      {
+        requestId: row.id,
+        type: b.type,
+        from_ts: b.from_ts,
+        to_ts: b.to_ts,
+        duration_hours: duration,
+        requester_id: b.user_id,
+      },
+      'approved',
+      req.user!.id
+    );
+    ok(res, row, 201);
+  })
+);
+
 // Filter enum is wider than TypeEnum: it also accepts 'chiusura' (company
 // events) which users cannot create but the calendar must be able to filter.
 const FilterTypeEnum = z.enum(['ferie', 'permessi', 'malattia', 'assenza', 'chiusura']);

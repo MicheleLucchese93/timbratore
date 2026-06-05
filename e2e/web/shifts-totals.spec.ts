@@ -23,8 +23,8 @@ test.describe('web — Orari Settimana day & week totals', () => {
     const lun = dayRow(page, 'Lunedì');
     await lun.getByRole('button', { name: '+ fascia' }).click();
 
-    // Default new fascia is 09:00–17:00. Override end_time to 13:00 for a
-    // deterministic 4h day total.
+    // First fascia of an empty day defaults to 09:00–13:00 → already a 4h
+    // day total, no override needed.
     const timeInputs = lun.locator('input[type="time"]');
     await timeInputs.nth(1).fill('13:00');
 
@@ -51,6 +51,32 @@ test.describe('web — Orari Settimana day & week totals', () => {
 
     const footer = page.getByText('Totale settimanale').locator('xpath=..');
     await expect(footer.getByText('8h 00m')).toBeVisible({ timeout: 5_000 });
+
+    await page.getByRole('button', { name: 'Annulla' }).click();
+  });
+
+  test('adding a second fascia copies the previous one of that day', async ({ page }) => {
+    await page.getByRole('button', { name: /Nuovo orario/i }).click();
+    await expect(page.getByRole('heading', { name: 'Nuovo orario' })).toBeVisible({ timeout: 10_000 });
+
+    const lun = dayRow(page, 'Lunedì');
+    await lun.getByRole('button', { name: '+ fascia' }).click();
+
+    // Edit the first fascia to distinctive times, then add a second one: the
+    // new fascia copies the previous slot's times (see addSlot in
+    // apps/web/src/pages/Shifts.tsx) so the user only tweaks it.
+    const timeInputs = lun.locator('input[type="time"]');
+    await timeInputs.nth(0).fill('08:00');
+    await timeInputs.nth(1).fill('12:00');
+
+    await lun.getByRole('button', { name: '+ fascia' }).click();
+
+    // Second fascia mirrors the first (08:00–12:00), not the 09:00–13:00 default.
+    await expect(timeInputs.nth(2)).toHaveValue('08:00');
+    await expect(timeInputs.nth(3)).toHaveValue('12:00');
+
+    // Two 4h fasce on the same day → 8h day total.
+    await expect(lun.getByText('8h 00m')).toBeVisible({ timeout: 5_000 });
 
     await page.getByRole('button', { name: 'Annulla' }).click();
   });

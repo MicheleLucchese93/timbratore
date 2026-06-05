@@ -13,7 +13,7 @@ import {
 } from '../fixtures/api-client';
 
 // Seed a real `short_hours` anomaly so the Anomalie page renders the
-// "Ore giornaliere insufficienti" KIND_LABEL plus the Giustifica button.
+// "Ore giornaliere insufficienti" KIND_LABEL plus the Correggi menu.
 // Recipe (per apps/backend/src/routes/shifts.ts):
 //   1. Shift template Mon–Fri 09:00–17:00 → expectedMin = 480.
 //   2. Assign to test3 starting on the seeded day.
@@ -144,19 +144,24 @@ test.describe('web — Anomalie short_hours via seeded under-worked day (mutatin
     ).toBeDefined();
   });
 
-  test('Anomalie page renders the short_hours label and a Giustifica link', async ({ page }) => {
+  test('Anomalie page renders the short_hours label and a Correggi menu', async ({ page }) => {
     await page.goto('/anomalies');
     await expect(page.getByRole('heading', { name: /Anomalie orario/i })).toBeVisible({ timeout: 15_000 });
     const label = page.getByText('Ore giornaliere insufficienti').first();
     await expect(label).toBeVisible({ timeout: 15_000 });
 
-    const row = label.locator(
-      'xpath=ancestor::li[contains(@class,"flex") and contains(@class,"items-start")]',
-    );
-    const justifyLink = row.getByRole('link', { name: 'Giustifica' });
-    await expect(justifyLink).toBeVisible();
-    const href = await justifyLink.getAttribute('href');
-    expect(href).toContain('/leaves?user_id=');
-    expect(href).toContain(`date=${validFrom}`);
+    // The anomaly row is the <li> carrying the KIND_LABEL.
+    const row = page.locator('li', { hasText: 'Ore giornaliere insufficienti' }).first();
+    const correggi = row.getByRole('button', { name: /Correggi/ });
+    await expect(correggi).toBeVisible();
+    await correggi.click();
+
+    // short_hours has both punches, so "Timbratura standard" is not offered;
+    // the leave-based corrections + a note are.
+    const select = row.getByRole('combobox');
+    await expect(select).toBeVisible();
+    await expect(row.getByRole('option', { name: 'Inserisci ferie' })).toHaveCount(1);
+    await expect(row.getByRole('option', { name: 'Inserisci permesso' })).toHaveCount(1);
+    await expect(row.getByRole('option', { name: 'Giustifica con nota' })).toHaveCount(1);
   });
 });

@@ -297,7 +297,7 @@ export function TimbratureScreen() {
               />
               <Text style={styles.branchRowText}>{selectedBranch.name}</Text>
               {selectedBranch.smart_working && (
-                <Text style={styles.branchRowTag}>Smart working</Text>
+                <Text style={styles.branchRowTag}>Fuori sede</Text>
               )}
             </View>
           </View>
@@ -431,7 +431,6 @@ function humanError(err: unknown): string {
     case 'OUT_OF_GEOFENCE': return 'Sei fuori dall\'area consentita.';
     case 'INVALID_TRANSITION': return 'Operazione non valida per lo stato attuale.';
     case 'DUPLICATE_TOO_FAST': return 'Hai già timbrato pochi secondi fa.';
-    case 'GPS_ACCURACY_TOO_LOW': return 'Il segnale GPS è troppo debole.';
     case 'GPS_REQUIRED': return 'Serve il GPS per timbrare.';
     case 'MOCK_LOCATION_BLOCKED': return 'Posizione finta non consentita.';
     case 'LOCATION_PERMISSION_DENIED': return 'Permesso posizione negato. Vai alle Impostazioni.';

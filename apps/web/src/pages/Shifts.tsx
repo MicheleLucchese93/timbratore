@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { api, type ApiError } from '../lib/api.ts';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
+import { IconButton } from '../components/IconButton.tsx';
 
 interface Slot {
   id?: string;
@@ -71,6 +72,41 @@ export function Shifts() {
     }
   }
 
+  // Clone a template (all settings + slots) under a "Copia di …" name, then
+  // reload so the admin can open the copy and tweak its fasce. The new name is
+  // deduped against existing ones to dodge the UNIQUE(tenant_id, name) constraint.
+  async function duplicate(t: ShiftTemplate) {
+    setErr(null);
+    try {
+      await api('/api/v1/shifts/templates', {
+        method: 'POST',
+        json: {
+          name: copyName(t.name, list.map((x) => x.name)),
+          description: t.description,
+          tolerance_in_min: t.tolerance_in_min,
+          tolerance_out_min: t.tolerance_out_min,
+          expected_break_min_min: t.expected_break_min_min,
+          expected_break_max_min: t.expected_break_max_min,
+          expected_lunch_min_min: t.expected_lunch_min_min,
+          expected_lunch_max_min: t.expected_lunch_max_min,
+          extraordinary_threshold_min: t.extraordinary_threshold_min,
+          count_extraordinary: t.count_extraordinary,
+          tolerance_in_breach_deduct_min: t.tolerance_in_breach_deduct_min,
+          tolerance_out_breach_deduct_min: t.tolerance_out_breach_deduct_min,
+          tolerance_break_breach_deduct_min: t.tolerance_break_breach_deduct_min,
+          slots: t.slots.map((s) => ({
+            day_of_week: s.day_of_week,
+            start_time: s.start_time,
+            end_time: s.end_time,
+          })),
+        },
+      });
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'errore');
+    }
+  }
+
   return (
     <div className="space-y-5">
       <header className="flex items-center justify-end gap-4 flex-wrap">
@@ -109,7 +145,8 @@ export function Shifts() {
                   Totale settimanale: {formatWeeklyTotal(t.slots)}
                 </div>
               </div>
-              <div className="flex gap-2 shrink-0">
+              <div className="flex gap-2 shrink-0 items-center">
+                <IconButton kind="duplicate" title="Duplica" onClick={() => duplicate(t)} />
                 <button className="btn btn-secondary btn-sm" onClick={() => setEditing(t)}>
                   Modifica
                 </button>
@@ -167,6 +204,24 @@ function formatMinutes(totalMin: number): string {
 
 function formatWeeklyTotal(slots: Slot[]): string {
   return formatMinutes(slotsMinutes(slots));
+}
+
+// Build a unique "Copia di <name>" within the 120-char name limit, appending
+// " (2)", " (3)"… when a copy with that name already exists. The base is
+// trimmed (not the suffix) so the counter is never truncated away.
+function copyName(base: string, existing: string[]): string {
+  const MAX = 120;
+  const prefix = 'Copia di ';
+  const taken = new Set(existing);
+  const make = (suffix: string) =>
+    prefix + base.slice(0, Math.max(0, MAX - prefix.length - suffix.length)) + suffix;
+  let candidate = make('');
+  let n = 2;
+  while (taken.has(candidate)) {
+    candidate = make(` (${n})`);
+    n++;
+  }
+  return candidate;
 }
 
 function WeeklyPreview({ slots }: { slots: Slot[] }) {
@@ -239,10 +294,14 @@ function ShiftForm({
   const [err, setErr] = useState<string | null>(null);
 
   function addSlot(day: number) {
-    setState((s) => ({
-      ...s,
-      slots: [...s.slots, { day_of_week: day, start_time: '09:00', end_time: '13:00' }],
-    }));
+    setState((s) => {
+      const daySlots = s.slots.filter((sl) => sl.day_of_week === day);
+      const prev = daySlots[daySlots.length - 1];
+      const newSlot: Slot = prev
+        ? { day_of_week: day, start_time: prev.start_time, end_time: prev.end_time }
+        : { day_of_week: day, start_time: '09:00', end_time: '13:00' };
+      return { ...s, slots: [...s.slots, newSlot] };
+    });
   }
   function updateSlot(idx: number, patch: Partial<Slot>) {
     setState((s) => ({

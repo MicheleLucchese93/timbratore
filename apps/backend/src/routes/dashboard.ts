@@ -55,6 +55,7 @@ dashboardRouter.get(
               AND role='admin' AND deleted_at IS NULL) AS active_admins,
          (SELECT max_users FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid) AS max_users,
          (SELECT max_admins FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid) AS max_admins,
+         (SELECT max_branches FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid) AS max_branches,
          (SELECT COUNT(*) FROM branches
             WHERE tenant_id = current_setting('app.current_tenant_id')::uuid
               AND deleted_at IS NULL) AS branches_count`

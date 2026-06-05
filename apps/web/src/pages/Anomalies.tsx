@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { api, type ApiError } from '../lib/api.ts';
 
 interface Anomaly {
@@ -29,6 +28,8 @@ interface Anomaly {
   break_total_min: number | null;
   lunch_total_min: number | null;
   details: string | null;
+  justification_note: string | null;
+  justified_at: string | null;
 }
 
 interface UserRow {
@@ -220,49 +221,377 @@ export function Anomalies() {
             <div className="font-medium mb-2">{fmtDate(day)}</div>
             <ul className="space-y-2">
               {items.map((a, i) => (
-                <li
+                <AnomalyItem
                   key={i}
-                  className="flex items-start gap-3 border-t border-neutral-100 first:border-t-0 pt-2 first:pt-0"
-                >
-                  <span
-                    className="badge"
-                    style={{
-                      background: KIND_COLOR[a.kind] + '22',
-                      color: KIND_COLOR[a.kind],
-                    }}
-                  >
-                    {KIND_LABEL[a.kind]}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium">
-                      {a.user_display_name || a.user_email}
-                    </div>
-                    <div className="text-xs text-neutral-500">
-                      Orario: {a.shift_template_name ?? '—'} · Atteso{' '}
-                      {fmtTime(a.expected_start_at)}–{fmtTime(a.expected_end_at)} · Effettivo{' '}
-                      {fmtTime(a.actual_start_at)}–{fmtTime(a.actual_end_at)}
-                      {a.delta_minutes !== null && ` · Δ ${a.delta_minutes}min`}
-                      {a.break_total_min !== null && ` · Pausa ${a.break_total_min}min`}
-                    </div>
-                    {a.details && (
-                      <div className="text-xs text-neutral-600 mt-0.5">{a.details}</div>
-                    )}
-                  </div>
-                  {JUSTIFIABLE_KINDS.includes(a.kind) && (
-                    <Link
-                      to={`/leaves?user_id=${encodeURIComponent(a.user_id)}&date=${encodeURIComponent(a.date)}`}
-                      className="btn btn-secondary btn-sm shrink-0"
-                      title="Crea o approva un giustificativo (ferie/permesso/malattia) per coprire la mancanza"
-                    >
-                      Giustifica
-                    </Link>
-                  )}
-                </li>
+                  a={a}
+                  onDone={() => {
+                    load().catch(() => {});
+                  }}
+                />
               ))}
             </ul>
           </div>
         ))}
       </div>
     </div>
+  );
+}
+
+/* ----------------------- Correction menu per anomaly ----------------------- */
+
+type CorrectionAction = 'standard' | 'ferie' | 'permesso' | 'note';
+
+const ACTION_LABEL: Record<CorrectionAction, string> = {
+  standard: 'Timbratura standard (orari del giorno)',
+  ferie: 'Inserisci ferie',
+  permesso: 'Inserisci permesso',
+  note: 'Giustifica con nota',
+};
+
+const QUARTER_MS = 15 * 60 * 1000;
+
+function eventLabel(e: 'clock_in' | 'clock_out'): string {
+  return e === 'clock_in' ? 'Ingresso' : 'Uscita';
+}
+
+// The clock events that are absent for the day, to be added at the scheduled
+// times. Additive only — present punches are never touched.
+function missingEvents(a: Anomaly): { event_type: 'clock_in' | 'clock_out'; occurred_at: string }[] {
+  const ev: { event_type: 'clock_in' | 'clock_out'; occurred_at: string }[] = [];
+  if (!a.actual_start_at && a.expected_start_at)
+    ev.push({ event_type: 'clock_in', occurred_at: a.expected_start_at });
+  if (!a.actual_end_at && a.expected_end_at)
+    ev.push({ event_type: 'clock_out', occurred_at: a.expected_end_at });
+  return ev;
+}
+
+function floor15(ms: number): number {
+  return Math.floor(ms / QUARTER_MS) * QUARTER_MS;
+}
+function ceil15(ms: number): number {
+  return Math.ceil(ms / QUARTER_MS) * QUARTER_MS;
+}
+
+// Default permesso window = the uncovered part of the scheduled day ("copri il
+// gap mancante"), snapped to a 15-minute grid. Admin can fine-tune in the recap.
+function proposeGap(a: Anomaly): { from: string; to: string } | null {
+  const es = a.expected_start_at ? new Date(a.expected_start_at).getTime() : null;
+  const ee = a.expected_end_at ? new Date(a.expected_end_at).getTime() : null;
+  const as = a.actual_start_at ? new Date(a.actual_start_at).getTime() : null;
+  const ae = a.actual_end_at ? new Date(a.actual_end_at).getTime() : null;
+  let from: number | null = null;
+  let to: number | null = null;
+  switch (a.kind) {
+    case 'missing_clock_in':
+    case 'late_clock_in':
+      from = es;
+      to = as ?? ee;
+      break;
+    case 'missing_clock_out':
+    case 'early_clock_out':
+      from = ae ?? es;
+      to = ee;
+      break;
+    case 'short_hours':
+      if (ee != null && a.delta_minutes) {
+        from = ee - Math.abs(a.delta_minutes) * 60_000;
+        to = ee;
+      } else {
+        from = es;
+        to = ee;
+      }
+      break;
+    default:
+      from = es;
+      to = ee;
+  }
+  if (from == null || to == null) return null;
+  from = floor15(from);
+  to = ceil15(to);
+  if (to <= from) to = from + QUARTER_MS;
+  return { from: new Date(from).toISOString(), to: new Date(to).toISOString() };
+}
+
+function availableActions(a: Anomaly): CorrectionAction[] {
+  const acts: CorrectionAction[] = [];
+  if (missingEvents(a).length > 0) acts.push('standard');
+  if (JUSTIFIABLE_KINDS.includes(a.kind) && a.expected_start_at && a.expected_end_at) {
+    acts.push('ferie', 'permesso');
+  }
+  acts.push('note');
+  return acts;
+}
+
+function fmtMins(totalMin: number): string {
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+function AnomalyItem({ a, onDone }: { a: Anomaly; onDone: () => void }) {
+  const actions = useMemo(() => availableActions(a), [a]);
+  const gap0 = useMemo(() => proposeGap(a), [a]);
+  const [open, setOpen] = useState(false);
+  const [action, setAction] = useState<CorrectionAction>(actions[0] ?? 'note');
+  const [pFrom, setPFrom] = useState<string | null>(gap0?.from ?? null);
+  const [pTo, setPTo] = useState<string | null>(gap0?.to ?? null);
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const toAdd = useMemo(() => missingEvents(a), [a]);
+  const permMin =
+    pFrom && pTo
+      ? Math.round((new Date(pTo).getTime() - new Date(pFrom).getTime()) / 60_000)
+      : 0;
+
+  function stepPerm(which: 'from' | 'to', dir: -1 | 1) {
+    const cur = which === 'from' ? pFrom : pTo;
+    if (!cur) return;
+    const next = new Date(new Date(cur).getTime() + dir * QUARTER_MS).toISOString();
+    if (which === 'from') setPFrom(next);
+    else setPTo(next);
+  }
+
+  async function confirm() {
+    setBusy(true);
+    setErr(null);
+    try {
+      if (action === 'standard') {
+        if (toAdd.length === 0) throw new Error('Nessun timbro mancante da aggiungere.');
+        await api('/api/v1/admin/stamps/fix-anomaly', {
+          method: 'POST',
+          json: {
+            user_id: a.user_id,
+            events: toAdd,
+            justification: `Timbratura standard: ${KIND_LABEL[a.kind]}`,
+          },
+        });
+      } else if (action === 'ferie') {
+        await api('/api/v1/leaves/admin-create', {
+          method: 'POST',
+          json: {
+            user_id: a.user_id,
+            type: 'ferie',
+            from_ts: a.expected_start_at,
+            to_ts: a.expected_end_at,
+            user_note: note.trim() || undefined,
+          },
+        });
+      } else if (action === 'permesso') {
+        if (!pFrom || !pTo) throw new Error('Finestra del permesso non valida.');
+        if (permMin < 15) throw new Error('Durata minima del permesso: 15 minuti.');
+        await api('/api/v1/leaves/admin-create', {
+          method: 'POST',
+          json: {
+            user_id: a.user_id,
+            type: 'permessi',
+            from_ts: pFrom,
+            to_ts: pTo,
+            user_note: note.trim() || undefined,
+          },
+        });
+      } else {
+        if (note.trim().length < 1) throw new Error('Inserisci una nota di giustificazione.');
+        await api('/api/v1/shifts/anomalies/justify', {
+          method: 'POST',
+          json: { user_id: a.user_id, date: a.date, kind: a.kind, note: note.trim() },
+        });
+      }
+      setOpen(false);
+      setNote('');
+      onDone();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'errore');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <li className="border-t border-neutral-100 first:border-t-0 pt-2 first:pt-0">
+      <div className="flex items-start gap-3">
+        <span
+          className="badge"
+          style={{ background: KIND_COLOR[a.kind] + '22', color: KIND_COLOR[a.kind] }}
+        >
+          {KIND_LABEL[a.kind]}
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium">{a.user_display_name || a.user_email}</div>
+          <div className="text-xs text-neutral-500">
+            Orario: {a.shift_template_name ?? '—'} · Atteso{' '}
+            {fmtTime(a.expected_start_at)}–{fmtTime(a.expected_end_at)} · Effettivo{' '}
+            {fmtTime(a.actual_start_at)}–{fmtTime(a.actual_end_at)}
+            {a.delta_minutes !== null && ` · Δ ${a.delta_minutes}min`}
+            {a.break_total_min !== null && ` · Pausa ${a.break_total_min}min`}
+          </div>
+          {a.details && <div className="text-xs text-neutral-600 mt-0.5">{a.details}</div>}
+          {a.justification_note && (
+            <div
+              className="text-xs mt-1 rounded-md px-2 py-1"
+              style={{ background: '#e8f3ec', color: '#166534' }}
+            >
+              Giustificata: {a.justification_note}
+            </div>
+          )}
+        </div>
+        <button
+          className="btn btn-secondary btn-sm shrink-0"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+        >
+          {open ? 'Chiudi' : 'Correggi ▾'}
+        </button>
+      </div>
+
+      {open && (
+        <div
+          className="mt-2 rounded-md p-3 space-y-3"
+          style={{ background: 'var(--color-surface-variant, #f5f5f4)' }}
+        >
+          <div>
+            <label className="label">Azione</label>
+            <select
+              className="input"
+              value={action}
+              onChange={(e) => setAction(e.target.value as CorrectionAction)}
+            >
+              {actions.map((act) => (
+                <option key={act} value={act}>
+                  {ACTION_LABEL[act]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Recap of what will change */}
+          {action === 'standard' && (
+            <div className="text-sm">
+              <div className="muted text-xs font-semibold uppercase tracking-wide mb-1">
+                Riepilogo
+              </div>
+              {toAdd.length === 0 ? (
+                <div className="text-neutral-600">Nessun timbro mancante.</div>
+              ) : (
+                <ul className="space-y-0.5">
+                  {toAdd.map((ev) => (
+                    <li key={ev.event_type}>
+                      Aggiunge <strong>{eventLabel(ev.event_type)}</strong> alle{' '}
+                      <strong>{fmtTime(ev.occurred_at)}</strong>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {action === 'ferie' && (
+            <div className="text-sm space-y-2">
+              <div className="muted text-xs font-semibold uppercase tracking-wide">Riepilogo</div>
+              <div>
+                Ferie per <strong>{fmtDate(a.date)}</strong> ({fmtTime(a.expected_start_at)}–
+                {fmtTime(a.expected_end_at)}). Le ore vengono calcolate dall'orario assegnato.
+              </div>
+              <NoteField value={note} onChange={setNote} optional />
+            </div>
+          )}
+
+          {action === 'permesso' && (
+            <div className="text-sm space-y-2">
+              <div className="muted text-xs font-semibold uppercase tracking-wide">Riepilogo</div>
+              <div className="flex flex-wrap items-center gap-4">
+                <TimeStepper
+                  label="Dalle"
+                  value={pFrom}
+                  onStep={(d) => stepPerm('from', d)}
+                />
+                <TimeStepper label="Alle" value={pTo} onStep={(d) => stepPerm('to', d)} />
+                <div>
+                  <div className="label">Durata</div>
+                  <div className="font-medium">{permMin > 0 ? fmtMins(permMin) : '—'}</div>
+                </div>
+              </div>
+              <NoteField value={note} onChange={setNote} optional />
+            </div>
+          )}
+
+          {action === 'note' && (
+            <div className="text-sm space-y-1">
+              <div className="muted text-xs font-semibold uppercase tracking-wide">
+                Nota di giustificazione
+              </div>
+              <NoteField value={note} onChange={setNote} />
+              <div className="text-xs muted">
+                L'anomalia resta visibile ma annotata; la nota compare nelle esportazioni.
+              </div>
+            </div>
+          )}
+
+          {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
+
+          <div className="flex gap-2">
+            <button className="btn btn-primary btn-sm" onClick={confirm} disabled={busy}>
+              {busy ? 'Salvataggio…' : 'Conferma'}
+            </button>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => setOpen(false)}
+              disabled={busy}
+            >
+              Annulla
+            </button>
+          </div>
+        </div>
+      )}
+    </li>
+  );
+}
+
+function TimeStepper({
+  label,
+  value,
+  onStep,
+}: {
+  label: string;
+  value: string | null;
+  onStep: (dir: -1 | 1) => void;
+}) {
+  return (
+    <div>
+      <div className="label">{label}</div>
+      <div className="flex items-center gap-1">
+        <button type="button" className="btn btn-secondary btn-sm" onClick={() => onStep(-1)}>
+          −
+        </button>
+        <span className="font-medium min-w-[3.5rem] text-center">{fmtTime(value)}</span>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={() => onStep(1)}>
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function NoteField({
+  value,
+  onChange,
+  optional,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  optional?: boolean;
+}) {
+  return (
+    <textarea
+      className="input"
+      rows={2}
+      maxLength={1000}
+      placeholder={optional ? 'Nota per il dipendente (opzionale)' : 'Motivazione…'}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
   );
 }

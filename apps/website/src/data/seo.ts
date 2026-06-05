@@ -55,9 +55,9 @@ export const homeFaq: Record<Lang, FaqItem[]> = {
         "Gli amministratori dell'azienda. Puoi anche nominare approvatori dedicati per singola sede, così ogni responsabile gestisce solo i dipendenti della propria sede.",
     },
     {
-      question: "Supportate lo smart working?",
+      question: "Supportate il lavoro fuori sede (smart working)?",
       answer:
-        "Sì. Una sede può essere impostata come smart working: per quei dipendenti la timbratura avviene senza verifica della posizione, mentre per le sedi fisiche la verifica GPS resta attiva.",
+        "Sì. Una sede può essere impostata come «fuori sede»: per quei dipendenti la timbratura avviene senza verifica della posizione (GPS), mentre per le sedi fisiche la verifica GPS resta attiva. Ideale per lavoro da remoto, trasferte o cantieri.",
     },
     {
       question: "I dati restano della nostra azienda? Possiamo esportarli?",

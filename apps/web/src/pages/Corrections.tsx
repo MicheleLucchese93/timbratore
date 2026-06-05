@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api.ts';
+import { useSession } from '../store/session.ts';
+import { NewCorrectionModal } from '../components/NewCorrectionModal.tsx';
 
 interface CorrectionRequest {
   id: string;
@@ -22,9 +24,13 @@ interface CorrectionRequest {
 }
 
 export function Corrections() {
+  const { me } = useSession();
+  const isAdmin = me?.user.role === 'admin';
+  const myId = me?.user.id;
   const [list, setList] = useState<CorrectionRequest[]>([]);
   const [filter, setFilter] = useState<'pending' | 'all'>('pending');
   const [err, setErr] = useState<string | null>(null);
+  const [showNew, setShowNew] = useState(false);
 
   async function load() {
     const q = filter === 'pending' ? '?status=pending' : '';
@@ -33,6 +39,12 @@ export function Corrections() {
   useEffect(() => {
     load().catch((e) => setErr(e.message));
   }, [filter]);
+
+  // You never decide your own request. Admins decide everyone's (incl. their
+  // own — the request→approve audit trail); an employee-approver decides the
+  // assignees' requests the backend hands them (cr.user_id !== myId).
+  const canDecide = (cr: CorrectionRequest) =>
+    cr.status === 'pending' && (isAdmin || cr.user_id !== myId);
 
   async function approve(cr: CorrectionRequest) {
     try {
@@ -57,8 +69,11 @@ export function Corrections() {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-center justify-end gap-4 flex-wrap">
+      <header className="flex items-center justify-between gap-4 flex-wrap">
         <h1 className="sr-only">Correzioni</h1>
+        <button type="button" className="btn btn-primary" onClick={() => setShowNew(true)}>
+          + Nuova richiesta
+        </button>
         <select
           className="input max-w-xs"
           value={filter}
@@ -82,7 +97,7 @@ export function Corrections() {
                     Inviata {new Date(cr.created_at).toLocaleString('it-IT')}
                   </div>
                 </div>
-                {cr.status === 'pending' ? (
+                {canDecide(cr) ? (
                   <div className="flex gap-2 shrink-0">
                     <button className="btn btn-primary btn-sm" onClick={() => approve(cr)}>
                       Approva
@@ -131,6 +146,17 @@ export function Corrections() {
             </li>
           ))}
         </ul>
+      )}
+
+      {showNew && (
+        <NewCorrectionModal
+          branches={me?.branches ?? []}
+          onClose={() => setShowNew(false)}
+          onDone={() => {
+            setShowNew(false);
+            load().catch((e) => setErr(e instanceof Error ? e.message : 'errore'));
+          }}
+        />
       )}
     </div>
   );
@@ -242,6 +268,8 @@ function labelEvent(e: string): string {
 
 function statusLabel(s: string): string {
   switch (s) {
+    case 'pending':
+      return 'In attesa';
     case 'approved':
       return 'Approvata';
     case 'rejected':

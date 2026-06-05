@@ -173,27 +173,25 @@ export function CorrezioniScreen() {
         ]}
       </SwipeableTabs>
 
-      {!isAdmin && (
-        <TouchableOpacity
-          onPress={() => setFormOpen(true)}
-          activeOpacity={0.8}
-          style={styles.fab}
-          accessibilityLabel="Nuova richiesta">
-          <Ionicons name="add" size={28} color={color.onPrimary} />
-        </TouchableOpacity>
-      )}
+      {/* Anyone can file a correction for their own stamps — admins too, so
+          they get a request→approve audit trail instead of editing silently. */}
+      <TouchableOpacity
+        onPress={() => setFormOpen(true)}
+        activeOpacity={0.8}
+        style={styles.fab}
+        accessibilityLabel="Nuova richiesta">
+        <Ionicons name="add" size={28} color={color.onPrimary} />
+      </TouchableOpacity>
 
-      {!isAdmin && (
-        <NewRequestModal
-          visible={formOpen}
-          onClose={() => setFormOpen(false)}
-          onCreated={async () => {
-            setFormOpen(false);
-            await load();
-          }}
-          branches={me?.branches ?? []}
-        />
-      )}
+      <NewRequestModal
+        visible={formOpen}
+        onClose={() => setFormOpen(false)}
+        onCreated={async () => {
+          setFormOpen(false);
+          await load();
+        }}
+        branches={me?.branches ?? []}
+      />
     </SafeAreaView>
   );
 }

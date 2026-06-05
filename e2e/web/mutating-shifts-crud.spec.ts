@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { CREDS, STORAGE } from '../fixtures/test-data';
 import {
+  apiGet,
   assignShift,
   createShiftTemplate,
   deleteShiftTemplate,
@@ -15,6 +16,7 @@ test.describe('web — Orari template CRUD (mutating)', () => {
 
   let admin: ApiHandle;
   let templateId: string | null = null;
+  let copyId: string | null = null;
   let name: string;
 
   test.beforeEach(async () => {
@@ -30,7 +32,18 @@ test.describe('web — Orari template CRUD (mutating)', () => {
 
   test.afterEach(async () => {
     if (templateId) await deleteShiftTemplate(admin.token, templateId).catch(() => {});
+    // Delete the duplicate too. If its id wasn't captured (e.g. assertion
+    // failed before lookup), sweep any leftover "Copia di <name>" by name.
+    if (!copyId) {
+      const all = await apiGet<Array<{ id: string; name: string }>>(
+        admin.token,
+        '/api/v1/shifts/templates',
+      ).catch(() => [] as Array<{ id: string; name: string }>);
+      copyId = all.find((t) => t.name === `Copia di ${name}`)?.id ?? null;
+    }
+    if (copyId) await deleteShiftTemplate(admin.token, copyId).catch(() => {});
     templateId = null;
+    copyId = null;
   });
 
   test('new template shows on /shifts after API create', async ({ page }) => {
@@ -66,5 +79,27 @@ test.describe('web — Orari template CRUD (mutating)', () => {
     });
     await page.goto('/shifts');
     await expect(page.getByText(name).first()).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('Duplica icon clones the template under "Copia di …"', async ({ page }) => {
+    await page.goto('/shifts');
+    const card = page.locator('li.card', { hasText: name });
+    await expect(card).toBeVisible({ timeout: 15_000 });
+
+    await card.getByRole('button', { name: 'Duplica' }).click();
+
+    // The copy appears in the list, name prefixed with "Copia di ".
+    const copyName = `Copia di ${name}`;
+    await expect(page.getByText(copyName).first()).toBeVisible({ timeout: 10_000 });
+
+    // Backend persisted it with the same slots (one Mon 09:00–17:00 fascia).
+    const all = await apiGet<Array<{ id: string; name: string; slots: unknown[] }>>(
+      admin.token,
+      '/api/v1/shifts/templates',
+    );
+    const copy = all.find((t) => t.name === copyName);
+    expect(copy).toBeTruthy();
+    copyId = copy!.id;
+    expect(copy!.slots).toHaveLength(1);
   });
 });

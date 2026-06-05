@@ -19,6 +19,15 @@ test.describe('web — Ferie & Permessi (employee)', () => {
       await expect(page.getByRole('button', { name: 'Calendario', exact: true })).toBeVisible();
     });
 
+    test('"Le mie" shows the KPI summary tiles', async ({ page }) => {
+      // The KPI band uses plural labels ("Approvate"/"Rifiutate") distinct from
+      // the per-request status labels ("Approvata"/"Rifiutata"), so these are
+      // unambiguous even when the request list is non-empty.
+      await expect(page.getByText('In attesa', { exact: true }).first()).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText('Approvate', { exact: true })).toBeVisible();
+      await expect(page.getByText('Rifiutate', { exact: true })).toBeVisible();
+    });
+
     test('"+ Nuova richiesta" opens a request form with a Tipo selector', async ({ page }) => {
       await page.getByRole('button', { name: /Nuova richiesta/i }).click();
       await expect(page.getByRole('heading', { name: 'Nuova richiesta' })).toBeVisible({ timeout: 10_000 });

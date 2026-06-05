@@ -451,6 +451,19 @@ const CORRECTION_STATUS_LABEL: Record<string, string> = {
   rejected: 'Rifiutata',
   superseded: 'Sostituita',
 };
+const ANOMALY_KIND_LABEL: Record<string, string> = {
+  missing_clock_in: 'Entrata mancante',
+  missing_clock_out: 'Uscita mancante',
+  late_clock_in: 'Entrata in ritardo',
+  early_clock_out: 'Uscita anticipata',
+  short_hours: 'Ore giornaliere insufficienti',
+  worked_on_rest_day: 'Lavoro in giorno di riposo',
+  break_too_short: 'Pausa troppo breve',
+  break_too_long: 'Pausa troppo lunga',
+  lunch_too_short: 'Pausa pranzo troppo breve',
+  lunch_too_long: 'Pausa pranzo troppo lunga',
+  clock_out_out_of_area: 'Uscita fuori area',
+};
 
 const ROME_TZ = 'Europe/Rome';
 
@@ -587,6 +600,7 @@ interface LeaveDetailRow {
   decided_by: string | null;
   decided_at: Date | null;
   rejection_reason: string | null;
+  created_by_admin: boolean;
 }
 
 async function loadLeaveDetail(job: ExportJobRow): Promise<LeaveDetailRow[]> {
@@ -595,7 +609,7 @@ async function loadLeaveDetail(job: ExportJobRow): Promise<LeaveDetailRow[]> {
   const r = await adminPool.query(
     `SELECT user_id, type, status, from_ts, to_ts, duration_hours,
             inps_protocol, assenza_subtype, is_paid, user_note,
-            decided_by, decided_at, rejection_reason
+            decided_by, decided_at, rejection_reason, created_by_admin
        FROM leave_requests
       WHERE tenant_id = $1
         AND type IN ('ferie','permessi','malattia','assenza')
@@ -605,6 +619,30 @@ async function loadLeaveDetail(job: ExportJobRow): Promise<LeaveDetailRow[]> {
     [job.tenant_id, job.period_from, job.period_to]
   );
   return r.rows as LeaveDetailRow[];
+}
+
+interface JustificationRow {
+  user_id: string;
+  anomaly_date: string;
+  anomaly_kind: string;
+  note: string;
+  created_by: string | null;
+  created_at: Date;
+}
+
+async function loadJustifications(job: ExportJobRow): Promise<JustificationRow[]> {
+  // Note-only anomaly justifications (see anomaly_justifications): the deviation
+  // was acknowledged with an explanation rather than fixed with stamps.
+  const r = await adminPool.query(
+    `SELECT user_id, to_char(anomaly_date, 'YYYY-MM-DD') AS anomaly_date,
+            anomaly_kind, note, created_by, created_at
+       FROM anomaly_justifications
+      WHERE tenant_id = $1
+        AND anomaly_date >= $2::date AND anomaly_date <= $3::date
+      ORDER BY user_id, anomaly_date`,
+    [job.tenant_id, job.period_from, job.period_to]
+  );
+  return r.rows as JustificationRow[];
 }
 
 interface EventRow {
@@ -628,7 +666,7 @@ async function loadEventi(job: ExportJobRow): Promise<EventRow[]> {
             SUM(duration_hours) AS total_hours
        FROM leave_requests
       WHERE tenant_id = $1
-        AND (type = 'chiusura' OR created_by_admin = true)
+        AND (type = 'chiusura' OR (created_by_admin = true AND batch_id IS NOT NULL))
         AND to_ts > $2::date
         AND from_ts < ($3::date + INTERVAL '1 day')
       GROUP BY COALESCE(batch_id::text, id::text)
@@ -701,12 +739,34 @@ function setHourFormat(ws: ExcelJS.Worksheet, keys: string[]): void {
 }
 
 async function writeJson(job: ExportJobRow, data: UserAgg[]): Promise<ExportResult> {
+  // Aggregates feed the `users` array; leaves + justifications carry the
+  // provenance of any admin correction (created_by_admin / note-only fixes).
+  const [leaves, justifications] = await Promise.all([
+    loadLeaveDetail(job),
+    loadJustifications(job),
+  ]);
   const body = {
     schema_version: 'v1',
     tenant_id: job.tenant_id,
     period: { from: job.period_from, to: job.period_to },
     generated_at: new Date().toISOString(),
     users: data,
+    leaves: leaves.map((l) => ({
+      user_id: l.user_id,
+      type: l.type,
+      status: l.status,
+      from_ts: l.from_ts,
+      to_ts: l.to_ts,
+      duration_hours: Number(l.duration_hours),
+      created_by_admin: l.created_by_admin,
+      user_note: l.user_note,
+    })),
+    anomaly_justifications: justifications.map((j) => ({
+      user_id: j.user_id,
+      date: j.anomaly_date,
+      kind: j.anomaly_kind,
+      note: j.note,
+    })),
   };
   const key = `tenants/${job.tenant_id}/exports/${job.id}.json`;
   await persist(key, Buffer.from(JSON.stringify(body, null, 2), 'utf8'));
@@ -715,7 +775,7 @@ async function writeJson(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
 
 async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResult> {
   // Load all payroll detail in parallel — each is a single tenant-scoped query.
-  const [userMeta, branchMeta, residueByUser, stamps, corrections, leaves, eventi] =
+  const [userMeta, branchMeta, residueByUser, stamps, corrections, leaves, eventi, justifications] =
     await Promise.all([
       loadUserMeta(job),
       loadBranchMeta(job),
@@ -724,6 +784,7 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
       loadCorrections(job),
       loadLeaveDetail(job),
       loadEventi(job),
+      loadJustifications(job),
     ]);
 
   const wb = new ExcelJS.Workbook();
@@ -891,6 +952,7 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
     { header: 'Sottotipo assenza', key: 'subtype', width: 18 },
     { header: 'Protocollo INPS', key: 'inps', width: 18 },
     { header: 'Nota dipendente', key: 'note', width: 30 },
+    { header: 'Origine', key: 'origin', width: 22 },
     { header: 'Deciso da', key: 'by', width: 24 },
     { header: 'Deciso il', key: 'at', width: 18 },
     { header: 'Motivo rifiuto', key: 'reject', width: 28 },
@@ -907,6 +969,7 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
       subtype: l.assenza_subtype ?? '',
       inps: l.inps_protocol ?? '',
       note: l.user_note ?? '',
+      origin: l.created_by_admin ? 'Inserito da admin' : 'Richiesta dipendente',
       by: l.decided_by ? metaName(userMeta, l.decided_by, l.decided_by) : '',
       at: fmtRome(l.decided_at),
       reject: l.rejection_reason ?? '',
@@ -914,6 +977,28 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
   }
   setHourFormat(fp, ['hours']);
   styleHeader(fp);
+
+  /* 5b. Giustifiche anomalie — note-only resolutions of schedule anomalies. */
+  const gj = wb.addWorksheet('Giustifiche anomalie');
+  gj.columns = [
+    { header: 'Dipendente', key: 'name', width: 24 },
+    { header: 'Data', key: 'date', width: 14 },
+    { header: 'Tipo anomalia', key: 'kind', width: 28 },
+    { header: 'Nota', key: 'note', width: 40 },
+    { header: 'Inserita da', key: 'by', width: 24 },
+    { header: 'Inserita il', key: 'at', width: 18 },
+  ];
+  for (const j of justifications) {
+    gj.addRow({
+      name: metaName(userMeta, j.user_id),
+      date: fmtRome(j.anomaly_date + 'T00:00:00', false),
+      kind: ANOMALY_KIND_LABEL[j.anomaly_kind] ?? j.anomaly_kind,
+      note: j.note,
+      by: j.created_by ? metaName(userMeta, j.created_by, j.created_by) : '',
+      at: fmtRome(j.created_at),
+    });
+  }
+  styleHeader(gj);
 
   /* 6. Eventi aziendali — admin-pushed batches / company closures. */
   const ev = wb.addWorksheet('Eventi aziendali');

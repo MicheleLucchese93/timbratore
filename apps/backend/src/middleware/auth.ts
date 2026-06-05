@@ -15,46 +15,86 @@ declare module 'express-serve-static-core' {
   }
 }
 
-interface MembershipCache {
+export interface ResolvedMembership {
   tenantId: string;
   role: 'admin' | 'user';
   membershipId: string;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Resolve which membership a request operates under.
+ *
+ * - With `requestedTenantId` (the X-Tenant-Id header): returns that tenant's
+ *   membership ONLY IF the user is an active member of it, otherwise null.
+ *   This is the access-control gate — the header is client-supplied, so a user
+ *   must never act on a tenant they don't belong to even if they pass its id.
+ * - Without it (single-tenant / back-compat): returns the most-recent active
+ *   membership.
+ */
+export async function fetchMembership(
+  userId: string,
+  requestedTenantId?: string | null
+): Promise<ResolvedMembership | null> {
+  const params: unknown[] = [userId];
+  let tenantFilter = '';
+  if (requestedTenantId) {
+    params.push(requestedTenantId);
+    tenantFilter = 'AND m.tenant_id = $2';
+  }
+  const r = await adminPool.query(
+    `SELECT m.id, m.tenant_id, m.role
+     FROM memberships m
+     JOIN tenants t ON t.id = m.tenant_id
+     WHERE m.user_id = $1
+       ${tenantFilter}
+       AND m.active = TRUE
+       AND m.deleted_at IS NULL
+       AND t.deleted_at IS NULL
+     ORDER BY m.created_at DESC
+     LIMIT 1`,
+    params
+  );
+  if (r.rowCount === 0) return null;
+  const row = r.rows[0];
+  return { membershipId: row.id, tenantId: row.tenant_id, role: row.role };
+}
+
+interface MembershipCache extends ResolvedMembership {
   fetchedAt: number;
 }
 
 const cache = new Map<string, MembershipCache>();
 const CACHE_TTL_MS = 60_000;
 
-async function loadMembership(userId: string): Promise<MembershipCache | null> {
-  const hit = cache.get(userId);
+function cacheKey(userId: string, tenantId?: string | null): string {
+  return tenantId ? `${userId}:${tenantId}` : userId;
+}
+
+async function loadMembership(
+  userId: string,
+  requestedTenantId?: string | null
+): Promise<ResolvedMembership | null> {
+  const key = cacheKey(userId, requestedTenantId);
+  const hit = cache.get(key);
   if (hit && Date.now() - hit.fetchedAt < CACHE_TTL_MS) return hit;
-  const r = await adminPool.query(
-    `SELECT m.id, m.tenant_id, m.role
-     FROM memberships m
-     JOIN tenants t ON t.id = m.tenant_id
-     WHERE m.user_id = $1
-       AND m.active = TRUE
-       AND m.deleted_at IS NULL
-       AND t.deleted_at IS NULL
-     ORDER BY m.created_at DESC
-     LIMIT 1`,
-    [userId]
-  );
-  if (r.rowCount === 0) return null;
-  const row = r.rows[0];
-  const entry: MembershipCache = {
-    membershipId: row.id,
-    tenantId: row.tenant_id,
-    role: row.role,
-    fetchedAt: Date.now(),
-  };
-  cache.set(userId, entry);
-  return entry;
+  const m = await fetchMembership(userId, requestedTenantId);
+  if (!m) return null;
+  cache.set(key, { ...m, fetchedAt: Date.now() });
+  return m;
 }
 
 export function invalidateMembershipCache(userId?: string): void {
-  if (userId) cache.delete(userId);
-  else cache.clear();
+  if (!userId) {
+    cache.clear();
+    return;
+  }
+  // A user now has both a tenant-agnostic cache key and one per chosen tenant;
+  // drop them all so a membership/role change can't be served stale.
+  for (const key of cache.keys()) {
+    if (key === userId || key.startsWith(`${userId}:`)) cache.delete(key);
+  }
 }
 
 export async function authenticate(
@@ -78,8 +118,22 @@ export async function authenticate(
       throw new UnauthorizedError(message, code);
     }
     if (!payload.sub) throw new UnauthorizedError('Invalid token: missing sub');
-    const membership = await loadMembership(payload.sub);
+
+    // Optional explicit tenant selection for users who belong to more than one
+    // company. The header is untrusted: loadMembership re-checks the user is an
+    // active member, so an unknown/garbage/foreign id resolves to no membership
+    // and yields 403 — never silent cross-tenant access.
+    const rawTenant = req.header('x-tenant-id')?.trim();
+    const requestedTenantId = rawTenant ? rawTenant : null;
+    if (requestedTenantId && !UUID_RE.test(requestedTenantId)) {
+      throw new ForbiddenError('Invalid tenant', 'TENANT_NOT_ALLOWED');
+    }
+
+    const membership = await loadMembership(payload.sub, requestedTenantId);
     if (!membership) {
+      if (requestedTenantId) {
+        throw new ForbiddenError('Not a member of the requested tenant', 'TENANT_NOT_ALLOWED');
+      }
       throw new ForbiddenError('No active tenant', 'NO_ACTIVE_TENANT');
     }
     req.user = {

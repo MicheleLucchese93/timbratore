@@ -22,6 +22,14 @@ interface LeaveRequest {
   rejection_reason: string | null;
 }
 
+interface QuotaSummary {
+  type: 'ferie' | 'permessi';
+  used_approved: number;
+  used_pending: number;
+  residual_strict: number;
+  residual_with_pending: number;
+}
+
 const STATUS_LABEL: Record<string, string> = {
   pending: 'In attesa',
   approved: 'Approvata',
@@ -60,12 +68,18 @@ export function MyLeaves() {
   const [tab, setTab] = useState<'mine' | 'calendar' | 'inbox'>('mine');
   const [mine, setMine] = useState<LeaveRequest[]>([]);
   const [inbox, setInbox] = useState<LeaveRequest[]>([]);
+  const [quotas, setQuotas] = useState<QuotaSummary[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
 
   const loadMine = useCallback(async () => {
     try {
-      setMine(await api<LeaveRequest[]>('/api/v1/leaves?scope=mine'));
+      const [list, q] = await Promise.all([
+        api<LeaveRequest[]>('/api/v1/leaves?scope=mine'),
+        api<QuotaSummary[]>('/api/v1/leave-quotas/me/summary').catch(() => [] as QuotaSummary[]),
+      ]);
+      setMine(list);
+      setQuotas(q);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'errore');
     }
@@ -85,6 +99,21 @@ export function MyLeaves() {
 
   const calEvents = useMemo(() => mine.map(toCalEvent), [mine]);
   const pendingInbox = inbox.filter((r) => r.status === 'pending' || r.status === 'cancellation_pending');
+
+  // KPI counts over my own requests: how many I've asked, by outcome.
+  const mineStats = useMemo(() => {
+    let pending = 0;
+    let approved = 0;
+    let rejected = 0;
+    for (const r of mine) {
+      if (r.status === 'pending' || r.status === 'cancellation_pending') pending += 1;
+      else if (r.status === 'approved') approved += 1;
+      else if (r.status === 'rejected') rejected += 1;
+    }
+    return { pending, approved, rejected };
+  }, [mine]);
+  const ferieQuota = quotas.find((q) => q.type === 'ferie');
+  const permessiQuota = quotas.find((q) => q.type === 'permessi');
 
   async function act(path: string, json?: unknown) {
     setErr(null);
@@ -116,6 +145,29 @@ export function MyLeaves() {
 
           {tab === 'mine' && (
             <div className="space-y-3">
+              <div className="stat-grid">
+                {ferieQuota && (
+                  <Kpi
+                    label="Ferie residue"
+                    value={fmtH(ferieQuota.residual_strict)}
+                    sub={`Richieste ${fmtH(ferieQuota.used_approved + ferieQuota.used_pending)}`}
+                    icon={<IconSun />}
+                    tone="ferie"
+                  />
+                )}
+                {permessiQuota && (
+                  <Kpi
+                    label="Permessi residui"
+                    value={fmtH(permessiQuota.residual_strict)}
+                    sub={`Richieste ${fmtH(permessiQuota.used_approved + permessiQuota.used_pending)}`}
+                    icon={<IconClock />}
+                    tone="permessi"
+                  />
+                )}
+                <Kpi label="In attesa" value={String(mineStats.pending)} icon={<IconHourglass />} tone="warn" />
+                <Kpi label="Approvate" value={String(mineStats.approved)} icon={<IconCheck />} tone="ok" />
+                <Kpi label="Rifiutate" value={String(mineStats.rejected)} icon={<IconX />} tone="err" />
+              </div>
               <div className="flex justify-end">
                 <button type="button" className="btn btn-primary" onClick={() => setShowNew(true)}>+ Nuova richiesta</button>
               </div>
@@ -224,5 +276,83 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     >
       {children}
     </button>
+  );
+}
+
+const KPI_TONES = {
+  ferie: { bg: '#e0f2fe', fg: '#0369a1' },
+  permessi: { bg: '#fff3d1', fg: 'var(--color-warning)' },
+  warn: { bg: '#fff3d1', fg: 'var(--color-warning)' },
+  ok: { bg: '#e8f3ec', fg: 'var(--color-success)' },
+  err: { bg: '#fde4e4', fg: 'var(--color-error)' },
+} as const;
+
+function Kpi({
+  label,
+  value,
+  sub,
+  icon,
+  tone,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  icon: React.ReactNode;
+  tone: keyof typeof KPI_TONES;
+}) {
+  const t = KPI_TONES[tone];
+  return (
+    <div className="stat-card">
+      <div className="stat-card-icon" style={{ background: t.bg, color: t.fg }}>{icon}</div>
+      <div className="stat-card-body">
+        <div className="stat-card-label">{label}</div>
+        <div className="stat-card-value" style={{ color: t.fg }}>{value}</div>
+        {sub && <div className="text-xs muted" style={{ marginTop: 2 }}>{sub}</div>}
+      </div>
+    </div>
+  );
+}
+
+// Hours, trimmed: 120 → "120h", 15.75 → "15.75h".
+function fmtH(n: number): string {
+  const r = Math.round(n * 100) / 100;
+  return `${Number.isInteger(r) ? r : r.toFixed(2)}h`;
+}
+
+function IconSun() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" />
+    </svg>
+  );
+}
+function IconClock() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+function IconHourglass() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 3h12M6 21h12M7 3c0 5 4 6 5 9 1-3 5-4 5-9M7 21c0-5 4-6 5-9 1 3 5 4 5 9" />
+    </svg>
+  );
+}
+function IconCheck() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6L9 17l-5-5" />
+    </svg>
+  );
+}
+function IconX() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 6L6 18M6 6l12 12" />
+    </svg>
   );
 }

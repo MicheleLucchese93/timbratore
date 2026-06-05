@@ -6,6 +6,7 @@ interface Args {
   email: string;
   max_admins?: number;
   max_users?: number;
+  max_branches?: number;
   language?: 'it' | 'en';
 }
 
@@ -17,13 +18,14 @@ function parseArgs(): Args {
     if (m && m[1]) out[m[1]] = m[2] ?? '';
   }
   if (!out.ragione_sociale || !out.email) {
-    throw new Error('Usage: create-tenant --ragione_sociale=ACME --email=admin@x.it [--max_admins=2 --max_users=20 --language=it]');
+    throw new Error('Usage: create-tenant --ragione_sociale=ACME --email=admin@x.it [--max_admins=2 --max_users=20 --max_branches=3 --language=it]');
   }
   return {
     ragione_sociale: out.ragione_sociale,
     email: out.email,
     max_admins: out.max_admins ? Number(out.max_admins) : undefined,
     max_users: out.max_users ? Number(out.max_users) : undefined,
+    max_branches: out.max_branches ? Number(out.max_branches) : undefined,
     language: (out.language as 'it' | 'en' | undefined) ?? 'it',
   };
 }
@@ -36,10 +38,10 @@ async function main(): Promise<void> {
     await pool.query(`INSERT INTO auth_users(id, email) VALUES ($1, $2)`, [userId, a.email]);
   }
   const t = await pool.query(
-    `INSERT INTO tenants(ragione_sociale, language, max_admins, max_users)
-     VALUES ($1, $2, COALESCE($3, 2), COALESCE($4, 20))
+    `INSERT INTO tenants(ragione_sociale, language, max_admins, max_users, max_branches)
+     VALUES ($1, $2, COALESCE($3, 2), COALESCE($4, 20), COALESCE($5, 3))
      RETURNING id`,
-    [a.ragione_sociale, a.language ?? 'it', a.max_admins ?? null, a.max_users ?? null]
+    [a.ragione_sociale, a.language ?? 'it', a.max_admins ?? null, a.max_users ?? null, a.max_branches ?? null]
   );
   const tenantId = t.rows[0].id;
   await pool.query(

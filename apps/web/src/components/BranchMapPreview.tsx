@@ -72,6 +72,7 @@ function MapInner({
     width: '100%',
     height: typeof height === 'number' ? `${height}px` : height,
     borderRadius: '8px',
+    overflow: 'hidden',
   };
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',

@@ -5,6 +5,7 @@ import {
   createCorrection,
   deleteStampAdmin,
   loadHandleFromStorage,
+  rejectCorrection,
   type ApiHandle,
 } from '../fixtures/api-client';
 
@@ -126,5 +127,71 @@ test.describe('web — Correzioni multi-approver race (API-level)', () => {
         await deleteStampAdmin(admin.token, stampId).catch(() => {});
       }
     }
+  });
+});
+
+test.describe('web — Correzioni create flow submit (admin, via modal)', () => {
+  test.skip(!ENABLED, 'set E2E_MUTATING=1 to enable mutating specs');
+
+  let admin: ApiHandle;
+  let marker: string;
+  let createdId: string | null;
+
+  test.beforeAll(async () => {
+    admin = await loadHandleFromStorage(STORAGE.webAuth, CREDS.admin);
+  });
+
+  test.beforeEach(() => {
+    marker = `e2e-admin-ui-${Date.now()}`;
+    createdId = null;
+  });
+
+  test.afterEach(async () => {
+    // No DELETE endpoint on correction_requests — reject so it drops out of
+    // the pending queue; the globalTeardown marker-sweep wipes it entirely.
+    try {
+      if (!createdId) {
+        const res = await fetch(
+          `${process.env.E2E_API_URL ?? 'https://api-sonoqui.xdevapp.it'}/api/v1/correction-requests?status=pending`,
+          { headers: { Authorization: `Bearer ${admin.token}` } },
+        );
+        const body = (await res.json()) as { data?: Array<{ id: string; justification?: string }> };
+        createdId = body.data?.find((r) => (r.justification ?? '').includes(marker))?.id ?? null;
+      }
+      if (createdId) await rejectCorrection(admin.token, createdId);
+    } catch {
+      /* best-effort — teardown sweep is the safety net */
+    }
+  });
+
+  test('admin files a missing-stamp correction in the modal → pending row created', async ({ page }) => {
+    await page.goto('/corrections');
+    await expect(page.getByRole('heading', { name: 'Correzioni' })).toBeVisible({ timeout: 15_000 });
+    await page.getByRole('button', { name: /Nuova richiesta/i }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
+    // Target a date 4 days in the past so we don't perturb today's live state.
+    const past = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    await dialog.getByLabel('Data').fill(past);
+    await page.getByRole('button', { name: 'Continua' }).click();
+    await page.getByRole('button', { name: /Aggiungi una timbratura mancante/i }).click();
+    await dialog
+      .getByPlaceholder("Es. avevo dimenticato di timbrare l'uscita")
+      .fill(`${marker}: avevo dimenticato di timbrare l'ingresso`);
+    await page.getByRole('button', { name: 'Invia richiesta' }).click();
+    // On success the modal closes.
+    await expect(dialog).toHaveCount(0, { timeout: 10_000 });
+    // Source of truth: the API confirms a pending row carrying our marker.
+    const res = await fetch(
+      `${process.env.E2E_API_URL ?? 'https://api-sonoqui.xdevapp.it'}/api/v1/correction-requests?status=pending`,
+      { headers: { Authorization: `Bearer ${admin.token}` } },
+    );
+    const body = (await res.json()) as {
+      data?: Array<{ id: string; justification?: string; status: string }>;
+    };
+    const ours = body.data?.find((r) => (r.justification ?? '').includes(marker));
+    expect(ours, `expected pending correction matching marker ${marker}`).toBeDefined();
+    createdId = ours!.id;
+    expect(ours!.status).toBe('pending');
   });
 });

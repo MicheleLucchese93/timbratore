@@ -192,6 +192,76 @@ adminStampsRouter.post(
   })
 );
 
+// Resolve an anomaly by inserting the clock events that are missing for a day,
+// at the times taken from the assigned shift ("orario standard del giorno").
+// Additive only: events whose type already exists that calendar day are skipped,
+// so real punches are never overwritten.
+const FixAnomaly = z.object({
+  user_id: z.string().uuid(),
+  branch_id: z.string().uuid().nullable().optional(),
+  events: z
+    .array(
+      z.object({
+        event_type: z.enum(['clock_in', 'clock_out', 'break_start', 'break_end', 'lunch_start', 'lunch_end']),
+        occurred_at: z.string().datetime({ offset: true }),
+      })
+    )
+    .min(1)
+    .max(6),
+  justification: z.string().min(3).max(500),
+});
+
+adminStampsRouter.post(
+  '/stamps/fix-anomaly',
+  tenantHandler(async (req, res, client) => {
+    const parse = FixAnomaly.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const b = parse.data;
+    const member = await client.query(
+      `SELECT 1 FROM memberships
+       WHERE tenant_id = current_setting('app.current_tenant_id')::uuid
+         AND user_id = $1 AND deleted_at IS NULL`,
+      [b.user_id]
+    );
+    if (member.rowCount === 0) throw new NotFoundError('user not in tenant');
+    await client.query(`SELECT set_config('app.change_reason', $1, true)`, [
+      `anomaly_standard:${b.justification}`,
+    ]);
+    const results: Array<{
+      event_type: string;
+      occurred_at: string;
+      status: 'created' | 'skipped';
+      id?: string;
+    }> = [];
+    for (const ev of b.events) {
+      const existing = await client.query(
+        `SELECT 1 FROM stamps
+         WHERE user_id = $1 AND deleted_at IS NULL AND event_type = $2
+           AND occurred_at::date = $3::timestamptz::date`,
+        [b.user_id, ev.event_type, ev.occurred_at]
+      );
+      if (existing.rowCount && existing.rowCount > 0) {
+        results.push({ event_type: ev.event_type, occurred_at: ev.occurred_at, status: 'skipped' });
+        continue;
+      }
+      const ins = await client.query(
+        `INSERT INTO stamps(tenant_id, user_id, event_type, occurred_at, source, branch_id, notes)
+         VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, 'admin_manual', $4, $5)
+         RETURNING *`,
+        [b.user_id, ev.event_type, ev.occurred_at, b.branch_id ?? null, `Orario standard (anomalia): ${b.justification}`]
+      );
+      await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_create', ins.rows[0].id, null, ins.rows[0]);
+      results.push({
+        event_type: ev.event_type,
+        occurred_at: ev.occurred_at,
+        status: 'created',
+        id: ins.rows[0].id,
+      });
+    }
+    ok(res, { results });
+  })
+);
+
 async function emitAuditAndOutbox(
   client: import('pg').PoolClient,
   tenantId: string,

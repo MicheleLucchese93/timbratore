@@ -13,8 +13,6 @@ export type StampSource =
   | 'employee_correction'
   | 'admin_manual';
 
-export type GeofencePolicy = 'lenient' | 'strict';
-
 export type MockLocationAction = 'allow' | 'flag' | 'block';
 
 // Allowed clock-in methods per user (memberships.stamp_modes).
@@ -34,6 +32,7 @@ export interface Tenant {
   retention_years: number;
   max_admins: number;
   max_users: number;
+  max_branches: number;
   mock_location_action: MockLocationAction;
   deleted_at: string | null;
   created_at: string;
@@ -61,8 +60,6 @@ export interface Branch {
   radius_m: number;
   enforce_radius: boolean;
   smart_working: boolean;
-  geofence_policy: GeofencePolicy;
-  gps_accuracy_ceiling_m: number;
   timezone: string | null;
   active: boolean;
   ordering: number;

@@ -5,7 +5,7 @@ import {
   withinGeofence,
   distanceMeters,
 } from '@sonoqui/shared';
-import type { StampEventType, GeofencePolicy, MockLocationAction, StampMode } from '@sonoqui/shared';
+import type { StampEventType, MockLocationAction, StampMode } from '@sonoqui/shared';
 import { ConflictError, ValidationError, ForbiddenError } from '../errors/index.js';
 
 export interface StampInputBody {
@@ -96,8 +96,7 @@ export async function evaluateStamp(
   if (enforceGeofence) {
     if (branchId) {
       const b = await client.query(
-        `SELECT b.id, b.latitude, b.longitude, b.radius_m, b.enforce_radius, b.smart_working,
-                b.geofence_policy, b.gps_accuracy_ceiling_m
+        `SELECT b.id, b.latitude, b.longitude, b.radius_m, b.enforce_radius, b.smart_working
          FROM branches b
          JOIN branch_memberships bm ON bm.branch_id = b.id AND bm.user_id = $1
          WHERE b.id = $2 AND b.deleted_at IS NULL AND b.active = TRUE`,
@@ -113,24 +112,14 @@ export async function evaluateStamp(
             throw new ValidationError('GPS required', { code: 'GPS_REQUIRED' });
           }
         } else if (b.rows[0].enforce_radius) {
-          const ceiling = b.rows[0].gps_accuracy_ceiling_m as number;
-          const policy = b.rows[0].geofence_policy as GeofencePolicy;
-          if (body.gps_accuracy_m != null && body.gps_accuracy_m > ceiling && !allowOutOfArea) {
-            throw new ValidationError('GPS accuracy too low', {
-              code: 'GPS_ACCURACY_TOO_LOW',
-              value: body.gps_accuracy_m,
-              ceiling,
-            });
-          }
           const gf = withinGeofence({
-            user: { lat: body.latitude, lng: body.longitude, accuracyM: body.gps_accuracy_m ?? null },
+            user: { lat: body.latitude, lng: body.longitude },
             branch: {
               lat: b.rows[0].latitude,
               lng: b.rows[0].longitude,
               radiusM: b.rows[0].radius_m,
               smartWorking: false,
             },
-            policy,
           });
           if (!gf.allowed) {
             if (allowOutOfArea) {
@@ -154,15 +143,13 @@ export async function evaluateStamp(
       }
     } else {
       const branches = await client.query(
-        `SELECT b.id, b.latitude, b.longitude, b.radius_m, b.enforce_radius, b.smart_working,
-                b.geofence_policy, b.gps_accuracy_ceiling_m
+        `SELECT b.id, b.latitude, b.longitude, b.radius_m, b.enforce_radius, b.smart_working
          FROM branches b
          JOIN branch_memberships bm ON bm.branch_id = b.id AND bm.user_id = $1
          WHERE b.deleted_at IS NULL AND b.active = TRUE`,
         [input.userId]
       );
       let best: { id: string; distance: number } | null = null;
-      let accuracyFailure: { value: number; ceiling: number } | null = null;
       for (const b of branches.rows) {
         if (b.smart_working) {
           best = { id: b.id, distance: 0 };
@@ -171,30 +158,14 @@ export async function evaluateStamp(
         }
         if (!b.enforce_radius) continue;
         if (b.latitude == null || b.longitude == null) continue;
-        if (
-          body.gps_accuracy_m != null &&
-          body.gps_accuracy_m > (b.gps_accuracy_ceiling_m as number)
-        ) {
-          if (
-            accuracyFailure === null ||
-            (b.gps_accuracy_ceiling_m as number) > accuracyFailure.ceiling
-          ) {
-            accuracyFailure = {
-              value: body.gps_accuracy_m,
-              ceiling: b.gps_accuracy_ceiling_m as number,
-            };
-          }
-          continue;
-        }
         const gf = withinGeofence({
-          user: { lat: body.latitude, lng: body.longitude, accuracyM: body.gps_accuracy_m ?? null },
+          user: { lat: body.latitude, lng: body.longitude },
           branch: {
             lat: b.latitude,
             lng: b.longitude,
             radiusM: b.radius_m,
             smartWorking: false,
           },
-          policy: b.geofence_policy as GeofencePolicy,
         });
         if (gf.allowed && gf.distanceM != null && (best === null || gf.distanceM < best.distance)) {
           best = { id: b.id, distance: gf.distanceM };
@@ -211,12 +182,6 @@ export async function evaluateStamp(
         if (allowOutOfArea) {
           outOfGeofence = true;
           geofenceDistanceM = fallbackDistance;
-        } else if (accuracyFailure) {
-          throw new ValidationError('GPS accuracy too low', {
-            code: 'GPS_ACCURACY_TOO_LOW',
-            value: accuracyFailure.value,
-            ceiling: accuracyFailure.ceiling,
-          });
         } else {
           throw new ConflictError('Out of geofence', 'OUT_OF_GEOFENCE', {
             distance_m: fallbackDistance,

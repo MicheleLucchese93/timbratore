@@ -25,7 +25,6 @@ test.describe('web — Sedi CRUD (mutating)', () => {
       name,
       radius_m: 200,
       smart_working: true, // skip GPS validation
-      geofence_policy: 'lenient',
     });
     branchId = b.id;
   });
@@ -60,7 +59,6 @@ test.describe('web — Sedi CRUD (mutating)', () => {
       radius_m: 300,
       enforce_radius: false,
       smart_working: false,
-      geofence_policy: 'lenient',
     });
     branchId = b.id;
     await page.goto('/branches');

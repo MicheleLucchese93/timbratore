@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '../middleware/auth.js';
-import { tenantHandler } from '../lib/route-helpers.js';
+import { asyncHandler, tenantHandler } from '../lib/route-helpers.js';
+import { adminPool } from '../lib/admin-db.js';
 import { ok } from '../lib/api-response.js';
 import { ValidationError } from '../errors/index.js';
 
@@ -37,13 +38,41 @@ function mergeNotifPrefs(stored: unknown): Record<NotifPrefKey, boolean> {
 export const meRouter = Router();
 meRouter.use(authenticate);
 
+// All companies the caller is an active member of. Deliberately tenant-agnostic
+// (keyed by user_id via adminPool, outside RLS) so the client can render the
+// post-login company chooser BEFORE any tenant is selected — and so a stale
+// stored X-Tenant-Id can't lock a user out of their own list.
+meRouter.get(
+  '/tenants',
+  asyncHandler(async (req, res) => {
+    const r = await adminPool.query(
+      `SELECT m.tenant_id, m.role, t.ragione_sociale
+       FROM memberships m
+       JOIN tenants t ON t.id = m.tenant_id
+       WHERE m.user_id = $1
+         AND m.active = TRUE
+         AND m.deleted_at IS NULL
+         AND t.deleted_at IS NULL
+       ORDER BY t.ragione_sociale ASC`,
+      [req.user!.id]
+    );
+    ok(res, {
+      tenants: r.rows.map((row) => ({
+        tenant_id: row.tenant_id,
+        ragione_sociale: row.ragione_sociale,
+        role: row.role,
+      })),
+    });
+  })
+);
+
 meRouter.get(
   '/',
   tenantHandler(async (req, res, client) => {
     const tenant = await client.query(
       `SELECT id, ragione_sociale, country, timezone, language,
               mock_location_action,
-              max_admins, max_users
+              max_admins, max_users, max_branches
        FROM tenants
        WHERE id = $1`,
       [req.user!.tenantId]
@@ -74,7 +103,7 @@ meRouter.get(
     const notifPrefs = mergeNotifPrefs(pref.notification_preferences);
     const branches = await client.query(
       `SELECT b.id, b.name, b.address, b.latitude, b.longitude, b.radius_m, b.enforce_radius,
-              b.smart_working, b.geofence_policy, b.gps_accuracy_ceiling_m
+              b.smart_working
        FROM branch_memberships bm
        JOIN branches b ON b.id = bm.branch_id AND b.deleted_at IS NULL AND b.active = TRUE
        WHERE bm.user_id = $1`,

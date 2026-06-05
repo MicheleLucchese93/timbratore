@@ -126,6 +126,12 @@ internalE2eRouter.post(
                OR resolution_note ILIKE 'e2e %' OR resolution_note ILIKE 'e2e-%' )`,
         [TEST_TENANT_ID]
       );
+      const ajm = await client.query(
+        `DELETE FROM anomaly_justifications
+          WHERE tenant_id = $1
+            AND ( note ILIKE 'e2e %' OR note ILIKE 'e2e-%' )`,
+        [TEST_TENANT_ID]
+      );
       await client.query('COMMIT');
       const totalLeave = (lr.rowCount ?? 0) + (lrm.rowCount ?? 0);
       const totalCorr = (cr.rowCount ?? 0) + (crm.rowCount ?? 0);
@@ -146,6 +152,7 @@ internalE2eRouter.post(
           gotrue_users: g.rowCount,
           leave_requests_marker_sweep: lrm.rowCount,
           correction_requests_marker_sweep: crm.rowCount,
+          anomaly_justifications_marker_sweep: ajm.rowCount,
         },
         'e2e fixtures purged'
       );
@@ -155,6 +162,7 @@ internalE2eRouter.post(
         leave_approvers_deleted: lap.rowCount,
         correction_requests_deleted: totalCorr,
         correction_approvers_deleted: cap.rowCount,
+        anomaly_justifications_deleted: ajm.rowCount,
         stamps_deleted: st.rowCount,
         user_shift_assignments_deleted: usa.rowCount,
         user_preferences_deleted: up.rowCount,

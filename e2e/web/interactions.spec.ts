@@ -59,20 +59,20 @@ test.describe('web — Anomalie date range filter', () => {
 });
 
 test.describe('web — Branches form field interactions', () => {
-  test('toggling "Smart working" hides the radius-and-policy block', async ({ page }) => {
+  test('toggling "Fuori sede" hides the radius block', async ({ page }) => {
     await page.goto('/branches');
     await page.getByRole('button', { name: /Nuova sede/i }).click();
     await expect(page.getByRole('heading', { name: 'Nuova sede' })).toBeVisible({ timeout: 10_000 });
-    // Smart working switch (input#sw). Read initial state, toggle, verify
+    // Fuori sede switch (input#sw). Read initial state, toggle, verify
     // the radius slider visibility changes.
     const sw = page.locator('input#sw');
     const initiallyChecked = await sw.isChecked();
     if (initiallyChecked) {
-      // already smart-working → toggle to in-sede, expect radius visible
+      // already fuori-sede → toggle to in-sede, expect radius visible
       await sw.click({ force: true });
       await expect(page.locator('input[type="range"]')).toBeVisible({ timeout: 5_000 });
     } else {
-      // in-sede → toggle to smart, expect radius hidden
+      // in-sede → toggle to fuori sede, expect radius hidden
       await sw.click({ force: true });
       await expect(page.locator('input[type="range"]')).toHaveCount(0, { timeout: 5_000 });
     }

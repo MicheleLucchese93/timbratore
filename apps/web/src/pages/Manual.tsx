@@ -88,7 +88,7 @@ const MAIN_HTML = `
           <thead><tr><th>Termine</th><th>Significato</th></tr></thead>
           <tbody>
             <tr><td><strong>Timbratura</strong></td><td>Evento registrato dal dipendente: ingresso, uscita, inizio/fine pausa o inizio/fine pausa pranzo.</td></tr>
-            <tr><td><strong>Sede</strong></td><td>Luogo di lavoro. Può richiedere geofencing GPS o essere "smart working" (nessun GPS).</td></tr>
+            <tr><td><strong>Sede</strong></td><td>Luogo di lavoro. Può richiedere geofencing GPS o essere "fuori sede" (nessun GPS).</td></tr>
             <tr><td><strong>Orario di lavoro</strong></td><td>Modello settimanale di slot lavorativi assegnato a un utente, usato per calcolare anomalie e ore.</td></tr>
             <tr><td><strong>Anomalia</strong></td><td>Deviazione tra timbrature reali e orario atteso (ritardo, assenza, pausa lunga, ecc.).</td></tr>
             <tr><td><strong>Correzione</strong></td><td>Richiesta del dipendente per modificare o aggiungere una timbratura dimenticata.</td></tr>
@@ -162,6 +162,15 @@ const MAIN_HTML = `
       </div>
 
       <div class="feature">
+        <h3>Più aziende sullo stesso account</h3>
+        <p>Se la tua email è associata a più aziende, dopo l'accesso comparirà la schermata <strong>Scegli l'azienda</strong>: seleziona quella su cui vuoi lavorare. Se invece appartieni a una sola azienda entri direttamente, senza passaggi extra.</p>
+        <p>Puoi cambiare azienda in qualsiasi momento da <strong>Impostazioni → Azienda attiva</strong>. La pagina si ricarica con i dati e il ruolo della nuova azienda: potresti essere amministratore in un'azienda e dipendente in un'altra.</p>
+        <div class="callout callout-info">
+          Ogni azienda resta separata: timbrature, ferie e impostazioni non si mescolano mai tra aziende diverse.
+        </div>
+      </div>
+
+      <div class="feature">
         <h3>Password dimenticata</h3>
         <ol class="steps">
           <li>Nella pagina di login premi <strong>Password dimenticata?</strong></li>
@@ -229,7 +238,7 @@ const MAIN_HTML = `
           <li><strong>Assenti oggi</strong>: persone in ferie, permesso o malattia (badge giallo se &gt; 0).</li>
           <li><strong>Da approvare</strong>: totale richieste in coda (badge rosso se &gt; 0).</li>
           <li><strong>Anomalie 7 gg</strong>: anomalie rilevate negli ultimi 7 giorni.</li>
-          <li><strong>Sedi</strong>: numero di sedi configurate.</li>
+          <li><strong>Sedi</strong>: numero di sedi configurate / massimo previste dal piano.</li>
         </ul>
       </div>
 
@@ -352,6 +361,14 @@ const MAIN_HTML = `
         </ol>
         <p>L'approvazione crea o modifica la timbratura corrispondente nell'archivio. Il dipendente riceve notifica della decisione.</p>
       </div>
+
+      <div class="feature">
+        <h3>Inviare una propria richiesta</h3>
+        <p>Con il pulsante <strong>+ Nuova richiesta</strong> (in alto) anche l'amministratore può inviare una correzione per le <em>proprie</em> timbrature, con lo stesso flusso in tre passi dell'app mobile: scegli il giorno, seleziona la timbratura da correggere o segnala una mancante, poi indica evento, ora, sede e motivazione.</p>
+        <div class="callout callout-info">
+          Un amministratore vede <strong>Approva</strong>/<strong>Rifiuta</strong> anche sulle proprie richieste (tracciamento richiesta→approvazione); un dipendente, invece, sulle proprie richieste vede solo lo stato e non i pulsanti di decisione.
+        </div>
+      </div>
     </section>
 
     <section class="chapter" id="web-admin-utenti">
@@ -425,7 +442,12 @@ const MAIN_HTML = `
 
     <section class="chapter" id="web-admin-sedi">
       <h2><span class="chapter-num">10</span>Sedi <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
-      <p class="lead">I luoghi di lavoro dell'azienda. Possono richiedere il GPS (geofencing) oppure essere in smart working.</p>
+      <p class="lead">I luoghi di lavoro dell'azienda. Possono richiedere il GPS (geofencing) oppure essere fuori sede.</p>
+
+      <div class="feature">
+        <h3>Utilizzo licenze</h3>
+        <p>In testa alla pagina un contatore indica le <strong>Sedi</strong> attive / massimo previste dal piano. Se raggiungi il limite il pulsante <em>Nuova sede</em> viene disabilitato.</p>
+      </div>
 
       <div class="feature">
         <h3>Creare una nuova sede</h3>
@@ -433,11 +455,11 @@ const MAIN_HTML = `
           <li>Premi <strong>Nuova sede</strong>.</li>
           <li>Inserisci un <strong>nome</strong> identificativo.</li>
           <li>Digita l'<strong>indirizzo</strong> nell'autocomplete (suggerimenti Google Places).</li>
-          <li>Decidi se è una sede <strong>Smart working</strong>: se sì, GPS e raggio non servono.</li>
+          <li>Decidi se è una sede <strong>Fuori sede</strong>: se sì, GPS e raggio non servono.</li>
           <li>Altrimenti imposta latitudine, longitudine (già popolate dall'indirizzo).</li>
           <li>Decidi se <strong>limitare la timbratura entro un raggio</strong>:
             <ul class="tidy">
-              <li><strong>Attivo</strong> (default): imposta il <strong>raggio</strong> in metri (default 300m), la <strong>politica geofence</strong> (<em>Lenient</em> avviso / <em>Strict</em> rifiuto) e il ceiling di <strong>accuratezza GPS</strong> (default 100m).</li>
+              <li><strong>Attivo</strong> (default): imposta il <strong>raggio</strong> in metri (default 300m). La timbratura di ingresso fuori dal raggio viene rifiutata; l'uscita viene accettata ma segnalata come anomalia.</li>
               <li><strong>Disattivo</strong>: la timbratura è accettata indipendentemente dalla distanza dalla sede. Il GPS viene comunque registrato sulla timbratura per audit. La sede non viene auto-rilevata: il dipendente deve selezionarla manualmente nell'app.</li>
             </ul>
           </li>
@@ -447,12 +469,12 @@ const MAIN_HTML = `
 
       <div class="feature">
         <h3>Card sede</h3>
-        <p>Ogni sede appare come una card con nome, indirizzo, tipo (smart working, geolocalizzata con raggio, o geolocalizzata senza raggio) e — per le sedi con raggio attivo — un'anteprima della mappa con cerchio del raggio.</p>
+        <p>Ogni sede appare come una card con nome, indirizzo, tipo (fuori sede, geolocalizzata con raggio, o geolocalizzata senza raggio) e — per le sedi con raggio attivo — un'anteprima della mappa con cerchio del raggio.</p>
         <p>Pulsanti per modificare o eliminare la sede. L'eliminazione richiede conferma.</p>
       </div>
 
       <div class="callout callout-info">
-        Lo <strong>smart working</strong> è una sede senza GPS: il dipendente può timbrare ovunque senza vincoli di geolocalizzazione. Una sede <strong>senza raggio</strong> registra comunque il GPS ma non lo confronta con un'area: utile per sedi con perimetro non definibile (cantieri estesi, trasferte presso clienti).
+        Una sede <strong>fuori sede</strong> non ha GPS: il dipendente può timbrare ovunque senza vincoli di geolocalizzazione (lavoro da remoto, trasferte, cantieri). Una sede <strong>senza raggio</strong> registra comunque il GPS ma non lo confronta con un'area: utile per sedi con perimetro non definibile (cantieri estesi, trasferte presso clienti).
       </div>
     </section>
 
@@ -468,7 +490,7 @@ const MAIN_HTML = `
           <li>Imposta le <strong>tolleranze</strong> in minuti per entrata e uscita (default ±10').</li>
           <li>Definisci pausa minima/massima e pausa pranzo minima/massima attese.</li>
           <li>Scegli se conteggiare gli <strong>straordinari</strong> e il <strong>blocco</strong> di calcolo (15, 30 o 60 minuti): il tempo oltre l'orario previsto è contato in blocchi interi, un blocco non completo non viene contato (es. uscita prevista 18:00, reale 18:28 → con blocchi da 30 min nessuno straordinario, da 15 min vengono contati 15 minuti).</li>
-          <li>Per ogni giorno della settimana aggiungi uno o più <strong>slot</strong> (orario inizio - orario fine).</li>
+          <li>Per ogni giorno della settimana aggiungi uno o più <strong>slot</strong> (orario inizio - orario fine). Aggiungendo un secondo slot nello stesso giorno, gli orari del precedente vengono copiati come punto di partenza, così basta modificarli.</li>
           <li>Imposta le <strong>penalità</strong> per superamento tolleranze su entrata, uscita e pausa.</li>
           <li>Premi <strong>Salva</strong>.</li>
         </ol>
@@ -477,7 +499,7 @@ const MAIN_HTML = `
       <div class="feature">
         <h3>Card orario</h3>
         <p>Ogni modello mostra nome, descrizione, tolleranze, totale ore settimanali e un'anteprima a griglia degli slot per giorno.</p>
-        <p>Pulsanti per modificare o eliminare il modello (è bloccata l'eliminazione se ci sono utenti attivi assegnati).</p>
+        <p>Pulsanti per duplicare, modificare o eliminare il modello (è bloccata l'eliminazione se ci sono utenti attivi assegnati). Il pulsante <strong>Duplica</strong> crea una copia identica (orari e impostazioni) chiamata "Copia di …", da aprire e adattare senza ripartire da zero.</p>
       </div>
 
       <div class="callout callout-tip">
@@ -520,8 +542,19 @@ const MAIN_HTML = `
       </div>
 
       <div class="feature">
-        <h3>Giustificare un'anomalia</h3>
-        <p>Per alcune anomalie (ore insufficienti, ingresso mancante/in ritardo, uscita anticipata) puoi cliccare <strong>Giustifica</strong>: inserisci la motivazione (max 500 caratteri) e l'anomalia resterà tracciata ma con la giustificazione associata.</p>
+        <h3>Correggere un'anomalia</h3>
+        <p>Su ogni anomalia premi <strong>Correggi</strong>: si apre un menù a tendina con le correzioni tipiche. Scegli l'azione, controlla il <strong>riepilogo</strong> delle modifiche e premi <strong>Conferma</strong>.</p>
+        <table>
+          <thead><tr><th>Azione</th><th>Cosa fa</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Timbratura standard (orari del giorno)</strong></td><td>Aggiunge i soli timbri mancanti (ingresso e/o uscita) agli orari previsti dal turno. Non modifica i timbri reali già presenti. Disponibile solo quando manca un timbro.</td></tr>
+            <tr><td><strong>Inserisci ferie</strong></td><td>Crea le ferie sul giorno dell'anomalia per conto del dipendente. Già approvate; le ore sono calcolate dall'orario assegnato.</td></tr>
+            <tr><td><strong>Inserisci permesso</strong></td><td>Crea un permesso a ore. La finestra proposta copre il periodo non lavorato (gap), modificabile con i pulsanti −/+ a passi di 15 minuti.</td></tr>
+            <tr><td><strong>Giustifica con nota</strong></td><td>Annota l'anomalia con una motivazione, senza modificare timbri o assenze. L'anomalia resta visibile ma giustificata. Disponibile per qualsiasi tipo.</td></tr>
+          </tbody>
+        </table>
+        <p><strong>Notifica al dipendente:</strong> per ferie e permessi inseriti dall'admin il dipendente riceve una notifica (push ed email), come per una richiesta approvata.</p>
+        <p><strong>Tracciabilità nelle esportazioni:</strong> ogni correzione resta documentata nei file XLSX/JSON. I timbri aggiunti compaiono nel foglio <em>Timbrature</em> con origine "Manuale (admin)" e nota; le ferie/permessi inseriti dall'admin nel foglio <em>Ferie e Permessi</em> con colonna <em>Origine</em> = "Inserito da admin"; le giustificazioni con nota nel foglio dedicato <em>Giustifiche anomalie</em>.</p>
       </div>
     </section>
 
@@ -717,7 +750,7 @@ const MAIN_HTML = `
         <h3>Ferie &amp; Permessi (web)</h3>
         <p>La pagina ha tre tab:</p>
         <ul class="tidy">
-          <li><strong>Le mie</strong> — elenco delle tue richieste con stato; pulsante <strong>+ Nuova richiesta</strong> per inviarne una (Ferie, Permesso, Malattia, Assenza), <strong>Annulla</strong> sulle pending e <strong>Richiedi annullamento</strong> sulle approvate.</li>
+          <li><strong>Le mie</strong> — in cima trovi le <strong>schede riepilogo (KPI)</strong>: residuo <strong>Ferie</strong> e <strong>Permessi</strong> (con le ore già richieste) e il conteggio delle richieste <strong>In attesa</strong>, <strong>Approvate</strong> e <strong>Rifiutate</strong>. Sotto, l'elenco delle tue richieste con stato; pulsante <strong>+ Nuova richiesta</strong> per inviarne una (Ferie, Permesso, Malattia, Assenza), <strong>Annulla</strong> sulle pending e <strong>Richiedi annullamento</strong> sulle approvate.</li>
           <li><strong>Calendario</strong> — vista Giorno/Settimana/Mese/Anno delle tue assenze, con festività nazionali evidenziate.</li>
           <li><strong>Da approvare</strong> — compare solo se sei stato designato approvatore di altri dipendenti.</li>
         </ul>
@@ -765,14 +798,22 @@ const MAIN_HTML = `
 
     <section class="chapter" id="web-user-corr">
       <h2><span class="chapter-num">19</span>Le mie richieste <span class="badge badge-user">user</span> <span class="badge badge-web">web</span></h2>
-      <p class="lead">Tutte le richieste di correzione che hai inviato, in sola lettura.</p>
+      <p class="lead">Le richieste di correzione timbratura che hai inviato — e da qui puoi crearne di nuove, come dall'app mobile.</p>
 
       <div class="feature">
         <h3>Lista richieste</h3>
-        <p>Ogni richiesta è una card che mostra: data invio, stato (<span class="pill pill-warn">In attesa</span> <span class="pill pill-ok">Approvata</span> <span class="pill pill-err">Rifiutata</span> <span class="pill">Superata</span>), differenza tra valori attuali e richiesti, motivazione e — se decisa — nota dell'amministratore.</p>
-        <div class="callout callout-info">
-          Per <strong>creare</strong> una nuova richiesta di correzione devi usare l'app mobile.
-        </div>
+        <p>Ogni richiesta è una card che mostra: data invio, stato (<span class="pill pill-warn">In attesa</span> <span class="pill pill-ok">Approvata</span> <span class="pill pill-err">Rifiutata</span> <span class="pill">Superata</span>), differenza tra valori attuali e richiesti, motivazione e — se decisa — nota dell'amministratore. Sulle tue richieste vedi solo lo stato: la decisione spetta all'amministratore.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Creare una nuova richiesta</h3>
+        <p>Premi <strong>+ Nuova richiesta</strong> e segui i tre passi:</p>
+        <ol class="steps">
+          <li><strong>Quale giorno?</strong> — scegli la data da correggere; carichiamo le tue timbrature di quel giorno.</li>
+          <li><strong>Quale timbratura?</strong> — seleziona una timbratura esistente da modificare, oppure <em>Aggiungi una timbratura mancante</em>.</li>
+          <li><strong>Dettagli</strong> — indica tipo evento, ora, sede (se ne hai più di una) e una motivazione (almeno 5 caratteri), poi <strong>Invia richiesta</strong>.</li>
+        </ol>
+        <p>La richiesta resta <span class="pill pill-warn">In attesa</span> finché un amministratore non la approva o rifiuta; riceverai una notifica della decisione.</p>
       </div>
     </section>
 
@@ -818,7 +859,7 @@ const MAIN_HTML = `
 
       <div class="feature">
         <h3>Selezione sede</h3>
-        <p>Se sei assegnato a più di una sede vedrai una serie di "pillole" orizzontali per scegliere dove stai lavorando. L'icona è un edificio per la sede in presenza, un laptop per smart working.</p>
+        <p>Se sei assegnato a più di una sede vedrai una serie di "pillole" orizzontali per scegliere dove stai lavorando. L'icona è un edificio per la sede in presenza, un laptop per le sedi fuori sede.</p>
         <div class="callout callout-info">
           Una volta timbrato l'ingresso, la sede si <strong>blocca</strong> fino alla timbratura di uscita: appare un'icona di lucchetto. Questo evita errori durante il turno.
         </div>
@@ -873,7 +914,6 @@ const MAIN_HTML = `
         <ul class="tidy">
           <li><strong>"Senza connessione"</strong> — la timbratura viene messa in coda e inviata quando torni online. Apparirà l'avviso: <em>"Timbratura accodata. Verrà inviata quando torni online."</em></li>
           <li><strong>"Sei fuori dell'area consentita"</strong> — vale per <strong>ingresso</strong> e <strong>pause</strong>: sei troppo distante dalla sede, avvicinati o cambia sede. La <strong>uscita</strong> non viene mai bloccata (viene registrata con anomalia, vedi sopra).</li>
-          <li><strong>"Il segnale GPS è troppo debole"</strong> — l'accuratezza è insufficiente: esci all'aperto o riprova.</li>
           <li><strong>"Operazione non valida per lo stato attuale"</strong> — non puoi timbrare ingresso se sei già al lavoro, ecc.</li>
           <li><strong>"Hai già timbrato pochi secondi fa"</strong> — protezione contro doppio click.</li>
         </ul>
@@ -950,12 +990,13 @@ const MAIN_HTML = `
       </div>
 
       <div class="feature">
-        <h3>Quota disponibile</h3>
-        <p>In cima alla tab "Le mie" trovi una card con i tuoi <strong>residui</strong>:</p>
+        <h3>Riepilogo e quota disponibile</h3>
+        <p>In cima alla tab "Le mie" trovi delle <strong>schede riepilogo (KPI)</strong> per avere la situazione sempre aggiornata:</p>
         <ul class="tidy">
-          <li><strong>Ferie</strong>: ore disponibili, con hint sui pending (es. "(15.75h dopo richieste in attesa)").</li>
-          <li><strong>Permessi</strong>: stessa logica.</li>
+          <li><strong>Ferie residue</strong> e <strong>Permessi residui</strong>: ore ancora disponibili, con sotto le ore già richieste.</li>
+          <li><strong>In attesa</strong>, <strong>Approvate</strong>, <strong>Rifiutate</strong>: quante richieste hai inviato, per esito.</li>
         </ul>
+        <p>Sotto, la card <strong>Disponibilità</strong> mostra il dettaglio per tipo: saldo iniziale, maturato, usato e ore in attesa, con l'hint sul residuo dopo le richieste pending (es. "(15.75h dopo richieste in attesa)").</p>
       </div>
 
       <div class="feature">
@@ -1016,7 +1057,7 @@ const MAIN_HTML = `
         <ul class="tidy">
           <li><strong>Avatar</strong>, nome, email, ruolo (<em>Dipendente</em> o <em>Amministratore</em>).</li>
           <li><strong>Azienda</strong>: ragione sociale.</li>
-          <li><strong>Sedi assegnate</strong>: lista con icona edificio o laptop e tag "In sede" o "Smart working".</li>
+          <li><strong>Sedi assegnate</strong>: lista con icona edificio o laptop e tag "In sede" o "Fuori sede".</li>
           <li><strong>Notifiche</strong>: stato delle push e dei singoli toggle.</li>
           <li><strong>Email</strong>: toggle per ricevere anche via email.</li>
         </ul>
@@ -1082,6 +1123,11 @@ const MAIN_HTML = `
           <li><span class="pill pill-err">Rifiuta</span> — chiede il motivo del rifiuto e lo registra.</li>
         </ul>
       </div>
+
+      <div class="feature">
+        <h3>Inviare una propria richiesta</h3>
+        <p>Anche l'amministratore può toccare il pulsante <strong>+</strong> (in basso a destra) per inviare una correzione sulle <em>proprie</em> timbrature, con lo stesso flusso in tre passi del dipendente — utile per tenere un tracciamento richiesta→approvazione invece di modificare la timbratura direttamente dal Web.</p>
+      </div>
     </section>
 
     <section class="chapter" id="mob-admin-richieste">
@@ -1140,7 +1186,7 @@ const MAIN_HTML = `
       <div class="feature">
         <h3>Geofence</h3>
         <p>Per ogni sede l'admin definisce coordinate GPS e — opzionalmente — un <strong>raggio</strong> in metri. Quando il raggio è attivo, la timbratura è valida solo se sei entro questa area circolare.</p>
-        <p>Se sei fuori vedi il messaggio <em>"Sei fuori dell'area consentita"</em> e — in base alla politica — la timbratura viene rifiutata (Strict) o solo segnalata (Lenient).</p>
+        <p>Se sei fuori vedi il messaggio <em>"Sei fuori dell'area consentita"</em>: la timbratura di <strong>ingresso</strong> viene rifiutata, mentre l'<strong>uscita</strong> viene sempre accettata ma segnalata come anomalia.</p>
       </div>
 
       <div class="feature">
@@ -1149,13 +1195,8 @@ const MAIN_HTML = `
       </div>
 
       <div class="feature">
-        <h3>Smart working</h3>
-        <p>Le sedi marcate come "smart working" non richiedono GPS. Tipico caso d'uso: lavoro da casa o trasferta.</p>
-      </div>
-
-      <div class="feature">
-        <h3>Accuratezza GPS</h3>
-        <p>L'app accetta solo posizioni con accuratezza migliore di un certo limite (default 100m). In ambienti chiusi o con cielo coperto il GPS può essere meno preciso: in quel caso esci all'aperto e riprova.</p>
+        <h3>Fuori sede</h3>
+        <p>Le sedi marcate come "fuori sede" non richiedono GPS. Tipico caso d'uso: lavoro da remoto, trasferta o cantiere.</p>
       </div>
 
       <div class="feature">
@@ -1235,8 +1276,8 @@ const MAIN_HTML = `
             <tr><td><strong>Esportazione</strong></td><td>Job che produce un file XLSX o JSON con dati di un periodo.</td></tr>
             <tr><td><strong>Ferie</strong></td><td>Assenza retribuita a giornate, consuma quota ferie.</td></tr>
             <tr><td><strong>Festività</strong></td><td>Giorni festivi nazionali italiani, evidenziati sul calendario (festivi mobili come Pasqua inclusi).</td></tr>
+            <tr><td><strong>Fuori sede</strong></td><td>Sede senza GPS: il dipendente può timbrare ovunque (lavoro da remoto, trasferta, cantiere).</td></tr>
             <tr><td><strong>Geofence</strong></td><td>Area circolare attorno a una sede, definita da centro GPS e raggio in metri.</td></tr>
-            <tr><td><strong>Lenient (geofence)</strong></td><td>Politica permissiva: timbratura fuori area passa ma viene segnalata.</td></tr>
             <tr><td><strong>Malattia</strong></td><td>Assenza per motivi sanitari, auto-approvata, richiede protocollo INPS.</td></tr>
             <tr><td><strong>Mock location</strong></td><td>Posizione GPS finta generata da app esterne.</td></tr>
             <tr><td><strong>Permesso</strong></td><td>Assenza retribuita a ore, granularità 15 minuti.</td></tr>
@@ -1244,8 +1285,6 @@ const MAIN_HTML = `
             <tr><td><strong>Quota</strong></td><td>Saldo di ore disponibili per ferie o permessi.</td></tr>
             <tr><td><strong>Revoca</strong></td><td>Annullamento di una ferie già approvata, su iniziativa dell'admin.</td></tr>
             <tr><td><strong>Sede</strong></td><td>Luogo di lavoro, con o senza geofencing. Il raggio può essere disattivato: in tal caso il GPS è registrato ma non confrontato con un'area.</td></tr>
-            <tr><td><strong>Smart working</strong></td><td>Sede senza GPS, il dipendente lavora da remoto.</td></tr>
-            <tr><td><strong>Strict (geofence)</strong></td><td>Politica restrittiva: timbratura fuori area viene rifiutata.</td></tr>
             <tr><td><strong>Superata</strong></td><td>Stato di una correzione obsoleta perché la timbratura è cambiata altrove.</td></tr>
             <tr><td><strong>Template orario</strong></td><td>Modello settimanale di slot lavorativi.</td></tr>
             <tr><td><strong>Template quota</strong></td><td>Modello di calcolo accantonamento ferie/permessi.</td></tr>

@@ -18,20 +18,19 @@ export function distanceMeters(
 }
 
 export interface GeofenceInput {
-  user: { lat: number; lng: number; accuracyM: number | null };
+  user: { lat: number; lng: number };
   branch: {
     lat: number | null;
     lng: number | null;
     radiusM: number;
     smartWorking: boolean;
   };
-  policy: 'lenient' | 'strict';
 }
 
 export interface GeofenceResult {
   allowed: boolean;
   distanceM: number | null;
-  reason?: 'smart_working' | 'within_radius' | 'lenient_with_accuracy' | 'out_of_radius' | 'branch_missing_coords';
+  reason?: 'smart_working' | 'within_radius' | 'out_of_radius' | 'branch_missing_coords';
 }
 
 export function withinGeofence(input: GeofenceInput): GeofenceResult {
@@ -47,13 +46,6 @@ export function withinGeofence(input: GeofenceInput): GeofenceResult {
   );
   if (distance <= input.branch.radiusM) {
     return { allowed: true, distanceM: distance, reason: 'within_radius' };
-  }
-  if (
-    input.policy === 'lenient' &&
-    input.user.accuracyM != null &&
-    distance <= input.branch.radiusM + input.user.accuracyM
-  ) {
-    return { allowed: true, distanceM: distance, reason: 'lenient_with_accuracy' };
   }
   return { allowed: false, distanceM: distance, reason: 'out_of_radius' };
 }

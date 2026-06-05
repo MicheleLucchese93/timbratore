@@ -13,24 +13,36 @@ interface Branch {
   radius_m: number;
   enforce_radius: boolean;
   smart_working: boolean;
-  geofence_policy: 'lenient' | 'strict';
-  gps_accuracy_ceiling_m: number;
   active: boolean;
+}
+
+interface Usage {
+  branches_count: number | string;
+  max_branches: number;
 }
 
 export function Branches() {
   const [list, setList] = useState<Branch[]>([]);
+  const [usage, setUsage] = useState<Usage | null>(null);
   const [editing, setEditing] = useState<Branch | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const confirm = useConfirm();
 
   async function load() {
-    setList(await api<Branch[]>('/api/v1/branches'));
+    const [branches, u] = await Promise.all([
+      api<Branch[]>('/api/v1/branches'),
+      api<Usage>('/api/v1/settings/usage'),
+    ]);
+    setList(branches);
+    setUsage(u);
   }
   useEffect(() => {
     load().catch((e) => setErr(e.message));
   }, []);
+
+  const branchesCount = Number(usage?.branches_count ?? list.length);
+  const atLimit = !!usage && branchesCount >= usage.max_branches;
 
   async function remove(id: string) {
     if (!(await confirm({ title: 'Eliminare questa sede?', danger: true, confirmLabel: 'Elimina' }))) return;
@@ -42,8 +54,23 @@ export function Branches() {
     <div className="space-y-5">
       <header className="flex items-center justify-end gap-4 flex-wrap">
         <h1 className="sr-only">Sedi</h1>
-        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>Nuova sede</button>
+        <button
+          className="btn btn-primary"
+          disabled={atLimit}
+          title={atLimit ? 'Limite sedi raggiunto — contatta supporto' : ''}
+          onClick={() => setShowCreate(true)}
+        >
+          Nuova sede
+        </button>
       </header>
+      {usage && (
+        <div className="card flex gap-6 text-sm flex-wrap">
+          <div>
+            <span className="muted">Sedi: </span>
+            <strong className="num">{branchesCount}</strong> / {usage.max_branches}
+          </div>
+        </div>
+      )}
       {err && <div className="card text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
       <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {list.map((b) => (
@@ -54,7 +81,7 @@ export function Branches() {
                 <div className="text-xs text-neutral-600 truncate">{b.address ?? '—'}</div>
                 <div className="text-xs text-neutral-500 mt-1">
                   {b.smart_working ? (
-                    <span className="badge badge-muted">Smart working</span>
+                    <span className="badge badge-muted">Fuori sede</span>
                   ) : (
                     <>
                       {b.latitude?.toFixed(4)}, {b.longitude?.toFixed(4)}
@@ -115,12 +142,6 @@ function BranchForm({
   const [radius, setRadius] = useState(initial?.radius_m ?? 300);
   const [enforceRadius, setEnforceRadius] = useState(initial?.enforce_radius ?? true);
   const [smartWorking, setSmartWorking] = useState(initial?.smart_working ?? false);
-  const [geofencePolicy, setGeofencePolicy] = useState<'lenient' | 'strict'>(
-    initial?.geofence_policy ?? 'lenient'
-  );
-  const [accuracyCeiling, setAccuracyCeiling] = useState(
-    initial?.gps_accuracy_ceiling_m ?? 100
-  );
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -153,8 +174,6 @@ function BranchForm({
         radius_m: Number(radius),
         enforce_radius: enforceRadius,
         smart_working: smartWorking,
-        geofence_policy: geofencePolicy,
-        gps_accuracy_ceiling_m: Number(accuracyCeiling),
       };
       if (initial) {
         await api(`/api/v1/branches/${initial.id}`, { method: 'PATCH', json: payload });
@@ -208,7 +227,7 @@ function BranchForm({
                 onChange={(e) => setSmartWorking(e.target.checked)}
               />
               <label htmlFor="sw" className="text-sm">
-                Smart working (timbratura senza GPS)
+                Fuori sede - timbratura senza GPS
               </label>
             </div>
             {!smartWorking && (
@@ -241,36 +260,6 @@ function BranchForm({
                         onChange={(e) => setRadius(Number(e.target.value))}
                         className="w-full"
                       />
-                    </div>
-                    <div>
-                      <label className="label">Politica geofence</label>
-                      <select
-                        className="input"
-                        value={geofencePolicy}
-                        onChange={(e) =>
-                          setGeofencePolicy(e.target.value as 'lenient' | 'strict')
-                        }
-                      >
-                        <option value="lenient">Permissiva (tollera accuracy)</option>
-                        <option value="strict">Stretta</option>
-                      </select>
-                      <p className="text-xs text-neutral-500 mt-1">
-                        Permissiva: accetta entro <em>raggio + accuracy</em>. Stretta: solo entro il raggio.
-                      </p>
-                    </div>
-                    <div>
-                      <label className="label">Accuratezza GPS massima (m)</label>
-                      <input
-                        type="number"
-                        className="input"
-                        min={10}
-                        max={2000}
-                        value={accuracyCeiling}
-                        onChange={(e) => setAccuracyCeiling(Number(e.target.value))}
-                      />
-                      <p className="text-xs text-neutral-500 mt-1">
-                        Sopra questa soglia la timbratura è respinta.
-                      </p>
                     </div>
                   </>
                 )}

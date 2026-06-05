@@ -29,6 +29,44 @@ test.describe('web — Correzioni (admin) — static UI', () => {
   });
 });
 
+// Admins can now file a correction for their own stamps. Walk the 3-step
+// modal without submitting (writes no row).
+test.describe('web — Correzioni create flow (admin, 3 steps)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/corrections');
+    await expect(page.getByRole('heading', { name: 'Correzioni' })).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('button', { name: /Nuova richiesta/i }).click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('step 1: modal opens on "Quale giorno?"', async ({ page }) => {
+    await expect(page.getByRole('dialog').getByText('Quale giorno?')).toBeVisible();
+    await expect(page.getByRole('dialog').getByLabel('Data')).toBeVisible();
+  });
+
+  test('step 1 → 2: Continua advances to the stamp picker', async ({ page }) => {
+    await page.getByRole('button', { name: 'Continua' }).click();
+    await expect(
+      page.getByText(/Seleziona una timbratura da correggere/i),
+    ).toBeVisible({ timeout: 10_000 });
+    await expect(
+      page.getByRole('button', { name: /Aggiungi una timbratura mancante/i }),
+    ).toBeVisible();
+  });
+
+  test('step 2 → 3: "Aggiungi mancante" advances to the edit form', async ({ page }) => {
+    await page.getByRole('button', { name: 'Continua' }).click();
+    await page.getByRole('button', { name: /Aggiungi una timbratura mancante/i }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByText('Tipo evento')).toBeVisible({ timeout: 10_000 });
+    await expect(dialog.getByText('Motivazione')).toBeVisible();
+    await expect(
+      dialog.getByPlaceholder("Es. avevo dimenticato di timbrare l'uscita"),
+    ).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Invia richiesta' })).toBeVisible();
+  });
+});
+
 test.describe('web — Correzioni (admin) — seeded pending row', () => {
   test.skip(!ENABLED, 'set E2E_MUTATING=1 to enable seeded specs');
 
