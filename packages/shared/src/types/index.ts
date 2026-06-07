@@ -101,6 +101,14 @@ export interface ShiftTemplateSlot {
   end_time: string;
 }
 
+// Feature B — per-weekday auto-deduct lunch ("pausa pranzo senza spezzare la
+// fascia"). When set, worked = presence − lunch_min on that weekday and the
+// lunch is never stamped. Absence of an entry for a day = no auto-lunch.
+export interface ShiftTemplateDayLunch {
+  day_of_week: IsoDayOfWeek;
+  lunch_min: number;
+}
+
 export interface ShiftTemplate {
   id: string;
   tenant_id: string;
@@ -117,10 +125,19 @@ export interface ShiftTemplate {
   tolerance_in_breach_deduct_min: number;
   tolerance_out_breach_deduct_min: number;
   tolerance_break_breach_deduct_min: number;
+  // Orario flessibile (flextime). All default 0 / false → fixed-span behaviour.
+  flexible_enabled: boolean;
+  flex_in_before_min: number;
+  flex_in_after_min: number;
+  flex_out_before_min: number;
+  flex_out_after_min: number;
+  flex_lunch_before_min: number;
+  flex_lunch_after_min: number;
   active: boolean;
   deleted_at: string | null;
   created_at: string;
   slots?: ShiftTemplateSlot[];
+  day_lunch?: ShiftTemplateDayLunch[];
 }
 
 export interface UserShiftAssignment {
@@ -143,7 +160,8 @@ export type ShiftAnomalyKind =
   | 'break_too_short'
   | 'break_too_long'
   | 'lunch_too_short'
-  | 'lunch_too_long';
+  | 'lunch_too_long'
+  | 'lunch_outside_window';
 
 export interface ShiftAnomaly {
   date: string;

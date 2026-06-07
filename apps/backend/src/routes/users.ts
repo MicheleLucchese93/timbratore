@@ -7,7 +7,7 @@ import { authenticate, requireAdmin, invalidateMembershipCache } from '../middle
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { ConflictError, NotFoundError, ValidationError } from '../errors/index.js';
-import { inviteUser, triggerRecovery } from '../lib/gotrue-admin.js';
+import { createUserSilently, triggerRecovery } from '../lib/gotrue-admin.js';
 import { env } from '../env.js';
 import { createLogger } from '../lib/logger.js';
 
@@ -142,12 +142,14 @@ async function ensureAuthUser(
   let userId: string;
   if (env.NODE_ENV === 'production' || env.GOTRUE_URL.startsWith('http')) {
     try {
-      const created = await inviteUser(email, 'it');
+      // Create silently — no invite/welcome email. An admin sends the initial
+      // access mail later via the reset-password (recovery) flow.
+      const created = await createUserSilently(email);
       userId = created.id;
     } catch (err) {
       logger.warn(
         { err: (err as Error).message, email },
-        'GoTrue invite failed; falling back to mirror-only insert'
+        'GoTrue create failed; falling back to mirror-only insert'
       );
       userId = uuidv4();
     }
@@ -975,6 +977,115 @@ usersRouter.put(
     const ids = Array.from(new Set(parse.data.approver_user_ids)).filter((x) => x !== userId);
     await setApprovers(client, 'correction', userId, ids);
     ok(res, { approver_user_ids: ids });
+  })
+);
+
+/* ----------------------- Bulk operations ----------------------- */
+
+// Verify every id is a live member of the caller's tenant. Throws otherwise.
+async function assertTenantMembers(client: PoolClient, userIds: string[]): Promise<void> {
+  const valid = await client.query(
+    `SELECT user_id FROM memberships
+      WHERE user_id = ANY($1::uuid[])
+        AND tenant_id = current_setting('app.current_tenant_id')::uuid
+        AND deleted_at IS NULL`,
+    [userIds]
+  );
+  if (valid.rowCount !== userIds.length) {
+    throw new ValidationError('one or more user_ids invalid');
+  }
+}
+
+const BulkResetPassword = z.object({
+  user_ids: z.array(z.string().uuid()).min(1),
+});
+
+// Re-send the recovery (set-password) email to many members at once. This is
+// the bulk counterpart of POST /:id/reset-password and the intended way to
+// hand freshly-created users their initial access link.
+usersRouter.post(
+  '/reset-password/bulk',
+  requireAdmin,
+  tenantHandler(async (req, res, client) => {
+    const parse = BulkResetPassword.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const r = await client.query(
+      `SELECT m.user_id, au.email
+         FROM memberships m
+         JOIN auth_users au ON au.id = m.user_id
+        WHERE m.user_id = ANY($1::uuid[])
+          AND m.tenant_id = current_setting('app.current_tenant_id')::uuid
+          AND m.deleted_at IS NULL`,
+      [parse.data.user_ids]
+    );
+    let sent = 0;
+    for (const row of r.rows) {
+      if (!row.email) continue;
+      // Sequential: GoTrue rate-limits /recover. triggerRecovery swallows
+      // network errors so one bad address can't abort the batch.
+      await triggerRecovery(row.email as string);
+      await emitAudit(client, 'user.reset_password', String(row.user_id), null, {
+        email: row.email,
+        bulk: true,
+      });
+      sent += 1;
+    }
+    ok(res, { sent });
+  })
+);
+
+const BulkModes = z.object({
+  user_ids: z.array(z.string().uuid()).min(1),
+  // Empty array = those users cannot clock in. Mirrors PATCH /:id.
+  stamp_modes: z.array(z.enum(['gps', 'remote'])).max(2),
+});
+
+// Overwrite the allowed clock-in methods on many members at once.
+usersRouter.post(
+  '/stamp-modes/bulk',
+  requireAdmin,
+  tenantHandler(async (req, res, client) => {
+    const parse = BulkModes.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const { user_ids, stamp_modes } = parse.data;
+    const r = await client.query(
+      `UPDATE memberships SET stamp_modes = $2::text[]
+        WHERE user_id = ANY($1::uuid[])
+          AND tenant_id = current_setting('app.current_tenant_id')::uuid
+          AND deleted_at IS NULL
+        RETURNING user_id`,
+      [user_ids, stamp_modes]
+    );
+    for (const row of r.rows) {
+      await emitAudit(client, 'user.update', String(row.user_id), null, { stamp_modes, bulk: true });
+      invalidateMembershipCache(String(row.user_id));
+    }
+    ok(res, { updated: r.rowCount, stamp_modes });
+  })
+);
+
+const BulkApprovers = z.object({
+  user_ids: z.array(z.string().uuid()).min(1),
+  kind: z.enum(['leave', 'correction']),
+  approver_user_ids: z.array(z.string().uuid()),
+});
+
+// Overwrite the leave/correction approver list on many members at once. Each
+// target's own id is filtered out (nobody approves their own requests).
+usersRouter.post(
+  '/approvers/bulk',
+  requireAdmin,
+  tenantHandler(async (req, res, client) => {
+    const parse = BulkApprovers.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const { user_ids, kind, approver_user_ids } = parse.data;
+    await assertTenantMembers(client, user_ids);
+    for (const uid of user_ids) {
+      const ids = Array.from(new Set(approver_user_ids)).filter((x) => x !== uid);
+      // setApprovers validates that each approver is an active member + audits.
+      await setApprovers(client, kind, uid, ids);
+    }
+    ok(res, { user_ids, kind, approver_user_ids });
   })
 );
 

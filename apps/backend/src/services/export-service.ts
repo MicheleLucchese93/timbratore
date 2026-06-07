@@ -56,8 +56,15 @@ interface ShiftConfig {
   tolerance_in_breach_deduct_min: number;
   tolerance_out_breach_deduct_min: number;
   tolerance_break_breach_deduct_min: number;
+  // Orario flessibile: flextime moves overtime/shortfall to a worked-duration
+  // basis and widens the late/early anchors by these windows.
+  flexible_enabled: boolean;
+  flex_in_after_min: number;
+  flex_out_before_min: number;
   /** day_of_week (1=Mon..7=Sun) → [{ start_time, end_time }] sorted ascending */
   slotsByDow: Map<number, Array<{ start: string; end: string }>>;
+  /** Feature B auto-deduct lunch minutes per weekday (absent = none). */
+  lunchByDow: Map<number, number>;
 }
 
 export async function generateExportFile(job: ExportJobRow): Promise<ExportResult> {
@@ -87,6 +94,10 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
 
   const shiftByUser = await loadShiftConfigs(job);
   const leavesByUserDay = await loadLeavesPerDay(job);
+  // Raw approved-leave intervals (windowed), used to waive late-in / early-out
+  // breach deductions when an approved ferie/permesso covers the stretch —
+  // mirroring the presence-anomaly logic in routes/shifts.ts (leaveOverlapMin).
+  const leaveIntervalsByUser = await loadLeaveIntervals(job);
 
   type UserBucket = { email: string; stamps: Array<{ event: string; at: Date }> };
   const byUser = new Map<string, UserBucket>();
@@ -192,32 +203,67 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
       if (!dowSlots || dowSlots.length === 0) continue;
       const expectedStart = combineDateTime(day.day, dowSlots[0]!.start);
       const expectedEnd = combineDateTime(day.day, dowSlots[dowSlots.length - 1]!.end);
+      const expectedDurationMin = dowSlots.reduce(
+        (acc, s) =>
+          acc + diffMin(combineDateTime(day.day, s.start), combineDateTime(day.day, s.end)),
+        0
+      );
+      const userLeaves = leaveIntervalsByUser.get(userId);
 
-      // late clock-in beyond tolerance → deduct
+      // Feature B auto-lunch: replace stamped break/lunch accounting with a flat
+      // deduction. worked = presence − L; the deducted L shows as unpaid break.
+      const autoLunch = cfg.lunchByDow.get(isoDowUtc(day.day)) ?? 0;
+      if (autoLunch > 0) {
+        const gross = day.worked_minutes + day.paid_break_minutes + day.unpaid_break_minutes;
+        const deducted = Math.min(autoLunch, gross);
+        day.worked_minutes = Math.max(0, gross - deducted);
+        day.paid_break_minutes = 0;
+        day.unpaid_break_minutes = deducted;
+      }
+
+      // Flextime widens the late/early anchors before the breach deduction.
+      const flexInAfterMin = cfg.flexible_enabled ? cfg.flex_in_after_min : 0;
+      const flexOutBeforeMin = cfg.flexible_enabled ? cfg.flex_out_before_min : 0;
+
+      // late clock-in beyond tolerance (past the flexed entry anchor) → deduct.
+      // An approved permesso/ferie covering [expectedStart, actualIn] justifies
+      // the lateness (same rule as the late_clock_in anomaly).
       if (day.firstIn) {
-        const lateMin = diffMin(expectedStart, day.firstIn);
-        if (lateMin > cfg.tolerance_in_min) {
+        const lateMin = diffMin(expectedStart, day.firstIn) - flexInAfterMin;
+        const coveredMin = leaveOverlapMin(userLeaves, expectedStart.getTime(), day.firstIn.getTime());
+        if (lateMin - coveredMin > cfg.tolerance_in_min) {
           day.worked_minutes = Math.max(0, day.worked_minutes - cfg.tolerance_in_breach_deduct_min);
         }
       }
-      // early clock-out beyond tolerance → deduct
+      // early clock-out beyond tolerance (before the flexed exit anchor) → deduct.
       if (day.lastOut) {
-        const earlyMin = diffMin(day.lastOut, expectedEnd);
-        if (earlyMin > cfg.tolerance_out_min) {
+        const earlyMin = diffMin(day.lastOut, expectedEnd) - flexOutBeforeMin;
+        const coveredMin = leaveOverlapMin(userLeaves, day.lastOut.getTime(), expectedEnd.getTime());
+        if (earlyMin - coveredMin > cfg.tolerance_out_min) {
           day.worked_minutes = Math.max(0, day.worked_minutes - cfg.tolerance_out_breach_deduct_min);
         }
       }
-      // break duration over expected max → deduct
-      const breakTotal = day.paid_break_minutes + day.unpaid_break_minutes;
-      if (breakTotal > cfg.expected_break_max_min) {
-        day.worked_minutes = Math.max(0, day.worked_minutes - cfg.tolerance_break_breach_deduct_min);
+      // break duration over expected max → deduct (skip on auto-lunch days,
+      // where breaks aren't tracked separately).
+      if (autoLunch === 0) {
+        const breakTotal = day.paid_break_minutes + day.unpaid_break_minutes;
+        if (breakTotal > cfg.expected_break_max_min) {
+          day.worked_minutes = Math.max(0, day.worked_minutes - cfg.tolerance_break_breach_deduct_min);
+        }
       }
-      // overtime: surplus past expected_end, counted in whole blocks of
-      // extraordinary_threshold_min (a partial block is not counted). Only if
-      // flag on. e.g. block=30, 28 min over → 0; block=15, 28 min over → 15.
-      if (cfg.count_extraordinary && day.lastOut) {
-        const overMin = diffMin(expectedEnd, day.lastOut);
+      // overtime, counted in whole blocks of extraordinary_threshold_min (a
+      // partial block is not counted), only if the flag is on. Flextime:
+      // surplus of WORKED time past the contracted duration. Fixed schedule:
+      // surplus of the clock-out past expected_end.
+      if (cfg.count_extraordinary) {
         const block = cfg.extraordinary_threshold_min;
+        let overMin = 0;
+        if (cfg.flexible_enabled) {
+          // Target worked = Σ fasce − auto-lunch (worked already had L removed).
+          overMin = Math.max(0, day.worked_minutes - (expectedDurationMin - autoLunch));
+        } else if (day.lastOut) {
+          overMin = diffMin(expectedEnd, day.lastOut);
+        }
         day.overtime_minutes = Math.floor(overMin / block) * block;
       }
     }
@@ -336,6 +382,36 @@ async function loadLeavesPerDay(
   return result;
 }
 
+interface LeaveInterval {
+  from: number;
+  to: number;
+}
+
+async function loadLeaveIntervals(
+  job: ExportJobRow
+): Promise<Map<string, LeaveInterval[]>> {
+  // Raw approved-leave windows per user overlapping the period. Mirrors the
+  // leaves subquery feeding computeAnomalies in routes/shifts.ts (status =
+  // 'approved', any type), so breach deductions and presence anomalies agree
+  // on what counts as "covered by leave".
+  const r = await adminPool.query(
+    `SELECT lr.user_id, lr.from_ts, lr.to_ts
+       FROM leave_requests lr
+      WHERE lr.tenant_id = $1
+        AND lr.status = 'approved'
+        AND lr.to_ts   >  $2::date
+        AND lr.from_ts < ($3::date + INTERVAL '1 day')`,
+    [job.tenant_id, job.period_from, job.period_to]
+  );
+  const result = new Map<string, LeaveInterval[]>();
+  for (const row of r.rows) {
+    const list = result.get(row.user_id) ?? [];
+    list.push({ from: new Date(row.from_ts).getTime(), to: new Date(row.to_ts).getTime() });
+    result.set(row.user_id, list);
+  }
+  return result;
+}
+
 async function loadShiftConfigs(job: ExportJobRow): Promise<Map<string, ShiftConfig>> {
   // Latest active assignment overlapping the export period — one row per user.
   const assigns = await adminPool.query(
@@ -345,7 +421,8 @@ async function loadShiftConfigs(job: ExportJobRow): Promise<Map<string, ShiftCon
             st.expected_break_max_min,
             st.extraordinary_threshold_min, st.count_extraordinary,
             st.tolerance_in_breach_deduct_min, st.tolerance_out_breach_deduct_min,
-            st.tolerance_break_breach_deduct_min
+            st.tolerance_break_breach_deduct_min,
+            st.flexible_enabled, st.flex_in_after_min, st.flex_out_before_min
        FROM user_shift_assignments a
        JOIN shift_templates st ON st.id = a.shift_template_id
       WHERE a.tenant_id = $1
@@ -376,6 +453,19 @@ async function loadShiftConfigs(job: ExportJobRow): Promise<Map<string, ShiftCon
     slotsByTpl.set(r.shift_template_id, byDow);
   }
 
+  const lunch = await adminPool.query(
+    `SELECT shift_template_id, day_of_week, lunch_min
+       FROM shift_template_day_lunch
+      WHERE shift_template_id = ANY($1::uuid[])`,
+    [tplIds]
+  );
+  const lunchByTpl = new Map<string, Map<number, number>>();
+  for (const r of lunch.rows) {
+    const byDow = lunchByTpl.get(r.shift_template_id) ?? new Map<number, number>();
+    byDow.set(r.day_of_week, r.lunch_min);
+    lunchByTpl.set(r.shift_template_id, byDow);
+  }
+
   const out = new Map<string, ShiftConfig>();
   for (const r of assigns.rows) {
     out.set(r.user_id, {
@@ -387,7 +477,11 @@ async function loadShiftConfigs(job: ExportJobRow): Promise<Map<string, ShiftCon
       tolerance_in_breach_deduct_min: r.tolerance_in_breach_deduct_min,
       tolerance_out_breach_deduct_min: r.tolerance_out_breach_deduct_min,
       tolerance_break_breach_deduct_min: r.tolerance_break_breach_deduct_min,
+      flexible_enabled: r.flexible_enabled,
+      flex_in_after_min: r.flex_in_after_min,
+      flex_out_before_min: r.flex_out_before_min,
       slotsByDow: slotsByTpl.get(r.shift_template_id) ?? new Map(),
+      lunchByDow: lunchByTpl.get(r.shift_template_id) ?? new Map(),
     });
   }
   return out;
@@ -395,6 +489,23 @@ async function loadShiftConfigs(job: ExportJobRow): Promise<Map<string, ShiftCon
 
 function diffMin(a: Date, b: Date): number {
   return Math.max(0, Math.round((b.getTime() - a.getTime()) / 60000));
+}
+
+// Minutes of approved leave overlapping [startMs, endMs]. Used to waive a
+// late-in / early-out breach when an approved ferie/permesso covers the
+// deviating stretch. Mirrors leaveOverlapMin in routes/shifts.ts.
+function leaveOverlapMin(
+  leaves: LeaveInterval[] | undefined,
+  startMs: number,
+  endMs: number
+): number {
+  if (!leaves || endMs <= startMs) return 0;
+  let covered = 0;
+  for (const lv of leaves) {
+    const ov = Math.min(lv.to, endMs) - Math.max(lv.from, startMs);
+    if (ov > 0) covered += Math.round(ov / 60000);
+  }
+  return covered;
 }
 
 function combineDateTime(dateStr: string, hhmm: string): Date {
@@ -462,6 +573,7 @@ const ANOMALY_KIND_LABEL: Record<string, string> = {
   break_too_long: 'Pausa troppo lunga',
   lunch_too_short: 'Pausa pranzo troppo breve',
   lunch_too_long: 'Pausa pranzo troppo lunga',
+  lunch_outside_window: 'Pausa pranzo fuori finestra',
   clock_out_out_of_area: 'Uscita fuori area',
 };
 

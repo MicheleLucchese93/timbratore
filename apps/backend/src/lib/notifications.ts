@@ -205,22 +205,22 @@ export async function notifyLeaveSubmitted(
   const requesterName =
     requesterRow?.display_name || requesterRow?.email || 'Utente';
 
-  const payload: LeaveMailPayload = {
-    type: ctx.type,
-    from_ts: ctx.from_ts,
-    to_ts: ctx.to_ts,
-    duration_hours: ctx.duration_hours,
-    requester_name: requesterName,
-    reason: ctx.reason,
-  };
-  const mail = buildSubmittedMail(payload);
-
   for (const a of approvers) {
+    const lang = asLang(a.language);
+    const mail = buildSubmittedMail({
+      type: ctx.type,
+      from_ts: ctx.from_ts,
+      to_ts: ctx.to_ts,
+      duration_hours: ctx.duration_hours,
+      requester_name: requesterName,
+      reason: ctx.reason,
+      language: lang,
+    });
     await deliver(
       a,
       {
-        title: 'Nuova richiesta',
-        body: `${requesterName}: ${labelOf(ctx.type)}`,
+        title: PUSH.leaveSubmitted.title[lang],
+        body: PUSH.leaveSubmitted.body(requesterName, labelOf(ctx.type, lang))[lang],
         data: { kind: 'leave_submitted', request_id: ctx.requestId },
         prefKey: 'push_leave_submissions',
       },
@@ -239,6 +239,7 @@ export async function notifyLeaveDecided(
   const [requester] = await loadRecipients([ctx.requester_id]);
   const [approver] = await loadRecipients([approverId]);
   if (!requester) return;
+  const lang = asLang(requester.language);
   const payload: LeaveMailPayload = {
     type: ctx.type,
     from_ts: ctx.from_ts,
@@ -246,14 +247,14 @@ export async function notifyLeaveDecided(
     duration_hours: ctx.duration_hours,
     requester_name: requester.display_name || requester.email || 'Utente',
     approver_name: approver?.display_name || approver?.email || undefined,
+    language: lang,
   };
   const mail = buildDecidedMail(payload, decision, rejectionReason);
-  const verb = decision === 'approved' ? 'approvata' : 'rifiutata';
   await deliver(
     requester,
     {
-      title: `Richiesta ${verb}`,
-      body: `${labelOf(ctx.type)} ${verb}${rejectionReason ? `: ${rejectionReason}` : ''}`,
+      title: PUSH.leaveDecided.title(decision)[lang],
+      body: PUSH.leaveDecided.body(labelOf(ctx.type, lang), decision, rejectionReason)[lang],
       data: { kind: 'leave_decided', request_id: ctx.requestId, decision },
       prefKey: 'push_leave_decisions',
     },
@@ -271,21 +272,22 @@ export async function notifyCancellationRequested(
   const [requester] = await loadRecipients([ctx.requester_id]);
   const approvers = await loadRecipients(approverIds);
   const requesterName = requester?.display_name || requester?.email || 'Utente';
-  const payload: LeaveMailPayload = {
-    type: ctx.type,
-    from_ts: ctx.from_ts,
-    to_ts: ctx.to_ts,
-    duration_hours: ctx.duration_hours,
-    requester_name: requesterName,
-    reason: ctx.reason,
-  };
-  const mail = buildCancellationRequestedMail(payload);
   for (const a of approvers) {
+    const lang = asLang(a.language);
+    const mail = buildCancellationRequestedMail({
+      type: ctx.type,
+      from_ts: ctx.from_ts,
+      to_ts: ctx.to_ts,
+      duration_hours: ctx.duration_hours,
+      requester_name: requesterName,
+      reason: ctx.reason,
+      language: lang,
+    });
     await deliver(
       a,
       {
-        title: 'Annullamento richiesto',
-        body: `${requesterName}: ${labelOf(ctx.type)}`,
+        title: PUSH.cancellationRequested.title[lang],
+        body: PUSH.cancellationRequested.body(requesterName, labelOf(ctx.type, lang))[lang],
         data: { kind: 'leave_cancellation_requested', request_id: ctx.requestId },
         prefKey: 'push_leave_submissions',
       },
@@ -301,19 +303,21 @@ export async function notifyCancellationDecided(
 ): Promise<void> {
   const [requester] = await loadRecipients([ctx.requester_id]);
   if (!requester) return;
+  const lang = asLang(requester.language);
   const payload: LeaveMailPayload = {
     type: ctx.type,
     from_ts: ctx.from_ts,
     to_ts: ctx.to_ts,
     duration_hours: ctx.duration_hours,
     requester_name: requester.display_name || requester.email || 'Utente',
+    language: lang,
   };
   const mail = buildCancellationDecidedMail(payload, accepted);
   await deliver(
     requester,
     {
-      title: `Annullamento ${accepted ? 'accettato' : 'rifiutato'}`,
-      body: labelOf(ctx.type),
+      title: PUSH.cancellationDecided.title(accepted)[lang],
+      body: labelOf(ctx.type, lang),
       data: { kind: 'leave_cancellation_decided', request_id: ctx.requestId, accepted },
       prefKey: 'push_leave_decisions',
     },
@@ -337,8 +341,8 @@ export async function notifyLeaveReminder(
 ): Promise<void> {
   const [recipient] = await loadRecipients([userId]);
   if (!recipient) return;
-  const language = (recipient.language as 'it' | 'en') ?? 'it';
-  const label = leave.title || labelOf(leave.type);
+  const language = asLang(recipient.language);
+  const label = leave.title || labelOf(leave.type, language);
   const mail = buildReminderMail({
     type: leave.type,
     from_ts: leave.from_ts,
@@ -349,8 +353,8 @@ export async function notifyLeaveReminder(
   await deliver(
     recipient,
     {
-      title: 'Promemoria',
-      body: `Domani: ${label}`,
+      title: PUSH.reminder.title[language],
+      body: PUSH.reminder.body(label)[language],
       data: { kind: 'leave_reminder', request_id: leave.requestId },
       prefKey: 'push_leave_reminders',
     },
@@ -369,7 +373,7 @@ export async function notifyBulkEvent(
 ): Promise<void> {
   const recipients = await loadRecipients(userIds);
   for (const r of recipients) {
-    const language = (r.language as 'it' | 'en') ?? 'it';
+    const language = asLang(r.language);
     const mail = buildBulkEventMail({
       title: event.title,
       from_ts: event.from_ts,
@@ -380,7 +384,7 @@ export async function notifyBulkEvent(
     await deliver(
       r,
       {
-        title: 'Evento aziendale',
+        title: PUSH.bulkEvent.title[language],
         body: event.title,
         data: { kind: 'company_event', batch_id: event.batchId },
         prefKey: 'push_leave_decisions',
@@ -412,20 +416,21 @@ export async function notifyCorrectionSubmitted(
   const requesterName =
     requesterRow?.display_name || requesterRow?.email || 'Utente';
 
-  const payload: CorrectionMailPayload = {
-    event_type: ctx.event_type,
-    occurred_at: ctx.occurred_at,
-    is_edit: ctx.is_edit,
-    justification: ctx.justification,
-    requester_name: requesterName,
-  };
-  const mail = buildCorrectionSubmittedMail(payload);
   for (const a of approvers) {
+    const lang = asLang(a.language);
+    const mail = buildCorrectionSubmittedMail({
+      event_type: ctx.event_type,
+      occurred_at: ctx.occurred_at,
+      is_edit: ctx.is_edit,
+      justification: ctx.justification,
+      requester_name: requesterName,
+      language: lang,
+    });
     await deliver(
       a,
       {
-        title: 'Nuova correzione',
-        body: `${requesterName}: ${correctionLabel(ctx.event_type)}`,
+        title: PUSH.correctionSubmitted.title[lang],
+        body: PUSH.correctionSubmitted.body(requesterName, correctionLabel(ctx.event_type, lang))[lang],
         data: { kind: 'correction_submitted', request_id: ctx.requestId },
         prefKey: 'push_correction_submissions',
       },
@@ -444,6 +449,7 @@ export async function notifyCorrectionDecided(
   const [requester] = await loadRecipients([ctx.requester_id]);
   const [approver] = await loadRecipients([approverId]);
   if (!requester) return;
+  const lang = asLang(requester.language);
   const payload: CorrectionMailPayload = {
     event_type: ctx.event_type,
     occurred_at: ctx.occurred_at,
@@ -452,14 +458,14 @@ export async function notifyCorrectionDecided(
     requester_name: requester.display_name || requester.email || 'Utente',
     approver_name: approver?.display_name || approver?.email || undefined,
     note,
+    language: lang,
   };
   const mail = buildCorrectionDecidedMail(payload, decision);
-  const verb = decision === 'approved' ? 'approvata' : 'rifiutata';
   await deliver(
     requester,
     {
-      title: `Correzione ${verb}`,
-      body: `${correctionLabel(ctx.event_type)}${note ? `: ${note}` : ''}`,
+      title: PUSH.correctionDecided.title(decision)[lang],
+      body: PUSH.correctionDecided.body(correctionLabel(ctx.event_type, lang), note)[lang],
       data: { kind: 'correction_decided', request_id: ctx.requestId, decision },
       prefKey: 'push_correction_decisions',
     },
@@ -467,23 +473,84 @@ export async function notifyCorrectionDecided(
   );
 }
 
-function labelOf(type: string): string {
-  if (type === 'ferie') return 'Ferie';
-  if (type === 'permessi') return 'Permesso';
-  if (type === 'malattia') return 'Malattia';
-  if (type === 'assenza') return 'Assenza';
-  if (type === 'chiusura') return 'Chiusura aziendale';
-  return type;
+/* ----- Push-notification localization -----
+ * Push titles/bodies are localized per recipient (each user may differ), so
+ * every builder takes the recipient language. Emails are localized separately
+ * by passing `language` into the mail payload (see mailer.ts). */
+type Lang = 'it' | 'en';
+function asLang(v: string | null | undefined): Lang {
+  return v === 'en' ? 'en' : 'it';
 }
 
-function correctionLabel(eventType: string): string {
-  switch (eventType) {
-    case 'clock_in': return 'Ingresso';
-    case 'clock_out': return 'Uscita';
-    case 'break_start': return 'Inizio pausa';
-    case 'break_end': return 'Fine pausa';
-    case 'lunch_start': return 'Inizio pausa pranzo';
-    case 'lunch_end': return 'Fine pausa pranzo';
-    default: return eventType;
-  }
+const LEAVE_LABEL: Record<string, Record<Lang, string>> = {
+  ferie: { it: 'Ferie', en: 'Holiday' },
+  permessi: { it: 'Permesso', en: 'Leave' },
+  malattia: { it: 'Malattia', en: 'Sick leave' },
+  assenza: { it: 'Assenza', en: 'Absence' },
+  chiusura: { it: 'Chiusura aziendale', en: 'Company closure' },
+};
+function labelOf(type: string, lang: Lang): string {
+  return LEAVE_LABEL[type]?.[lang] ?? type;
 }
+
+const EVENT_LABEL: Record<string, Record<Lang, string>> = {
+  clock_in: { it: 'Ingresso', en: 'Clock-in' },
+  clock_out: { it: 'Uscita', en: 'Clock-out' },
+  break_start: { it: 'Inizio pausa', en: 'Break start' },
+  break_end: { it: 'Fine pausa', en: 'Break end' },
+  lunch_start: { it: 'Inizio pausa pranzo', en: 'Lunch start' },
+  lunch_end: { it: 'Fine pausa pranzo', en: 'Lunch end' },
+};
+function correctionLabel(eventType: string, lang: Lang): string {
+  return EVENT_LABEL[eventType]?.[lang] ?? eventType;
+}
+
+// Localized push title/body strings, keyed by recipient language.
+const PUSH = {
+  leaveSubmitted: {
+    title: { it: 'Nuova richiesta', en: 'New request' },
+    body: (name: string, label: string) => ({ it: `${name}: ${label}`, en: `${name}: ${label}` }),
+  },
+  leaveDecided: {
+    title: (d: 'approved' | 'rejected'): Record<Lang, string> =>
+      d === 'approved'
+        ? { it: 'Richiesta approvata', en: 'Request approved' }
+        : { it: 'Richiesta rifiutata', en: 'Request rejected' },
+    body: (label: string, d: 'approved' | 'rejected', reason?: string): Record<Lang, string> => {
+      const v = { it: d === 'approved' ? 'approvata' : 'rifiutata', en: d === 'approved' ? 'approved' : 'rejected' };
+      const tail = reason ? `: ${reason}` : '';
+      return { it: `${label} ${v.it}${tail}`, en: `${label} ${v.en}${tail}` };
+    },
+  },
+  cancellationRequested: {
+    title: { it: 'Annullamento richiesto', en: 'Cancellation requested' },
+    body: (name: string, label: string) => ({ it: `${name}: ${label}`, en: `${name}: ${label}` }),
+  },
+  cancellationDecided: {
+    title: (accepted: boolean): Record<Lang, string> =>
+      accepted
+        ? { it: 'Annullamento accettato', en: 'Cancellation accepted' }
+        : { it: 'Annullamento rifiutato', en: 'Cancellation rejected' },
+  },
+  reminder: {
+    title: { it: 'Promemoria', en: 'Reminder' },
+    body: (label: string) => ({ it: `Domani: ${label}`, en: `Tomorrow: ${label}` }),
+  },
+  bulkEvent: {
+    title: { it: 'Evento aziendale', en: 'Company event' },
+  },
+  correctionSubmitted: {
+    title: { it: 'Nuova correzione', en: 'New correction' },
+    body: (name: string, label: string) => ({ it: `${name}: ${label}`, en: `${name}: ${label}` }),
+  },
+  correctionDecided: {
+    title: (d: 'approved' | 'rejected'): Record<Lang, string> =>
+      d === 'approved'
+        ? { it: 'Correzione approvata', en: 'Correction approved' }
+        : { it: 'Correzione rifiutata', en: 'Correction rejected' },
+    body: (label: string, note?: string): Record<Lang, string> => {
+      const tail = note ? `: ${note}` : '';
+      return { it: `${label}${tail}`, en: `${label}${tail}` };
+    },
+  },
+} as const;

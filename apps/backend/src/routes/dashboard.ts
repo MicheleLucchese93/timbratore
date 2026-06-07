@@ -138,6 +138,9 @@ dashboardRouter.get(
               st.tolerance_in_min, st.tolerance_out_min,
               st.expected_break_min_min, st.expected_break_max_min,
               st.expected_lunch_min_min, st.expected_lunch_max_min,
+              st.flexible_enabled, st.flex_in_before_min, st.flex_in_after_min,
+              st.flex_out_before_min, st.flex_out_after_min,
+              st.flex_lunch_before_min, st.flex_lunch_after_min,
               COALESCE(
                 (SELECT json_agg(json_build_object(
                   'day_of_week', sl.day_of_week,
@@ -148,6 +151,15 @@ dashboardRouter.get(
                 WHERE sl.shift_template_id = a.shift_template_id),
                 '[]'::json
               ) AS slots,
+              COALESCE(
+                (SELECT json_agg(json_build_object(
+                  'day_of_week', dl.day_of_week,
+                  'lunch_min', dl.lunch_min
+                ) ORDER BY dl.day_of_week)
+                 FROM shift_template_day_lunch dl
+                WHERE dl.shift_template_id = a.shift_template_id),
+                '[]'::json
+              ) AS day_lunch,
               COALESCE(
                 (SELECT json_agg(json_build_object(
                   'event_type', s.event_type,
@@ -204,6 +216,7 @@ dashboardRouter.get(
       break_too_long: 0,
       lunch_too_short: 0,
       lunch_too_long: 0,
+      lunch_outside_window: 0,
       clock_out_out_of_area: 0,
     };
     for (const a of anomalies) byKind[a.kind]++;

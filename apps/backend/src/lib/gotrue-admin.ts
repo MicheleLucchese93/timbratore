@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { SignJWT } from 'jose';
 import { env } from '../env.js';
 
@@ -30,6 +31,29 @@ export async function inviteUser(email: string, language: 'it' | 'en' = 'it'): P
   if (!r.ok) {
     const text = await r.text();
     throw new Error(`GoTrue /invite ${r.status}: ${text}`);
+  }
+  return (await r.json()) as GoTrueUser;
+}
+
+// Create a GoTrue user WITHOUT sending any email. Unlike `inviteUser` (which
+// fires the invite/magic-link mail), this provisions the account silently: a
+// throwaway random password is set and the email is marked confirmed so no
+// confirmation mail goes out. The user has no usable password until an admin
+// sends them a recovery (reset-password) email — that is now the only way the
+// initial access mail reaches a newly-created member.
+export async function createUserSilently(email: string): Promise<GoTrueUser> {
+  const jwt = await serviceRoleJwt();
+  const r = await fetch(`${env.GOTRUE_URL}/admin/users`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${jwt}`,
+    },
+    body: JSON.stringify({ email, password: randomUUID(), email_confirm: true }),
+  });
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error(`GoTrue POST /admin/users ${r.status}: ${text}`);
   }
   return (await r.json()) as GoTrueUser;
 }
@@ -68,10 +92,10 @@ export async function updatePassword(accessToken: string, password: string): Pro
   }
 }
 
-// Admin-level create: bypasses the invite email flow and sets a password
-// directly. Used only by the e2e fixture-user endpoint — never exposed to
-// regular admin flows, which always go through `inviteUser` so a real human
-// receives the magic link.
+// Admin-level create with a caller-chosen password. Used only by the e2e
+// fixture-user endpoint — never exposed to regular admin flows, which go
+// through `createUserSilently` (no email) and rely on the admin triggering a
+// recovery email to hand the member their initial access link.
 export async function createUserWithPassword(
   email: string,
   password: string,
