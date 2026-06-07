@@ -31,6 +31,19 @@ test.describe('mobile — Notifications bell tap', () => {
     await expect(
       page.getByText('Notifiche', { exact: true }).or(page.getByText(/Nessuna notifica/i)).first(),
     ).toBeVisible({ timeout: 10_000 });
+
+    // Filter tabs are part of the modal chrome regardless of data.
+    await expect(page.getByText('Tutte', { exact: true })).toBeVisible();
+    await expect(page.getByText(/^Non lette/)).toBeVisible();
+
+    // The feed now merges leaves (richieste) and corrections. With no seeded
+    // pending items the empty state names both sources; otherwise a real
+    // notification row is shown. Either satisfies the assertion.
+    await expect(
+      page
+        .getByText(/Aggiornamenti su richieste e correzioni qui\.|Nessuna notifica/i)
+        .or(page.getByText(/Nuova richiesta|Correzione|Assenza/).first()),
+    ).toBeVisible({ timeout: 10_000 });
   });
 });
 

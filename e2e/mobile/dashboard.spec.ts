@@ -30,6 +30,29 @@ test.describe('mobile — Dashboard (admin)', () => {
     await expect(page.locator('text=/@test\\.it/').first()).toBeVisible();
   });
 
+  test('"Stato attuale" offers Elenco / Per sede grouping chips', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByText('Stato attuale').first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('button', { name: 'Elenco' })).toBeVisible();
+    const perSede = page.getByRole('button', { name: 'Per sede' });
+    await expect(perSede).toBeVisible();
+    await perSede.click();
+    // Grouped view still surfaces a seeded user (under a sede or "Fuori servizio").
+    await expect(page.locator('text=/@test\\.it/').first()).toBeVisible();
+  });
+
+  test('"Assenti" offers Oggi / 7 gg / 14 gg horizon chips', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByText('Assenti', { exact: true }).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('button', { name: 'Oggi' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '7 gg' })).toBeVisible();
+    const d14 = page.getByRole('button', { name: '14 gg' });
+    await expect(d14).toBeVisible();
+    // Switching horizon keeps the section rendered (list or empty state).
+    await d14.click();
+    await expect(page.getByText('Assenti', { exact: true }).first()).toBeVisible();
+  });
+
   test('can navigate Dashboard → Timbrature → back to Dashboard', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByText('Presenti ora').first()).toBeVisible({ timeout: 30_000 });

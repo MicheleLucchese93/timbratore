@@ -355,6 +355,24 @@ export async function adminRevokeLeave(adminToken: string, id: string, reason: s
   await apiPost(adminToken, `/api/v1/leaves/${id}/admin-revoke`, { reason });
 }
 
+/** Admin inserts an already-approved ferie/permesso on behalf of an employee. */
+export async function adminCreateLeave(
+  adminToken: string,
+  body: {
+    user_id: string;
+    type: 'ferie' | 'permessi';
+    from_ts: string;
+    to_ts: string;
+    user_note?: string;
+  },
+): Promise<LeaveRow> {
+  const r = await apiPost<LeaveRow>(adminToken, '/api/v1/leaves/admin-create', body);
+  if (!r.data?.id) {
+    throw new Error(`adminCreateLeave failed: ${r.status} ${r.code ?? ''} ${r.message ?? ''}`.trim());
+  }
+  return r.data;
+}
+
 export interface LeaveListRow {
   id: string;
   user_id: string;
@@ -423,6 +441,42 @@ export async function inviteUser(
 
 export async function deleteUser(adminToken: string, userId: string): Promise<void> {
   await apiDelete(adminToken, `/api/v1/users/${userId}`);
+}
+
+/* Bulk user-attribute helpers */
+
+export async function bulkResetPassword(
+  adminToken: string,
+  userIds: string[],
+): Promise<{ status: number; data: { sent: number } | null }> {
+  return apiPost<{ sent: number }>(adminToken, '/api/v1/users/reset-password/bulk', {
+    user_ids: userIds,
+  });
+}
+
+export async function bulkSetStampModes(
+  adminToken: string,
+  userIds: string[],
+  stampModes: Array<'gps' | 'remote'>,
+): Promise<{ status: number; data: { updated: number } | null }> {
+  return apiPost<{ updated: number }>(adminToken, '/api/v1/users/stamp-modes/bulk', {
+    user_ids: userIds,
+    stamp_modes: stampModes,
+  });
+}
+
+export async function bulkSetApprovers(
+  adminToken: string,
+  body: { user_ids: string[]; kind: 'leave' | 'correction'; approver_user_ids: string[] },
+): Promise<{ status: number }> {
+  return apiPost(adminToken, '/api/v1/users/approvers/bulk', body);
+}
+
+export async function bulkAssignShift(
+  adminToken: string,
+  body: { user_ids: string[]; shift_template_id: string | null; valid_from: string },
+): Promise<{ status: number }> {
+  return apiPost(adminToken, '/api/v1/shifts/assignments/bulk', body);
 }
 
 /* Quota summary helper */
@@ -498,6 +552,29 @@ export async function downloadExport(
   return { ok: r.ok, status: r.status, contentType: r.headers.get('content-type'), isZip };
 }
 
+export interface ExportDay {
+  day: string;
+  worked_minutes: number;
+  overtime_minutes: number;
+}
+export interface ExportUser {
+  user_id: string;
+  email: string;
+  days: ExportDay[];
+}
+export interface ExportJson {
+  users: ExportUser[];
+}
+
+/** Download a JSON-format export and parse its body (the per-user/day aggregate). */
+export async function downloadExportJson(adminToken: string, id: string): Promise<ExportJson> {
+  const r = await fetch(`${API_BASE}/api/v1/exports/${id}/download`, {
+    headers: { Authorization: `Bearer ${adminToken}` },
+  });
+  if (!r.ok) throw new Error(`downloadExportJson failed: ${r.status}`);
+  return JSON.parse(await r.text()) as ExportJson;
+}
+
 /* Shift template + assignment helpers */
 
 export interface ShiftSlot {
@@ -508,7 +585,25 @@ export interface ShiftSlot {
 
 export async function createShiftTemplate(
   adminToken: string,
-  body: { name: string; slots: ShiftSlot[]; description?: string },
+  body: {
+    name: string;
+    slots: ShiftSlot[];
+    description?: string;
+    tolerance_in_min?: number;
+    tolerance_out_min?: number;
+    tolerance_in_breach_deduct_min?: number;
+    tolerance_out_breach_deduct_min?: number;
+    count_extraordinary?: boolean;
+    // Orario flessibile (flextime) + per-weekday auto-deduct lunch.
+    flexible_enabled?: boolean;
+    flex_in_before_min?: number;
+    flex_in_after_min?: number;
+    flex_out_before_min?: number;
+    flex_out_after_min?: number;
+    flex_lunch_before_min?: number;
+    flex_lunch_after_min?: number;
+    day_lunch?: Array<{ day_of_week: number; lunch_min: number }>;
+  },
 ): Promise<{ id: string }> {
   const r = await apiPost<{ id: string }>(adminToken, '/api/v1/shifts/templates', body);
   if (r.status !== 201 || !r.data) throw new Error(`createShiftTemplate failed: ${r.status}`);

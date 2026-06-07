@@ -25,4 +25,12 @@ test.describe('mobile — Profilo screen (employee)', () => {
     // "tomorrow you have ferie" reminder (migration 030 / push_leave_reminders).
     await expect(page.getByText('Promemoria 24h prima', { exact: true })).toBeVisible({ timeout: 15_000 });
   });
+
+  test('Sicurezza section exposes the biometric login toggle', async ({ page }) => {
+    // Native biometric auth (expo-local-authentication) can't be exercised in
+    // the RN-Web harness; assert the opt-in row is present. Web has no
+    // biometric hardware so the row is disabled with the generic label.
+    await expect(page.getByText('Sicurezza').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Accesso biometrico').first()).toBeVisible();
+  });
 });

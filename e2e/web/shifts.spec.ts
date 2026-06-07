@@ -35,6 +35,19 @@ test.describe('web — Orari (Shifts) page', () => {
     else await page.keyboard.press('Escape');
   });
 
+  test('Orario flessibile section reveals the prima/dopo flex windows', async ({ page }) => {
+    await page.getByRole('button', { name: /Nuovo orario/i }).click();
+    await expect(page.getByRole('heading', { name: 'Nuovo orario' })).toBeVisible({ timeout: 10_000 });
+    // Flex inputs appear only after enabling the flexible-schedule toggle.
+    await page.getByRole('checkbox', { name: /Abilita orario flessibile/i }).check();
+    await expect(page.getByText('Entrata: prima (min)', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Uscita: dopo (min)', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Pausa pranzo: prima (min)', { exact: true }).first()).toBeVisible();
+    const cancel = page.getByRole('button', { name: 'Annulla' });
+    if (await cancel.count()) await cancel.click();
+    else await page.keyboard.press('Escape');
+  });
+
   test('overtime block selector offers 15/30/60-minute blocks', async ({ page }) => {
     await page.getByRole('button', { name: /Nuovo orario/i }).click();
     await expect(page.getByRole('heading', { name: 'Nuovo orario' })).toBeVisible({ timeout: 10_000 });

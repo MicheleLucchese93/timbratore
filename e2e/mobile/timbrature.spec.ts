@@ -40,6 +40,16 @@ test.describe('mobile — Timbrature tab', () => {
     await expect(anyAction.first()).toBeVisible();
   });
 
+  test('shows today schedule (Orario di oggi) for the assigned shift', async ({ page }) => {
+    // The seeded admin has the "Ufficio 9-18" shift, so the section renders
+    // (TimbratureScreen.tsx: {assignment && …}). Auto-wait for it — the
+    // assignment is fetched async, so a one-shot check would race the render.
+    await expect(page.getByText('Orario di oggi')).toBeVisible({ timeout: 15_000 });
+    // Either scheduled slots (with a "Totale …" expected-hours label) on a work
+    // day, or the rest-day copy when today has no slot.
+    await expect(page.getByText(/Totale \d+h|giorno di riposo/).first()).toBeVisible();
+  });
+
   test('opens profile screen from header avatar', async ({ page }) => {
     await page.getByRole('button', { name: 'Profilo' }).click();
     // Profilo screen shows email + logout option somewhere; just assert URL.

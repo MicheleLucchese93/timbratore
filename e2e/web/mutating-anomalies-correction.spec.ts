@@ -72,9 +72,9 @@ test.describe.serial('web — Anomalie Correggi menu resolves anomalies (mutatin
     admin = await loadHandleFromStorage(STORAGE.webAuth, CREDS.admin);
     user = await loadHandleFromStorage(STORAGE.webUserAuth, CREDS.user);
 
-    rangeFrom = nthWeekdayBack(8, 0, 0).date;
+    rangeFrom = nthWeekdayBack(10, 0, 0).date;
     rangeTo = new Date().toISOString().slice(0, 10);
-    validFrom = nthWeekdayBack(7, 0, 0).date;
+    validFrom = nthWeekdayBack(9, 0, 0).date;
 
     const tpl = await createShiftTemplate(admin.token, {
       name: `e2e-correction-${Date.now()}`,
@@ -125,8 +125,8 @@ test.describe.serial('web — Anomalie Correggi menu resolves anomalies (mutatin
   });
 
   test('Timbratura standard adds the missing clock-out and clears missing_clock_out', async () => {
-    const day = nthWeekdayBack(1, 9, 0);
-    const out = nthWeekdayBack(1, 17, 0);
+    const day = nthWeekdayBack(5, 9, 0);
+    const out = nthWeekdayBack(5, 17, 0);
 
     const seed = await apiPost<{ id: string }>(admin.token, '/api/v1/admin/stamps', {
       user_id: user.userId,
@@ -159,8 +159,8 @@ test.describe.serial('web — Anomalie Correggi menu resolves anomalies (mutatin
   });
 
   test('Inserisci ferie (full day) clears missing_clock_in', async () => {
-    const start = nthWeekdayBack(2, 9, 0);
-    const end = nthWeekdayBack(2, 17, 0);
+    const start = nthWeekdayBack(6, 9, 0);
+    const end = nthWeekdayBack(6, 17, 0);
 
     const before = await anomalies(start.date);
     expect(before.map((a) => a.kind)).toContain('missing_clock_in');
@@ -188,9 +188,9 @@ test.describe.serial('web — Anomalie Correggi menu resolves anomalies (mutatin
   });
 
   test('Inserisci permesso (covers the late stretch) clears late_clock_in', async () => {
-    const late = nthWeekdayBack(3, 9, 30);
-    const out = nthWeekdayBack(3, 17, 0);
-    const expectedStart = nthWeekdayBack(3, 9, 0);
+    const late = nthWeekdayBack(7, 9, 30);
+    const out = nthWeekdayBack(7, 17, 0);
+    const expectedStart = nthWeekdayBack(7, 9, 0);
 
     const seedIn = await apiPost<{ id: string }>(admin.token, '/api/v1/admin/stamps', {
       user_id: user.userId,
@@ -227,8 +227,8 @@ test.describe.serial('web — Anomalie Correggi menu resolves anomalies (mutatin
   });
 
   test('Giustifica con nota annotates the anomaly via the UI', async ({ page }) => {
-    const day = nthWeekdayBack(4, 9, 0);
-    const out = nthWeekdayBack(4, 13, 0); // 4h worked vs 8h expected → short_hours
+    const day = nthWeekdayBack(8, 9, 0);
+    const out = nthWeekdayBack(8, 13, 0); // 4h worked vs 8h expected → short_hours
 
     const seedIn = await apiPost<{ id: string }>(admin.token, '/api/v1/admin/stamps', {
       user_id: user.userId,

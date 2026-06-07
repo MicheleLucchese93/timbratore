@@ -31,7 +31,7 @@ await page.getByText('Continua').click();
     // Step 3 — Tipo evento with all 6 options + Motivazione textarea.
     await expect(page.getByText('Tipo evento')).toBeVisible({ timeout: 10_000 });
     for (const ev of [
-      'Ingresso',
+      'Entrata',
       'Inizio pausa',
       'Fine pausa',
       'Inizio pausa pranzo',

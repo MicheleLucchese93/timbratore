@@ -20,12 +20,14 @@ test.describe('web — Ferie & Permessi (employee)', () => {
     });
 
     test('"Le mie" shows the KPI summary tiles', async ({ page }) => {
-      // The KPI band uses plural labels ("Approvate"/"Rifiutate") distinct from
-      // the per-request status labels ("Approvata"/"Rifiutata"), so these are
-      // unambiguous even when the request list is non-empty.
-      await expect(page.getByText('In attesa', { exact: true }).first()).toBeVisible({ timeout: 10_000 });
-      await expect(page.getByText('Approvate', { exact: true })).toBeVisible();
-      await expect(page.getByText('Rifiutate', { exact: true })).toBeVisible();
+      // KPI band: Ferie + Permessi (residual hours) + In attesa count. Scope to
+      // the .stat-grid so the "Ferie"/"Permessi" labels don't collide with the
+      // per-request rows below.
+      const grid = page.locator('.stat-grid');
+      await expect(grid).toBeVisible({ timeout: 10_000 });
+      await expect(grid.getByText('Ferie', { exact: true })).toBeVisible();
+      await expect(grid.getByText('Permessi', { exact: true })).toBeVisible();
+      await expect(grid.getByText('In attesa', { exact: true })).toBeVisible();
     });
 
     test('"+ Nuova richiesta" opens a request form with a Tipo selector', async ({ page }) => {

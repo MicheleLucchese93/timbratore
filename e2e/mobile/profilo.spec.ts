@@ -37,10 +37,20 @@ test.describe('mobile — Profilo screen (admin)', () => {
     expect(branchHits, 'expected at least one branch name in the Sedi card').toBeGreaterThan(0);
   });
 
-  test('Notifiche section has PUSH info + EMAIL switch', async ({ page }) => {
+  test('Notifiche section has PUSH info', async ({ page }) => {
     await expect(page.getByText('Notifiche').first()).toBeVisible();
     await expect(page.getByText('PUSH').first()).toBeVisible();
-    await expect(page.getByText('EMAIL').first()).toBeVisible();
+    // Mobile Profilo manages PUSH only; email notification prefs live in web
+    // Settings (mobile push is always on). No EMAIL switch here by design.
+  });
+
+  test('Sicurezza section shows the biometric login row', async ({ page }) => {
+    await expect(page.getByText('Sicurezza').first()).toBeVisible();
+    // The biometric prompt itself is a native module and can't be driven in
+    // the RN-Web harness; here we only assert the row renders. On web there's
+    // no biometric hardware, so it shows the generic label with a disabled
+    // switch (real devices read "Accesso con Face ID/Touch ID/impronta").
+    await expect(page.getByText('Accesso biometrico').first()).toBeVisible();
   });
 
   test('Esci button visible at the bottom', async ({ page }) => {
