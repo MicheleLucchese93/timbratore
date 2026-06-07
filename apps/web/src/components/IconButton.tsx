@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 export type IconButtonKind =
   | 'edit'
   | 'duplicate'
@@ -25,6 +27,23 @@ const TONE: Record<IconButtonKind, '' | 'danger' | 'success'> = {
   'reset-password': '',
 };
 
+// Default i18n key per kind, used when no explicit `title` prop is given.
+// Generic actions reuse the shared `common:btn.*` keys; the rest live in the
+// `components` namespace under `iconButton.*`.
+const DEFAULT_TITLE_KEY: Record<IconButtonKind, string> = {
+  edit: 'common:btn.edit',
+  duplicate: 'components:iconButton.duplicate',
+  deactivate: 'components:iconButton.deactivate',
+  reactivate: 'components:iconButton.reactivate',
+  delete: 'common:btn.delete',
+  approve: 'common:btn.approve',
+  reject: 'common:btn.reject',
+  revoke: 'components:iconButton.revoke',
+  adjust: 'components:iconButton.adjust',
+  history: 'components:iconButton.history',
+  'reset-password': 'components:iconButton.resetPassword',
+};
+
 interface IconButtonProps {
   kind: IconButtonKind;
   onClick: () => void;
@@ -33,15 +52,17 @@ interface IconButtonProps {
 }
 
 export function IconButton({ kind, onClick, disabled, title }: IconButtonProps) {
+  const { t } = useTranslation(['components', 'common']);
   const tone = TONE[kind];
   const cls = ['icon-btn', tone ? `icon-btn-${tone}` : ''].filter(Boolean).join(' ');
+  const label = title ?? t(DEFAULT_TITLE_KEY[kind]);
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      title={title}
-      aria-label={title}
+      title={label}
+      aria-label={label}
       className={cls}
     >
       {renderIcon(kind)}

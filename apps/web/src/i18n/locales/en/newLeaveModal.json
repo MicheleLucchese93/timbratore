@@ -1,0 +1,23 @@
+{
+  "title": "New request",
+  "field": {
+    "type": "Type",
+    "from": "From",
+    "to": "To",
+    "inpsProtocol": "INPS protocol",
+    "assenzaSubtype": "Absence type",
+    "isPaid": "Paid",
+    "note": "Notes",
+    "noteRequiredSuffix": " (required)"
+  },
+  "validation": {
+    "datesRequired": "Please enter the dates.",
+    "endBeforeStart": "The end is before the start.",
+    "inpsRequired": "INPS protocol is required for sick leave.",
+    "noteRequired": "A reason is required for absences."
+  },
+  "btn": {
+    "submit": "Submit request",
+    "submitting": "Submitting…"
+  }
+}

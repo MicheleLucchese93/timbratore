@@ -1,0 +1,200 @@
+{
+  "heading": "Users",
+  "toolbar": {
+    "exportXlsx": "Export XLSX",
+    "exportXlsxTitle": "Download the user list as an Excel file",
+    "importing": "Importing…",
+    "importXlsx": "Import XLSX",
+    "importXlsxTitle": "Upload an Excel file to create/update multiple users — key: email",
+    "invite": "Invite user",
+    "limitReachedTitle": "Limit reached — contact support"
+  },
+  "usage": {
+    "users": "Users: ",
+    "admins": "Administrators: "
+  },
+  "export": {
+    "failed": "Export failed",
+    "fileName": "users_{{date}}.xlsx",
+    "error": "export error"
+  },
+  "import": {
+    "failed": "Import failed",
+    "rowError": "row {{row}}: {{message}}",
+    "more": "… +{{count}} more",
+    "success": "Imported {{processed}} rows — {{created}} new, {{reactivated}} reactivated, {{updated}} updated.",
+    "error": "import error"
+  },
+  "resetPasswordSent": "Password reset email sent to {{email}}.",
+  "bulkBranchesAdded_one": "{{count}} branch assigned to {{users}} users.",
+  "bulkBranchesAdded_other": "{{count}} branches assigned to {{users}} users.",
+  "bulkBranchesRemoved_one": "{{count}} branch removed from {{users}} users.",
+  "bulkBranchesRemoved_other": "{{count}} branches removed from {{users}} users.",
+  "errorGeneric": "error",
+  "bulkBar": {
+    "selected_one": "user selected",
+    "selected_other": "users selected",
+    "assignBranches": "Assign branches",
+    "removeBranches": "Remove branches",
+    "assignShift": "Assign schedule",
+    "stampModes": "Stamping",
+    "leaveApprovers": "Leave approvers",
+    "correctionApprovers": "Correction approvers",
+    "resetPassword": "Send password reset"
+  },
+  "bulkReset": {
+    "title": "Send the password reset email?",
+    "message_one": "A set-password email will be sent to {{count}} user. Use this to give freshly-created users their first access too.",
+    "message_other": "A set-password email will be sent to {{count}} users. Use this to give freshly-created users their first access too.",
+    "confirm": "Send email",
+    "done_one": "Reset email sent to {{count}} user.",
+    "done_other": "Reset email sent to {{count}} users."
+  },
+  "bulkShift": {
+    "title": "Assign schedule in bulk",
+    "message_one": "The chosen schedule will be assigned to {{count}} user, replacing their current one.",
+    "message_other": "The chosen schedule will be assigned to {{count}} users, replacing their current one.",
+    "done_one": "Schedule assigned to {{count}} user.",
+    "done_other": "Schedule assigned to {{count}} users."
+  },
+  "bulkModes": {
+    "title": "Stamping methods in bulk",
+    "message_one": "The chosen methods will replace the current ones for {{count}} user.",
+    "message_other": "The chosen methods will replace the current ones for {{count}} users.",
+    "noneSelected": "No method selected: the users won't be able to stamp.",
+    "done_one": "Stamping methods updated for {{count}} user.",
+    "done_other": "Stamping methods updated for {{count}} users."
+  },
+  "bulkApprovers": {
+    "title": "{{suffix}} approvers in bulk",
+    "message_one": "The chosen approvers will replace the current ones for {{count}} user.",
+    "message_other": "The chosen approvers will replace the current ones for {{count}} users.",
+    "done_one": "Approvers updated for {{count}} user.",
+    "done_other": "Approvers updated for {{count}} users."
+  },
+  "confirmDeactivate": {
+    "title": "Deactivate user?",
+    "messagePre": "User",
+    "messagePost": "will no longer be able to sign in until reactivated. The seat stays occupied — to free it, delete the user.",
+    "confirm": "Deactivate"
+  },
+  "confirmDelete": {
+    "title": "Delete user?",
+    "messagePre": "User",
+    "messagePost": "will be removed from the company and the seat will be freed. Past stamps are retained as required by law. This action cannot be undone — to bring them back you'll have to invite them again."
+  },
+  "approver": {
+    "leaveSuffix": "holiday/leave",
+    "correctionSuffix": "corrections",
+    "leaveExplainer": "Only the selected users can approve this employee's holiday/leave. If none are configured, admins can decide. Whoever decides first wins.",
+    "correctionExplainer": "Only the selected users can approve this employee's stamp correction requests. If none are configured, admins can decide. Whoever decides first wins.",
+    "title": "{{suffix}} approvers for {{name}}",
+    "noUsers": "No other active user available.",
+    "roleAdmin": "(admin)",
+    "roleUser": "(user)"
+  },
+  "shift": {
+    "title": "Schedule for {{name}}",
+    "label": "Schedule",
+    "none": "— None —",
+    "emptyHintPre": "No schedule configured. Go to",
+    "emptyHintLink": "Schedules",
+    "emptyHintPost": "to create one.",
+    "validFrom": "Valid from",
+    "validFromHint": "The previous assignment will be closed the day before this date."
+  },
+  "userEditor": {
+    "title": "Edit user",
+    "emailHint": "{{email}} — the email cannot be changed.",
+    "firstName": "First name",
+    "lastName": "Last name"
+  },
+  "bulk": {
+    "addTitle": "Assign branches",
+    "removeTitle": "Remove branches",
+    "messageAdded_one": "The selected branches will be added to {{count}} user. Existing assignments stay unchanged.",
+    "messageAdded_other": "The selected branches will be added to {{count}} users. Existing assignments stay unchanged.",
+    "messageRemoved_one": "The selected branches will be removed from {{count}} user. Other assignments stay unchanged.",
+    "messageRemoved_other": "The selected branches will be removed from {{count}} users. Other assignments stay unchanged.",
+    "noBranches": "No branch available.",
+    "assign": "Assign",
+    "remove": "Remove"
+  },
+  "modes": {
+    "title": "Stamping methods for {{name}}",
+    "explainer": "Choose which methods the user can stamp with. No method selected = the user cannot stamp.",
+    "gpsLabel": "GPS",
+    "gpsDesc": "— from the mobile app, at the branch (geofence)",
+    "remoteLabel": "Remote",
+    "remoteDesc": "— from the web, without location check",
+    "noneSelected": "No method selected: the user won't be able to stamp."
+  },
+  "branchEditor": {
+    "title": "Branches for {{email}}",
+    "explainer": "Without at least one branch the user won't be able to stamp from the app or the web.",
+    "empty": "No branch created. Go to \"Branches\" to create one first."
+  },
+  "invite": {
+    "title": "Invite user",
+    "subtitle": "The user is created without sending any email. To give them access, send the password reset email afterwards (key icon or bulk action).",
+    "createdNoEmail": "User created. No email sent: use \"Send password reset\" (key icon) to give them their first access.",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "optional": "(optional)",
+    "email": "Email",
+    "role": "Role",
+    "roleUser": "User",
+    "branches": "Assigned branches",
+    "noBranches": "No branch created. Without branches the user won't be able to stamp.",
+    "branchesHint": "You can assign more branches after the invite too.",
+    "sending": "Sending…",
+    "submit": "Invite"
+  },
+  "col": {
+    "email": "Email",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "role": "Role",
+    "state": "Status",
+    "branches": "Branches",
+    "shift": "Schedule",
+    "stampModes": "Stamping",
+    "leaveApprovers": "Leave approvers",
+    "correctionApprovers": "Correction approvers",
+    "lastStamp": "Last stamp",
+    "actions": "Actions"
+  },
+  "role": {
+    "userShort": "User",
+    "adminShort": "Admin"
+  },
+  "state": {
+    "active": "Active",
+    "inactive": "Deactivated"
+  },
+  "grid": {
+    "adminLimitTitle": "Admin limit reached ({{count}}/{{max}})",
+    "branchesTitle": "Edit assigned branches",
+    "branchesNone": "None · Assign",
+    "branchesCount_one": "{{count}} branch · Edit",
+    "branchesCount_other": "{{count}} branches · Edit",
+    "shiftTitle": "Assign or change schedule",
+    "shiftNone": "None · Assign",
+    "modesTitle": "Choose which methods the user can stamp with",
+    "modesNone": "No stamping",
+    "modeRemote": "Remote",
+    "modesEdit": "{{label}} · Edit",
+    "approversEdit": "Edit",
+    "leaveApproversTitle": "Configure who can approve this user's holiday/leave",
+    "correctionApproversTitle": "Configure who can approve this user's correction requests"
+  },
+  "actions": {
+    "editName": "Edit first / last name",
+    "resetPassword": "Send password reset email",
+    "cannotDeactivateSelf": "You can't deactivate your own account",
+    "deactivate": "Deactivate user (keeps seat)",
+    "reactivate": "Reactivate user",
+    "cannotDeleteSelf": "You can't delete your own account",
+    "delete": "Delete user (frees the seat)"
+  }
+}

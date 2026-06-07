@@ -1,0 +1,29 @@
+{
+  "title": "Settings",
+  "section": {
+    "profile": "Company details & localization",
+    "profileDesc": "Basic company data and system language. The legal name and VAT number are set when the tenant is provisioned.",
+    "activeCompany": "Active company",
+    "activeCompanyDesc": "Your account is linked to multiple companies. Switch the one you are working on: the page will reload with the new company's data.",
+    "emailNotif": "Email notifications",
+    "emailNotifDesc": "Push notifications on the mobile app are always on (managed from the app). Here you choose, per category, which notifications to also receive by email. Off by default."
+  },
+  "ragioneSociale": "Legal name",
+  "partitaIva": "VAT number",
+  "readOnlyHint": "Read-only. Editable by the provider.",
+  "timezone": "Timezone",
+  "timezoneHint": "Affects time zones in reports.",
+  "languageHint": "The language is personal: it applies only to your account.",
+  "company": "Company",
+  "switching": "Switching company…",
+  "switchHint": "Switching company will redirect you to the dashboard.",
+  "emailPref": {
+    "emailLeaveDecisions": "Outcomes of my requests (holiday, leave, absence)",
+    "emailLeaveSubmissions": "New holiday/leave requests to approve",
+    "emailCorrectionDecisions": "Outcomes of my stamp corrections",
+    "emailCorrectionSubmissions": "New stamp corrections to approve",
+    "emailLeaveReminders": "Reminder 24h before an absence"
+  },
+  "toggleOn": "On — click to turn off",
+  "toggleOff": "Off — click to turn on"
+}

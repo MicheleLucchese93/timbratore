@@ -1,0 +1,35 @@
+{
+  "heading": "Stamps",
+  "newStamp": "New stamp",
+  "editStamp": "Edit stamp",
+  "deletePrompt": "Reason for deletion (required):",
+  "origin": {
+    "auto": "auto"
+  },
+  "form": {
+    "user": "Employee",
+    "event": "Event",
+    "when": "When",
+    "branch": "Branch",
+    "noBranch": "— None —",
+    "justification": "Reason",
+    "justificationPlaceholder": "e.g. forgotten stamp"
+  },
+  "col": {
+    "when": "When",
+    "user": "Employee",
+    "event": "Event",
+    "origin": "Source",
+    "branch": "Branch",
+    "notes": "Notes",
+    "actions": "Actions"
+  },
+  "badge": {
+    "mock": "mock",
+    "outOfArea": "out of area"
+  },
+  "action": {
+    "edit": "Edit stamp",
+    "delete": "Delete stamp"
+  }
+}

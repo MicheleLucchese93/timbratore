@@ -1,0 +1,150 @@
+{
+  "app": {
+    "name": "sonoQui",
+    "tenantFallback": "Company"
+  },
+  "btn": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "confirm": "Confirm",
+    "close": "Close",
+    "add": "Add",
+    "back": "Back",
+    "next": "Next",
+    "continue": "Continue",
+    "search": "Search",
+    "filter": "Filter",
+    "retry": "Retry",
+    "send": "Send",
+    "download": "Download",
+    "export": "Export",
+    "generate": "Generate",
+    "approve": "Approve",
+    "reject": "Reject",
+    "create": "Create",
+    "new": "New",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "logout": "Log out",
+    "refresh": "Refresh"
+  },
+  "state": {
+    "loading": "Loading…",
+    "saving": "Saving…",
+    "all": "All",
+    "none": "None",
+    "empty": "No data",
+    "error": "Error",
+    "saved": "Setting saved.",
+    "saveError": "Save failed",
+    "prefSaved": "Preference saved.",
+    "errorGeneric": "Something went wrong"
+  },
+  "role": {
+    "admin": "Administrator",
+    "user": "Employee"
+  },
+  "status": {
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "cancelled": "Cancelled",
+    "submitted": "Submitted",
+    "cancel_requested": "Cancellation requested"
+  },
+  "stampEvent": {
+    "clock_in": "Clock-in",
+    "clock_out": "Clock-out",
+    "break_start": "Break start",
+    "break_end": "Break end",
+    "lunch_start": "Lunch start",
+    "lunch_end": "Lunch end"
+  },
+  "workState": {
+    "working": "Working",
+    "on_break": "On break",
+    "on_lunch": "At lunch",
+    "off": "Off duty"
+  },
+  "origin": {
+    "app": "app",
+    "correction": "corr.",
+    "admin": "admin"
+  },
+  "leaveType": {
+    "ferie": "Holiday",
+    "permessi": "Leave",
+    "malattia": "Sick leave",
+    "assenza": "Absence",
+    "chiusura": "Company closure"
+  },
+  "assenzaSubtype": {
+    "lutto": "Bereavement",
+    "donazione_sangue": "Blood donation",
+    "permesso_studio": "Study leave",
+    "permesso_elettorale": "Electoral leave",
+    "matrimonio": "Marriage",
+    "allattamento": "Nursing leave",
+    "congedo_parentale": "Parental leave",
+    "legge_104": "Law 104",
+    "assemblea_sindacale": "Union assembly",
+    "visita_medica": "Medical appointment",
+    "motivi_personali": "Personal reasons"
+  },
+  "anomaly": {
+    "missing_clock_in": "Missing clock-in",
+    "missing_clock_out": "Missing clock-out",
+    "late_clock_in": "Late clock-in",
+    "early_clock_out": "Early clock-out",
+    "short_hours": "Insufficient daily hours",
+    "worked_on_rest_day": "Worked on a rest day",
+    "break_too_short": "Break too short",
+    "break_too_long": "Break too long",
+    "lunch_too_short": "Lunch break too short",
+    "lunch_too_long": "Lunch break too long",
+    "lunch_outside_window": "Lunch break outside window",
+    "clock_out_out_of_area": "Clock-out outside area"
+  },
+  "unit": {
+    "hours": "Hours",
+    "hoursShort": "h",
+    "days": "days",
+    "day": "day",
+    "minutes": "minutes"
+  },
+  "lang": {
+    "label": "Language",
+    "it": "Italiano",
+    "en": "English",
+    "interfaceLabel": "Interface language"
+  },
+  "ui": {
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
+  },
+  "errors": {
+    "UNAUTHORIZED": "Unauthorized",
+    "FORBIDDEN": "Forbidden",
+    "NOT_FOUND": "Not found",
+    "VALIDATION": "Invalid input",
+    "NO_ACTIVE_TENANT": "No active company linked to your account",
+    "MISSING_IDEMPOTENCY_KEY": "Invalid request, please retry",
+    "INVALID_TRANSITION": "Invalid state for this action",
+    "DUPLICATE_TOO_FAST": "You just stamped a moment ago",
+    "OUT_OF_GEOFENCE": "You are outside the allowed area",
+    "MOCK_LOCATION_BLOCKED": "Mock location not allowed",
+    "GPS_REQUIRED": "GPS location required to stamp",
+    "WEB_CLOCK_IN_DISABLED": "Web clock-in is not enabled",
+    "STAMPING_DISABLED": "Stamping not enabled",
+    "CLOCK_SKEW": "Device clock is not in sync with the server",
+    "UNDO_WINDOW_EXPIRED": "Undo window has expired",
+    "LIMIT_REACHED": "Plan limit reached",
+    "LAST_ADMIN": "Cannot remove the last administrator",
+    "GEOCODING_UNAVAILABLE": "Geocoding unavailable",
+    "CONFLICT": "Conflict with the current state",
+    "INTERNAL": "Internal server error"
+  }
+}

@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export interface ConfirmOptions {
   /** Heading of the dialog. */
@@ -35,6 +36,7 @@ interface PendingState extends ConfirmOptions {
  * `window.confirm`, styled to match the rest of the app.
  */
 export function ConfirmProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation('common');
   const [pending, setPending] = useState<PendingState | null>(null);
   const pendingRef = useRef<PendingState | null>(null);
   const confirmBtnRef = useRef<HTMLButtonElement>(null);
@@ -88,7 +90,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             )}
             <div className="flex gap-2 justify-end">
               <button type="button" className="btn btn-secondary" onClick={() => close(false)}>
-                {pending.cancelLabel ?? 'Annulla'}
+                {pending.cancelLabel ?? t('btn.cancel')}
               </button>
               <button
                 ref={confirmBtnRef}
@@ -96,7 +98,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                 className={pending.danger ? 'btn btn-danger' : 'btn btn-primary'}
                 onClick={() => close(true)}
               >
-                {pending.confirmLabel ?? 'Conferma'}
+                {pending.confirmLabel ?? t('btn.confirm')}
               </button>
             </div>
           </div>

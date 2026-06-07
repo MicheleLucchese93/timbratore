@@ -1,0 +1,23 @@
+{
+  "heading": "Correzioni",
+  "newRequest": "+ Nuova richiesta",
+  "filter": {
+    "pendingOnly": "Solo in attesa"
+  },
+  "empty": "Nessuna richiesta.",
+  "submittedAt": "Inviata {{date}}",
+  "status": {
+    "superseded": "Superata"
+  },
+  "rejectPrompt": "Motivo rifiuto:",
+  "justification": "Motivazione",
+  "decisionNote": "Nota della decisione",
+  "missingStamp": "Timbratura mancante da aggiungere",
+  "currentValues": "Valori attuali",
+  "requestedValues": "Valori richiesti",
+  "field": {
+    "event": "Evento",
+    "dateTime": "Data e ora",
+    "branch": "Sede"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "prev": "Precedente",
+    "next": "Successivo",
+    "today": "Oggi"
+  },
+  "view": {
+    "day": "Giorno",
+    "week": "Settimana",
+    "month": "Mese",
+    "year": "Anno"
+  },
+  "pending": " (in attesa)",
+  "noEvents": "Nessun evento.",
+  "legend": {
+    "holiday": "Festività"
+  }
+}

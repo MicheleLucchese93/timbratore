@@ -1,6 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import './HeroAnimation.css';
 
 export function HeroAnimation() {
+  const { t } = useTranslation('components');
   return (
     <div className="hero-anim">
       <div className="hero-anim__bg" />
@@ -13,13 +15,13 @@ export function HeroAnimation() {
 
       <div className="hero-anim__content">
         <h1 className="hero-anim__brand">sonoQui</h1>
-        <p className="hero-anim__payoff">Il tempo che lavori, semplice come dirlo.</p>
+        <p className="hero-anim__payoff">{t('hero.payoff')}</p>
 
         <div className="hero-anim__stage">
           <ClockCard />
-          <StampPill kind="in" label="Ingresso" time="08:02" delay="0s" />
-          <StampPill kind="break" label="Inizio pausa" time="13:00" delay="2.4s" />
-          <StampPill kind="out" label="Uscita" time="17:48" delay="4.8s" />
+          <StampPill kind="in" label={t('hero.stampIn')} time="08:02" delay="0s" />
+          <StampPill kind="break" label={t('hero.stampBreak')} time="13:00" delay="2.4s" />
+          <StampPill kind="out" label={t('hero.stampOut')} time="17:48" delay="4.8s" />
           <GpsMarker />
         </div>
       </div>

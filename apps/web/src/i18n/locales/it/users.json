@@ -1,0 +1,200 @@
+{
+  "heading": "Utenti",
+  "toolbar": {
+    "exportXlsx": "Esporta XLSX",
+    "exportXlsxTitle": "Scarica l'elenco utenti in formato Excel",
+    "importing": "Importazione…",
+    "importXlsx": "Importa XLSX",
+    "importXlsxTitle": "Carica un file Excel per creare/aggiornare più utenti — chiave: email",
+    "invite": "Invita utente",
+    "limitReachedTitle": "Limite raggiunto — contatta supporto"
+  },
+  "usage": {
+    "users": "Utenti: ",
+    "admins": "Amministratori: "
+  },
+  "export": {
+    "failed": "Export fallito",
+    "fileName": "utenti_{{date}}.xlsx",
+    "error": "errore export"
+  },
+  "import": {
+    "failed": "Import fallito",
+    "rowError": "riga {{row}}: {{message}}",
+    "more": "… +{{count}} altri",
+    "success": "Importate {{processed}} righe — {{created}} nuove, {{reactivated}} riattivate, {{updated}} aggiornate.",
+    "error": "errore import"
+  },
+  "resetPasswordSent": "Email per reimpostare la password inviata a {{email}}.",
+  "bulkBranchesAdded_one": "{{count}} sede assegnate a {{users}} utenti.",
+  "bulkBranchesAdded_other": "{{count}} sedi assegnate a {{users}} utenti.",
+  "bulkBranchesRemoved_one": "{{count}} sede rimosse a {{users}} utenti.",
+  "bulkBranchesRemoved_other": "{{count}} sedi rimosse a {{users}} utenti.",
+  "errorGeneric": "errore",
+  "bulkBar": {
+    "selected_one": "utente selezionato",
+    "selected_other": "utenti selezionati",
+    "assignBranches": "Assegna sedi",
+    "removeBranches": "Rimuovi sedi",
+    "assignShift": "Assegna orario",
+    "stampModes": "Timbratura",
+    "leaveApprovers": "Approvatori ferie",
+    "correctionApprovers": "Approvatori correzioni",
+    "resetPassword": "Invia reset password"
+  },
+  "bulkReset": {
+    "title": "Inviare l'email di reset password?",
+    "message_one": "Verrà inviata a {{count}} utente un'email per impostare la password. Usalo anche per dare il primo accesso agli utenti appena creati.",
+    "message_other": "Verrà inviata a {{count}} utenti un'email per impostare la password. Usalo anche per dare il primo accesso agli utenti appena creati.",
+    "confirm": "Invia email",
+    "done_one": "Email di reset inviata a {{count}} utente.",
+    "done_other": "Email di reset inviata a {{count}} utenti."
+  },
+  "bulkShift": {
+    "title": "Assegna orario in massa",
+    "message_one": "L'orario scelto verrà assegnato a {{count}} utente, sostituendo quello attuale.",
+    "message_other": "L'orario scelto verrà assegnato a {{count}} utenti, sostituendo quello attuale.",
+    "done_one": "Orario assegnato a {{count}} utente.",
+    "done_other": "Orario assegnato a {{count}} utenti."
+  },
+  "bulkModes": {
+    "title": "Metodi di timbratura in massa",
+    "message_one": "I metodi scelti sostituiranno quelli attuali di {{count}} utente.",
+    "message_other": "I metodi scelti sostituiranno quelli attuali di {{count}} utenti.",
+    "noneSelected": "Nessun metodo selezionato: gli utenti non potranno timbrare.",
+    "done_one": "Metodi di timbratura aggiornati per {{count}} utente.",
+    "done_other": "Metodi di timbratura aggiornati per {{count}} utenti."
+  },
+  "bulkApprovers": {
+    "title": "Approvatori {{suffix}} in massa",
+    "message_one": "Gli approvatori scelti sostituiranno quelli attuali di {{count}} utente.",
+    "message_other": "Gli approvatori scelti sostituiranno quelli attuali di {{count}} utenti.",
+    "done_one": "Approvatori aggiornati per {{count}} utente.",
+    "done_other": "Approvatori aggiornati per {{count}} utenti."
+  },
+  "confirmDeactivate": {
+    "title": "Disattivare utente?",
+    "messagePre": "L'utente",
+    "messagePost": "non potrà più accedere finché non sarà riattivato. Il posto rimane occupato — per liberarlo elimina l'utente.",
+    "confirm": "Disattiva"
+  },
+  "confirmDelete": {
+    "title": "Eliminare utente?",
+    "messagePre": "L'utente",
+    "messagePost": "verrà rimosso dall'azienda e il posto sarà liberato. Le timbrature passate restano per legge. L'azione non è reversibile — per riattivarlo dovrai invitarlo di nuovo."
+  },
+  "approver": {
+    "leaveSuffix": "ferie/permessi",
+    "correctionSuffix": "correzioni",
+    "leaveExplainer": "Solo gli utenti selezionati possono approvare ferie/permessi di questo dipendente. Se nessuno è configurato, gli admin possono decidere. Vince il primo che decide.",
+    "correctionExplainer": "Solo gli utenti selezionati possono approvare le richieste di correzione timbrature di questo dipendente. Se nessuno è configurato, gli admin possono decidere. Vince il primo che decide.",
+    "title": "Approvatori {{suffix}} di {{name}}",
+    "noUsers": "Nessun altro utente attivo disponibile.",
+    "roleAdmin": "(admin)",
+    "roleUser": "(utente)"
+  },
+  "shift": {
+    "title": "Orario di {{name}}",
+    "label": "Orario",
+    "none": "— Nessuno —",
+    "emptyHintPre": "Nessun orario configurato. Vai in",
+    "emptyHintLink": "Orari",
+    "emptyHintPost": "per crearne uno.",
+    "validFrom": "Valido dal",
+    "validFromHint": "L'assegnazione precedente verrà chiusa al giorno prima di questa data."
+  },
+  "userEditor": {
+    "title": "Modifica utente",
+    "emailHint": "{{email}} — l'email non è modificabile.",
+    "firstName": "Nome",
+    "lastName": "Cognome"
+  },
+  "bulk": {
+    "addTitle": "Assegna sedi",
+    "removeTitle": "Rimuovi sedi",
+    "messageAdded_one": "Le sedi selezionate verranno aggiunte a {{count}} utente. Le assegnazioni esistenti restano invariate.",
+    "messageAdded_other": "Le sedi selezionate verranno aggiunte a {{count}} utenti. Le assegnazioni esistenti restano invariate.",
+    "messageRemoved_one": "Le sedi selezionate verranno rimosse a {{count}} utente. Le altre assegnazioni restano invariate.",
+    "messageRemoved_other": "Le sedi selezionate verranno rimosse a {{count}} utenti. Le altre assegnazioni restano invariate.",
+    "noBranches": "Nessuna sede disponibile.",
+    "assign": "Assegna",
+    "remove": "Rimuovi"
+  },
+  "modes": {
+    "title": "Metodi di timbratura di {{name}}",
+    "explainer": "Scegli con quali metodi l'utente può timbrare. Nessun metodo selezionato = l'utente non può timbrare.",
+    "gpsLabel": "GPS",
+    "gpsDesc": "— da app mobile, presso la sede (geofence)",
+    "remoteLabel": "Da remoto",
+    "remoteDesc": "— da web, senza verifica della posizione",
+    "noneSelected": "Nessun metodo selezionato: l'utente non potrà timbrare."
+  },
+  "branchEditor": {
+    "title": "Sedi di {{email}}",
+    "explainer": "Senza almeno una sede l'utente non potrà timbrare né da app né da web.",
+    "empty": "Nessuna sede creata. Vai in \"Sedi\" per crearne una prima."
+  },
+  "invite": {
+    "title": "Invita utente",
+    "subtitle": "L'utente viene creato senza inviare alcuna email. Per dargli accesso, invia poi l'email di reset password (icona chiave o operazione in massa).",
+    "createdNoEmail": "Utente creato. Nessuna email inviata: usa «Invia reset password» (icona chiave) per dargli il primo accesso.",
+    "firstName": "Nome",
+    "lastName": "Cognome",
+    "optional": "(facoltativo)",
+    "email": "Email",
+    "role": "Ruolo",
+    "roleUser": "Utente",
+    "branches": "Sedi assegnate",
+    "noBranches": "Nessuna sede creata. Senza sedi l'utente non potrà timbrare.",
+    "branchesHint": "Puoi assegnare altre sedi anche dopo l'invito.",
+    "sending": "Invio…",
+    "submit": "Invita"
+  },
+  "col": {
+    "email": "Email",
+    "firstName": "Nome",
+    "lastName": "Cognome",
+    "role": "Ruolo",
+    "state": "Stato",
+    "branches": "Sedi",
+    "shift": "Orario",
+    "stampModes": "Timbratura",
+    "leaveApprovers": "Approvatori ferie",
+    "correctionApprovers": "Approvatori correzioni",
+    "lastStamp": "Ultima timbratura",
+    "actions": "Azioni"
+  },
+  "role": {
+    "userShort": "Utente",
+    "adminShort": "Admin"
+  },
+  "state": {
+    "active": "Attivo",
+    "inactive": "Disattivato"
+  },
+  "grid": {
+    "adminLimitTitle": "Limite admin raggiunto ({{count}}/{{max}})",
+    "branchesTitle": "Modifica sedi assegnate",
+    "branchesNone": "Nessuna · Assegna",
+    "branchesCount_one": "{{count}} sede · Modifica",
+    "branchesCount_other": "{{count}} sedi · Modifica",
+    "shiftTitle": "Assegna o cambia orario",
+    "shiftNone": "Nessuno · Assegna",
+    "modesTitle": "Scegli con quali metodi l'utente può timbrare",
+    "modesNone": "Non timbra",
+    "modeRemote": "Remoto",
+    "modesEdit": "{{label}} · Modifica",
+    "approversEdit": "Modifica",
+    "leaveApproversTitle": "Configura chi può approvare ferie/permessi di questo utente",
+    "correctionApproversTitle": "Configura chi può approvare le richieste di correzione di questo utente"
+  },
+  "actions": {
+    "editName": "Modifica nome / cognome",
+    "resetPassword": "Invia email per reimpostare la password",
+    "cannotDeactivateSelf": "Non puoi disattivare il tuo account",
+    "deactivate": "Disattiva utente (mantiene posto)",
+    "reactivate": "Riattiva utente",
+    "cannotDeleteSelf": "Non puoi eliminare il tuo account",
+    "delete": "Elimina utente (libera il posto)"
+  }
+}

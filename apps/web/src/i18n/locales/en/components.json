@@ -1,0 +1,21 @@
+{
+  "placeSearch": {
+    "searchError": "search error",
+    "detailsError": "details error"
+  },
+  "iconButton": {
+    "duplicate": "Duplicate",
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate",
+    "revoke": "Revoke",
+    "adjust": "Adjust",
+    "history": "History",
+    "resetPassword": "Resend password-reset email"
+  },
+  "hero": {
+    "payoff": "The time you work, as simple as saying it.",
+    "stampIn": "Clock-in",
+    "stampBreak": "Break start",
+    "stampOut": "Clock-out"
+  }
+}

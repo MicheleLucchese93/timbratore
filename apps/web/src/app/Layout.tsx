@@ -1,37 +1,40 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useSession } from '../store/session.ts';
+import { LanguageToggle } from '../components/LanguageSwitcher.tsx';
 
-interface NavItem { to: string; label: string; icon: ReactNode }
+interface NavItem { to: string; key: string; icon: ReactNode }
 
 const adminNav: NavItem[] = [
-  { to: '/', label: 'Dashboard', icon: <IconHome /> },
-  { to: '/stamps', label: 'Timbrature', icon: <IconStamp /> },
-  { to: '/corrections', label: 'Correzioni', icon: <IconEdit /> },
-  { to: '/users', label: 'Utenti', icon: <IconUsers /> },
-  { to: '/branches', label: 'Sedi', icon: <IconMapPin /> },
-  { to: '/shifts', label: 'Orari', icon: <IconClock /> },
-  { to: '/anomalies', label: 'Anomalie', icon: <IconAlert /> },
-  { to: '/leaves', label: 'Ferie & Permessi', icon: <IconCalendar /> },
-  { to: '/residui', label: 'Residui', icon: <IconWallet /> },
-  { to: '/exports', label: 'Esportazioni', icon: <IconDownload /> },
-  { to: '/settings', label: 'Impostazioni', icon: <IconCog /> },
-  { to: '/manual', label: 'Manuale Utente', icon: <IconBook /> },
+  { to: '/', key: 'dashboard', icon: <IconHome /> },
+  { to: '/stamps', key: 'stamps', icon: <IconStamp /> },
+  { to: '/corrections', key: 'corrections', icon: <IconEdit /> },
+  { to: '/users', key: 'users', icon: <IconUsers /> },
+  { to: '/branches', key: 'branches', icon: <IconMapPin /> },
+  { to: '/shifts', key: 'shifts', icon: <IconClock /> },
+  { to: '/anomalies', key: 'anomalies', icon: <IconAlert /> },
+  { to: '/leaves', key: 'leaves', icon: <IconCalendar /> },
+  { to: '/residui', key: 'residui', icon: <IconWallet /> },
+  { to: '/exports', key: 'exports', icon: <IconDownload /> },
+  { to: '/settings', key: 'settings', icon: <IconCog /> },
+  { to: '/manual', key: 'manual', icon: <IconBook /> },
 ];
 
 const userNav: NavItem[] = [
-  { to: '/', label: 'Dashboard', icon: <IconHome /> },
-  { to: '/me/stamps', label: 'Le mie timbrature', icon: <IconStamp /> },
-  { to: '/me/corrections', label: 'Le mie richieste', icon: <IconEdit /> },
-  { to: '/me/leaves', label: 'Ferie & Permessi', icon: <IconCalendar /> },
-  { to: '/me/residui', label: 'Residui', icon: <IconWallet /> },
-  { to: '/manual', label: 'Manuale Utente', icon: <IconBook /> },
+  { to: '/', key: 'dashboard', icon: <IconHome /> },
+  { to: '/me/stamps', key: 'myStamps', icon: <IconStamp /> },
+  { to: '/me/corrections', key: 'myCorrections', icon: <IconEdit /> },
+  { to: '/me/leaves', key: 'leaves', icon: <IconCalendar /> },
+  { to: '/me/residui', key: 'residui', icon: <IconWallet /> },
+  { to: '/manual', key: 'manual', icon: <IconBook /> },
 ];
 
 const COLLAPSED_KEY = 'sonoqui.sidebar.collapsed';
 
 export function Layout({ children }: { children: ReactNode }) {
   const { me, logout } = useSession();
+  const { t } = useTranslation(['nav', 'common']);
   const navItems = me?.user.role === 'admin' ? adminNav : userNav;
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -62,7 +65,7 @@ export function Layout({ children }: { children: ReactNode }) {
     <div className="app-shell">
       {mobileOpen && (
         <button
-          aria-label="Chiudi menu"
+          aria-label={t('closeMenu')}
           className="sidebar-backdrop"
           onClick={() => setMobileOpen(false)}
         />
@@ -89,7 +92,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 sono<span style={{ color: 'var(--color-on-primary-container)' }}>Qui</span>
               </div>
               <div className="sidebar-brand-tenant" title={me?.tenant.ragione_sociale}>
-                {me?.tenant.ragione_sociale}
+                {me?.tenant.ragione_sociale ?? t('common:app.tenantFallback')}
               </div>
             </div>
           )}
@@ -106,10 +109,10 @@ export function Layout({ children }: { children: ReactNode }) {
                   className={({ isActive }) =>
                     `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`
                   }
-                  title={collapsed ? n.label : undefined}
+                  title={collapsed ? t(n.key) : undefined}
                 >
                   <span className="sidebar-link-icon">{n.icon}</span>
-                  {!collapsed && <span className="sidebar-link-label">{n.label}</span>}
+                  {!collapsed && <span className="sidebar-link-label">{t(n.key)}</span>}
                 </NavLink>
               </li>
             ))}
@@ -117,13 +120,14 @@ export function Layout({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="sidebar-foot">
+          <LanguageToggle collapsed={collapsed} />
           <div className="sidebar-user" title={email}>
             <div className="sidebar-user-avatar" aria-hidden="true">{initials}</div>
             {!collapsed && (
               <div className="sidebar-user-text">
                 <div className="sidebar-user-email">{email}</div>
                 <div className="sidebar-user-role">
-                  {me?.user.role === 'admin' ? 'Amministratore' : 'Dipendente'}
+                  {me?.user.role === 'admin' ? t('common:role.admin') : t('common:role.user')}
                 </div>
               </div>
             )}
@@ -131,8 +135,8 @@ export function Layout({ children }: { children: ReactNode }) {
               type="button"
               className="sidebar-user-logout"
               onClick={() => { void logout(); }}
-              title="Esci"
-              aria-label="Esci"
+              title={t('common:btn.logout')}
+              aria-label={t('common:btn.logout')}
             >
               <IconLogout />
             </button>
@@ -143,8 +147,8 @@ export function Layout({ children }: { children: ReactNode }) {
           type="button"
           className="sidebar-collapse-handle"
           onClick={() => setCollapsed((v) => !v)}
-          title={collapsed ? 'Espandi menu' : 'Comprimi menu'}
-          aria-label={collapsed ? 'Espandi menu' : 'Comprimi menu'}
+          title={collapsed ? t('expandMenu') : t('collapseMenu')}
+          aria-label={collapsed ? t('expandMenu') : t('collapseMenu')}
         >
           <IconChevron flip={collapsed} />
         </button>
@@ -155,7 +159,7 @@ export function Layout({ children }: { children: ReactNode }) {
           type="button"
           className="mobile-hamburger"
           onClick={() => setMobileOpen(true)}
-          aria-label="Apri menu"
+          aria-label={t('openMenu')}
         >
           <IconMenu />
         </button>

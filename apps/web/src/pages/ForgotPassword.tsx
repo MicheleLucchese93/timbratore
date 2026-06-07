@@ -1,9 +1,11 @@
 import { type FormEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api.ts';
 import { HeroAnimation } from '../components/HeroAnimation.tsx';
 
 export function ForgotPassword() {
+  const { t } = useTranslation(['forgotPassword', 'common']);
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -36,28 +38,28 @@ export function ForgotPassword() {
               <div className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--color-primary)' }}>
                 sono<span style={{ color: 'var(--color-on-primary-container)' }}>Qui</span>
               </div>
-              <p className="mt-1 text-sm text-neutral-600">Password dimenticata</p>
+              <p className="mt-1 text-sm text-neutral-600">{t('tagline')}</p>
             </div>
 
             {done ? (
               <div className="rounded-md px-3 py-3 text-sm" style={{ background: '#e8f3ec', color: 'var(--color-success)' }}>
-                Se l'email esiste, ti abbiamo inviato un link per reimpostare la password. Controlla la casella di posta.
+                {t('sent')}
               </div>
             ) : (
               <>
-                <p className="text-sm muted">Inserisci la tua email. Ti invieremo un link per reimpostare la password.</p>
+                <p className="text-sm muted">{t('instructions')}</p>
                 <div>
-                  <label className="label" htmlFor="email">Email</label>
+                  <label className="label" htmlFor="email">{t('email')}</label>
                   <input id="email" type="email" required className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
                 </div>
                 <button className="btn btn-primary w-full" disabled={busy} type="submit">
-                  {busy ? 'Invio…' : 'Invia link di reset'}
+                  {busy ? t('sending') : t('submit')}
                 </button>
               </>
             )}
 
             <div className="text-center text-sm pt-2 border-t border-neutral-100">
-              <Link to="/login" style={{ color: 'var(--color-primary)' }} className="font-medium">Torna al login</Link>
+              <Link to="/login" style={{ color: 'var(--color-primary)' }} className="font-medium">{t('backToLogin')}</Link>
             </div>
           </form>
         </div>

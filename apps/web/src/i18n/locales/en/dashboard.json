@@ -1,0 +1,60 @@
+{
+  "title": "Dashboard",
+  "kpi": {
+    "presentNow": "Present now",
+    "absentToday": "Absent today",
+    "toApprove": "To approve",
+    "anomalies7d": "Anomalies 7d",
+    "branches": "Locations"
+  },
+  "inbox": {
+    "title": "To approve",
+    "total": "Total: {{n}}",
+    "tab": {
+      "corrections": "Corrections",
+      "leaves": "Holiday / leave / sick",
+      "revocations": "Cancellations"
+    },
+    "emptyCorrections": "No corrections in the queue",
+    "emptyLeaves": "No requests in the queue",
+    "emptyRevocations": "No cancellations to decide",
+    "openDetail": "Open detail",
+    "inps": "INPS: {{protocol}}",
+    "reason": "Reason: {{reason}}",
+    "acceptCancellation": "Accept cancellation",
+    "rejectCancellation": "Reject cancellation"
+  },
+  "absences": {
+    "nowTitle": "Absent now",
+    "upcomingTitle": "Next 14 days",
+    "noneNow": "No absences in progress",
+    "noneUpcoming": "No scheduled absences",
+    "until": "Until {{date}}"
+  },
+  "status": {
+    "title": "Current status",
+    "noEmployees": "No employees yet",
+    "noEmployeesHint": "Invite your first team member from the Users section.",
+    "viewList": "List",
+    "viewByBranch": "By location",
+    "branch": "Location: {{name}}",
+    "last": "Last: {{event}}",
+    "noActivity": "No activity today",
+    "nobodyPresent": "Nobody present",
+    "nobodyPresentHint": "No employee has clocked in at the moment.",
+    "noBranch": "No location"
+  },
+  "anomalies": {
+    "title": "Anomalies in the last 7 days",
+    "seeAll": "See all →",
+    "mostRecent": "Most recent",
+    "delta": " · {{n}}m",
+    "none": "No anomalies in the last 7 days"
+  },
+  "reject": {
+    "leaveTitle": "Reject request",
+    "correctionTitle": "Reject correction",
+    "leaveLabel": "Reason for rejection",
+    "correctionLabel": "Rejection note (optional)"
+  }
+}

@@ -37,6 +37,12 @@ export interface MeResponse {
     enforce_radius: boolean;
     smart_working: boolean;
   }>;
+  preferences?: {
+    language: 'it' | 'en';
+    email_notifications_enabled?: boolean;
+    push_token_registered?: boolean;
+    notification_preferences?: Record<string, boolean>;
+  };
 }
 
 interface SessionState {

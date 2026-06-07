@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { useSession } from '../store/session.ts';
-import { leaveTypeLabel } from '@sonoqui/shared';
+import { fmtNumber } from '../i18n/format.ts';
+import i18n from '../i18n/index.ts';
 
 /**
  * One roster row per tenant member. Members with no active quota come back with
@@ -36,18 +38,19 @@ interface QuotaSummary {
 }
 
 const fmtH = (n: number): string =>
-  `${Number(n).toLocaleString('it-IT', { maximumFractionDigits: 2 })} h`;
+  `${fmtNumber(n, { maximumFractionDigits: 2 })} ${i18n.t('common:unit.hoursShort')}`;
 
 /** residuo = saldo iniziale + maturato − usati approvati (può essere negativo). */
 const residualStrict = (r: { initial_balance: number; accrued_total: number; used_approved: number }): number =>
   r.initial_balance + r.accrued_total - r.used_approved;
 
 export function Residui() {
+  const { t } = useTranslation(['residui', 'common']);
   const { me } = useSession();
   const isAdmin = me?.user.role === 'admin';
   return (
     <div className="space-y-5">
-      <h1 className="sr-only">Residui</h1>
+      <h1 className="sr-only">{t('title')}</h1>
       {isAdmin ? <AdminResidui /> : <MyResidui />}
     </div>
   );
@@ -56,34 +59,35 @@ export function Residui() {
 /* ---------- Admin: residui di tutti i dipendenti ---------- */
 
 function AdminResidui() {
+  const { t } = useTranslation(['residui', 'common']);
   const [rows, setRows] = useState<AssignmentRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     api<AssignmentRow[]>('/api/v1/leave-quotas/residui')
       .then(setRows)
-      .catch((e) => setErr(e instanceof Error ? e.message : 'errore'));
-  }, []);
+      .catch((e) => setErr(e instanceof Error ? e.message : t('common:state.error')));
+  }, [t]);
 
   const columns = useMemo<GridColDef<AssignmentRow>[]>(
     () => [
       {
         field: 'user',
-        headerName: 'Utente',
+        headerName: t('admin.col.user'),
         flex: 1.2,
         minWidth: 180,
         valueGetter: (_v: unknown, row: AssignmentRow) => row.user_display_name || row.user_email,
       },
       {
         field: 'type',
-        headerName: 'Tipo',
+        headerName: t('admin.col.type'),
         width: 120,
         valueGetter: (_v: unknown, row: AssignmentRow) =>
-          row.type ? leaveTypeLabel(row.type) : '—',
+          row.type ? t(`common:leaveType.${row.type}`) : '—',
       },
       {
         field: 'initial_balance',
-        headerName: 'Saldo iniziale',
+        headerName: t('admin.col.initialBalance'),
         width: 130,
         valueGetter: (_v: unknown, row: AssignmentRow) => row.initial_balance,
         renderCell: (p: GridRenderCellParams<AssignmentRow>) =>
@@ -91,7 +95,7 @@ function AdminResidui() {
       },
       {
         field: 'accrued_total',
-        headerName: 'Maturato',
+        headerName: t('admin.col.accrued'),
         width: 120,
         valueGetter: (_v: unknown, row: AssignmentRow) => row.accrued_total,
         renderCell: (p: GridRenderCellParams<AssignmentRow>) =>
@@ -99,7 +103,7 @@ function AdminResidui() {
       },
       {
         field: 'used_approved',
-        headerName: 'Usato',
+        headerName: t('admin.col.used'),
         width: 120,
         valueGetter: (_v: unknown, row: AssignmentRow) => row.used_approved,
         renderCell: (p: GridRenderCellParams<AssignmentRow>) =>
@@ -107,7 +111,7 @@ function AdminResidui() {
       },
       {
         field: 'used_pending',
-        headerName: 'In attesa',
+        headerName: t('admin.col.pending'),
         width: 120,
         valueGetter: (_v: unknown, row: AssignmentRow) => row.used_pending,
         renderCell: (p: GridRenderCellParams<AssignmentRow>) =>
@@ -115,7 +119,7 @@ function AdminResidui() {
       },
       {
         field: 'residual',
-        headerName: 'Residuo',
+        headerName: t('admin.col.residual'),
         width: 130,
         valueGetter: (_v: unknown, row: AssignmentRow) => residualStrict(row),
         renderCell: (p: GridRenderCellParams<AssignmentRow>) => {
@@ -128,7 +132,7 @@ function AdminResidui() {
       },
       {
         field: 'residual_pending',
-        headerName: 'Residuo con pending',
+        headerName: t('admin.col.residualWithPending'),
         width: 180,
         valueGetter: (_v: unknown, row: AssignmentRow) => residualStrict(row) - row.used_pending,
         renderCell: (p: GridRenderCellParams<AssignmentRow>) => {
@@ -138,16 +142,15 @@ function AdminResidui() {
         },
       },
     ],
-    []
+    [t]
   );
 
   return (
     <div className="card space-y-3">
       <div>
-        <h2 className="section-title">Residui dipendenti</h2>
+        <h2 className="section-title">{t('admin.title')}</h2>
         <p className="muted text-sm">
-          Ore residue di ferie e permessi per ogni dipendente. Chi non ha una quota
-          assegnata compare comunque, senza valori (—).
+          {t('admin.subtitle')}
         </p>
       </div>
       {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
@@ -159,9 +162,11 @@ function AdminResidui() {
         {...dataGridDefaults}
       />
       <div className="callout callout-info text-sm">
-        <strong>Residuo</strong> = saldo iniziale + maturato − usati approvati. Le richieste in
-        attesa non vengono scalate subito: il <em>residuo con pending</em> mostra cosa resterebbe se
-        venissero tutte approvate, e può diventare negativo.
+        <Trans
+          t={t}
+          i18nKey="admin.note"
+          components={{ strong: <strong />, em: <em /> }}
+        />
       </div>
     </div>
   );
@@ -170,6 +175,7 @@ function AdminResidui() {
 /* ---------- Dipendente: solo i propri residui ---------- */
 
 function MyResidui() {
+  const { t } = useTranslation(['residui', 'common']);
   const [rows, setRows] = useState<QuotaSummary[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -177,21 +183,21 @@ function MyResidui() {
   useEffect(() => {
     api<QuotaSummary[]>('/api/v1/leave-quotas/me/summary')
       .then(setRows)
-      .catch((e) => setErr(e instanceof Error ? e.message : 'errore'))
+      .catch((e) => setErr(e instanceof Error ? e.message : t('common:state.error')))
       .finally(() => setLoaded(true));
-  }, []);
+  }, [t]);
 
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="section-title">I miei residui</h2>
-        <p className="muted text-sm">Ore residue di ferie e permessi a tua disposizione.</p>
+        <h2 className="section-title">{t('mine.title')}</h2>
+        <p className="muted text-sm">{t('mine.subtitle')}</p>
       </div>
       {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
       {loaded && rows.length === 0 && !err && (
         <div className="card">
           <p className="muted text-sm">
-            Nessuna quota di ferie o permessi assegnata. Contatta l'amministratore.
+            {t('mine.empty')}
           </p>
         </div>
       )}
@@ -205,11 +211,12 @@ function MyResidui() {
 }
 
 function ResidualCard({ q }: { q: QuotaSummary }) {
+  const { t } = useTranslation(['residui', 'common']);
   const neg = q.residual_strict < 0;
   return (
     <div className="card space-y-3">
       <div className="flex items-baseline justify-between">
-        <h3 className="font-semibold">{leaveTypeLabel(q.type)}</h3>
+        <h3 className="font-semibold">{t(`common:leaveType.${q.type}`)}</h3>
         {q.template_name && <span className="text-xs muted">{q.template_name}</span>}
       </div>
       <div>
@@ -217,15 +224,15 @@ function ResidualCard({ q }: { q: QuotaSummary }) {
           {fmtH(q.residual_strict)}
         </div>
         <div className="text-xs muted">
-          residuo disponibile
-          {q.used_pending > 0 && <> · con richieste in attesa: <strong>{fmtH(q.residual_with_pending)}</strong></>}
+          {t('mine.available')}
+          {q.used_pending > 0 && <> · {t('mine.withPending')} <strong>{fmtH(q.residual_with_pending)}</strong></>}
         </div>
       </div>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-        <Row label="Saldo iniziale" value={fmtH(q.initial_balance)} />
-        <Row label="Maturato" value={fmtH(q.accrued_total)} />
-        <Row label="Usato approvato" value={fmtH(q.used_approved)} />
-        <Row label="In attesa" value={fmtH(q.used_pending)} />
+        <Row label={t('field.initialBalance')} value={fmtH(q.initial_balance)} />
+        <Row label={t('field.accrued')} value={fmtH(q.accrued_total)} />
+        <Row label={t('field.usedApproved')} value={fmtH(q.used_approved)} />
+        <Row label={t('field.pending')} value={fmtH(q.used_pending)} />
       </dl>
     </div>
   );

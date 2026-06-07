@@ -1,6 +1,8 @@
 import { type FormEvent, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
+import { LanguageSelect } from '../components/LanguageSwitcher.tsx';
 
 interface TenantSettings {
   id: string;
@@ -13,7 +15,7 @@ interface TenantSettings {
   mock_location_action: 'allow' | 'flag' | 'block';
 }
 
-type AutoSaveKey = 'timezone' | 'language';
+type AutoSaveKey = 'timezone';
 
 const TIMEZONE_OPTIONS = [
   'Europe/Rome',
@@ -37,12 +39,12 @@ interface MePrefs {
 }
 
 // Per-category email toggles, mirroring the push split (migration 030).
-const EMAIL_PREFS: Array<{ key: string; label: string }> = [
-  { key: 'email_leave_decisions', label: 'Esiti delle mie richieste (ferie, permessi, assenze)' },
-  { key: 'email_leave_submissions', label: 'Nuove richieste di ferie/permessi da approvare' },
-  { key: 'email_correction_decisions', label: 'Esiti delle mie correzioni timbratura' },
-  { key: 'email_correction_submissions', label: 'Nuove correzioni timbratura da approvare' },
-  { key: 'email_leave_reminders', label: 'Promemoria 24h prima di un’assenza' },
+const EMAIL_PREFS: Array<{ key: string; i18nKey: string }> = [
+  { key: 'email_leave_decisions', i18nKey: 'emailLeaveDecisions' },
+  { key: 'email_leave_submissions', i18nKey: 'emailLeaveSubmissions' },
+  { key: 'email_correction_decisions', i18nKey: 'emailCorrectionDecisions' },
+  { key: 'email_correction_submissions', i18nKey: 'emailCorrectionSubmissions' },
+  { key: 'email_leave_reminders', i18nKey: 'emailLeaveReminders' },
 ];
 
 interface MeResponse {
@@ -50,6 +52,7 @@ interface MeResponse {
 }
 
 export function Settings() {
+  const { t } = useTranslation(['settings', 'common']);
   const [s, setS] = useState<TenantSettings | null>(null);
   const [prefs, setPrefs] = useState<MePrefs | null>(null);
   const [busy, setBusy] = useState(false);
@@ -69,7 +72,7 @@ export function Settings() {
     try {
       await chooseTenant(id);
     } catch (e) {
-      setToast({ kind: 'err', text: e instanceof Error ? e.message : 'Errore' });
+      setToast({ kind: 'err', text: e instanceof Error ? e.message : t('common:state.error') });
       setSwitching(false);
     }
   }
@@ -96,12 +99,12 @@ export function Settings() {
         method: 'PATCH',
         json: { notification_preferences: { [key]: next } },
       });
-      setToast({ kind: 'ok', text: 'Preferenza salvata.' });
+      setToast({ kind: 'ok', text: t('common:state.prefSaved') });
     } catch (e) {
       setPrefs((cur) =>
         cur ? { ...cur, notification_preferences: { ...cur.notification_preferences, [key]: !!prev } } : cur
       );
-      setToast({ kind: 'err', text: e instanceof Error ? e.message : 'Errore' });
+      setToast({ kind: 'err', text: e instanceof Error ? e.message : t('common:state.error') });
     }
   }
 
@@ -119,10 +122,10 @@ export function Settings() {
         json: patch,
       });
       setS(updated);
-      setToast({ kind: 'ok', text: 'Impostazione salvata.' });
+      setToast({ kind: 'ok', text: t('common:state.saved') });
       return true;
     } catch (e) {
-      setToast({ kind: 'err', text: e instanceof Error ? e.message : 'Errore di salvataggio' });
+      setToast({ kind: 'err', text: e instanceof Error ? e.message : t('common:state.saveError') });
       return false;
     } finally {
       setBusy(false);
@@ -153,24 +156,24 @@ export function Settings() {
 
   return (
     <form onSubmit={onFormSubmit} className="max-w-5xl">
-      <h1 className="sr-only">Impostazioni</h1>
+      <h1 className="sr-only">{t('title')}</h1>
 
       <SettingsRow
         icon={<IconBuilding />}
-        title="Anagrafica e localizzazione"
-        description="Dati base dell'azienda e lingua di sistema. La ragione sociale e la partita IVA sono impostate al provisioning del tenant."
+        title={t('section.profile')}
+        description={t('section.profileDesc')}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Field label="Ragione sociale">
+          <Field label={t('ragioneSociale')}>
             <input
               className="input"
               value={s.ragione_sociale}
               readOnly
               disabled
             />
-            <p className="field-hint">Solo lettura. Modificabile dal provider.</p>
+            <p className="field-hint">{t('readOnlyHint')}</p>
           </Field>
-          <Field label="Partita IVA">
+          <Field label={t('partitaIva')}>
             <input
               className="input"
               value={s.partita_iva ?? ''}
@@ -178,9 +181,9 @@ export function Settings() {
               disabled
               placeholder="—"
             />
-            <p className="field-hint">Solo lettura. Modificabile dal provider.</p>
+            <p className="field-hint">{t('readOnlyHint')}</p>
           </Field>
-          <Field label="Timezone">
+          <Field label={t('timezone')}>
             <select
               className="input"
               value={s.timezone}
@@ -196,18 +199,11 @@ export function Settings() {
                 </option>
               ))}
             </select>
-            <p className="field-hint">Influenza i fusi nei report.</p>
+            <p className="field-hint">{t('timezoneHint')}</p>
           </Field>
-          <Field label="Lingua interfaccia">
-            <select
-              className="input"
-              value={s.language}
-              disabled={busy}
-              onChange={(e) => void autoSave('language', e.target.value as 'it' | 'en')}
-            >
-              <option value="it">Italiano</option>
-              <option value="en">English</option>
-            </select>
+          <Field label={t('common:lang.interfaceLabel')}>
+            <LanguageSelect />
+            <p className="field-hint">{t('languageHint')}</p>
           </Field>
         </div>
       </SettingsRow>
@@ -217,24 +213,25 @@ export function Settings() {
           <div className="hairline my-6" />
           <SettingsRow
             icon={<IconBuilding />}
-            title="Azienda attiva"
-            description="Il tuo account è collegato a più aziende. Cambia quella su cui stai lavorando: la pagina si ricaricherà con i dati della nuova azienda."
+            title={t('section.activeCompany')}
+            description={t('section.activeCompanyDesc')}
           >
-            <Field label="Azienda" className="md:max-w-md">
+            <Field label={t('company')} className="md:max-w-md">
               <select
                 className="input"
                 value={activeTenantId ?? ''}
                 disabled={switching}
                 onChange={(e) => void onSwitchTenant(e.target.value)}
               >
-                {tenants.map((t) => (
-                  <option key={t.tenant_id} value={t.tenant_id}>
-                    {t.ragione_sociale} {t.role === 'admin' ? '(Amministratore)' : '(Dipendente)'}
+                {tenants.map((tn) => (
+                  <option key={tn.tenant_id} value={tn.tenant_id}>
+                    {tn.ragione_sociale}{' '}
+                    {tn.role === 'admin' ? `(${t('common:role.admin')})` : `(${t('common:role.user')})`}
                   </option>
                 ))}
               </select>
               <p className="field-hint">
-                {switching ? 'Cambio azienda in corso…' : 'Cambiando azienda verrai reindirizzato alla dashboard.'}
+                {switching ? t('switching') : t('switchHint')}
               </p>
             </Field>
           </SettingsRow>
@@ -245,16 +242,16 @@ export function Settings() {
 
       <SettingsRow
         icon={<IconBell />}
-        title="Notifiche email"
-        description="Le notifiche push sull'app mobile sono sempre attive (gestibili dall'app). Qui scegli, per categoria, quali notifiche ricevere anche via email. Disattivate di default."
+        title={t('section.emailNotif')}
+        description={t('section.emailNotifDesc')}
       >
         <div className="space-y-2.5">
           {EMAIL_PREFS.map((p) => {
             const on = prefs?.notification_preferences?.[p.key] ?? false;
             return (
               <div key={p.key} className="flex items-center justify-between gap-4">
-                <div className="text-sm" style={{ flex: 1 }}>{p.label}</div>
-                <label className="switch" title={on ? 'Attiva — clicca per disattivare' : 'Disattivata — clicca per attivare'}>
+                <div className="text-sm" style={{ flex: 1 }}>{t(`emailPref.${p.i18nKey}`)}</div>
+                <label className="switch" title={on ? t('toggleOn') : t('toggleOff')}>
                   <input
                     type="checkbox"
                     checked={on}

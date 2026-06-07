@@ -1,7 +1,9 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
+import { fmtDate, fmtTime, localeTag } from '../i18n/format.ts';
 import { IconButton } from '../components/IconButton.tsx';
 import { LeaveCalendar, type CalendarEvent } from '../components/LeaveCalendar.tsx';
 import { NewLeaveModal } from '../components/NewLeaveModal.tsx';
@@ -21,19 +23,6 @@ type AssenzaSubtype =
   | 'visita_medica'
   | 'motivi_personali';
 
-const ASSENZA_SUBTYPE_LABEL: Record<AssenzaSubtype, string> = {
-  lutto: 'Lutto',
-  donazione_sangue: 'Donazione sangue',
-  permesso_studio: 'Permesso studio',
-  permesso_elettorale: 'Permesso elettorale',
-  matrimonio: 'Matrimonio',
-  allattamento: 'Allattamento',
-  congedo_parentale: 'Congedo parentale',
-  legge_104: 'Legge 104',
-  assemblea_sindacale: 'Assemblea sindacale',
-  visita_medica: 'Visita medica',
-  motivi_personali: 'Motivi personali',
-};
 type LeaveStatus =
   | 'pending'
   | 'approved'
@@ -118,10 +107,10 @@ interface Accrual {
   created_by_email: string | null;
 }
 
-const ACCRUAL_SOURCE_LABEL: Record<Accrual['source'], string> = {
-  cron: 'Automatico',
-  manual: 'Manuale',
-  adjustment: 'Rettifica',
+const ACCRUAL_SOURCE_KEY: Record<Accrual['source'], string> = {
+  cron: 'accrualSource.cron',
+  manual: 'accrualSource.manual',
+  adjustment: 'accrualSource.adjustment',
 };
 
 interface QuotaSummary {
@@ -142,22 +131,35 @@ interface QuotaSummary {
   accrual_month: number | null;
 }
 
-const TYPE_LABEL: Record<LeaveType, string> = {
-  ferie: 'Ferie',
-  permessi: 'Permesso',
-  malattia: 'Malattia',
-  assenza: 'Assenza',
-};
+type Translate = (key: string, opts?: Record<string, unknown>) => string;
 
-const STATUS_LABEL: Record<LeaveStatus, string> = {
-  pending: 'In attesa',
-  approved: 'Approvata',
-  rejected: 'Rifiutata',
-  cancelled: 'Annullata',
-  cancellation_pending: 'Annullamento richiesto',
-  cancelled_post_approval: 'Annullata',
-  superseded_by_malattia: 'Sostituita da malattia',
-};
+function statusLabel(s: LeaveStatus, t: Translate): string {
+  switch (s) {
+    case 'pending':
+      return t('common:status.pending');
+    case 'approved':
+      return t('common:status.approved');
+    case 'rejected':
+      return t('common:status.rejected');
+    case 'cancellation_pending':
+      return t('common:status.cancel_requested');
+    case 'cancelled':
+    case 'cancelled_post_approval':
+      return t('status.cancelled');
+    case 'superseded_by_malattia':
+      return t('status.superseded_by_malattia');
+  }
+}
+
+const ALL_STATUSES: LeaveStatus[] = [
+  'pending',
+  'approved',
+  'rejected',
+  'cancelled',
+  'cancellation_pending',
+  'cancelled_post_approval',
+  'superseded_by_malattia',
+];
 
 function fmtRange(from: string, to: string, type: LeaveType): string {
   const f = new Date(from);
@@ -166,30 +168,31 @@ function fmtRange(from: string, to: string, type: LeaveType): string {
   const d: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
   const h: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
   if (type === 'permessi' && sameDay) {
-    return `${f.toLocaleDateString('it-IT', d)} ${f.toLocaleTimeString('it-IT', h)}–${t.toLocaleTimeString('it-IT', h)}`;
+    return `${fmtDate(f, d)} ${fmtTime(f, h)}–${fmtTime(t, h)}`;
   }
-  if (sameDay) return f.toLocaleDateString('it-IT', d);
-  return `${f.toLocaleDateString('it-IT', d)} → ${t.toLocaleDateString('it-IT', d)}`;
+  if (sameDay) return fmtDate(f, d);
+  return `${fmtDate(f, d)} → ${fmtDate(t, d)}`;
 }
 
 export function Leaves() {
+  const { t } = useTranslation(['leaves', 'common']);
   const [tab, setTab] = useState<'requests' | 'calendar' | 'quotas' | 'templates'>('requests');
   return (
     <div className="space-y-5">
-      <h1 className="sr-only">Ferie & Permessi</h1>
+      <h1 className="sr-only">{t('heading')}</h1>
       <div className="card p-0">
         <div className="flex border-b" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>
           <TabButton active={tab === 'requests'} onClick={() => setTab('requests')}>
-            Richieste
+            {t('tab.requests')}
           </TabButton>
           <TabButton active={tab === 'calendar'} onClick={() => setTab('calendar')}>
-            Calendario
+            {t('tab.calendar')}
           </TabButton>
           <TabButton active={tab === 'quotas'} onClick={() => setTab('quotas')}>
-            Quote
+            {t('tab.quotas')}
           </TabButton>
           <TabButton active={tab === 'templates'} onClick={() => setTab('templates')}>
-            Modelli
+            {t('tab.templates')}
           </TabButton>
         </div>
         <div className="p-4">
@@ -229,6 +232,7 @@ function TabButton({
 /* ---------- Requests ---------- */
 
 function RequestsTab() {
+  const { t } = useTranslation(['leaves', 'common']);
   const [rows, setRows] = useState<LeaveRequest[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<LeaveRequest | null>(null);
@@ -240,7 +244,7 @@ function RequestsTab() {
       const r = await api<LeaveRequest[]>(`/api/v1/leaves?scope=all`);
       setRows(r);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     }
   }
   useEffect(() => {
@@ -253,7 +257,7 @@ function RequestsTab() {
       await api(`/api/v1/leaves/${r.id}/approve`, { method: 'POST' });
       await load();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     }
   }
 
@@ -266,7 +270,7 @@ function RequestsTab() {
       });
       await load();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     }
   }
 
@@ -277,7 +281,7 @@ function RequestsTab() {
       )}
       <div className="flex justify-end">
         <button type="button" className="btn btn-primary" onClick={() => setShowNew(true)}>
-          + Nuova richiesta
+          {t('requests.new')}
         </button>
       </div>
       <RequestsDataGrid
@@ -295,8 +299,8 @@ function RequestsTab() {
       )}
       {rejectTarget && (
         <ReasonDialog
-          title="Rifiuta richiesta"
-          label="Motivo del rifiuto"
+          title={t('reject.title')}
+          label={t('reject.label')}
           onClose={() => setRejectTarget(null)}
           onSubmit={async (reason) => {
             try {
@@ -307,15 +311,15 @@ function RequestsTab() {
               setRejectTarget(null);
               await load();
             } catch (e) {
-              setErr(e instanceof Error ? e.message : 'errore');
+              setErr(e instanceof Error ? e.message : t('common:state.error'));
             }
           }}
         />
       )}
       {cancelTarget && (
         <ReasonDialog
-          title="Revoca richiesta approvata"
-          label="Motivo della revoca"
+          title={t('revoke.title')}
+          label={t('revoke.label')}
           onClose={() => setCancelTarget(null)}
           onSubmit={async (reason) => {
             try {
@@ -326,7 +330,7 @@ function RequestsTab() {
               setCancelTarget(null);
               await load();
             } catch (e) {
-              setErr(e instanceof Error ? e.message : 'errore');
+              setErr(e instanceof Error ? e.message : t('common:state.error'));
             }
           }}
         />
@@ -350,6 +354,7 @@ function toCalEvent(r: LeaveRequest): CalendarEvent {
 }
 
 function CalendarTab() {
+  const { t } = useTranslation(['leaves', 'common']);
   const [all, setAll] = useState<LeaveRequest[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
@@ -368,9 +373,9 @@ function CalendarTab() {
       setAll(r);
       setErr(null);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     }
-  }, []);
+  }, [t]);
 
   const events = useMemo(
     () => all.filter((r) => !hidden.has(r.user_id)).map(toCalEvent),
@@ -396,9 +401,9 @@ function CalendarTab() {
     <div className="space-y-3">
       {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
       <div className="flex items-center justify-between gap-2">
-        <p className="muted text-sm">Calendario di tutte le assenze aziendali.</p>
+        <p className="muted text-sm">{t('calendar.intro')}</p>
         <button type="button" className="btn btn-primary" onClick={() => setShowBulk(true)}>
-          + Inserisci evento
+          {t('calendar.addEvent')}
         </button>
       </div>
 
@@ -409,14 +414,14 @@ function CalendarTab() {
             className="btn btn-ghost btn-sm"
             onClick={() => setHidden(new Set())}
           >
-            Tutti
+            {t('common:state.all')}
           </button>
           <button
             type="button"
             className="btn btn-ghost btn-sm"
             onClick={() => setHidden(new Set(presentUsers.map((u) => u.user_id)))}
           >
-            Nessuno
+            {t('common:state.none')}
           </button>
           {presentUsers.map((u) => {
             const on = !hidden.has(u.user_id);
@@ -431,7 +436,7 @@ function CalendarTab() {
                   opacity: on ? 1 : 0.4,
                   background: on ? 'var(--color-surface-variant, #f3f4f6)' : 'transparent',
                 }}
-                title={on ? 'Clicca per nascondere' : 'Clicca per mostrare'}
+                title={on ? t('calendar.clickToHide') : t('calendar.clickToShow')}
               >
                 {u.display_name || u.email}
               </button>
@@ -467,6 +472,7 @@ function BulkEventModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const { t } = useTranslation(['leaves', 'common']);
   const [title, setTitle] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -488,10 +494,10 @@ function BulkEventModal({
 
   async function submit() {
     setErr(null);
-    if (!title.trim()) return setErr('Inserisci un titolo.');
-    if (!from || !to) return setErr('Inserisci le date.');
-    if (to < from) return setErr('La data di fine precede quella di inizio.');
-    if (!allUsers && selected.size === 0) return setErr('Seleziona almeno un utente.');
+    if (!title.trim()) return setErr(t('bulk.errTitle'));
+    if (!from || !to) return setErr(t('bulk.errDates'));
+    if (to < from) return setErr(t('bulk.errOrder'));
+    if (!allUsers && selected.size === 0) return setErr(t('bulk.errSelect'));
     setBusy(true);
     try {
       await api('/api/v1/leaves/bulk', {
@@ -507,7 +513,7 @@ function BulkEventModal({
       });
       onDone();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     } finally {
       setBusy(false);
     }
@@ -516,34 +522,34 @@ function BulkEventModal({
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50" onClick={onClose}>
       <div className="card w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-        <h2 className="section-title mb-3">Inserisci evento aziendale</h2>
+        <h2 className="section-title mb-3">{t('bulk.title')}</h2>
         <div className="space-y-3">
           <div>
-            <label className="label">Titolo</label>
-            <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Chiusura aziendale agosto" />
+            <label className="label">{t('bulk.titleLabel')}</label>
+            <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('bulk.titlePlaceholder')} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Dal</label>
+              <label className="label">{t('bulk.from')}</label>
               <input type="date" className="input" value={from} onChange={(e) => setFrom(e.target.value)} />
             </div>
             <div>
-              <label className="label">Al</label>
+              <label className="label">{t('bulk.to')}</label>
               <input type="date" className="input" value={to} onChange={(e) => setTo(e.target.value)} />
             </div>
           </div>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={deduct} onChange={(e) => setDeduct(e.target.checked)} />
-            Conteggia come ferie (scala dal monte ore). Lascia deselezionato per chiusura non retributiva.
+            {t('bulk.deduct')}
           </label>
           <div>
-            <label className="label">Destinatari</label>
+            <label className="label">{t('bulk.recipients')}</label>
             <div className="flex gap-3 text-sm">
               <label className="flex items-center gap-1.5">
-                <input type="radio" checked={allUsers} onChange={() => setAllUsers(true)} /> Tutti
+                <input type="radio" checked={allUsers} onChange={() => setAllUsers(true)} /> {t('bulk.allUsers')}
               </label>
               <label className="flex items-center gap-1.5">
-                <input type="radio" checked={!allUsers} onChange={() => setAllUsers(false)} /> Seleziona
+                <input type="radio" checked={!allUsers} onChange={() => setAllUsers(false)} /> {t('bulk.select')}
               </label>
             </div>
             {!allUsers && (
@@ -558,15 +564,15 @@ function BulkEventModal({
             )}
           </div>
           <div>
-            <label className="label">Nota (facoltativa)</label>
+            <label className="label">{t('bulk.note')}</label>
             <input className="input" value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
           {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
         </div>
         <div className="mt-4 flex justify-end gap-2">
-          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>Annulla</button>
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>{t('common:btn.cancel')}</button>
           <button type="button" className="btn btn-primary" onClick={submit} disabled={busy}>
-            {busy ? 'Invio…' : 'Crea e notifica'}
+            {busy ? t('bulk.sending') : t('bulk.createNotify')}
           </button>
         </div>
       </div>
@@ -592,6 +598,7 @@ function ReasonDialog({
   onClose: () => void;
   onSubmit: (reason: string) => Promise<void> | void;
 }) {
+  const { t } = useTranslation(['leaves', 'common']);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   async function submit(e: FormEvent) {
@@ -622,10 +629,10 @@ function ReasonDialog({
         </div>
         <div className="flex justify-end gap-2">
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
-            Annulla
+            {t('common:btn.cancel')}
           </button>
           <button type="submit" className="btn btn-danger" disabled={busy || !reason.trim()}>
-            {busy ? 'Salvataggio…' : 'Conferma'}
+            {busy ? t('common:state.saving') : t('common:btn.confirm')}
           </button>
         </div>
       </form>
@@ -636,6 +643,7 @@ function ReasonDialog({
 /* ---------- Quotas ---------- */
 
 function QuotasTab() {
+  const { t } = useTranslation(['leaves', 'common']);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -665,7 +673,7 @@ function QuotasTab() {
       );
       setTemplates(t);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     }
   }
   useEffect(() => {
@@ -693,7 +701,7 @@ function QuotasTab() {
       )}
       {templates.length === 0 && (
         <div className="text-sm muted">
-          Crea prima un modello quota nella tab <strong>Modelli</strong>.
+          {t('quotas.noTemplatesPre')}<strong>{t('tab.templates')}</strong>{t('quotas.noTemplatesPost')}
         </div>
       )}
       <QuotasDataGrid
@@ -732,13 +740,15 @@ function QuotasTab() {
   );
 }
 
-function fmtAccrual(t: { accrual_amount: number; accrual_frequency: 'monthly' | 'yearly'; accrual_day_of_month: number; accrual_month: number | null }): string {
-  const amt = `${t.accrual_amount}h`;
-  if (t.accrual_amount === 0) return 'Nessun accredito';
+function fmtAccrual(
+  t: { accrual_amount: number; accrual_frequency: 'monthly' | 'yearly'; accrual_day_of_month: number; accrual_month: number | null },
+  tr: Translate
+): string {
+  if (t.accrual_amount === 0) return tr('accrual.none');
   if (t.accrual_frequency === 'monthly') {
-    return `${amt} ogni mese il giorno ${t.accrual_day_of_month}`;
+    return tr('accrual.monthly', { amount: t.accrual_amount, day: t.accrual_day_of_month });
   }
-  return `${amt} ogni anno il ${t.accrual_day_of_month}/${t.accrual_month}`;
+  return tr('accrual.yearly', { amount: t.accrual_amount, day: t.accrual_day_of_month, month: t.accrual_month });
 }
 
 function balance(a: Assignment): number {
@@ -760,6 +770,7 @@ function AssignmentEditor({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { t } = useTranslation(['leaves', 'common']);
   const confirm = useConfirm();
   const [templateId, setTemplateId] = useState<string>(
     existing?.template_id ?? templates[0]?.id ?? ''
@@ -778,7 +789,7 @@ function AssignmentEditor({
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!templateId) {
-      setErr('Seleziona un modello');
+      setErr(t('editor.errTemplate'));
       return;
     }
     setBusy(true);
@@ -802,7 +813,7 @@ function AssignmentEditor({
       }
       onSaved();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     } finally {
       setBusy(false);
     }
@@ -810,12 +821,12 @@ function AssignmentEditor({
 
   async function remove() {
     if (!existing) return;
-    if (!(await confirm({ title: 'Chiudere assegnazione?', message: 'Lo storico accrediti resta visibile.', confirmLabel: 'Chiudi' }))) return;
+    if (!(await confirm({ title: t('editor.closeTitle'), message: t('editor.closeMessage'), confirmLabel: t('editor.closeConfirm') }))) return;
     try {
       await api(`/api/v1/leave-quotas/assignments/${existing.id}`, { method: 'DELETE' });
       onSaved();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     }
   }
 
@@ -823,28 +834,31 @@ function AssignmentEditor({
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
       <form onSubmit={submit} className="card w-full max-w-md space-y-3">
         <h2 className="section-title">
-          Quota {type === 'ferie' ? 'ferie' : 'permessi'} — {user.display_name || user.email}
+          {t('editor.title', {
+            type: type === 'ferie' ? t('common:leaveType.ferie') : t('quotas.permessiPlural'),
+            user: user.display_name || user.email,
+          })}
         </h2>
         <div>
-          <label className="label">Modello</label>
+          <label className="label">{t('editor.template')}</label>
           <select
             className="input"
             value={templateId}
             onChange={(e) => setTemplateId(e.target.value)}
           >
-            <option value="">— scegli —</option>
-            {templates.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name} — {fmtAccrual(t)}
+            <option value="">{t('editor.choose')}</option>
+            {templates.map((t2) => (
+              <option key={t2.id} value={t2.id}>
+                {t2.name} — {fmtAccrual(t2, t)}
               </option>
             ))}
           </select>
           {pickedTpl && (
-            <p className="text-xs muted mt-1">{fmtAccrual(pickedTpl)}</p>
+            <p className="text-xs muted mt-1">{fmtAccrual(pickedTpl, t)}</p>
           )}
         </div>
         <div>
-          <label className="label">Bilancio iniziale (ore)</label>
+          <label className="label">{t('editor.initialBalance')}</label>
           <input
             type="number"
             step="0.25"
@@ -853,12 +867,12 @@ function AssignmentEditor({
             onChange={(e) => setInitialBalance(Number(e.target.value))}
           />
           <p className="text-xs muted mt-1">
-            Saldo di partenza, prima di accrediti e richieste. Può essere negativo.
+            {t('editor.initialBalanceHint')}
           </p>
         </div>
         {!existing && (
           <div>
-            <label className="label">Attivo dal</label>
+            <label className="label">{t('editor.activeFrom')}</label>
             <input
               type="date"
               className="input"
@@ -869,11 +883,11 @@ function AssignmentEditor({
         )}
         {existing && (
           <div className="text-xs muted">
-            <div>Accrediti accumulati: <strong>{existing.accrued_total}h</strong></div>
-            <div>Usate (approvate): <strong>{existing.used_approved}h</strong></div>
-            <div>Saldo attuale: <strong>{balance(existing).toFixed(2)}h</strong></div>
+            <div>{t('editor.accruedTotal')}: <strong>{existing.accrued_total}h</strong></div>
+            <div>{t('editor.usedApproved')}: <strong>{existing.used_approved}h</strong></div>
+            <div>{t('editor.currentBalance')}: <strong>{balance(existing).toFixed(2)}h</strong></div>
             {existing.last_accrual_on && (
-              <div>Ultimo accredito: <strong>{existing.last_accrual_on}</strong></div>
+              <div>{t('editor.lastAccrual')}: <strong>{existing.last_accrual_on}</strong></div>
             )}
           </div>
         )}
@@ -883,14 +897,14 @@ function AssignmentEditor({
         <div className="flex gap-2 justify-end">
           {existing && (
             <button type="button" className="btn btn-danger" onClick={remove} disabled={busy}>
-              Chiudi
+              {t('common:btn.close')}
             </button>
           )}
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
-            Annulla
+            {t('common:btn.cancel')}
           </button>
           <button type="submit" className="btn btn-primary" disabled={busy}>
-            {busy ? 'Salvataggio…' : 'Salva'}
+            {busy ? t('common:state.saving') : t('common:btn.save')}
           </button>
         </div>
       </form>
@@ -909,6 +923,7 @@ function ManualAdjustModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { t } = useTranslation(['leaves', 'common']);
   const available = useMemo(
     () =>
       (['ferie', 'permessi'] as const).filter(
@@ -926,16 +941,17 @@ function ManualAdjustModal({
 
   const assignment = type === 'ferie' ? row.ferie : row.permessi;
   const userLabel = row.user.display_name || row.user.email;
+  const typeLabel = type === 'ferie' ? t('common:leaveType.ferie') : t('quotas.permessiPlural');
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     setErr(null);
     if (!assignment) {
-      setErr('Nessuna quota attiva per questo tipo.');
+      setErr(t('adjust.errNoQuota'));
       return;
     }
     if (!(hours > 0)) {
-      setErr('Inserisci un numero di ore maggiore di zero.');
+      setErr(t('adjust.errHours'));
       return;
     }
     const signed = direction === 'remove' ? -hours : hours;
@@ -947,7 +963,7 @@ function ManualAdjustModal({
       });
       onSaved();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     } finally {
       setBusy(false);
     }
@@ -956,30 +972,30 @@ function ManualAdjustModal({
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
       <form onSubmit={submit} className="card w-full max-w-md space-y-3">
-        <h2 className="section-title">Modifica manuale ore — {userLabel}</h2>
+        <h2 className="section-title">{t('adjust.title', { user: userLabel })}</h2>
         <p className="text-xs muted">
-          Aggiungi o rimuovi ore dal saldo. Ogni operazione resta tracciata nello storico.
+          {t('adjust.intro')}
         </p>
         {available.length > 1 ? (
           <div>
-            <label className="label">Tipo</label>
+            <label className="label">{t('adjust.type')}</label>
             <select
               className="input"
-              aria-label="Tipo"
+              aria-label={t('adjust.type')}
               value={type}
               onChange={(e) => setType(e.target.value as 'ferie' | 'permessi')}
             >
-              <option value="ferie">Ferie</option>
-              <option value="permessi">Permessi</option>
+              <option value="ferie">{t('common:leaveType.ferie')}</option>
+              <option value="permessi">{t('quotas.permessiPlural')}</option>
             </select>
           </div>
         ) : (
           <div className="text-sm">
-            Tipo: <strong>{type === 'ferie' ? 'Ferie' : 'Permessi'}</strong>
+            {t('adjust.type')}: <strong>{typeLabel}</strong>
           </div>
         )}
         <div>
-          <label className="label">Operazione</label>
+          <label className="label">{t('adjust.operation')}</label>
           <div className="flex gap-3">
             <label className="flex items-center gap-1.5 text-sm">
               <input
@@ -988,7 +1004,7 @@ function ManualAdjustModal({
                 checked={direction === 'add'}
                 onChange={() => setDirection('add')}
               />
-              Aggiungi
+              {t('adjust.add')}
             </label>
             <label className="flex items-center gap-1.5 text-sm">
               <input
@@ -997,49 +1013,49 @@ function ManualAdjustModal({
                 checked={direction === 'remove'}
                 onChange={() => setDirection('remove')}
               />
-              Rimuovi
+              {t('adjust.remove')}
             </label>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Ore</label>
+            <label className="label">{t('common:unit.hours')}</label>
             <input
               type="number"
               step="0.25"
               min={0}
               className="input"
-              aria-label="Ore"
+              aria-label={t('common:unit.hours')}
               value={hours}
               onChange={(e) => setHours(Number(e.target.value))}
               autoFocus
             />
           </div>
           <div>
-            <label className="label">Data</label>
+            <label className="label">{t('adjust.date')}</label>
             <input
               type="date"
               className="input"
-              aria-label="Data"
+              aria-label={t('adjust.date')}
               value={date}
               onChange={(e) => setDate(e.target.value)}
             />
           </div>
         </div>
         <div>
-          <label className="label">Nota (facoltativa)</label>
+          <label className="label">{t('adjust.note')}</label>
           <input
             className="input"
-            aria-label="Nota"
+            aria-label={t('adjust.noteAria')}
             maxLength={500}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Motivo della modifica"
+            placeholder={t('adjust.notePlaceholder')}
           />
         </div>
         {assignment && (
           <p className="text-xs muted">
-            Saldo attuale {type === 'ferie' ? 'ferie' : 'permessi'}: <strong>{balance(assignment).toFixed(2)}h</strong>
+            {t('adjust.currentBalance', { type: typeLabel })}: <strong>{balance(assignment).toFixed(2)}h</strong>
             {hours > 0 && (
               <>
                 {' → '}
@@ -1051,10 +1067,10 @@ function ManualAdjustModal({
         {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
         <div className="flex justify-end gap-2">
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
-            Annulla
+            {t('common:btn.cancel')}
           </button>
           <button type="submit" className="btn btn-primary" disabled={busy}>
-            {busy ? 'Salvataggio…' : 'Salva'}
+            {busy ? t('common:state.saving') : t('common:btn.save')}
           </button>
         </div>
       </form>
@@ -1067,54 +1083,55 @@ function fmtSignedHours(h: number): string {
 }
 
 function AuditLogModal({ user, onClose }: { user: UserRow; onClose: () => void }) {
+  const { t } = useTranslation(['leaves', 'common']);
   const [rows, setRows] = useState<Accrual[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     api<Accrual[]>(`/api/v1/leave-quotas/users/${user.user_id}/accruals`)
       .then(setRows)
-      .catch((e) => setErr(e instanceof Error ? e.message : 'errore'));
-  }, [user.user_id]);
+      .catch((e) => setErr(e instanceof Error ? e.message : t('common:state.error')));
+  }, [user.user_id, t]);
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50" onClick={onClose}>
       <div className="card w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
         <h2 className="section-title mb-3">
-          Storico modifiche — {user.display_name || user.email}
+          {t('audit.title', { user: user.display_name || user.email })}
         </h2>
         {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
         {rows && rows.length === 0 && (
-          <p className="text-sm muted">Nessun accredito o modifica registrata.</p>
+          <p className="text-sm muted">{t('audit.empty')}</p>
         )}
         {rows && rows.length > 0 && (
           <div className="max-h-[60vh] overflow-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left muted text-xs">
-                  <th className="py-1 pr-3">Data</th>
-                  <th className="py-1 pr-3">Tipo</th>
-                  <th className="py-1 pr-3">Variazione</th>
-                  <th className="py-1 pr-3">Sorgente</th>
-                  <th className="py-1 pr-3">Nota</th>
-                  <th className="py-1 pr-3">Eseguito da</th>
+                  <th className="py-1 pr-3">{t('audit.colDate')}</th>
+                  <th className="py-1 pr-3">{t('audit.colType')}</th>
+                  <th className="py-1 pr-3">{t('audit.colChange')}</th>
+                  <th className="py-1 pr-3">{t('audit.colSource')}</th>
+                  <th className="py-1 pr-3">{t('audit.colNote')}</th>
+                  <th className="py-1 pr-3">{t('audit.colBy')}</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id} className="border-t" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>
                     <td className="py-1 pr-3 whitespace-nowrap">{r.accrued_on}</td>
-                    <td className="py-1 pr-3">{r.type === 'ferie' ? 'Ferie' : 'Permessi'}</td>
+                    <td className="py-1 pr-3">{r.type === 'ferie' ? t('common:leaveType.ferie') : t('quotas.permessiPlural')}</td>
                     <td
                       className="py-1 pr-3 num whitespace-nowrap"
                       style={{ color: r.hours < 0 ? 'var(--color-error)' : 'var(--color-success, #16a34a)' }}
                     >
                       {fmtSignedHours(r.hours)}
                     </td>
-                    <td className="py-1 pr-3">{ACCRUAL_SOURCE_LABEL[r.source]}</td>
+                    <td className="py-1 pr-3">{t(`leaves:${ACCRUAL_SOURCE_KEY[r.source]}`)}</td>
                     <td className="py-1 pr-3 muted">{r.note || '—'}</td>
                     <td className="py-1 pr-3">
                       {r.source === 'cron'
-                        ? 'Sistema'
+                        ? t('audit.system')
                         : r.created_by_display_name || r.created_by_email || '—'}
                     </td>
                   </tr>
@@ -1125,7 +1142,7 @@ function AuditLogModal({ user, onClose }: { user: UserRow; onClose: () => void }
         )}
         <div className="mt-4 flex justify-end">
           <button type="button" className="btn btn-secondary" onClick={onClose}>
-            Chiudi
+            {t('common:btn.close')}
           </button>
         </div>
       </div>
@@ -1136,6 +1153,7 @@ function AuditLogModal({ user, onClose }: { user: UserRow; onClose: () => void }
 /* ---------- Templates ---------- */
 
 function TemplatesTab() {
+  const { t } = useTranslation(['leaves', 'common']);
   const [rows, setRows] = useState<Template[]>([]);
   const [editor, setEditor] = useState<Partial<Template> | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -1146,7 +1164,7 @@ function TemplatesTab() {
       const r = await api<Template[]>('/api/v1/leave-quotas/templates');
       setRows(r);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     }
   }
   useEffect(() => {
@@ -1172,7 +1190,7 @@ function TemplatesTab() {
             })
           }
         >
-          Nuovo modello
+          {t('templates.new')}
         </button>
       </div>
       {err && (
@@ -1182,12 +1200,12 @@ function TemplatesTab() {
         rows={rows}
         onEdit={setEditor}
         onDelete={async (r) => {
-          if (!(await confirm({ title: 'Eliminare modello?', danger: true, confirmLabel: 'Elimina' }))) return;
+          if (!(await confirm({ title: t('templates.deleteTitle'), danger: true, confirmLabel: t('common:btn.delete') }))) return;
           try {
             await api(`/api/v1/leave-quotas/templates/${r.id}`, { method: 'DELETE' });
             await load();
           } catch (e) {
-            setErr(e instanceof Error ? e.message : 'errore');
+            setErr(e instanceof Error ? e.message : t('common:state.error'));
           }
         }}
       />
@@ -1214,6 +1232,7 @@ function TemplateEditor({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { t } = useTranslation(['leaves', 'common']);
   const [name, setName] = useState(initial.name ?? '');
   const [type, setType] = useState<'ferie' | 'permessi'>(initial.type ?? 'ferie');
   const [hoursDefault, setHoursDefault] = useState(initial.hours_default ?? 176);
@@ -1263,26 +1282,29 @@ function TemplateEditor({
       }
       onSaved();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     } finally {
       setBusy(false);
     }
   }
 
-  const monthNames = [
-    '— mese —',
-    'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
-    'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre',
-  ];
+  // Month names derived from the active locale (index 0 = unselected placeholder).
+  const monthNames = useMemo(() => {
+    const names = ['', ...Array.from({ length: 12 }, (_, i) =>
+      new Date(2000, i, 1).toLocaleDateString(localeTag(), { month: 'long' })
+    )];
+    names[0] = t('templateForm.monthPlaceholder');
+    return names;
+  }, [t]);
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
       <form onSubmit={submit} className="card w-full max-w-lg space-y-3">
         <h2 className="section-title">
-          {initial.id ? 'Modifica modello quota' : 'Nuovo modello quota'}
+          {initial.id ? t('templateForm.editTitle') : t('templateForm.newTitle')}
         </h2>
         <div>
-          <label className="label">Nome</label>
+          <label className="label">{t('templateForm.name')}</label>
           <input
             type="text"
             className="input"
@@ -1294,19 +1316,19 @@ function TemplateEditor({
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="label">Tipo</label>
+            <label className="label">{t('adjust.type')}</label>
             <select
               className="input"
               value={type}
               onChange={(e) => setType(e.target.value as 'ferie' | 'permessi')}
               disabled={!!initial.id}
             >
-              <option value="ferie">Ferie</option>
-              <option value="permessi">Permessi</option>
+              <option value="ferie">{t('common:leaveType.ferie')}</option>
+              <option value="permessi">{t('quotas.permessiPlural')}</option>
             </select>
           </div>
           <div>
-            <label className="label">Ore di riferimento annuali</label>
+            <label className="label">{t('templateForm.annualHours')}</label>
             <input
               type="number"
               step="0.25"
@@ -1319,10 +1341,10 @@ function TemplateEditor({
         </div>
 
         <fieldset className="border rounded p-3 space-y-3" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>
-          <legend className="text-xs muted px-1">Accredito automatico</legend>
+          <legend className="text-xs muted px-1">{t('templateForm.autoAccrual')}</legend>
           <div className="grid grid-cols-3 gap-2">
             <div className="col-span-2">
-              <label className="label">Quantità per accredito</label>
+              <label className="label">{t('templateForm.amountPer')}</label>
               <input
                 type="number"
                 step="0.25"
@@ -1333,20 +1355,20 @@ function TemplateEditor({
               />
             </div>
             <div>
-              <label className="label">Unità</label>
+              <label className="label">{t('templateForm.unit')}</label>
               <select
                 className="input"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value as 'hours' | 'days')}
               >
-                <option value="hours">ore</option>
-                <option value="days">giorni</option>
+                <option value="hours">{t('templateForm.unitHours')}</option>
+                <option value="days">{t('templateForm.unitDays')}</option>
               </select>
             </div>
           </div>
           {unit === 'days' && (
             <div>
-              <label className="label">Ore per giorno (conversione)</label>
+              <label className="label">{t('templateForm.hoursPerDay')}</label>
               <input
                 type="number"
                 step="0.25"
@@ -1356,12 +1378,12 @@ function TemplateEditor({
                 onChange={(e) => setHoursPerDay(Number(e.target.value))}
               />
               <p className="text-xs muted mt-1">
-                Verranno salvate {effectiveAccrualHours()}h per accredito.
+                {t('templateForm.willSave', { hours: effectiveAccrualHours() })}
               </p>
             </div>
           )}
           <div>
-            <label className="label">Frequenza</label>
+            <label className="label">{t('templateForm.frequency')}</label>
             <div className="flex gap-3">
               <label className="flex items-center gap-1 text-sm">
                 <input
@@ -1370,7 +1392,7 @@ function TemplateEditor({
                   checked={frequency === 'monthly'}
                   onChange={() => setFrequency('monthly')}
                 />
-                Mensile
+                {t('templateForm.monthly')}
               </label>
               <label className="flex items-center gap-1 text-sm">
                 <input
@@ -1379,13 +1401,13 @@ function TemplateEditor({
                   checked={frequency === 'yearly'}
                   onChange={() => setFrequency('yearly')}
                 />
-                Annuale
+                {t('templateForm.yearly')}
               </label>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="label">Giorno del mese</label>
+              <label className="label">{t('templateForm.dayOfMonth')}</label>
               <input
                 type="number"
                 min={1}
@@ -1394,11 +1416,11 @@ function TemplateEditor({
                 value={dayOfMonth}
                 onChange={(e) => setDayOfMonth(Number(e.target.value))}
               />
-              <p className="text-xs muted mt-1">1–28 (per sicurezza in mesi corti).</p>
+              <p className="text-xs muted mt-1">{t('templateForm.dayHint')}</p>
             </div>
             {frequency === 'yearly' && (
               <div>
-                <label className="label">Mese</label>
+                <label className="label">{t('templateForm.month')}</label>
                 <select
                   className="input"
                   value={month}
@@ -1415,8 +1437,8 @@ function TemplateEditor({
           </div>
           <p className="text-xs muted">
             {frequency === 'monthly'
-              ? `Ogni mese il giorno ${dayOfMonth} verranno aggiunti ${effectiveAccrualHours()}h.`
-              : `Ogni anno il ${dayOfMonth} ${monthNames[month] ?? ''} verranno aggiunti ${effectiveAccrualHours()}h.`}
+              ? t('templateForm.summaryMonthly', { day: dayOfMonth, hours: effectiveAccrualHours() })
+              : t('templateForm.summaryYearly', { day: dayOfMonth, month: monthNames[month] ?? '', hours: effectiveAccrualHours() })}
           </p>
         </fieldset>
 
@@ -1426,17 +1448,17 @@ function TemplateEditor({
             checked={active}
             onChange={(e) => setActive(e.target.checked)}
           />
-          Attivo
+          {t('templateForm.active')}
         </label>
         {err && (
           <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>
         )}
         <div className="flex justify-end gap-2">
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
-            Annulla
+            {t('common:btn.cancel')}
           </button>
           <button type="submit" className="btn btn-primary" disabled={busy}>
-            {busy ? 'Salvataggio…' : 'Salva'}
+            {busy ? t('common:state.saving') : t('common:btn.save')}
           </button>
         </div>
       </form>
@@ -1461,31 +1483,32 @@ function RequestsDataGrid({
   onDecideCancel,
   onCancelApproved,
 }: RequestsDataGridProps) {
+  const { t } = useTranslation(['leaves', 'common']);
   const columns = useMemo<GridColDef<LeaveRequest>[]>(
     () => [
       {
         field: 'user',
-        headerName: 'Utente',
+        headerName: t('col.user'),
         flex: 1.2,
         minWidth: 180,
         valueGetter: (_v: unknown, row: LeaveRequest) => row.user_display_name || row.user_email,
       },
       {
         field: 'type',
-        headerName: 'Tipo',
+        headerName: t('col.type'),
         width: 130,
         type: 'singleSelect',
         valueOptions: [
-          { value: 'ferie', label: 'Ferie' },
-          { value: 'permessi', label: 'Permesso' },
-          { value: 'malattia', label: 'Malattia' },
-          { value: 'assenza', label: 'Assenza' },
+          { value: 'ferie', label: t('common:leaveType.ferie') },
+          { value: 'permessi', label: t('common:leaveType.permessi') },
+          { value: 'malattia', label: t('common:leaveType.malattia') },
+          { value: 'assenza', label: t('common:leaveType.assenza') },
         ],
-        renderCell: (p: GridRenderCellParams<LeaveRequest>) => TYPE_LABEL[p.row.type as LeaveType],
+        renderCell: (p: GridRenderCellParams<LeaveRequest>) => t(`common:leaveType.${p.row.type as LeaveType}`),
       },
       {
         field: 'period',
-        headerName: 'Periodo',
+        headerName: t('col.period'),
         flex: 1.2,
         minWidth: 200,
         sortable: false,
@@ -1496,7 +1519,7 @@ function RequestsDataGrid({
       },
       {
         field: 'duration_hours',
-        headerName: 'Ore',
+        headerName: t('common:unit.hours'),
         width: 90,
         type: 'number',
         align: 'left',
@@ -1504,34 +1527,34 @@ function RequestsDataGrid({
       },
       {
         field: 'status',
-        headerName: 'Stato',
+        headerName: t('col.status'),
         width: 180,
         type: 'singleSelect',
-        valueOptions: (Object.keys(STATUS_LABEL) as LeaveStatus[]).map((k) => ({
+        valueOptions: ALL_STATUSES.map((k) => ({
           value: k,
-          label: STATUS_LABEL[k],
+          label: statusLabel(k, t),
         })),
         renderCell: (p: GridRenderCellParams<LeaveRequest>) => (
           <span className={`badge ${badgeForStatus(p.row.status as LeaveStatus)}`}>
-            {STATUS_LABEL[p.row.status as LeaveStatus]}
+            {statusLabel(p.row.status as LeaveStatus, t)}
           </span>
         ),
       },
       {
         field: 'note',
-        headerName: 'Note / motivo',
+        headerName: t('col.notes'),
         flex: 1.2,
         minWidth: 200,
         sortable: false,
         valueGetter: (_v: unknown, row: LeaveRequest) =>
           [
-            row.inps_protocol ? `INPS: ${row.inps_protocol}` : '',
+            row.inps_protocol ? `${t('note.inps')}: ${row.inps_protocol}` : '',
             row.type === 'assenza' && row.assenza_subtype
-              ? `${ASSENZA_SUBTYPE_LABEL[row.assenza_subtype]} (${row.is_paid ? 'retribuita' : 'non retribuita'})`
+              ? `${t(`common:assenzaSubtype.${row.assenza_subtype}`)} (${row.is_paid ? t('note.paid') : t('note.unpaid')})`
               : '',
             row.user_note ?? '',
-            row.rejection_reason ? `Rifiuto: ${row.rejection_reason}` : '',
-            row.cancellation_reason ? `Annullamento: ${row.cancellation_reason}` : '',
+            row.rejection_reason ? `${t('note.rejection')}: ${row.rejection_reason}` : '',
+            row.cancellation_reason ? `${t('note.cancellation')}: ${row.cancellation_reason}` : '',
           ]
             .filter(Boolean)
             .join(' · '),
@@ -1540,12 +1563,12 @@ function RequestsDataGrid({
           return (
             <div className="text-xs">
               {r.type === 'malattia' && r.inps_protocol ? (
-                <span>INPS: <strong>{r.inps_protocol}</strong></span>
+                <span>{t('note.inps')}: <strong>{r.inps_protocol}</strong></span>
               ) : null}
               {r.type === 'assenza' && r.assenza_subtype ? (
                 <div>
-                  <strong>{ASSENZA_SUBTYPE_LABEL[r.assenza_subtype]}</strong>{' '}
-                  · {r.is_paid ? 'retribuita' : 'non retribuita'}
+                  <strong>{t(`common:assenzaSubtype.${r.assenza_subtype}`)}</strong>{' '}
+                  · {r.is_paid ? t('note.paid') : t('note.unpaid')}
                 </div>
               ) : null}
               {r.user_note ? <div className="muted">{r.user_note}</div> : null}
@@ -1553,7 +1576,7 @@ function RequestsDataGrid({
                 <div style={{ color: 'var(--color-error)' }}>{r.rejection_reason}</div>
               ) : null}
               {r.cancellation_reason ? (
-                <div className="muted">Annullamento: {r.cancellation_reason}</div>
+                <div className="muted">{t('note.cancellation')}: {r.cancellation_reason}</div>
               ) : null}
             </div>
           );
@@ -1561,7 +1584,7 @@ function RequestsDataGrid({
       },
       {
         field: 'decided_by',
-        headerName: 'Decisa da',
+        headerName: t('col.decidedBy'),
         flex: 0.8,
         minWidth: 140,
         valueGetter: (_v: unknown, row: LeaveRequest) => row.decided_by_display_name || row.decided_by_email || '',
@@ -1569,7 +1592,7 @@ function RequestsDataGrid({
       },
       {
         field: 'actions',
-        headerName: 'Azioni',
+        headerName: t('col.actions'),
         width: 130,
         sortable: false,
         filterable: false,
@@ -1579,20 +1602,20 @@ function RequestsDataGrid({
             <div className="flex gap-1">
               {r.status === 'pending' && (
                 <>
-                  <IconButton kind="approve" title="Approva" onClick={() => onApprove(r)} />
-                  <IconButton kind="reject" title="Rifiuta" onClick={() => onReject(r)} />
+                  <IconButton kind="approve" title={t('common:btn.approve')} onClick={() => onApprove(r)} />
+                  <IconButton kind="reject" title={t('common:btn.reject')} onClick={() => onReject(r)} />
                 </>
               )}
               {r.status === 'cancellation_pending' && (
                 <>
                   <IconButton
                     kind="approve"
-                    title="Accetta annullamento"
+                    title={t('action.acceptCancel')}
                     onClick={() => onDecideCancel(r, true)}
                   />
                   <IconButton
                     kind="reject"
-                    title="Rifiuta annullamento"
+                    title={t('action.rejectCancel')}
                     onClick={() => onDecideCancel(r, false)}
                   />
                 </>
@@ -1600,7 +1623,7 @@ function RequestsDataGrid({
               {r.status === 'approved' && (
                 <IconButton
                   kind="revoke"
-                  title="Revoca"
+                  title={t('action.revoke')}
                   onClick={() => onCancelApproved(r)}
                 />
               )}
@@ -1609,7 +1632,7 @@ function RequestsDataGrid({
         },
       },
     ],
-    [onApprove, onReject, onDecideCancel, onCancelApproved]
+    [t, onApprove, onReject, onDecideCancel, onCancelApproved]
   );
 
   return (
@@ -1640,18 +1663,19 @@ function QuotasDataGrid({
   onAdjust: (row: QuotaRow) => void;
   onHistory: (user: UserRow) => void;
 }) {
+  const { t } = useTranslation(['leaves', 'common']);
   const columns = useMemo<GridColDef<QuotaRow>[]>(
     () => [
       {
         field: 'user',
-        headerName: 'Utente',
+        headerName: t('col.user'),
         flex: 1.2,
         minWidth: 200,
         valueGetter: (_v: unknown, row: QuotaRow) => row.user.display_name || row.user.email,
       },
       {
         field: 'ferie_balance',
-        headerName: 'Saldo ferie',
+        headerName: t('quotas.ferieBalance'),
         width: 160,
         sortable: true,
         valueGetter: (_v: unknown, row: QuotaRow) => (row.ferie ? balance(row.ferie) : null),
@@ -1661,24 +1685,24 @@ function QuotasDataGrid({
             className="btn btn-ghost btn-sm"
             onClick={() => onEdit(p.row.user, 'ferie', p.row.ferie)}
           >
-            {p.row.ferie ? `${balance(p.row.ferie).toFixed(2)}h` : 'Assegna'}
+            {p.row.ferie ? `${balance(p.row.ferie).toFixed(2)}h` : t('quotas.assign')}
           </button>
         ),
       },
       {
         field: 'ferie_accrual',
-        headerName: 'Accredito ferie',
+        headerName: t('quotas.ferieAccrual'),
         flex: 1,
         minWidth: 200,
         sortable: false,
-        valueGetter: (_v: unknown, row: QuotaRow) => (row.ferie ? fmtAccrual(row.ferie) : ''),
+        valueGetter: (_v: unknown, row: QuotaRow) => (row.ferie ? fmtAccrual(row.ferie, t) : ''),
         renderCell: (p: GridRenderCellParams<QuotaRow>) => (
-          <span className="text-xs muted">{p.row.ferie ? fmtAccrual(p.row.ferie) : '—'}</span>
+          <span className="text-xs muted">{p.row.ferie ? fmtAccrual(p.row.ferie, t) : '—'}</span>
         ),
       },
       {
         field: 'permessi_balance',
-        headerName: 'Saldo permessi',
+        headerName: t('quotas.permessiBalance'),
         width: 170,
         sortable: true,
         valueGetter: (_v: unknown, row: QuotaRow) => (row.permessi ? balance(row.permessi) : null),
@@ -1688,24 +1712,24 @@ function QuotasDataGrid({
             className="btn btn-ghost btn-sm"
             onClick={() => onEdit(p.row.user, 'permessi', p.row.permessi)}
           >
-            {p.row.permessi ? `${balance(p.row.permessi).toFixed(2)}h` : 'Assegna'}
+            {p.row.permessi ? `${balance(p.row.permessi).toFixed(2)}h` : t('quotas.assign')}
           </button>
         ),
       },
       {
         field: 'permessi_accrual',
-        headerName: 'Accredito permessi',
+        headerName: t('quotas.permessiAccrual'),
         flex: 1,
         minWidth: 200,
         sortable: false,
-        valueGetter: (_v: unknown, row: QuotaRow) => (row.permessi ? fmtAccrual(row.permessi) : ''),
+        valueGetter: (_v: unknown, row: QuotaRow) => (row.permessi ? fmtAccrual(row.permessi, t) : ''),
         renderCell: (p: GridRenderCellParams<QuotaRow>) => (
-          <span className="text-xs muted">{p.row.permessi ? fmtAccrual(p.row.permessi) : '—'}</span>
+          <span className="text-xs muted">{p.row.permessi ? fmtAccrual(p.row.permessi, t) : '—'}</span>
         ),
       },
       {
         field: 'actions',
-        headerName: 'Azioni',
+        headerName: t('col.actions'),
         width: 110,
         sortable: false,
         filterable: false,
@@ -1715,13 +1739,13 @@ function QuotasDataGrid({
             <div className="flex gap-1">
               <IconButton
                 kind="adjust"
-                title={hasQuota ? 'Aggiungi/Rimuovi ore' : 'Assegna prima una quota'}
+                title={hasQuota ? t('quotas.adjustHours') : t('quotas.assignFirst')}
                 disabled={!hasQuota}
                 onClick={() => onAdjust(p.row)}
               />
               <IconButton
                 kind="history"
-                title="Storico modifiche manuali"
+                title={t('quotas.manualHistory')}
                 onClick={() => onHistory(p.row.user)}
               />
             </div>
@@ -1729,7 +1753,7 @@ function QuotasDataGrid({
         },
       },
     ],
-    [onEdit, onAdjust, onHistory]
+    [t, onEdit, onAdjust, onHistory]
   );
 
   return (
@@ -1752,23 +1776,24 @@ function TemplatesDataGrid({
   onEdit: (r: Template) => void;
   onDelete: (r: Template) => void;
 }) {
+  const { t } = useTranslation(['leaves', 'common']);
   const columns = useMemo<GridColDef<Template>[]>(
     () => [
-      { field: 'name', headerName: 'Nome', flex: 1.2, minWidth: 180 },
+      { field: 'name', headerName: t('templateForm.name'), flex: 1.2, minWidth: 180 },
       {
         field: 'type',
-        headerName: 'Tipo',
+        headerName: t('col.type'),
         width: 130,
         type: 'singleSelect',
         valueOptions: [
-          { value: 'ferie', label: 'Ferie' },
-          { value: 'permessi', label: 'Permessi' },
+          { value: 'ferie', label: t('common:leaveType.ferie') },
+          { value: 'permessi', label: t('quotas.permessiPlural') },
         ],
-        renderCell: (p: GridRenderCellParams<Template>) => (p.row.type === 'ferie' ? 'Ferie' : 'Permessi'),
+        renderCell: (p: GridRenderCellParams<Template>) => (p.row.type === 'ferie' ? t('common:leaveType.ferie') : t('quotas.permessiPlural')),
       },
       {
         field: 'hours_default',
-        headerName: 'Riferimento annuo',
+        headerName: t('templates.annualRef'),
         width: 160,
         type: 'number',
         align: 'left',
@@ -1779,44 +1804,44 @@ function TemplatesDataGrid({
       },
       {
         field: 'accrual',
-        headerName: 'Accredito',
+        headerName: t('templates.accrual'),
         flex: 1.2,
         minWidth: 240,
         sortable: false,
-        valueGetter: (_v: unknown, row: Template) => fmtAccrual(row),
+        valueGetter: (_v: unknown, row: Template) => fmtAccrual(row, t),
         renderCell: (p: GridRenderCellParams<Template>) => (
-          <span className="text-xs">{fmtAccrual(p.row)}</span>
+          <span className="text-xs">{fmtAccrual(p.row, t)}</span>
         ),
       },
       {
         field: 'active',
-        headerName: 'Stato',
+        headerName: t('col.status'),
         width: 130,
         type: 'boolean',
         align: 'left',
         headerAlign: 'left',
         renderCell: (p: GridRenderCellParams<Template>) =>
           p.row.active ? (
-            <span className="badge badge-ok">Attivo</span>
+            <span className="badge badge-ok">{t('templates.active')}</span>
           ) : (
-            <span className="badge badge-muted">Disattivato</span>
+            <span className="badge badge-muted">{t('templates.inactive')}</span>
           ),
       },
       {
         field: 'actions',
-        headerName: 'Azioni',
+        headerName: t('col.actions'),
         width: 130,
         sortable: false,
         filterable: false,
         renderCell: (p: GridRenderCellParams<Template>) => (
           <div className="flex gap-1">
-            <IconButton kind="edit" title="Modifica modello" onClick={() => onEdit(p.row)} />
-            <IconButton kind="delete" title="Elimina modello" onClick={() => onDelete(p.row)} />
+            <IconButton kind="edit" title={t('templates.editTemplate')} onClick={() => onEdit(p.row)} />
+            <IconButton kind="delete" title={t('templates.deleteTemplate')} onClick={() => onDelete(p.row)} />
           </div>
         ),
       },
     ],
-    [onEdit, onDelete]
+    [t, onEdit, onDelete]
   );
 
   return (

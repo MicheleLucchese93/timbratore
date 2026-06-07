@@ -1,0 +1,12 @@
+{
+  "greeting": "Hi, {{name}}",
+  "stateLabel": "Status",
+  "lastEvent": "Last event: {{event}} at {{time}}",
+  "mobileHint": {
+    "before": "To clock in use the mobile app at ",
+    "after": "."
+  },
+  "recentTitle": "Recent stamps",
+  "viewAll": "View all",
+  "empty": "No stamps recorded yet."
+}

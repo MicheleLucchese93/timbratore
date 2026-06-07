@@ -1,0 +1,10 @@
+{
+  "tagline": "Il tempo che lavori, semplice come dirlo.",
+  "email": "Email",
+  "emailPlaceholder": "email@azienda.it",
+  "password": "Password",
+  "forgotPassword": "Password dimenticata?",
+  "signIn": "Accedi",
+  "signingIn": "Accesso in corso…",
+  "failed": "Accesso fallito"
+}

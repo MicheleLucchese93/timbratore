@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { api, type ApiError } from '../lib/api.ts';
+import { fmtDate as fmtDateI18n, fmtTime as fmtTimeI18n } from '../i18n/format.ts';
 
 interface Anomaly {
   date: string;
@@ -19,6 +21,7 @@ interface Anomaly {
     | 'break_too_long'
     | 'lunch_too_short'
     | 'lunch_too_long'
+    | 'lunch_outside_window'
     | 'clock_out_out_of_area';
   expected_start_at: string | null;
   expected_end_at: string | null;
@@ -38,20 +41,6 @@ interface UserRow {
   display_name: string | null;
 }
 
-const KIND_LABEL: Record<Anomaly['kind'], string> = {
-  missing_clock_in: 'Entrata mancante',
-  missing_clock_out: 'Uscita mancante',
-  late_clock_in: 'Entrata in ritardo',
-  early_clock_out: 'Uscita anticipata',
-  short_hours: 'Ore giornaliere insufficienti',
-  worked_on_rest_day: 'Lavoro in giorno di riposo',
-  break_too_short: 'Pausa troppo breve',
-  break_too_long: 'Pausa troppo lunga',
-  lunch_too_short: 'Pausa pranzo troppo breve',
-  lunch_too_long: 'Pausa pranzo troppo lunga',
-  clock_out_out_of_area: 'Uscita fuori area',
-};
-
 const KIND_COLOR: Record<Anomaly['kind'], string> = {
   missing_clock_in: '#b91c1c',
   missing_clock_out: '#b91c1c',
@@ -63,6 +52,7 @@ const KIND_COLOR: Record<Anomaly['kind'], string> = {
   break_too_long: '#0369a1',
   lunch_too_short: '#0369a1',
   lunch_too_long: '#0369a1',
+  lunch_outside_window: '#0369a1',
   clock_out_out_of_area: '#7c3aed',
 };
 
@@ -87,12 +77,11 @@ function defaultRange(): { from: string; to: string } {
 
 function fmtTime(iso: string | null): string {
   if (!iso) return '—';
-  const d = new Date(iso);
-  return d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+  return fmtTimeI18n(iso, { hour: '2-digit', minute: '2-digit' });
 }
 
 function fmtDate(d: string): string {
-  return new Date(d + 'T00:00:00').toLocaleDateString('it-IT', {
+  return fmtDateI18n(d + 'T00:00:00', {
     weekday: 'short',
     day: '2-digit',
     month: '2-digit',
@@ -100,6 +89,7 @@ function fmtDate(d: string): string {
 }
 
 export function Anomalies() {
+  const { t } = useTranslation(['anomalies', 'common']);
   const def = defaultRange();
   const [from, setFrom] = useState(def.from);
   const [to, setTo] = useState(def.to);
@@ -128,7 +118,7 @@ export function Anomalies() {
     } catch (e) {
       const err = e as ApiError;
       if (err.status === 404) setNotDeployed(true);
-      else setErr(e instanceof Error ? e.message : 'errore');
+      else setErr(e instanceof Error ? e.message : t('common:state.error'));
     } finally {
       setLoading(false);
     }
@@ -151,11 +141,11 @@ export function Anomalies() {
 
   return (
     <div className="space-y-5">
-      <h1 className="sr-only">Anomalie orario</h1>
+      <h1 className="sr-only">{t('heading')}</h1>
 
       <div className="card flex flex-wrap items-end gap-3">
         <div>
-          <label className="label">Dal</label>
+          <label className="label">{t('filter.from')}</label>
           <input
             type="date"
             className="input"
@@ -164,7 +154,7 @@ export function Anomalies() {
           />
         </div>
         <div>
-          <label className="label">Al</label>
+          <label className="label">{t('filter.to')}</label>
           <input
             type="date"
             className="input"
@@ -173,13 +163,13 @@ export function Anomalies() {
           />
         </div>
         <div>
-          <label className="label">Utente</label>
+          <label className="label">{t('filter.user')}</label>
           <select
             className="input"
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
           >
-            <option value="">Tutti</option>
+            <option value="">{t('filter.allUsers')}</option>
             {users.map((u) => (
               <option key={u.user_id} value={u.user_id}>
                 {u.display_name || u.email}
@@ -194,13 +184,13 @@ export function Anomalies() {
           }}
           disabled={loading}
         >
-          {loading ? 'Caricamento…' : 'Aggiorna'}
+          {loading ? t('common:state.loading') : t('common:btn.refresh')}
         </button>
       </div>
 
       {notDeployed && (
         <div className="card text-sm" style={{ color: 'var(--color-on-tertiary-container, #92400e)', background: 'var(--color-tertiary-container, #fef3c7)' }}>
-          La funzione "Anomalie orario" è disponibile dopo l'aggiornamento del backend. Riprova quando il deploy sarà completato.
+          {t('notDeployed')}
         </div>
       )}
       {err && (
@@ -211,7 +201,7 @@ export function Anomalies() {
 
       {!loading && rows.length === 0 && (
         <div className="card text-sm text-neutral-500">
-          Nessuna anomalia nel periodo selezionato.
+          {t('empty')}
         </div>
       )}
 
@@ -241,18 +231,14 @@ export function Anomalies() {
 
 type CorrectionAction = 'standard' | 'ferie' | 'permesso' | 'note';
 
-const ACTION_LABEL: Record<CorrectionAction, string> = {
-  standard: 'Timbratura standard (orari del giorno)',
-  ferie: 'Inserisci ferie',
-  permesso: 'Inserisci permesso',
-  note: 'Giustifica con nota',
+const ACTION_LABEL_KEY: Record<CorrectionAction, string> = {
+  standard: 'action.standard',
+  ferie: 'action.ferie',
+  permesso: 'action.permesso',
+  note: 'action.note',
 };
 
 const QUARTER_MS = 15 * 60 * 1000;
-
-function eventLabel(e: 'clock_in' | 'clock_out'): string {
-  return e === 'clock_in' ? 'Ingresso' : 'Uscita';
-}
 
 // The clock events that are absent for the day, to be added at the scheduled
 // times. Additive only — present punches are never touched.
@@ -331,6 +317,7 @@ function fmtMins(totalMin: number): string {
 }
 
 function AnomalyItem({ a, onDone }: { a: Anomaly; onDone: () => void }) {
+  const { t } = useTranslation(['anomalies', 'common']);
   const actions = useMemo(() => availableActions(a), [a]);
   const gap0 = useMemo(() => proposeGap(a), [a]);
   const [open, setOpen] = useState(false);
@@ -360,13 +347,15 @@ function AnomalyItem({ a, onDone }: { a: Anomaly; onDone: () => void }) {
     setErr(null);
     try {
       if (action === 'standard') {
-        if (toAdd.length === 0) throw new Error('Nessun timbro mancante da aggiungere.');
+        if (toAdd.length === 0) throw new Error(t('errors.noMissingStamp'));
         await api('/api/v1/admin/stamps/fix-anomaly', {
           method: 'POST',
           json: {
             user_id: a.user_id,
             events: toAdd,
-            justification: `Timbratura standard: ${KIND_LABEL[a.kind]}`,
+            justification: t('justificationStandard', {
+              kind: t(`common:anomaly.${a.kind}`),
+            }),
           },
         });
       } else if (action === 'ferie') {
@@ -381,8 +370,8 @@ function AnomalyItem({ a, onDone }: { a: Anomaly; onDone: () => void }) {
           },
         });
       } else if (action === 'permesso') {
-        if (!pFrom || !pTo) throw new Error('Finestra del permesso non valida.');
-        if (permMin < 15) throw new Error('Durata minima del permesso: 15 minuti.');
+        if (!pFrom || !pTo) throw new Error(t('errors.invalidPermWindow'));
+        if (permMin < 15) throw new Error(t('errors.permMinDuration'));
         await api('/api/v1/leaves/admin-create', {
           method: 'POST',
           json: {
@@ -394,7 +383,7 @@ function AnomalyItem({ a, onDone }: { a: Anomaly; onDone: () => void }) {
           },
         });
       } else {
-        if (note.trim().length < 1) throw new Error('Inserisci una nota di giustificazione.');
+        if (note.trim().length < 1) throw new Error(t('errors.noteRequired'));
         await api('/api/v1/shifts/anomalies/justify', {
           method: 'POST',
           json: { user_id: a.user_id, date: a.date, kind: a.kind, note: note.trim() },
@@ -404,7 +393,7 @@ function AnomalyItem({ a, onDone }: { a: Anomaly; onDone: () => void }) {
       setNote('');
       onDone();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     } finally {
       setBusy(false);
     }
@@ -417,16 +406,16 @@ function AnomalyItem({ a, onDone }: { a: Anomaly; onDone: () => void }) {
           className="badge"
           style={{ background: KIND_COLOR[a.kind] + '22', color: KIND_COLOR[a.kind] }}
         >
-          {KIND_LABEL[a.kind]}
+          {t(`common:anomaly.${a.kind}`)}
         </span>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium">{a.user_display_name || a.user_email}</div>
           <div className="text-xs text-neutral-500">
-            Orario: {a.shift_template_name ?? '—'} · Atteso{' '}
-            {fmtTime(a.expected_start_at)}–{fmtTime(a.expected_end_at)} · Effettivo{' '}
+            {t('row.scheduleLabel')} {a.shift_template_name ?? '—'} · {t('row.expected')}{' '}
+            {fmtTime(a.expected_start_at)}–{fmtTime(a.expected_end_at)} · {t('row.actual')}{' '}
             {fmtTime(a.actual_start_at)}–{fmtTime(a.actual_end_at)}
-            {a.delta_minutes !== null && ` · Δ ${a.delta_minutes}min`}
-            {a.break_total_min !== null && ` · Pausa ${a.break_total_min}min`}
+            {a.delta_minutes !== null && ` · ${t('row.deltaShort', { minutes: a.delta_minutes })}`}
+            {a.break_total_min !== null && ` · ${t('row.breakShort', { minutes: a.break_total_min })}`}
           </div>
           {a.details && <div className="text-xs text-neutral-600 mt-0.5">{a.details}</div>}
           {a.justification_note && (
@@ -434,7 +423,7 @@ function AnomalyItem({ a, onDone }: { a: Anomaly; onDone: () => void }) {
               className="text-xs mt-1 rounded-md px-2 py-1"
               style={{ background: '#e8f3ec', color: '#166534' }}
             >
-              Giustificata: {a.justification_note}
+              {t('row.justified', { note: a.justification_note })}
             </div>
           )}
         </div>
@@ -443,7 +432,7 @@ function AnomalyItem({ a, onDone }: { a: Anomaly; onDone: () => void }) {
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
         >
-          {open ? 'Chiudi' : 'Correggi ▾'}
+          {open ? t('common:btn.close') : t('correct')}
         </button>
       </div>
 
@@ -453,7 +442,7 @@ function AnomalyItem({ a, onDone }: { a: Anomaly; onDone: () => void }) {
           style={{ background: 'var(--color-surface-variant, #f5f5f4)' }}
         >
           <div>
-            <label className="label">Azione</label>
+            <label className="label">{t('action.label')}</label>
             <select
               className="input"
               value={action}
@@ -461,7 +450,7 @@ function AnomalyItem({ a, onDone }: { a: Anomaly; onDone: () => void }) {
             >
               {actions.map((act) => (
                 <option key={act} value={act}>
-                  {ACTION_LABEL[act]}
+                  {t(ACTION_LABEL_KEY[act])}
                 </option>
               ))}
             </select>
@@ -471,16 +460,23 @@ function AnomalyItem({ a, onDone }: { a: Anomaly; onDone: () => void }) {
           {action === 'standard' && (
             <div className="text-sm">
               <div className="muted text-xs font-semibold uppercase tracking-wide mb-1">
-                Riepilogo
+                {t('recap.title')}
               </div>
               {toAdd.length === 0 ? (
-                <div className="text-neutral-600">Nessun timbro mancante.</div>
+                <div className="text-neutral-600">{t('recap.noMissingStamp')}</div>
               ) : (
                 <ul className="space-y-0.5">
                   {toAdd.map((ev) => (
                     <li key={ev.event_type}>
-                      Aggiunge <strong>{eventLabel(ev.event_type)}</strong> alle{' '}
-                      <strong>{fmtTime(ev.occurred_at)}</strong>
+                      <Trans
+                        t={t}
+                        i18nKey="recap.addsEvent"
+                        values={{
+                          event: t(`common:stampEvent.${ev.event_type}`),
+                          time: fmtTime(ev.occurred_at),
+                        }}
+                        components={{ strong: <strong /> }}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -490,10 +486,18 @@ function AnomalyItem({ a, onDone }: { a: Anomaly; onDone: () => void }) {
 
           {action === 'ferie' && (
             <div className="text-sm space-y-2">
-              <div className="muted text-xs font-semibold uppercase tracking-wide">Riepilogo</div>
+              <div className="muted text-xs font-semibold uppercase tracking-wide">{t('recap.title')}</div>
               <div>
-                Ferie per <strong>{fmtDate(a.date)}</strong> ({fmtTime(a.expected_start_at)}–
-                {fmtTime(a.expected_end_at)}). Le ore vengono calcolate dall'orario assegnato.
+                <Trans
+                  t={t}
+                  i18nKey="recap.ferieFor"
+                  values={{
+                    date: fmtDate(a.date),
+                    from: fmtTime(a.expected_start_at),
+                    to: fmtTime(a.expected_end_at),
+                  }}
+                  components={{ strong: <strong /> }}
+                />
               </div>
               <NoteField value={note} onChange={setNote} optional />
             </div>
@@ -501,16 +505,16 @@ function AnomalyItem({ a, onDone }: { a: Anomaly; onDone: () => void }) {
 
           {action === 'permesso' && (
             <div className="text-sm space-y-2">
-              <div className="muted text-xs font-semibold uppercase tracking-wide">Riepilogo</div>
+              <div className="muted text-xs font-semibold uppercase tracking-wide">{t('recap.title')}</div>
               <div className="flex flex-wrap items-center gap-4">
                 <TimeStepper
-                  label="Dalle"
+                  label={t('recap.permFrom')}
                   value={pFrom}
                   onStep={(d) => stepPerm('from', d)}
                 />
-                <TimeStepper label="Alle" value={pTo} onStep={(d) => stepPerm('to', d)} />
+                <TimeStepper label={t('recap.permTo')} value={pTo} onStep={(d) => stepPerm('to', d)} />
                 <div>
-                  <div className="label">Durata</div>
+                  <div className="label">{t('recap.duration')}</div>
                   <div className="font-medium">{permMin > 0 ? fmtMins(permMin) : '—'}</div>
                 </div>
               </div>
@@ -521,11 +525,11 @@ function AnomalyItem({ a, onDone }: { a: Anomaly; onDone: () => void }) {
           {action === 'note' && (
             <div className="text-sm space-y-1">
               <div className="muted text-xs font-semibold uppercase tracking-wide">
-                Nota di giustificazione
+                {t('noteSection.title')}
               </div>
               <NoteField value={note} onChange={setNote} />
               <div className="text-xs muted">
-                L'anomalia resta visibile ma annotata; la nota compare nelle esportazioni.
+                {t('noteSection.hint')}
               </div>
             </div>
           )}
@@ -534,14 +538,14 @@ function AnomalyItem({ a, onDone }: { a: Anomaly; onDone: () => void }) {
 
           <div className="flex gap-2">
             <button className="btn btn-primary btn-sm" onClick={confirm} disabled={busy}>
-              {busy ? 'Salvataggio…' : 'Conferma'}
+              {busy ? t('common:state.saving') : t('common:btn.confirm')}
             </button>
             <button
               className="btn btn-secondary btn-sm"
               onClick={() => setOpen(false)}
               disabled={busy}
             >
-              Annulla
+              {t('common:btn.cancel')}
             </button>
           </div>
         </div>
@@ -584,12 +588,13 @@ function NoteField({
   onChange: (v: string) => void;
   optional?: boolean;
 }) {
+  const { t } = useTranslation(['anomalies', 'common']);
   return (
     <textarea
       className="input"
       rows={2}
       maxLength={1000}
-      placeholder={optional ? 'Nota per il dipendente (opzionale)' : 'Motivazione…'}
+      placeholder={optional ? t('noteField.optionalPlaceholder') : t('noteField.placeholder')}
       value={value}
       onChange={(e) => onChange(e.target.value)}
     />

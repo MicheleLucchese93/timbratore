@@ -1,9 +1,11 @@
 import { useEffect, useState, useCallback, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
 import { useRealtimePolling } from '../hooks/useRealtimePolling.ts';
 import { IconButton } from '../components/IconButton.tsx';
+import { fmtDate, fmtDateTime, fmtTime, fmtNumber, localeTag } from '../i18n/format.ts';
 
 interface Usage {
   active_users: string | number;
@@ -112,27 +114,8 @@ interface PendingLeave {
 type GroupMode = 'list' | 'by_branch';
 type InboxTab = 'corrections' | 'leaves' | 'revocations';
 
-const LEAVE_TYPE_LABEL: Record<LeaveType, string> = {
-  ferie: 'Ferie',
-  permessi: 'Permesso',
-  malattia: 'Malattia',
-};
-
-const ANOMALY_LABEL: Record<AnomalyKind, string> = {
-  missing_clock_in: 'Entrata mancante',
-  missing_clock_out: 'Uscita mancante',
-  late_clock_in: 'Entrata in ritardo',
-  early_clock_out: 'Uscita anticipata',
-  short_hours: 'Ore giornaliere insufficienti',
-  worked_on_rest_day: 'Lavoro in giorno di riposo',
-  break_too_short: 'Pausa troppo breve',
-  break_too_long: 'Pausa troppo lunga',
-  lunch_too_short: 'Pausa pranzo troppo breve',
-  lunch_too_long: 'Pausa pranzo troppo lunga',
-  clock_out_out_of_area: 'Uscita fuori area',
-};
-
 export function Dashboard() {
+  const { t } = useTranslation(['dashboard', 'common']);
   const me = useSession((s) => s.me);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [cards, setCards] = useState<UserCard[]>([]);
@@ -170,7 +153,7 @@ export function Dashboard() {
       const first = results[0];
       if (first.status === 'rejected') {
         const reason = first.reason;
-        setErr(reason instanceof Error ? reason.message : 'errore');
+        setErr(reason instanceof Error ? reason.message : t('common:state.error'));
       }
     } else {
       setErr(null);
@@ -189,7 +172,7 @@ export function Dashboard() {
       await api(`/api/v1/correction-requests/${r.id}/approve`, { method: 'POST', json: {} });
       await load();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     }
   }
 
@@ -199,7 +182,7 @@ export function Dashboard() {
       await api(`/api/v1/leaves/${r.id}/approve`, { method: 'POST' });
       await load();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     }
   }
 
@@ -212,7 +195,7 @@ export function Dashboard() {
       });
       await load();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     }
   }
 
@@ -224,10 +207,10 @@ export function Dashboard() {
   return (
     <div className="space-y-6">
       <header className="page-header">
-        <h1 className="sr-only">Dashboard</h1>
+        <h1 className="sr-only">{t('title')}</h1>
         <div className="page-header-actions ml-auto">
           <button className="btn btn-secondary" onClick={load}>
-            <IconRefresh /> Aggiorna
+            <IconRefresh /> {t('common:btn.refresh')}
           </button>
         </div>
       </header>
@@ -238,36 +221,36 @@ export function Dashboard() {
 
       <section className="dash-stat-grid">
         <StatCard
-          label="Presenti ora"
+          label={t('kpi.presentNow')}
           value={String(summary?.presence.clocked_in ?? '–')}
           suffix={`/ ${summary?.usage.active_users ?? '–'}`}
           icon={<IconUsers />}
         />
         <StatCard
-          label="In pausa"
+          label={t('common:workState.on_break')}
           value={String(summary?.presence.on_break ?? '–')}
           icon={<IconCoffee />}
         />
         <StatCard
-          label="Assenti oggi"
+          label={t('kpi.absentToday')}
           value={String(summary?.absent_now.length ?? '–')}
           icon={<IconCalendar />}
           accent={summary && summary.absent_now.length > 0 ? 'warn' : undefined}
         />
         <StatCard
-          label="Da approvare"
+          label={t('kpi.toApprove')}
           value={String(pendingTotal)}
           icon={<IconInbox />}
           accent={pendingTotal > 0 ? 'warn' : undefined}
         />
         <StatCard
-          label="Anomalie 7 gg"
+          label={t('kpi.anomalies7d')}
           value={String(summary?.anomalies_7d.total ?? '–')}
           icon={<IconAlert />}
           accent={summary && summary.anomalies_7d.total > 0 ? 'warn' : undefined}
         />
         <StatCard
-          label="Sedi"
+          label={t('kpi.branches')}
           value={String(summary?.usage.branches_count ?? '–')}
           suffix={`/ ${summary?.usage.max_branches ?? '–'}`}
           icon={<IconMapPin />}
@@ -276,27 +259,27 @@ export function Dashboard() {
 
       <section>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h2 className="section-title">Da approvare</h2>
-          <div className="text-xs muted">Totale: {pendingTotal}</div>
+          <h2 className="section-title">{t('inbox.title')}</h2>
+          <div className="text-xs muted">{t('inbox.total', { n: pendingTotal })}</div>
         </div>
         <div className="card p-0">
           <div className="flex border-b" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>
             <InboxTabButton
               active={inboxTab === 'corrections'}
               onClick={() => setInboxTab('corrections')}
-              label="Correzioni"
+              label={t('inbox.tab.corrections')}
               count={pendingCorrections.length}
             />
             <InboxTabButton
               active={inboxTab === 'leaves'}
               onClick={() => setInboxTab('leaves')}
-              label="Ferie / permessi / malattia"
+              label={t('inbox.tab.leaves')}
               count={pendingLeaves.length}
             />
             <InboxTabButton
               active={inboxTab === 'revocations'}
               onClick={() => setInboxTab('revocations')}
-              label="Revoche"
+              label={t('inbox.tab.revocations')}
               count={cancellationLeaves.length}
             />
           </div>
@@ -327,7 +310,7 @@ export function Dashboard() {
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div>
-          <h2 className="section-title mb-3">Assenti ora</h2>
+          <h2 className="section-title mb-3">{t('absences.nowTitle')}</h2>
           {summary && summary.absent_now.length > 0 ? (
             <ul className="space-y-2">
               {summary.absent_now.map((a) => (
@@ -335,11 +318,11 @@ export function Dashboard() {
               ))}
             </ul>
           ) : (
-            <EmptyState icon={<IconCalendar />} title="Nessuna assenza in corso" />
+            <EmptyState icon={<IconCalendar />} title={t('absences.noneNow')} />
           )}
         </div>
         <div>
-          <h2 className="section-title mb-3">Prossime 14 giorni</h2>
+          <h2 className="section-title mb-3">{t('absences.upcomingTitle')}</h2>
           {summary && summary.upcoming_leaves.length > 0 ? (
             <ul className="space-y-2">
               {summary.upcoming_leaves.map((a) => (
@@ -347,21 +330,21 @@ export function Dashboard() {
               ))}
             </ul>
           ) : (
-            <EmptyState icon={<IconCalendar />} title="Nessuna assenza programmata" />
+            <EmptyState icon={<IconCalendar />} title={t('absences.noneUpcoming')} />
           )}
         </div>
       </section>
 
       <section>
         <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-          <h2 className="section-title">Stato attuale</h2>
+          <h2 className="section-title">{t('status.title')}</h2>
           <ViewToggle value={groupMode} onChange={setGroupMode} />
         </div>
         {cards.length === 0 ? (
           <EmptyState
             icon={<IconUsers />}
-            title="Nessun dipendente ancora"
-            hint="Invita il primo collaboratore dalla sezione Utenti."
+            title={t('status.noEmployees')}
+            hint={t('status.noEmployeesHint')}
           />
         ) : groupMode === 'list' ? (
           <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -376,32 +359,32 @@ export function Dashboard() {
 
       <section>
         <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-          <h2 className="section-title">Anomalie ultimi 7 giorni</h2>
+          <h2 className="section-title">{t('anomalies.title')}</h2>
           <Link to="/anomalies" className="btn btn-ghost btn-sm">
-            Vedi tutte →
+            {t('anomalies.seeAll')}
           </Link>
         </div>
         {summary && summary.anomalies_7d.total > 0 ? (
           <div className="card space-y-4">
             <AnomalyBreakdown by_kind={summary.anomalies_7d.by_kind} />
             <div>
-              <div className="dash-subheading">Più recenti</div>
+              <div className="dash-subheading">{t('anomalies.mostRecent')}</div>
               <ul className="dash-row-list">
                 {summary.anomalies_7d.recent.map((a, idx) => (
                   <li key={`${a.user_id}-${a.date}-${a.kind}-${idx}`} className="dash-row">
                     <span className="dash-row-badge">
-                      <span className="badge badge-warn">{ANOMALY_LABEL[a.kind]}</span>
+                      <span className="badge badge-warn">{t(`common:anomaly.${a.kind}`)}</span>
                     </span>
                     <span className="dash-row-name">
                       {a.user_display_name || a.user_email}
                     </span>
                     <span className="dash-row-meta num">
-                      {new Date(a.date + 'T00:00:00').toLocaleDateString('it-IT', {
+                      {fmtDate(a.date + 'T00:00:00', {
                         weekday: 'short',
                         day: '2-digit',
                         month: '2-digit',
                       })}
-                      {a.delta_minutes != null && ` · ${a.delta_minutes}m`}
+                      {a.delta_minutes != null && t('anomalies.delta', { n: a.delta_minutes })}
                     </span>
                   </li>
                 ))}
@@ -409,14 +392,14 @@ export function Dashboard() {
             </div>
           </div>
         ) : (
-          <EmptyState icon={<IconAlert />} title="Nessuna anomalia negli ultimi 7 giorni" />
+          <EmptyState icon={<IconAlert />} title={t('anomalies.none')} />
         )}
       </section>
 
       {rejectTarget && (
         <ReasonDialog
-          title={rejectTarget.kind === 'leave' ? 'Rifiuta richiesta' : 'Rifiuta correzione'}
-          label={rejectTarget.kind === 'leave' ? 'Motivo del rifiuto' : 'Nota di rifiuto (opzionale)'}
+          title={rejectTarget.kind === 'leave' ? t('reject.leaveTitle') : t('reject.correctionTitle')}
+          label={rejectTarget.kind === 'leave' ? t('reject.leaveLabel') : t('reject.correctionLabel')}
           required={rejectTarget.kind === 'leave'}
           onClose={() => setRejectTarget(null)}
           onSubmit={async (reason) => {
@@ -435,7 +418,7 @@ export function Dashboard() {
               setRejectTarget(null);
               await load();
             } catch (e) {
-              setErr(e instanceof Error ? e.message : 'errore');
+              setErr(e instanceof Error ? e.message : t('common:state.error'));
             }
           }}
         />
@@ -455,8 +438,9 @@ function CorrectionsInbox({
   onApprove: (r: PendingCorrection) => void;
   onReject: (r: PendingCorrection) => void;
 }) {
+  const { t } = useTranslation(['dashboard', 'common']);
   if (rows.length === 0) {
-    return <EmptyState icon={<IconInbox />} title="Nessuna correzione in coda" />;
+    return <EmptyState icon={<IconInbox />} title={t('inbox.emptyCorrections')} />;
   }
   return (
     <ul className="space-y-1">
@@ -465,8 +449,8 @@ function CorrectionsInbox({
           <div className="min-w-0 flex-1">
             <div className="font-medium text-sm">{r.user_display_name || r.user_email}</div>
             <div className="text-xs muted num">
-              {labelEvent(r.claimed_event_type)} ·{' '}
-              {new Date(r.claimed_occurred_at).toLocaleString('it-IT')}
+              {labelEvent(r.claimed_event_type, t)} ·{' '}
+              {fmtDateTime(r.claimed_occurred_at)}
             </div>
             {r.justification && (
               <div className="text-xs muted mt-0.5 truncate" title={r.justification}>
@@ -475,9 +459,9 @@ function CorrectionsInbox({
             )}
           </div>
           <div className="inbox-actions">
-            <IconButton kind="approve" title="Approva" onClick={() => onApprove(r)} />
-            <IconButton kind="reject" title="Rifiuta" onClick={() => onReject(r)} />
-            <Link to="/corrections" className="icon-link" title="Apri dettaglio" aria-label="Apri dettaglio">
+            <IconButton kind="approve" title={t('common:btn.approve')} onClick={() => onApprove(r)} />
+            <IconButton kind="reject" title={t('common:btn.reject')} onClick={() => onReject(r)} />
+            <Link to="/corrections" className="icon-link" title={t('inbox.openDetail')} aria-label={t('inbox.openDetail')}>
               <IconOpen />
             </Link>
           </div>
@@ -496,8 +480,9 @@ function LeavesInbox({
   onApprove: (r: PendingLeave) => void;
   onReject: (r: PendingLeave) => void;
 }) {
+  const { t } = useTranslation(['dashboard', 'common']);
   if (rows.length === 0) {
-    return <EmptyState icon={<IconInbox />} title="Nessuna richiesta in coda" />;
+    return <EmptyState icon={<IconInbox />} title={t('inbox.emptyLeaves')} />;
   }
   return (
     <ul className="space-y-1">
@@ -505,12 +490,12 @@ function LeavesInbox({
         <li key={r.id} className="inbox-row">
           <div className="min-w-0 flex-1 flex items-start gap-2">
             <span className={`badge ${r.type === 'malattia' ? 'badge-warn' : 'badge-muted'} shrink-0 mt-0.5`}>
-              {LEAVE_TYPE_LABEL[r.type]}
+              {t(`common:leaveType.${r.type}`)}
             </span>
             <div className="min-w-0">
               <div className="text-sm font-medium">{r.user_display_name || r.user_email}</div>
               <div className="text-xs muted num">
-                {fmtRange(r.from_ts, r.to_ts, r.type)} · {Number(r.duration_hours).toFixed(2)}h
+                {fmtRange(r.from_ts, r.to_ts, r.type)} · {fmtNumber(Number(r.duration_hours), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{t('common:unit.hoursShort')}
               </div>
               {r.user_note && (
                 <div className="text-xs muted mt-0.5 truncate" title={r.user_note}>
@@ -518,14 +503,14 @@ function LeavesInbox({
                 </div>
               )}
               {r.inps_protocol && (
-                <div className="text-xs muted">INPS: {r.inps_protocol}</div>
+                <div className="text-xs muted">{t('inbox.inps', { protocol: r.inps_protocol })}</div>
               )}
             </div>
           </div>
           <div className="inbox-actions">
-            <IconButton kind="approve" title="Approva" onClick={() => onApprove(r)} />
-            <IconButton kind="reject" title="Rifiuta" onClick={() => onReject(r)} />
-            <Link to="/leaves" className="icon-link" title="Apri dettaglio" aria-label="Apri dettaglio">
+            <IconButton kind="approve" title={t('common:btn.approve')} onClick={() => onApprove(r)} />
+            <IconButton kind="reject" title={t('common:btn.reject')} onClick={() => onReject(r)} />
+            <Link to="/leaves" className="icon-link" title={t('inbox.openDetail')} aria-label={t('inbox.openDetail')}>
               <IconOpen />
             </Link>
           </div>
@@ -542,8 +527,9 @@ function RevocationsInbox({
   rows: PendingLeave[];
   onDecide: (r: PendingLeave, approveCancel: boolean) => void;
 }) {
+  const { t } = useTranslation(['dashboard', 'common']);
   if (rows.length === 0) {
-    return <EmptyState icon={<IconInbox />} title="Nessuna revoca da decidere" />;
+    return <EmptyState icon={<IconInbox />} title={t('inbox.emptyRevocations')} />;
   }
   return (
     <ul className="space-y-1">
@@ -551,30 +537,30 @@ function RevocationsInbox({
         <li key={r.id} className="inbox-row">
           <div className="min-w-0 flex-1 flex items-start gap-2">
             <span className={`badge ${r.type === 'malattia' ? 'badge-warn' : 'badge-muted'} shrink-0 mt-0.5`}>
-              {LEAVE_TYPE_LABEL[r.type]}
+              {t(`common:leaveType.${r.type}`)}
             </span>
             <div className="min-w-0">
               <div className="text-sm font-medium">{r.user_display_name || r.user_email}</div>
               <div className="text-xs muted num">
-                {fmtRange(r.from_ts, r.to_ts, r.type)} · {Number(r.duration_hours).toFixed(2)}h
+                {fmtRange(r.from_ts, r.to_ts, r.type)} · {fmtNumber(Number(r.duration_hours), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{t('common:unit.hoursShort')}
               </div>
               {r.cancellation_reason && (
-                <div className="text-xs muted mt-0.5">Motivo: {r.cancellation_reason}</div>
+                <div className="text-xs muted mt-0.5">{t('inbox.reason', { reason: r.cancellation_reason })}</div>
               )}
             </div>
           </div>
           <div className="inbox-actions">
             <IconButton
               kind="approve"
-              title="Accetta annullamento"
+              title={t('inbox.acceptCancellation')}
               onClick={() => onDecide(r, true)}
             />
             <IconButton
               kind="reject"
-              title="Rifiuta annullamento"
+              title={t('inbox.rejectCancellation')}
               onClick={() => onDecide(r, false)}
             />
-            <Link to="/leaves" className="icon-link" title="Apri dettaglio" aria-label="Apri dettaglio">
+            <Link to="/leaves" className="icon-link" title={t('inbox.openDetail')} aria-label={t('inbox.openDetail')}>
               <IconOpen />
             </Link>
           </div>
@@ -593,22 +579,23 @@ function AbsenceRow({
   row: AbsentLeave;
   mode: 'now' | 'upcoming';
 }) {
+  const { t } = useTranslation(['dashboard', 'common']);
   return (
     <li className="absence-row">
       <span className="absence-row-badge">
         <span className={`badge ${row.type === 'malattia' ? 'badge-warn' : 'badge-muted'}`}>
-          {LEAVE_TYPE_LABEL[row.type]}
+          {t(`common:leaveType.${row.type}`)}
         </span>
       </span>
       <span className="absence-row-body">
         <span className="absence-row-name">{row.user_display_name || row.user_email}</span>
         <span className="absence-row-meta">
           {mode === 'now'
-            ? `Fino al ${fmtDateShort(row.to_ts)}`
+            ? t('absences.until', { date: fmtDateShort(row.to_ts) })
             : fmtRange(row.from_ts, row.to_ts, row.type)}
         </span>
       </span>
-      <span className="absence-row-hours num">{Number(row.duration_hours).toFixed(2)}h</span>
+      <span className="absence-row-hours num">{fmtNumber(Number(row.duration_hours), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{t('common:unit.hoursShort')}</span>
     </li>
   );
 }
@@ -616,6 +603,7 @@ function AbsenceRow({
 /* ---------------- Anomaly breakdown ---------------- */
 
 function AnomalyBreakdown({ by_kind }: { by_kind: Record<AnomalyKind, number> }) {
+  const { t } = useTranslation(['dashboard', 'common']);
   const entries = (Object.keys(by_kind) as AnomalyKind[])
     .map((k) => ({ kind: k, n: by_kind[k] }))
     .filter((e) => e.n > 0)
@@ -625,7 +613,7 @@ function AnomalyBreakdown({ by_kind }: { by_kind: Record<AnomalyKind, number> })
     <div className="flex flex-wrap gap-1.5">
       {entries.map((e) => (
         <span key={e.kind} className="badge badge-muted">
-          {ANOMALY_LABEL[e.kind]}: <strong className="ml-1">{e.n}</strong>
+          {t(`common:anomaly.${e.kind}`)}: <strong className="ml-1">{e.n}</strong>
         </span>
       ))}
     </div>
@@ -647,6 +635,7 @@ function ReasonDialog({
   onClose: () => void;
   onSubmit: (reason: string) => Promise<void> | void;
 }) {
+  const { t } = useTranslation(['dashboard', 'common']);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   async function submit(e: FormEvent) {
@@ -677,10 +666,10 @@ function ReasonDialog({
         </div>
         <div className="flex justify-end gap-2">
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
-            Annulla
+            {t('common:btn.cancel')}
           </button>
           <button type="submit" className="btn btn-danger" disabled={busy || (required && !reason.trim())}>
-            {busy ? 'Salvataggio…' : 'Conferma'}
+            {busy ? t('common:state.saving') : t('common:btn.confirm')}
           </button>
         </div>
       </form>
@@ -697,6 +686,7 @@ function ViewToggle({
   value: GroupMode;
   onChange: (v: GroupMode) => void;
 }) {
+  const { t } = useTranslation(['dashboard', 'common']);
   return (
     <div
       role="tablist"
@@ -729,7 +719,7 @@ function ViewToggle({
               boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
             }}
           >
-            {k === 'list' ? 'Elenco' : 'Per sede'}
+            {k === 'list' ? t('status.viewList') : t('status.viewByBranch')}
           </button>
         );
       })}
@@ -764,6 +754,7 @@ function InboxTabButton({
 }
 
 function UserStatusCard({ card, showBranch }: { card: UserCard; showBranch: boolean }) {
+  const { t } = useTranslation(['dashboard', 'common']);
   return (
     <li className="status-card">
       <div className="status-card-head">
@@ -778,19 +769,19 @@ function UserStatusCard({ card, showBranch }: { card: UserCard; showBranch: bool
         <StateBadge state={card.state} />
       </div>
       <div className="status-card-meta">
-        {showBranch && card.branch_name && <div>Sede: {card.branch_name}</div>}
+        {showBranch && card.branch_name && <div>{t('status.branch', { name: card.branch_name })}</div>}
         {card.last_event_at ? (
           <div>
-            Ultimo: {labelEvent(card.last_event)}{' '}
+            {t('status.last', { event: labelEvent(card.last_event, t) })}{' '}
             <span className="num">
-              {new Date(card.last_event_at).toLocaleTimeString('it-IT', {
+              {fmtTime(card.last_event_at, {
                 hour: '2-digit',
                 minute: '2-digit',
               })}
             </span>
           </div>
         ) : (
-          <div className="status-card-meta-empty">Nessuna attività oggi</div>
+          <div className="status-card-meta-empty">{t('status.noActivity')}</div>
         )}
       </div>
     </li>
@@ -798,6 +789,7 @@ function UserStatusCard({ card, showBranch }: { card: UserCard; showBranch: bool
 }
 
 function BranchGroups({ cards }: { cards: UserCard[] }) {
+  const { t } = useTranslation(['dashboard', 'common']);
   const present = cards.filter((c) => c.state !== 'nothing');
   const off = cards.filter((c) => c.state === 'nothing');
   const byBranch = new Map<string, UserCard[]>();
@@ -809,20 +801,20 @@ function BranchGroups({ cards }: { cards: UserCard[] }) {
   const branchKeys = Array.from(byBranch.keys()).sort((a, b) => {
     if (a === '__none__') return 1;
     if (b === '__none__') return -1;
-    return a.localeCompare(b, 'it');
+    return a.localeCompare(b, localeTag());
   });
   return (
     <div className="space-y-5">
       {branchKeys.length === 0 && (
         <EmptyState
           icon={<IconMapPin />}
-          title="Nessuno presente"
-          hint="Nessun dipendente ha timbrato l'ingresso al momento."
+          title={t('status.nobodyPresent')}
+          hint={t('status.nobodyPresentHint')}
         />
       )}
       {branchKeys.map((key) => {
         const group = byBranch.get(key)!;
-        const label = key === '__none__' ? 'Senza sede' : key;
+        const label = key === '__none__' ? t('status.noBranch') : key;
         return (
           <div key={key}>
             <div
@@ -850,7 +842,7 @@ function BranchGroups({ cards }: { cards: UserCard[] }) {
             style={{ color: 'var(--color-on-surface-variant)' }}
           >
             <h3 className="text-sm font-semibold" style={{ color: 'var(--color-on-surface)' }}>
-              Fuori servizio
+              {t('common:workState.off')}
             </h3>
             <span className="badge badge-muted">{off.length}</span>
           </div>
@@ -893,10 +885,11 @@ function StatCard({
 }
 
 function StateBadge({ state }: { state: UserCard['state'] }) {
-  if (state === 'clocked_in') return <span className="badge badge-ok">Al lavoro</span>;
-  if (state === 'on_break') return <span className="badge badge-warn">In pausa</span>;
-  if (state === 'on_lunch') return <span className="badge badge-warn">In pausa pranzo</span>;
-  return <span className="badge badge-muted">Fuori servizio</span>;
+  const { t } = useTranslation(['dashboard', 'common']);
+  if (state === 'clocked_in') return <span className="badge badge-ok">{t('common:workState.working')}</span>;
+  if (state === 'on_break') return <span className="badge badge-warn">{t('common:workState.on_break')}</span>;
+  if (state === 'on_lunch') return <span className="badge badge-warn">{t('common:workState.on_lunch')}</span>;
+  return <span className="badge badge-muted">{t('common:workState.off')}</span>;
 }
 
 function EmptyState({
@@ -924,20 +917,20 @@ function initialsFor(email: string): string {
   return letters || local.slice(0, 2).toUpperCase() || '?';
 }
 
-function labelEvent(e: string | null): string {
+function labelEvent(e: string | null, t: (k: string) => string): string {
   switch (e) {
-    case 'clock_in': return 'Ingresso';
-    case 'clock_out': return 'Uscita';
-    case 'break_start': return 'Inizio pausa';
-    case 'break_end': return 'Fine pausa';
-    case 'lunch_start': return 'Inizio pausa pranzo';
-    case 'lunch_end': return 'Fine pausa pranzo';
+    case 'clock_in': return t('common:stampEvent.clock_in');
+    case 'clock_out': return t('common:stampEvent.clock_out');
+    case 'break_start': return t('common:stampEvent.break_start');
+    case 'break_end': return t('common:stampEvent.break_end');
+    case 'lunch_start': return t('common:stampEvent.lunch_start');
+    case 'lunch_end': return t('common:stampEvent.lunch_end');
     default: return '–';
   }
 }
 
 function fmtDateShort(iso: string): string {
-  return new Date(iso).toLocaleDateString('it-IT', {
+  return fmtDate(iso, {
     day: '2-digit',
     month: '2-digit',
     year: '2-digit',
@@ -946,15 +939,15 @@ function fmtDateShort(iso: string): string {
 
 function fmtRange(from: string, to: string, type: LeaveType): string {
   const f = new Date(from);
-  const t = new Date(to);
-  const sameDay = f.toDateString() === t.toDateString();
+  const tt = new Date(to);
+  const sameDay = f.toDateString() === tt.toDateString();
   const d: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: '2-digit' };
   const h: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
   if (type === 'permessi' && sameDay) {
-    return `${f.toLocaleDateString('it-IT', d)} ${f.toLocaleTimeString('it-IT', h)}–${t.toLocaleTimeString('it-IT', h)}`;
+    return `${fmtDate(f, d)} ${fmtTime(f, h)}–${fmtTime(tt, h)}`;
   }
-  if (sameDay) return f.toLocaleDateString('it-IT', d);
-  return `${f.toLocaleDateString('it-IT', d)} → ${t.toLocaleDateString('it-IT', d)}`;
+  if (sameDay) return fmtDate(f, d);
+  return `${fmtDate(f, d)} → ${fmtDate(tt, d)}`;
 }
 
 /* Icons -------------------------------------------------------------- */

@@ -1,0 +1,9 @@
+{
+  "heading": "My stamps",
+  "col": {
+    "when": "When",
+    "event": "Event",
+    "origin": "Source",
+    "notes": "Notes"
+  }
+}

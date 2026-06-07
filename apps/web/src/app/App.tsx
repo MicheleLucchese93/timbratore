@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useSession } from '../store/session.ts';
 import { getToken } from '../lib/api.ts';
+import { applyServerLanguage } from '../i18n/index.ts';
 import { Login } from '../pages/Login.tsx';
 import { ForgotPassword } from '../pages/ForgotPassword.tsx';
 import { ChooseTenant } from '../pages/ChooseTenant.tsx';
@@ -36,6 +37,11 @@ export function App() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // Apply the per-user language preference once /me resolves.
+  useEffect(() => {
+    applyServerLanguage(me?.preferences?.language);
+  }, [me?.preferences?.language]);
 
   if (loading) {
     return <AppShellSkeleton />;

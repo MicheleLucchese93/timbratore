@@ -1,8 +1,10 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import type { Ref } from 'react';
+import { useTranslation } from 'react-i18next';
+import { TOC_EN, MAIN_EN } from './Manual.en.ts';
 import './Manual.css';
 
-const TOC_HTML = `
+const TOC_IT = `
     <nav>
       <h3>Introduzione</h3>
       <a href="#intro">Benvenuto</a>
@@ -55,7 +57,7 @@ const TOC_HTML = `
     </nav>
 `;
 
-const MAIN_HTML = `
+const MAIN_IT = `
 
     <section class="chapter" id="intro">
       <h2><span class="chapter-num">01</span>Benvenuto</h2>
@@ -92,6 +94,7 @@ const MAIN_HTML = `
             <tr><td><strong>Orario di lavoro</strong></td><td>Modello settimanale di slot lavorativi assegnato a un utente, usato per calcolare anomalie e ore.</td></tr>
             <tr><td><strong>Anomalia</strong></td><td>Deviazione tra timbrature reali e orario atteso (ritardo, assenza, pausa lunga, ecc.).</td></tr>
             <tr><td><strong>Correzione</strong></td><td>Richiesta del dipendente per modificare o aggiungere una timbratura dimenticata.</td></tr>
+            <tr><td><strong>Correggi anomalia</strong></td><td>Menù dell'amministratore sull'anomalia: timbratura standard, inserimento ferie/permesso, o giustificazione con nota. Ogni intervento è tracciato nelle esportazioni.</td></tr>
             <tr><td><strong>Ferie</strong></td><td>Giorni di vacanza retribuiti. Consumano la quota ferie del dipendente.</td></tr>
             <tr><td><strong>Permesso</strong></td><td>Assenza a ore, con granularità di 15 minuti. Consuma la quota permessi.</td></tr>
             <tr><td><strong>Malattia</strong></td><td>Assenza per motivi sanitari con protocollo INPS. Auto-approvata.</td></tr>
@@ -159,12 +162,15 @@ const MAIN_HTML = `
           <li>Premi <strong>Accedi</strong>.</li>
         </ol>
         <p>Al primo accesso verrai indirizzato alla pagina iniziale del tuo ruolo: <em>Dashboard</em> per gli amministratori (sia su Web sia su Mobile), <em>La mia dashboard</em> (Web) o <em>Timbrature</em> (Mobile) per i dipendenti.</p>
+        <div class="callout callout-info">
+          Sull'app mobile puoi attivare lo <strong>sblocco con Face ID / Touch ID / impronta</strong> da <strong>Profilo → Sicurezza</strong>: l'app chiederà la biometria all'avvio invece di tenere la sessione sempre aperta. Vedi il capitolo <em>Profilo</em> (mobile).
+        </div>
       </div>
 
       <div class="feature">
         <h3>Più aziende sullo stesso account</h3>
         <p>Se la tua email è associata a più aziende, dopo l'accesso comparirà la schermata <strong>Scegli l'azienda</strong>: seleziona quella su cui vuoi lavorare. Se invece appartieni a una sola azienda entri direttamente, senza passaggi extra.</p>
-        <p>Puoi cambiare azienda in qualsiasi momento da <strong>Impostazioni → Azienda attiva</strong>. La pagina si ricarica con i dati e il ruolo della nuova azienda: potresti essere amministratore in un'azienda e dipendente in un'altra.</p>
+        <p>Puoi cambiare azienda in qualsiasi momento da <strong>Impostazioni → Azienda attiva</strong> (Web) o da <strong>Profilo → Cambia azienda</strong> (App Mobile). L'app si ricarica con i dati e il ruolo della nuova azienda: potresti essere amministratore in un'azienda e dipendente in un'altra.</p>
         <div class="callout callout-info">
           Ogni azienda resta separata: timbrature, ferie e impostazioni non si mescolano mai tra aziende diverse.
         </div>
@@ -187,7 +193,7 @@ const MAIN_HTML = `
 
       <div class="feature">
         <h3>Non hai ancora un account?</h3>
-        <p>Solo l'amministratore della tua azienda può crearti l'utenza. Una volta invitato riceverai via email le credenziali iniziali.</p>
+        <p>Solo l'amministratore della tua azienda può crearti l'utenza. Quando avvia la procedura di accesso riceverai un'email per impostare la password ed entrare.</p>
       </div>
     </section>
 
@@ -389,7 +395,7 @@ const MAIN_HTML = `
           <li>Seleziona una o più <strong>sedi</strong> di assegnazione.</li>
           <li>Premi <strong>Invita</strong>.</li>
         </ol>
-        <p>Il dipendente riceverà un'email per impostare la password e accedere.</p>
+        <p>L'utente viene creato ma <strong>non riceve alcuna email automatica</strong>. Per dargli accesso, premi l'icona <strong>reimposta password</strong> (a forma di chiave) sulla sua riga — oppure selezionalo e usa l'operazione in massa <strong>Invia reset password</strong>: riceverà così l'email per impostare la password.</p>
       </div>
 
       <div class="feature">
@@ -403,7 +409,7 @@ const MAIN_HTML = `
           <li>Assegnare un <strong>orario di lavoro</strong> (template + data inizio validità).</li>
           <li>Configurare gli <strong>approvatori</strong> per Correzioni, Ferie, Permessi, Malattia.</li>
           <li>Modificare nome e cognome.</li>
-          <li><strong>Reimpostare la password</strong> (icona a forma di chiave) — invia all'utente un'email per scegliere una nuova password. Utile se ha smarrito l'invito iniziale o ha dimenticato la password.</li>
+          <li><strong>Reimpostare la password</strong> (icona a forma di chiave) — invia all'utente un'email per scegliere una nuova password. Serve a dare il <strong>primo accesso</strong> a un utente appena creato, o se ha smarrito le credenziali / dimenticato la password.</li>
           <li>Disattivare o eliminare definitivamente l'utente.</li>
         </ul>
       </div>
@@ -414,6 +420,10 @@ const MAIN_HTML = `
         <ul class="tidy">
           <li><strong>Assegna sedi</strong> — aggiunge le stesse sedi a tutti i selezionati.</li>
           <li><strong>Rimuovi sedi</strong> — toglie le sedi indicate da tutti.</li>
+          <li><strong>Assegna orario</strong> — assegna lo stesso orario di lavoro a tutti (sostituisce quello attuale).</li>
+          <li><strong>Timbratura</strong> — imposta gli stessi metodi di timbratura (GPS / Da remoto) su tutti.</li>
+          <li><strong>Approvatori ferie</strong> e <strong>Approvatori correzioni</strong> — impostano gli stessi approvatori su tutti (sostituiscono quelli attuali).</li>
+          <li><strong>Invia reset password</strong> — invia a tutti i selezionati l'email per impostare la password (comodo per il primo accesso di utenti appena creati).</li>
           <li><strong>Annulla</strong> — deseleziona.</li>
         </ul>
       </div>
@@ -491,9 +501,32 @@ const MAIN_HTML = `
           <li>Definisci pausa minima/massima e pausa pranzo minima/massima attese.</li>
           <li>Scegli se conteggiare gli <strong>straordinari</strong> e il <strong>blocco</strong> di calcolo (15, 30 o 60 minuti): il tempo oltre l'orario previsto è contato in blocchi interi, un blocco non completo non viene contato (es. uscita prevista 18:00, reale 18:28 → con blocchi da 30 min nessuno straordinario, da 15 min vengono contati 15 minuti).</li>
           <li>Per ogni giorno della settimana aggiungi uno o più <strong>slot</strong> (orario inizio - orario fine). Aggiungendo un secondo slot nello stesso giorno, gli orari del precedente vengono copiati come punto di partenza, così basta modificarli.</li>
-          <li>Imposta le <strong>penalità</strong> per superamento tolleranze su entrata, uscita e pausa.</li>
+          <li>Imposta le <strong>penalità</strong> per superamento tolleranze su entrata, uscita e pausa. Un permesso o una ferie approvati che coprono lo scostamento (es. permesso 16:00–18:00 a fine turno) annullano la penalità su entrata/uscita.</li>
+          <li>Opzionale: attiva <strong>Orario flessibile</strong> e/o imposta la pausa pranzo automatica per giorno (vedi sotto).</li>
           <li>Premi <strong>Salva</strong>.</li>
         </ol>
+      </div>
+
+      <div class="feature">
+        <h3>Orario flessibile (flextime)</h3>
+        <p>Attivando <strong>Orario flessibile</strong> l'orario passa da "a fasce fisse" a <strong>flextime</strong>: l'obiettivo diventa il <strong>totale di ore lavorate</strong> (la somma delle fasce), non l'orario fisso di entrata/uscita.</p>
+        <ul class="tidy">
+          <li><strong>Entrata / Uscita — prima e dopo</strong>: minuti di flessibilità attorno agli orari previsti. Entro la finestra non scattano "Entrata in ritardo" né "Uscita anticipata"; oltre la finestra valgono le normali tolleranze e penalità.</li>
+          <li><strong>Pausa pranzo — prima e dopo</strong>: per i turni spezzati, allarga la finestra in cui la pausa pranzo può essere timbrata. La <em>durata</em> resta governata da pausa pranzo min/max: questa finestra controlla solo <em>quando</em> viene presa. Una pausa fuori finestra genera l'anomalia "Pausa pranzo fuori finestra".</li>
+          <li><strong>Straordinario e ore mancanti</strong>: in flextime si calcolano sulla durata lavorata. Es. entrata 10:00, uscita 19:00, pausa 30 min, obiettivo 8h → nessuno straordinario né ammanco; chi entra alle 10:00 ed esce alle 18:00 ha "Ore insufficienti".</li>
+        </ul>
+        <div class="callout callout-info">
+          Le finestre di entrata, uscita e pausa pranzo sono <strong>indipendenti</strong>: arrivare tardi (entro la flessibilità) non sposta la finestra della pausa o dell'uscita. A contare è sempre il totale di ore lavorate.
+        </div>
+      </div>
+
+      <div class="feature">
+        <h3>Pausa pranzo automatica (senza spezzare la fascia)</h3>
+        <p>Per ogni giorno con <strong>un'unica fascia</strong> puoi indicare i minuti di <strong>pausa pranzo</strong> accanto agli orari. Quei minuti vengono <strong>detratti automaticamente</strong> dal tempo di presenza e la pausa può essere presa a piacere, <em>senza timbrarla</em>.</p>
+        <p>Esempio: fascia 09:00–17:30 con 30 minuti di pausa pranzo → vengono conteggiate 8h. Nei giorni con pausa automatica l'app mobile <strong>nasconde il pulsante "Inizio pranzo"</strong> e le anomalie sulla durata di pausa/pausa pranzo non si applicano.</p>
+        <div class="callout callout-tip">
+          La pausa pranzo automatica è alternativa al turno spezzato: usa il turno spezzato (due fasce) quando l'orario della pausa è fisso, la pausa automatica quando il dipendente può sceglierlo liberamente.
+        </div>
       </div>
 
       <div class="feature">
@@ -528,14 +561,15 @@ const MAIN_HTML = `
           <tbody>
             <tr><td><span class="pill pill-err">Entrata mancante</span></td><td>Nessuna timbratura ingresso in un giorno lavorativo previsto.</td></tr>
             <tr><td><span class="pill pill-err">Uscita mancante</span></td><td>Nessuna timbratura uscita dopo un ingresso.</td></tr>
-            <tr><td><span class="pill pill-warn">Entrata in ritardo</span></td><td>Ingresso oltre la tolleranza configurata.</td></tr>
-            <tr><td><span class="pill pill-warn">Uscita anticipata</span></td><td>Uscita prima della tolleranza configurata.</td></tr>
+            <tr><td><span class="pill pill-warn">Entrata in ritardo</span></td><td>Ingresso oltre la tolleranza configurata, salvo permesso/ferie approvati che coprono il ritardo.</td></tr>
+            <tr><td><span class="pill pill-warn">Uscita anticipata</span></td><td>Uscita prima della tolleranza configurata, salvo permesso/ferie approvati che coprono l'anticipo.</td></tr>
             <tr><td><span class="pill pill-warn">Ore insufficienti</span></td><td>Ore lavorate inferiori all'orario atteso.</td></tr>
             <tr><td><span class="pill pill-purple">Lavoro in giorno di riposo</span></td><td>Timbrature in un giorno non previsto dal turno.</td></tr>
             <tr><td><span class="pill pill-info">Pausa troppo breve</span></td><td>Pausa inferiore al minimo atteso.</td></tr>
             <tr><td><span class="pill pill-info">Pausa troppo lunga</span></td><td>Pausa superiore al massimo atteso.</td></tr>
             <tr><td><span class="pill pill-info">Pausa pranzo troppo breve</span></td><td>Pausa pranzo inferiore al minimo atteso.</td></tr>
             <tr><td><span class="pill pill-info">Pausa pranzo troppo lunga</span></td><td>Pausa pranzo superiore al massimo atteso.</td></tr>
+            <tr><td><span class="pill pill-info">Pausa pranzo fuori finestra</span></td><td>In orario flessibile, pausa pranzo timbrata fuori dalla finestra consentita (pausa prevista ± la flessibilità impostata).</td></tr>
             <tr><td><span class="pill pill-purple">Uscita fuori area</span></td><td>Uscita timbrata fuori dall'area della sede (es. da casa). L'uscita è sempre permessa ma viene registrata con questa anomalia, con la distanza dalla sede quando disponibile. Indipendente dal turno: compare anche per utenti senza orario assegnato.</td></tr>
           </tbody>
         </table>
@@ -692,7 +726,7 @@ const MAIN_HTML = `
         <ul class="tidy">
           <li><strong>Ragione sociale</strong> e <strong>Partita IVA</strong> — sola lettura (modificabili dal provider).</li>
           <li><strong>Timezone</strong> — fuso orario aziendale (Europe/Rome di default).</li>
-          <li><strong>Lingua</strong> — Italiano o English.</li>
+          <li><strong>Lingua</strong> — Italiano o English. È una preferenza <em>personale</em>: vale solo per il tuo account e si cambia anche al volo dal selettore IT/EN in fondo alla barra laterale (su mobile da <em>Profilo → Lingua</em>).</li>
           <li><strong>Paese</strong> — opzionale, sola lettura.</li>
         </ul>
       </div>
@@ -713,6 +747,11 @@ const MAIN_HTML = `
           <li><strong>Push notifications</strong> — info sullo stato di registrazione del dispositivo (gestite dall'app mobile).</li>
         </ul>
         <p>Ogni modifica mostra un toast <em>Impostazione salvata</em> e persiste automaticamente.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Azienda attiva</h3>
+        <p>Se il tuo account è collegato a <strong>più aziende</strong>, qui compare la sezione <strong>Azienda attiva</strong> con un menù a tendina per scegliere su quale azienda lavorare. Selezionandone un'altra, l'app si ricarica con i dati e il ruolo della nuova azienda (potresti essere amministratore in una e dipendente in un'altra) e vieni riportato alla dashboard. Se appartieni a una sola azienda, la sezione non compare.</p>
       </div>
     </section>
 
@@ -750,7 +789,7 @@ const MAIN_HTML = `
         <h3>Ferie &amp; Permessi (web)</h3>
         <p>La pagina ha tre tab:</p>
         <ul class="tidy">
-          <li><strong>Le mie</strong> — in cima trovi le <strong>schede riepilogo (KPI)</strong>: residuo <strong>Ferie</strong> e <strong>Permessi</strong> (con le ore già richieste) e il conteggio delle richieste <strong>In attesa</strong>, <strong>Approvate</strong> e <strong>Rifiutate</strong>. Sotto, l'elenco delle tue richieste con stato; pulsante <strong>+ Nuova richiesta</strong> per inviarne una (Ferie, Permesso, Malattia, Assenza), <strong>Annulla</strong> sulle pending e <strong>Richiedi annullamento</strong> sulle approvate.</li>
+          <li><strong>Le mie</strong> — in cima trovi le <strong>schede riepilogo (KPI)</strong>: per <strong>Ferie</strong> e <strong>Permessi</strong> il <strong>Residuo</strong> in evidenza (ore disponibili) con sotto il <strong>Totale</strong> assegnato e le ore <strong>Usate</strong>, più il numero di richieste <strong>In attesa</strong>. Sotto, l'elenco delle tue richieste con stato; pulsante <strong>+ Nuova richiesta</strong> per inviarne una (Ferie, Permesso, Malattia, Assenza), <strong>Annulla</strong> sulle pending e <strong>Richiedi annullamento</strong> sulle approvate.</li>
           <li><strong>Calendario</strong> — vista Giorno/Settimana/Mese/Anno delle tue assenze, con festività nazionali evidenziate.</li>
           <li><strong>Da approvare</strong> — compare solo se sei stato designato approvatore di altri dipendenti.</li>
         </ul>
@@ -839,7 +878,7 @@ const MAIN_HTML = `
           <div class="mini-card"><div class="mini-title">📝 Correzioni</div><div class="mini-desc">Richieste di correzione di timbrature</div></div>
           <div class="mini-card"><div class="mini-title">💼 Richieste</div><div class="mini-desc">Ferie, permessi, malattia</div></div>
         </div>
-        <p>In alto a sinistra di ogni schermata trovi il tuo <strong>avatar</strong> (apre il Profilo). In alto a destra c'è la <strong>campanella notifiche</strong> con badge di non lette.</p>
+        <p>In alto a sinistra di ogni schermata trovi il tuo <strong>avatar</strong> (apre il Profilo). In alto a destra c'è la <strong>campanella notifiche</strong> con badge di non lette. La campanella raccoglie gli aggiornamenti su <strong>richieste</strong> (ferie, permessi, assenze) e <strong>correzioni</strong>: le decisioni sulle tue richieste e — per chi approva — quelle in attesa della tua decisione. Toccando una notifica apri direttamente la scheda corrispondente (Richieste o Correzioni).</p>
       </div>
     </section>
 
@@ -855,6 +894,11 @@ const MAIN_HTML = `
           <li><strong>Ore conteggiate</strong> — basato sull'orario assegnato (se presente), arrotondato per difetto a blocchi di 15 minuti (es. 14 minuti = 0).</li>
           <li><strong>Entrata</strong>, <strong>Pause</strong>, <strong>Uscita</strong> — riepilogo della giornata.</li>
         </ul>
+      </div>
+
+      <div class="feature">
+        <h3>Orario di oggi</h3>
+        <p>Sotto la card principale, se hai un orario di lavoro assegnato, vedi i <strong>turni previsti per oggi</strong> come pillole (es. "09:00–18:00", o più pillole in caso di turno spezzato) e a destra il <strong>Totale</strong> di ore attese: così sai sempre quanto sei tenuto a lavorare nella giornata. Nei giorni di riposo (es. sabato/domenica secondo il tuo orario) compare "Oggi è un giorno di riposo". Senza orario assegnato la sezione non viene mostrata.</p>
       </div>
 
       <div class="feature">
@@ -931,18 +975,24 @@ const MAIN_HTML = `
 
       <div class="feature">
         <h3>Riepilogo totale</h3>
-        <p>Una card riassuntiva mostra <strong>Totale lavorato</strong> nel periodo (es. "156h 45m") e il numero di <strong>giorni</strong> con almeno una timbratura.</p>
+        <p>Una card riassuntiva mostra il <strong>Totale conteggiato</strong> nel periodo (es. "156h 45m"), con sotto le <strong>Lavorate</strong> (somma grezza) e a destra il numero di <strong>giorni</strong> con almeno una timbratura.</p>
       </div>
 
       <div class="feature">
         <h3>Card per giorno</h3>
-        <p>Ogni giorno è una card collassabile:</p>
+        <p>Ogni giorno è una card collassabile che mostra entrambe le misure:</p>
         <ul class="tidy">
           <li>Etichetta: "Oggi", "Ieri" o data per esteso ("giovedì 23 maggio").</li>
           <li>Tempo di pausa se &gt; 0.</li>
-          <li>Totale ore del giorno (badge arancione).</li>
+          <li><strong>Lavorate</strong> — ore effettive del giorno (somma grezza dei segmenti).</li>
+          <li><strong>Conteggiate</strong> — ore valide a fini busta paga: <strong>Lavorate</strong> meno le decurtazioni per sforamento (ritardo in entrata, uscita anticipata, pause oltre il massimo) più gli straordinari, il tutto arrotondato per difetto a blocchi di 15 minuti. La decurtazione per ritardo o uscita anticipata non si applica se un permesso o una ferie approvati coprono quello scostamento. Se ci sono straordinari, una riga lo specifica ("di cui …").</li>
         </ul>
-        <p>Tocca la card per espanderla e vedere ogni singola timbratura del giorno con icona colorata (verde ingresso, rosso uscita, arancione pausa) e ora HH:MM.</p>
+        <p>Senza orario di lavoro assegnato le <strong>Conteggiate</strong> coincidono con le <strong>Lavorate</strong> (solo arrotondate a 15 min). Tocca la card per espanderla e vedere ogni singola timbratura del giorno con icona colorata (verde ingresso, rosso uscita, arancione pausa) e ora HH:MM.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Giorni di riposo</h3>
+        <p>Se hai un orario di lavoro assegnato, i <strong>giorni di riposo</strong> (quelli senza turno previsto, es. sabato/domenica) <strong>non compaiono</strong> nello storico, per tenerlo pulito. Fanno eccezione i giorni di riposo in cui hai effettivamente lavorato: se quel giorno risultano ore lavorate, la card viene comunque mostrata. Senza orario assegnato vengono elencati tutti i giorni con almeno una timbratura.</p>
       </div>
     </section>
 
@@ -993,8 +1043,7 @@ const MAIN_HTML = `
         <h3>Riepilogo e quota disponibile</h3>
         <p>In cima alla tab "Le mie" trovi delle <strong>schede riepilogo (KPI)</strong> per avere la situazione sempre aggiornata:</p>
         <ul class="tidy">
-          <li><strong>Ferie residue</strong> e <strong>Permessi residui</strong>: ore ancora disponibili, con sotto le ore già richieste.</li>
-          <li><strong>In attesa</strong>, <strong>Approvate</strong>, <strong>Rifiutate</strong>: quante richieste hai inviato, per esito.</li>
+          <li><strong>Ferie</strong> e <strong>Permessi</strong>: il <strong>Residuo</strong> (ore ancora disponibili) in evidenza, con sotto il <strong>Totale</strong> assegnato e le ore <strong>Usate</strong>.</li>
         </ul>
         <p>Sotto, la card <strong>Disponibilità</strong> mostra il dettaglio per tipo: saldo iniziale, maturato, usato e ore in attesa, con l'hint sul residuo dopo le richieste pending (es. "(15.75h dopo richieste in attesa)").</p>
       </div>
@@ -1056,11 +1105,17 @@ const MAIN_HTML = `
         <h3>Cosa vedi</h3>
         <ul class="tidy">
           <li><strong>Avatar</strong>, nome, email, ruolo (<em>Dipendente</em> o <em>Amministratore</em>).</li>
-          <li><strong>Azienda</strong>: ragione sociale.</li>
+          <li><strong>Azienda</strong>: ragione sociale (e, se appartieni a più aziende, il pulsante <strong>Cambia azienda</strong>).</li>
           <li><strong>Sedi assegnate</strong>: lista con icona edificio o laptop e tag "In sede" o "Fuori sede".</li>
-          <li><strong>Notifiche</strong>: stato delle push e dei singoli toggle.</li>
-          <li><strong>Email</strong>: toggle per ricevere anche via email.</li>
+          <li><strong>Lingua</strong>: scegli la lingua dell'app — Italiano o English.</li>
+          <li><strong>Notifiche</strong>: stato delle push e dei singoli toggle (le notifiche email si gestiscono dal Web → Impostazioni).</li>
+          <li><strong>Sicurezza</strong>: attiva l'accesso biometrico (Face ID, Touch ID o impronta).</li>
         </ul>
+      </div>
+
+      <div class="feature">
+        <h3>Lingua</h3>
+        <p>Nella sezione <strong>Lingua</strong> tocca <strong>Italiano</strong> o <strong>English</strong> per cambiare subito la lingua dell'app. È una preferenza <em>personale</em> (vale solo per il tuo account) e viene ricordata al prossimo avvio; le email e le notifiche push che ricevi seguono la stessa scelta. Sul Web la cambi da <strong>Impostazioni → Lingua interfaccia</strong> o dal selettore IT/EN in fondo alla barra laterale.</p>
       </div>
 
       <div class="feature">
@@ -1072,6 +1127,24 @@ const MAIN_HTML = `
           <li><strong>Promemoria 24h prima</strong> — avviso la sera prima di una tua assenza (es. "domani ferie").</li>
         </ul>
         <p>Se le push sono <strong>non attive</strong>: devi abilitarle nelle impostazioni del telefono.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Sicurezza · Accesso biometrico</h3>
+        <p>Nella sezione <strong>Sicurezza</strong> puoi attivare l'<strong>accesso biometrico</strong> (Face ID, Touch ID o impronta digitale, a seconda del dispositivo). Quando è attivo, l'app chiede di sbloccarla con la biometria all'avvio — e quando la riapri dopo averla lasciata in background per qualche minuto — prima di mostrare i tuoi dati.</p>
+        <ul class="tidy">
+          <li>Il toggle è disponibile solo se sul telefono è già configurata una biometria; altrimenti appare disattivato con la relativa indicazione.</li>
+          <li>Le riaperture rapide (entro pochi minuti) non richiedono di nuovo lo sblocco, così timbrare resta veloce.</li>
+          <li>Se lo sblocco non riesce puoi sempre toccare <strong>Esci e usa la password</strong> per rientrare con email e password.</li>
+        </ul>
+        <div class="callout callout-info">
+          La sessione resta protetta nel portachiavi sicuro del telefono: la biometria aggiunge un blocco all'apertura dell'app. Lo sblocco è solo locale, non viene inviata alcuna impronta o immagine del volto a sonoQui.
+        </div>
+      </div>
+
+      <div class="feature">
+        <h3>Cambia azienda</h3>
+        <p>Se il tuo account è collegato a <strong>più aziende</strong>, nella sezione <strong>Azienda</strong> trovi <strong>Cambia azienda</strong>. Toccalo per scegliere un'altra azienda: l'app si ricarica con i dati e il ruolo di quell'azienda (puoi essere amministratore in una e dipendente in un'altra). Al login, se appartieni a più aziende, la scelta ti viene chiesta subito dopo l'accesso.</p>
       </div>
 
       <div class="feature">
@@ -1103,8 +1176,8 @@ const MAIN_HTML = `
         <p>All'avvio l'amministratore vede la <strong>Dashboard</strong> (primo tab della barra in basso), pensata per capire a colpo d'occhio chi sta lavorando e chi è assente. Mostra:</p>
         <ul class="tidy">
           <li><strong>Schede riepilogo</strong> — Presenti ora (sul totale dipendenti), In pausa, Assenti oggi, Da approvare, Anomalie ultimi 7 giorni e numero di Sedi.</li>
-          <li><strong>Assenti ora</strong> — l'elenco di chi è in ferie, permesso o malattia in questo momento, con il tipo e la data di fine.</li>
-          <li><strong>Stato attuale</strong> — la lista dei dipendenti con il loro stato (<span class="pill pill-ok">Al lavoro</span>, <span class="pill pill-warn">In pausa</span> o <span class="pill">Fuori servizio</span>) e la sede; chi sta lavorando appare in cima.</li>
+          <li><strong>Assenti</strong> — chi è in ferie, permesso o malattia, con il tipo e le date. Un selettore <strong>Oggi · 7 gg · 14 gg</strong> allarga l'elenco a chi sarà assente nei prossimi 7 o 14 giorni.</li>
+          <li><strong>Stato attuale</strong> — la lista dei dipendenti con il loro stato (<span class="pill pill-ok">Al lavoro</span>, <span class="pill pill-warn">In pausa</span> o <span class="pill">Fuori servizio</span>) e la sede; chi sta lavorando appare in cima. Con il selettore <strong>Elenco · Per sede</strong> puoi raggruppare i presenti per sede, come sul Web.</li>
         </ul>
         <p>Trascina verso il basso per aggiornare i dati. La Dashboard è visibile solo agli amministratori; i dipendenti aprono come sempre sulla tab Timbrature.</p>
       </div>
@@ -1162,7 +1235,7 @@ const MAIN_HTML = `
       </div>
 
       <div class="callout callout-tip">
-        Il badge sull'icona dell'app (a livello di sistema operativo) riflette il numero di richieste in attesa di tua decisione: puoi capire al volo se c'è qualcosa da fare anche senza aprire l'app.
+        Il badge sull'icona dell'app (a livello di sistema operativo) riflette il numero di notifiche non lette nella campanella — in primis le richieste e correzioni in attesa di tua decisione: capisci al volo se c'è qualcosa da fare anche senza aprire l'app.
       </div>
     </section>
 
@@ -1547,11 +1620,22 @@ const IconDownload = () => (
 // reconciled on the parent's state changes (search highlights are live-DOM
 // mutations that a re-render would wipe), so it lives in a memo'd child with a
 // stable ref prop — it renders exactly once.
-const ManualContent = memo(function ManualContent({ innerRef }: { innerRef: Ref<HTMLDivElement> }) {
-  return <div ref={innerRef} className="manual-content" dangerouslySetInnerHTML={{ __html: MAIN_HTML }} />;
+const ManualContent = memo(function ManualContent({
+  innerRef,
+  html,
+}: {
+  innerRef: Ref<HTMLDivElement>;
+  html: string;
+}) {
+  return <div ref={innerRef} className="manual-content" dangerouslySetInnerHTML={{ __html: html }} />;
 });
 
 export function Manual() {
+  const { t, i18n } = useTranslation('manual');
+  const en = i18n.language === 'en';
+  const TOC_HTML = en ? TOC_EN : TOC_IT;
+  const MAIN_HTML = en ? MAIN_EN : MAIN_IT;
+
   const rootRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1700,7 +1784,7 @@ export function Manual() {
       .join('\n');
     win.document.open();
     win.document.write(
-      `<!doctype html><html lang="it"><head><meta charset="utf-8"><title>sonoQui — Manuale Utente</title>${styles}` +
+      `<!doctype html><html lang="${en ? 'en' : 'it'}"><head><meta charset="utf-8"><title>${t('pdfTitle')}</title>${styles}` +
         `<style>body{margin:0;background:#fff}.manuale-root .layout{display:block}.manuale-root main{padding:24px;max-width:920px;margin:0 auto}</style>` +
         `</head><body class="manuale-root"><main>${clone.innerHTML}</main></body></html>`,
     );
@@ -1725,7 +1809,7 @@ export function Manual() {
       <div className="layout">
         <aside className="toc" dangerouslySetInnerHTML={{ __html: TOC_HTML }} />
         <main>
-          <div className="manual-toolbar" role="toolbar" aria-label="Strumenti manuale">
+          <div className="manual-toolbar" role="toolbar" aria-label={t('toolbar')}>
             <div className="tb-left">
               {searchOpen ? (
                 <div className="tb-search" role="search">
@@ -1735,44 +1819,44 @@ export function Manual() {
                   <input
                     ref={inputRef}
                     type="search"
-                    aria-label="Cerca nel manuale"
-                    placeholder="Cerca nel manuale…"
+                    aria-label={t('search')}
+                    placeholder={t('searchPlaceholder')}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={onSearchKeyDown}
                   />
                   <span className="tb-count">{query.trim().length >= 2 ? `${total ? cur + 1 : 0}/${total}` : ''}</span>
-                  <button type="button" className="tb-iconbtn" aria-label="Risultato precedente" onClick={() => focusMatch(cur - 1)} disabled={!total}>
+                  <button type="button" className="tb-iconbtn" aria-label={t('prevResult')} onClick={() => focusMatch(cur - 1)} disabled={!total}>
                     ‹
                   </button>
-                  <button type="button" className="tb-iconbtn" aria-label="Risultato successivo" onClick={() => focusMatch(cur + 1)} disabled={!total}>
+                  <button type="button" className="tb-iconbtn" aria-label={t('nextResult')} onClick={() => focusMatch(cur + 1)} disabled={!total}>
                     ›
                   </button>
-                  <button type="button" className="tb-iconbtn" aria-label="Chiudi ricerca" onClick={closeSearch}>
+                  <button type="button" className="tb-iconbtn" aria-label={t('closeSearch')} onClick={closeSearch}>
                     ✕
                   </button>
                 </div>
               ) : (
-                <button type="button" className="manual-btn" aria-label="Cerca nel manuale" onClick={() => setSearchOpen(true)}>
-                  <IconSearch /> Cerca
+                <button type="button" className="manual-btn" aria-label={t('search')} onClick={() => setSearchOpen(true)}>
+                  <IconSearch /> {t('searchBtn')}
                 </button>
               )}
             </div>
 
             <div className="tb-actions">
-              <button type="button" className="manual-btn" aria-label="Scarica PDF" onClick={downloadPdf}>
+              <button type="button" className="manual-btn" aria-label={t('downloadPdf')} onClick={downloadPdf}>
                 <IconDownload /> PDF
               </button>
               <div className="tb-md">
-                <button type="button" className="manual-btn manual-btn-primary" aria-label="Scarica Markdown" onClick={downloadMarkdown}>
+                <button type="button" className="manual-btn manual-btn-primary" aria-label={t('downloadMarkdown')} onClick={downloadMarkdown}>
                   <IconDownload /> Markdown
                 </button>
-                <span className="tb-md-hint">Caricalo nel tuo LLM preferito, come ChatGPT</span>
+                <span className="tb-md-hint">{t('markdownHint')}</span>
               </div>
             </div>
           </div>
 
-          <ManualContent innerRef={contentRef} />
+          <ManualContent innerRef={contentRef} html={MAIN_HTML} />
         </main>
       </div>
     </div>

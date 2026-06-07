@@ -1,0 +1,21 @@
+{
+  "placeSearch": {
+    "searchError": "errore ricerca",
+    "detailsError": "errore dettagli"
+  },
+  "iconButton": {
+    "duplicate": "Duplica",
+    "deactivate": "Disattiva",
+    "reactivate": "Riattiva",
+    "revoke": "Revoca",
+    "adjust": "Rettifica",
+    "history": "Storico",
+    "resetPassword": "Reinvia email reimposta password"
+  },
+  "hero": {
+    "payoff": "Il tempo che lavori, semplice come dirlo.",
+    "stampIn": "Ingresso",
+    "stampBreak": "Inizio pausa",
+    "stampOut": "Uscita"
+  }
+}

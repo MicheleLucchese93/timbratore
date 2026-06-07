@@ -1,0 +1,13 @@
+{
+  "toolbar": "Manual tools",
+  "search": "Search the manual",
+  "searchPlaceholder": "Search the manual…",
+  "searchBtn": "Search",
+  "prevResult": "Previous result",
+  "nextResult": "Next result",
+  "closeSearch": "Close search",
+  "downloadPdf": "Download PDF",
+  "downloadMarkdown": "Download Markdown",
+  "markdownHint": "Load it into your favourite LLM, like ChatGPT",
+  "pdfTitle": "sonoQui — User Manual"
+}

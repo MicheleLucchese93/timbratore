@@ -1,7 +1,9 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
+import { fmtDateTime } from '../i18n/format.ts';
 
 interface Stamp {
   id: string;
@@ -20,6 +22,7 @@ interface Branch { id: string; name: string }
 interface UserRow { user_id: string; email: string }
 
 export function Stamps() {
+  const { t } = useTranslation(['stamps', 'common']);
   const [list, setList] = useState<Stamp[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -44,7 +47,7 @@ export function Stamps() {
   }, []);
 
   async function remove(id: string) {
-    const reason = prompt('Motivo eliminazione (obbligatorio):');
+    const reason = prompt(t('deletePrompt'));
     if (!reason) return;
     await api(`/api/v1/admin/stamps/${id}`, { method: 'DELETE', json: { deletion_reason: reason } });
     await load();
@@ -53,8 +56,8 @@ export function Stamps() {
   return (
     <div className="space-y-5">
       <header className="flex items-center justify-end gap-4 flex-wrap">
-        <h1 className="sr-only">Timbrature</h1>
-        <button className="btn btn-primary" onClick={() => setCreating(true)}>Nuova timbratura</button>
+        <h1 className="sr-only">{t('heading')}</h1>
+        <button className="btn btn-primary" onClick={() => setCreating(true)}>{t('newStamp')}</button>
       </header>
 
       <div className="card" style={{ padding: 0 }}>
@@ -77,21 +80,33 @@ export function Stamps() {
 }
 
 function EventBadge({ event }: { event: Stamp['event_type'] }) {
-  const map: Record<Stamp['event_type'], { label: string; cls: string }> = {
-    clock_in: { label: 'Ingresso', cls: 'badge-ok' },
-    clock_out: { label: 'Uscita', cls: 'badge-muted' },
-    break_start: { label: 'Inizio pausa', cls: 'badge-warn' },
-    break_end: { label: 'Fine pausa', cls: 'badge-warn' },
-    lunch_start: { label: 'Inizio pausa pranzo', cls: 'badge-warn' },
-    lunch_end: { label: 'Fine pausa pranzo', cls: 'badge-warn' },
+  const { t } = useTranslation(['stamps', 'common']);
+  const clsMap: Record<Stamp['event_type'], string> = {
+    clock_in: 'badge-ok',
+    clock_out: 'badge-muted',
+    break_start: 'badge-warn',
+    break_end: 'badge-warn',
+    lunch_start: 'badge-warn',
+    lunch_end: 'badge-warn',
   };
-  const v = map[event];
-  return <span className={`badge ${v.cls}`}>{v.label}</span>;
+  return <span className={`badge ${clsMap[event]}`}>{t(`common:stampEvent.${event}`)}</span>;
 }
 
 function SourceBadge({ source }: { source: string }) {
-  const label = source === 'employee_app' ? 'app' : source === 'employee_correction' ? 'correz.' : source === 'admin_manual' ? 'admin' : source === 'system_auto' ? 'auto' : source;
-  return <span className="badge badge-muted">{label}</span>;
+  const { t } = useTranslation(['stamps', 'common']);
+  return <span className="badge badge-muted">{sourceLabel(source, t)}</span>;
+}
+
+function sourceLabel(s: string, t: (k: string) => string): string {
+  return s === 'employee_app'
+    ? t('common:origin.app')
+    : s === 'employee_correction'
+      ? t('common:origin.correction')
+      : s === 'admin_manual'
+        ? t('common:origin.admin')
+        : s === 'system_auto'
+          ? t('origin.auto')
+          : s;
 }
 
 function StampIconButton({
@@ -130,10 +145,7 @@ function StampIconButton({
   );
 }
 
-function formatDateTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
+const DATETIME_OPTS: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
 function isoToday(): string { return new Date().toISOString().slice(0, 10); }
 function isoNDaysAgo(n: number): string {
   const d = new Date(); d.setDate(d.getDate() - n);
@@ -149,6 +161,7 @@ function StampForm({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { t } = useTranslation(['stamps', 'common']);
   const [userId, setUserId] = useState(stamp?.user_id ?? users[0]?.user_id ?? '');
   const [eventType, setEventType] = useState<Stamp['event_type']>(stamp?.event_type ?? 'clock_in');
   const [occurredAt, setOccurredAt] = useState(() => {
@@ -179,7 +192,7 @@ function StampForm({
       }
       onSaved();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     } finally {
       setBusy(false);
     }
@@ -188,10 +201,10 @@ function StampForm({
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
       <form onSubmit={submit} className="card w-full max-w-md space-y-3">
-        <h2 className="section-title">{stamp ? 'Modifica timbratura' : 'Nuova timbratura'}</h2>
+        <h2 className="section-title">{stamp ? t('editStamp') : t('newStamp')}</h2>
         {!stamp && (
           <div>
-            <label className="label">Utente</label>
+            <label className="label">{t('form.user')}</label>
             <select className="input" value={userId} onChange={(e) => setUserId(e.target.value)} required>
               {users.map((u) => (
                 <option key={u.user_id} value={u.user_id}>{u.email}</option>
@@ -200,37 +213,37 @@ function StampForm({
           </div>
         )}
         <div>
-          <label className="label">Evento</label>
+          <label className="label">{t('form.event')}</label>
           <select className="input" value={eventType} onChange={(e) => setEventType(e.target.value as Stamp['event_type'])}>
-            <option value="clock_in">Ingresso</option>
-            <option value="break_start">Inizio pausa</option>
-            <option value="break_end">Fine pausa</option>
-            <option value="lunch_start">Inizio pausa pranzo</option>
-            <option value="lunch_end">Fine pausa pranzo</option>
-            <option value="clock_out">Uscita</option>
+            <option value="clock_in">{t('common:stampEvent.clock_in')}</option>
+            <option value="break_start">{t('common:stampEvent.break_start')}</option>
+            <option value="break_end">{t('common:stampEvent.break_end')}</option>
+            <option value="lunch_start">{t('common:stampEvent.lunch_start')}</option>
+            <option value="lunch_end">{t('common:stampEvent.lunch_end')}</option>
+            <option value="clock_out">{t('common:stampEvent.clock_out')}</option>
           </select>
         </div>
         <div>
-          <label className="label">Quando</label>
+          <label className="label">{t('form.when')}</label>
           <input type="datetime-local" className="input" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} required />
         </div>
         <div>
-          <label className="label">Sede</label>
+          <label className="label">{t('form.branch')}</label>
           <select className="input" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-            <option value="">— Nessuna —</option>
+            <option value="">{t('form.noBranch')}</option>
             {branches.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className="label">Motivazione</label>
-          <input className="input" value={justification} onChange={(e) => setJustification(e.target.value)} placeholder="es. timbratura dimenticata" />
+          <label className="label">{t('form.justification')}</label>
+          <input className="input" value={justification} onChange={(e) => setJustification(e.target.value)} placeholder={t('form.justificationPlaceholder')} />
         </div>
         {err && <div className="rounded-md px-3 py-2 text-sm" style={{ background: '#fde4e4', color: 'var(--color-error)' }}>{err}</div>}
         <div className="flex gap-2 justify-end pt-1">
-          <button type="button" className="btn btn-secondary" onClick={onClose}>Annulla</button>
-          <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Salvataggio…' : 'Salva'}</button>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>{t('common:btn.cancel')}</button>
+          <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? t('common:state.saving') : t('common:btn.save')}</button>
         </div>
       </form>
     </div>
@@ -248,48 +261,49 @@ function StampsDataGrid({
   onEdit: (s: Stamp) => void;
   onDelete: (id: string) => void;
 }) {
+  const { t } = useTranslation(['stamps', 'common']);
   const columns = useMemo<GridColDef<Stamp>[]>(
     () => [
       {
         field: 'occurred_at',
-        headerName: 'Quando',
+        headerName: t('col.when'),
         width: 170,
         type: 'dateTime',
         valueGetter: (_v, row) => new Date(row.occurred_at),
-        renderCell: (p) => <span className="num text-xs">{formatDateTime(p.row.occurred_at)}</span>,
+        renderCell: (p) => <span className="num text-xs">{fmtDateTime(p.row.occurred_at, DATETIME_OPTS)}</span>,
       },
-      { field: 'user_email', headerName: 'Utente', flex: 1.2, minWidth: 180 },
+      { field: 'user_email', headerName: t('col.user'), flex: 1.2, minWidth: 180 },
       {
         field: 'event_type',
-        headerName: 'Evento',
+        headerName: t('col.event'),
         width: 140,
         type: 'singleSelect',
         valueOptions: [
-          { value: 'clock_in', label: 'Ingresso' },
-          { value: 'clock_out', label: 'Uscita' },
-          { value: 'break_start', label: 'Inizio pausa' },
-          { value: 'break_end', label: 'Fine pausa' },
-          { value: 'lunch_start', label: 'Inizio pausa pranzo' },
-          { value: 'lunch_end', label: 'Fine pausa pranzo' },
+          { value: 'clock_in', label: t('common:stampEvent.clock_in') },
+          { value: 'clock_out', label: t('common:stampEvent.clock_out') },
+          { value: 'break_start', label: t('common:stampEvent.break_start') },
+          { value: 'break_end', label: t('common:stampEvent.break_end') },
+          { value: 'lunch_start', label: t('common:stampEvent.lunch_start') },
+          { value: 'lunch_end', label: t('common:stampEvent.lunch_end') },
         ],
         renderCell: (p) => <EventBadge event={p.row.event_type} />,
       },
       {
         field: 'source',
-        headerName: 'Origine',
+        headerName: t('col.origin'),
         width: 110,
         type: 'singleSelect',
         valueOptions: [
-          { value: 'employee_app', label: 'app' },
-          { value: 'employee_correction', label: 'correz.' },
-          { value: 'admin_manual', label: 'admin' },
-          { value: 'system_auto', label: 'auto' },
+          { value: 'employee_app', label: t('common:origin.app') },
+          { value: 'employee_correction', label: t('common:origin.correction') },
+          { value: 'admin_manual', label: t('common:origin.admin') },
+          { value: 'system_auto', label: t('origin.auto') },
         ],
         renderCell: (p) => <SourceBadge source={p.row.source} />,
       },
       {
         field: 'branch_id',
-        headerName: 'Sede',
+        headerName: t('col.branch'),
         flex: 0.8,
         minWidth: 130,
         type: 'singleSelect',
@@ -303,16 +317,16 @@ function StampsDataGrid({
       },
       {
         field: 'notes',
-        headerName: 'Note',
+        headerName: t('col.notes'),
         flex: 1,
         minWidth: 160,
         renderCell: (p) => (
           <span className="text-xs">
             {p.row.suspicious_mock_location && (
-              <span className="badge badge-warn mr-1">mock</span>
+              <span className="badge badge-warn mr-1">{t('badge.mock')}</span>
             )}
             {p.row.out_of_geofence && (
-              <span className="badge badge-warn mr-1">fuori area</span>
+              <span className="badge badge-warn mr-1">{t('badge.outOfArea')}</span>
             )}
             {p.row.notes ?? ''}
           </span>
@@ -320,7 +334,7 @@ function StampsDataGrid({
       },
       {
         field: 'actions',
-        headerName: 'Azioni',
+        headerName: t('col.actions'),
         width: 110,
         sortable: false,
         filterable: false,
@@ -328,19 +342,19 @@ function StampsDataGrid({
           <div className="flex gap-1">
             <StampIconButton
               kind="edit"
-              title="Modifica timbratura"
+              title={t('action.edit')}
               onClick={() => onEdit(p.row)}
             />
             <StampIconButton
               kind="delete"
-              title="Elimina timbratura"
+              title={t('action.delete')}
               onClick={() => onDelete(p.row.id)}
             />
           </div>
         ),
       },
     ],
-    [branches, onEdit, onDelete]
+    [branches, onEdit, onDelete, t]
   );
 
   return (

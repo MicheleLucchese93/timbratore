@@ -1,7 +1,9 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { api, getToken, apiUrl } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
+import { fmtDateTime } from '../i18n/format.ts';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
 
 interface ExportJob {
@@ -16,6 +18,7 @@ interface ExportJob {
 }
 
 export function Exports() {
+  const { t } = useTranslation(['exports', 'common']);
   const [list, setList] = useState<ExportJob[]>([]);
   const [from, setFrom] = useState(() => firstOfPrevMonth());
   const [to, setTo] = useState(() => lastOfPrevMonth());
@@ -47,7 +50,7 @@ export function Exports() {
     const r = await fetch(apiUrl(`/api/v1/exports/${j.id}/download`), {
       headers: { Authorization: `Bearer ${getToken()}` },
     });
-    if (!r.ok) { alert('Download fallito'); return; }
+    if (!r.ok) { alert(t('downloadFailed')); return; }
     const blob = await r.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -58,7 +61,7 @@ export function Exports() {
   }
 
   async function remove(j: ExportJob) {
-    if (!(await confirm({ title: 'Eliminare questa esportazione?', danger: true, confirmLabel: 'Elimina' }))) return;
+    if (!(await confirm({ title: t('deleteConfirm.title'), danger: true, confirmLabel: t('common:btn.delete') }))) return;
     setList((prev) => prev.filter((x) => x.id !== j.id));
     await api(`/api/v1/exports/${j.id}`, { method: 'DELETE' }).catch(() => {});
     await load().catch(() => {});
@@ -66,25 +69,25 @@ export function Exports() {
 
   return (
     <div className="space-y-5">
-      <h1 className="sr-only">Esportazioni</h1>
+      <h1 className="sr-only">{t('title')}</h1>
 
       <form onSubmit={enqueue} className="card grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
         <div>
-          <label className="label">Dal</label>
+          <label className="label">{t('from')}</label>
           <input type="date" className="input" value={from} onChange={(e) => setFrom(e.target.value)} required />
         </div>
         <div>
-          <label className="label">Al</label>
+          <label className="label">{t('to')}</label>
           <input type="date" className="input" value={to} onChange={(e) => setTo(e.target.value)} required />
         </div>
         <div>
-          <label className="label">Formato</label>
+          <label className="label">{t('format')}</label>
           <select className="input" value={format} onChange={(e) => setFormat(e.target.value as 'xlsx' | 'json')}>
-            <option value="xlsx">XLSX (commercialista)</option>
+            <option value="xlsx">{t('formatXlsx')}</option>
             <option value="json">JSON</option>
           </select>
         </div>
-        <button className="btn btn-primary btn-block" disabled={busy}>{busy ? 'Invio…' : 'Genera'}</button>
+        <button className="btn btn-primary btn-block" disabled={busy}>{busy ? t('sending') : t('common:btn.generate')}</button>
       </form>
 
       <div className="card" style={{ padding: 0 }}>
@@ -103,11 +106,12 @@ function ExportsDataGrid({
   onDownload: (j: ExportJob) => void;
   onRemove: (j: ExportJob) => void;
 }) {
+  const { t } = useTranslation(['exports', 'common']);
   const columns = useMemo<GridColDef<ExportJob>[]>(
     () => [
       {
         field: 'period',
-        headerName: 'Periodo',
+        headerName: t('column.period'),
         flex: 1,
         minWidth: 200,
         valueGetter: (_v, row) => `${row.period_from} → ${row.period_to}`,
@@ -115,7 +119,7 @@ function ExportsDataGrid({
       },
       {
         field: 'format',
-        headerName: 'Formato',
+        headerName: t('format'),
         width: 110,
         type: 'singleSelect',
         valueOptions: [
@@ -126,30 +130,30 @@ function ExportsDataGrid({
       },
       {
         field: 'status',
-        headerName: 'Stato',
+        headerName: t('column.status'),
         width: 150,
         type: 'singleSelect',
         valueOptions: [
-          { value: 'pending', label: 'In coda' },
-          { value: 'running', label: 'In elaborazione' },
-          { value: 'ready', label: 'Pronta' },
-          { value: 'failed', label: 'Errore' },
+          { value: 'pending', label: t('filter.pending') },
+          { value: 'running', label: t('filter.running') },
+          { value: 'ready', label: t('filter.ready') },
+          { value: 'failed', label: t('filter.failed') },
         ],
         renderCell: (p) => <StatusBadge status={p.row.status} />,
       },
       {
         field: 'created_at',
-        headerName: 'Creata',
+        headerName: t('column.created'),
         width: 180,
         type: 'dateTime',
         valueGetter: (_v, row) => new Date(row.created_at),
         renderCell: (p) => (
-          <span className="text-xs num">{(p.value as Date).toLocaleString('it-IT')}</span>
+          <span className="text-xs num">{fmtDateTime(p.value as Date)}</span>
         ),
       },
       {
         field: 'actions',
-        headerName: 'Azioni',
+        headerName: t('column.actions'),
         flex: 1,
         minWidth: 180,
         sortable: false,
@@ -161,7 +165,7 @@ function ExportsDataGrid({
                 className="btn btn-secondary btn-sm"
                 onClick={() => onDownload(p.row)}
               >
-                Scarica
+                {t('common:btn.download')}
               </button>
             )}
             {p.row.status === 'failed' && p.row.error && (
@@ -173,8 +177,8 @@ function ExportsDataGrid({
               type="button"
               className="icon-btn icon-btn-danger"
               onClick={() => onRemove(p.row)}
-              aria-label="Elimina esportazione"
-              title="Elimina"
+              aria-label={t('deleteAriaLabel')}
+              title={t('common:btn.delete')}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <polyline points="3 6 5 6 21 6" />
@@ -188,7 +192,7 @@ function ExportsDataGrid({
         ),
       },
     ],
-    [onDownload, onRemove]
+    [onDownload, onRemove, t]
   );
 
   return (
@@ -203,10 +207,11 @@ function ExportsDataGrid({
 }
 
 function StatusBadge({ status }: { status: ExportJob['status'] }) {
-  if (status === 'ready') return <span className="badge badge-ok">pronta</span>;
-  if (status === 'failed') return <span className="badge badge-err">errore</span>;
-  if (status === 'running') return <span className="badge badge-warn">in elaborazione</span>;
-  return <span className="badge badge-muted">in coda</span>;
+  const { t } = useTranslation('exports');
+  if (status === 'ready') return <span className="badge badge-ok">{t('badge.ready')}</span>;
+  if (status === 'failed') return <span className="badge badge-err">{t('badge.failed')}</span>;
+  if (status === 'running') return <span className="badge badge-warn">{t('badge.running')}</span>;
+  return <span className="badge badge-muted">{t('badge.pending')}</span>;
 }
 
 function firstOfPrevMonth(): string {

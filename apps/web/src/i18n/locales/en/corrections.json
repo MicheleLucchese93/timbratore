@@ -1,0 +1,23 @@
+{
+  "heading": "Corrections",
+  "newRequest": "+ New request",
+  "filter": {
+    "pendingOnly": "Pending only"
+  },
+  "empty": "No requests.",
+  "submittedAt": "Submitted {{date}}",
+  "status": {
+    "superseded": "Superseded"
+  },
+  "rejectPrompt": "Reason for rejection:",
+  "justification": "Justification",
+  "decisionNote": "Decision note",
+  "missingStamp": "Missing stamp to add",
+  "currentValues": "Current values",
+  "requestedValues": "Requested values",
+  "field": {
+    "event": "Event",
+    "dateTime": "Date and time",
+    "branch": "Branch"
+  }
+}

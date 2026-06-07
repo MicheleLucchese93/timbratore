@@ -1,0 +1,26 @@
+{
+  "title": "Sedi",
+  "new": "Nuova sede",
+  "limitReachedTitle": "Limite sedi raggiunto — contatta supporto",
+  "count": "Sedi: ",
+  "offSite": "Fuori sede",
+  "radius": "raggio {{count}}m",
+  "noRadius": "senza raggio",
+  "deleteConfirm": {
+    "title": "Eliminare questa sede?"
+  },
+  "form": {
+    "editTitle": "Modifica sede",
+    "name": "Nome",
+    "address": "Indirizzo",
+    "addressPlaceholder": "Cerca su Google Maps: es. Piazza Venezia, Roma",
+    "addressHint": "Scrivi almeno 3 caratteri e seleziona un risultato per impostare le coordinate.",
+    "smartWorking": "Fuori sede - timbratura senza GPS",
+    "enforceRadius": "Limita timbratura entro un raggio",
+    "enforceRadiusHint": "Se disattivato: GPS viene comunque registrato sulla timbratura, ma senza controllo di distanza. La sede dovrà essere selezionata manualmente dall'utente (no auto-detect).",
+    "radiusLabel": "Raggio (50–1500 m): {{radius}}m",
+    "preview": "Anteprima",
+    "tolerance": "tolleranza {{radius}}m",
+    "previewEmpty": "Seleziona un indirizzo per visualizzare la sede sulla mappa."
+  }
+}

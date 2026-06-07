@@ -1,0 +1,51 @@
+{
+  "heading": "Time anomalies",
+  "filter": {
+    "from": "From",
+    "to": "To",
+    "user": "Employee",
+    "allUsers": "All"
+  },
+  "notDeployed": "The \"Time anomalies\" feature becomes available after the backend update. Try again once the deployment is complete.",
+  "empty": "No anomalies in the selected period.",
+  "row": {
+    "scheduleLabel": "Schedule:",
+    "expected": "Expected",
+    "actual": "Actual",
+    "deltaShort": "Δ {{minutes}}min",
+    "breakShort": "Break {{minutes}}min",
+    "justified": "Justified: {{note}}"
+  },
+  "correct": "Correct ▾",
+  "action": {
+    "label": "Action",
+    "standard": "Standard stamping (scheduled times)",
+    "ferie": "Add holiday",
+    "permesso": "Add leave",
+    "note": "Justify with a note"
+  },
+  "recap": {
+    "title": "Summary",
+    "noMissingStamp": "No missing stamp.",
+    "addsEvent": "Adds <strong>{{event}}</strong> at <strong>{{time}}</strong>",
+    "ferieFor": "Holiday for <strong>{{date}}</strong> ({{from}}–{{to}}). Hours are calculated from the assigned schedule.",
+    "permFrom": "From",
+    "permTo": "To",
+    "duration": "Duration"
+  },
+  "noteSection": {
+    "title": "Justification note",
+    "hint": "The anomaly stays visible but annotated; the note appears in exports."
+  },
+  "noteField": {
+    "optionalPlaceholder": "Note for the employee (optional)",
+    "placeholder": "Reason…"
+  },
+  "justificationStandard": "Standard stamping: {{kind}}",
+  "errors": {
+    "noMissingStamp": "No missing stamp to add.",
+    "invalidPermWindow": "Invalid leave window.",
+    "permMinDuration": "Minimum leave duration: 15 minutes.",
+    "noteRequired": "Enter a justification note."
+  }
+}

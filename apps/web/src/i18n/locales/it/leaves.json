@@ -1,0 +1,167 @@
+{
+  "heading": "Ferie & Permessi",
+  "tab": {
+    "requests": "Richieste",
+    "calendar": "Calendario",
+    "quotas": "Quote",
+    "templates": "Modelli"
+  },
+  "col": {
+    "user": "Utente",
+    "type": "Tipo",
+    "period": "Periodo",
+    "status": "Stato",
+    "notes": "Note / motivo",
+    "decidedBy": "Decisa da",
+    "actions": "Azioni"
+  },
+  "status": {
+    "cancelled": "Annullata",
+    "superseded_by_malattia": "Sostituita da malattia"
+  },
+  "requests": {
+    "new": "+ Nuova richiesta"
+  },
+  "reject": {
+    "title": "Rifiuta richiesta",
+    "label": "Motivo del rifiuto"
+  },
+  "revoke": {
+    "title": "Revoca richiesta approvata",
+    "label": "Motivo della revoca"
+  },
+  "action": {
+    "acceptCancel": "Accetta annullamento",
+    "rejectCancel": "Rifiuta annullamento",
+    "revoke": "Revoca"
+  },
+  "note": {
+    "inps": "INPS",
+    "paid": "retribuita",
+    "unpaid": "non retribuita",
+    "rejection": "Rifiuto",
+    "cancellation": "Annullamento"
+  },
+  "calendar": {
+    "intro": "Calendario di tutte le assenze aziendali.",
+    "addEvent": "+ Inserisci evento",
+    "clickToHide": "Clicca per nascondere",
+    "clickToShow": "Clicca per mostrare"
+  },
+  "bulk": {
+    "title": "Inserisci evento aziendale",
+    "titleLabel": "Titolo",
+    "titlePlaceholder": "Chiusura aziendale agosto",
+    "from": "Dal",
+    "to": "Al",
+    "deduct": "Conteggia come ferie (scala dal monte ore). Lascia deselezionato per chiusura non retributiva.",
+    "recipients": "Destinatari",
+    "allUsers": "Tutti",
+    "select": "Seleziona",
+    "note": "Nota (facoltativa)",
+    "sending": "Invio…",
+    "createNotify": "Crea e notifica",
+    "errTitle": "Inserisci un titolo.",
+    "errDates": "Inserisci le date.",
+    "errOrder": "La data di fine precede quella di inizio.",
+    "errSelect": "Seleziona almeno un utente."
+  },
+  "quotas": {
+    "permessiPlural": "Permessi",
+    "noTemplatesPre": "Crea prima un modello quota nella tab ",
+    "noTemplatesPost": ".",
+    "ferieBalance": "Saldo ferie",
+    "ferieAccrual": "Accredito ferie",
+    "permessiBalance": "Saldo permessi",
+    "permessiAccrual": "Accredito permessi",
+    "assign": "Assegna",
+    "adjustHours": "Aggiungi/Rimuovi ore",
+    "assignFirst": "Assegna prima una quota",
+    "manualHistory": "Storico modifiche manuali"
+  },
+  "accrual": {
+    "none": "Nessun accredito",
+    "monthly": "{{amount}}h ogni mese il giorno {{day}}",
+    "yearly": "{{amount}}h ogni anno il {{day}}/{{month}}"
+  },
+  "editor": {
+    "title": "Quota {{type}} — {{user}}",
+    "template": "Modello",
+    "choose": "— scegli —",
+    "initialBalance": "Bilancio iniziale (ore)",
+    "initialBalanceHint": "Saldo di partenza, prima di accrediti e richieste. Può essere negativo.",
+    "activeFrom": "Attivo dal",
+    "accruedTotal": "Accrediti accumulati",
+    "usedApproved": "Usate (approvate)",
+    "currentBalance": "Saldo attuale",
+    "lastAccrual": "Ultimo accredito",
+    "errTemplate": "Seleziona un modello",
+    "closeTitle": "Chiudere assegnazione?",
+    "closeMessage": "Lo storico accrediti resta visibile.",
+    "closeConfirm": "Chiudi"
+  },
+  "adjust": {
+    "title": "Modifica manuale ore — {{user}}",
+    "intro": "Aggiungi o rimuovi ore dal saldo. Ogni operazione resta tracciata nello storico.",
+    "type": "Tipo",
+    "operation": "Operazione",
+    "add": "Aggiungi",
+    "remove": "Rimuovi",
+    "date": "Data",
+    "note": "Nota (facoltativa)",
+    "noteAria": "Nota",
+    "notePlaceholder": "Motivo della modifica",
+    "currentBalance": "Saldo attuale {{type}}",
+    "errNoQuota": "Nessuna quota attiva per questo tipo.",
+    "errHours": "Inserisci un numero di ore maggiore di zero."
+  },
+  "accrualSource": {
+    "cron": "Automatico",
+    "manual": "Manuale",
+    "adjustment": "Rettifica"
+  },
+  "audit": {
+    "title": "Storico modifiche — {{user}}",
+    "empty": "Nessun accredito o modifica registrata.",
+    "colDate": "Data",
+    "colType": "Tipo",
+    "colChange": "Variazione",
+    "colSource": "Sorgente",
+    "colNote": "Nota",
+    "colBy": "Eseguito da",
+    "system": "Sistema"
+  },
+  "templates": {
+    "new": "Nuovo modello",
+    "deleteTitle": "Eliminare modello?",
+    "annualRef": "Riferimento annuo",
+    "accrual": "Accredito",
+    "active": "Attivo",
+    "inactive": "Disattivato",
+    "editTemplate": "Modifica modello",
+    "deleteTemplate": "Elimina modello"
+  },
+  "templateForm": {
+    "editTitle": "Modifica modello quota",
+    "newTitle": "Nuovo modello quota",
+    "name": "Nome",
+    "annualHours": "Ore di riferimento annuali",
+    "autoAccrual": "Accredito automatico",
+    "amountPer": "Quantità per accredito",
+    "unit": "Unità",
+    "unitHours": "ore",
+    "unitDays": "giorni",
+    "hoursPerDay": "Ore per giorno (conversione)",
+    "willSave": "Verranno salvate {{hours}}h per accredito.",
+    "frequency": "Frequenza",
+    "monthly": "Mensile",
+    "yearly": "Annuale",
+    "dayOfMonth": "Giorno del mese",
+    "dayHint": "1–28 (per sicurezza in mesi corti).",
+    "month": "Mese",
+    "monthPlaceholder": "— mese —",
+    "summaryMonthly": "Ogni mese il giorno {{day}} verranno aggiunti {{hours}}h.",
+    "summaryYearly": "Ogni anno il {{day}} {{month}} verranno aggiunti {{hours}}h.",
+    "active": "Attivo"
+  }
+}

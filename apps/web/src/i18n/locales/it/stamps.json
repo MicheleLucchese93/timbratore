@@ -1,0 +1,35 @@
+{
+  "heading": "Timbrature",
+  "newStamp": "Nuova timbratura",
+  "editStamp": "Modifica timbratura",
+  "deletePrompt": "Motivo eliminazione (obbligatorio):",
+  "origin": {
+    "auto": "auto"
+  },
+  "form": {
+    "user": "Utente",
+    "event": "Evento",
+    "when": "Quando",
+    "branch": "Sede",
+    "noBranch": "— Nessuna —",
+    "justification": "Motivazione",
+    "justificationPlaceholder": "es. timbratura dimenticata"
+  },
+  "col": {
+    "when": "Quando",
+    "user": "Utente",
+    "event": "Evento",
+    "origin": "Origine",
+    "branch": "Sede",
+    "notes": "Note",
+    "actions": "Azioni"
+  },
+  "badge": {
+    "mock": "mock",
+    "outOfArea": "fuori area"
+  },
+  "action": {
+    "edit": "Modifica timbratura",
+    "delete": "Elimina timbratura"
+  }
+}

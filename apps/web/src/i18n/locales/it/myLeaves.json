@@ -1,0 +1,30 @@
+{
+  "heading": "Ferie & Permessi",
+  "kpiPermessi": "Permessi",
+  "tab": {
+    "mine": "Le mie",
+    "calendar": "Calendario",
+    "inbox": "Da approvare ({{count}})"
+  },
+  "newRequest": "+ Nuova richiesta",
+  "quota": {
+    "totalUsed": "Totale {{total}} · Usate {{used}}",
+    "none": "Nessuna quota"
+  },
+  "empty": {
+    "mine": "Nessuna richiesta.",
+    "inbox": "Niente da approvare."
+  },
+  "status": {
+    "supersededByMalattia": "Sostituita da malattia"
+  },
+  "action": {
+    "requestCancellation": "Richiedi annullamento",
+    "acceptCancellation": "Accetta annull.",
+    "rejectCancellation": "Rifiuta annull."
+  },
+  "prompt": {
+    "cancellationReason": "Motivo della richiesta di annullamento:",
+    "rejectReason": "Motivo del rifiuto:"
+  }
+}

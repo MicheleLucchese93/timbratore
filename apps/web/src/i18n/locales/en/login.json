@@ -1,0 +1,10 @@
+{
+  "tagline": "The time you work, as simple as saying it.",
+  "email": "Email",
+  "emailPlaceholder": "email@company.com",
+  "password": "Password",
+  "forgotPassword": "Forgot password?",
+  "signIn": "Sign in",
+  "signingIn": "Signing in…",
+  "failed": "Sign-in failed"
+}

@@ -1,0 +1,31 @@
+{
+  "title": "Exports",
+  "from": "From",
+  "to": "To",
+  "format": "Format",
+  "formatXlsx": "XLSX (accountant)",
+  "sending": "Sending…",
+  "downloadFailed": "Download failed",
+  "deleteConfirm": {
+    "title": "Delete this export?"
+  },
+  "deleteAriaLabel": "Delete export",
+  "column": {
+    "period": "Period",
+    "status": "Status",
+    "created": "Created",
+    "actions": "Actions"
+  },
+  "filter": {
+    "pending": "Queued",
+    "running": "Processing",
+    "ready": "Ready",
+    "failed": "Failed"
+  },
+  "badge": {
+    "pending": "queued",
+    "running": "processing",
+    "ready": "ready",
+    "failed": "failed"
+  }
+}

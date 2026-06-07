@@ -1,0 +1,31 @@
+{
+  "title": "Balances",
+  "admin": {
+    "title": "Employee balances",
+    "subtitle": "Remaining holiday and leave hours for each employee. Anyone without an assigned quota still appears, with no values (—).",
+    "note": "<strong>Remaining</strong> = opening balance + accrued − used (approved). Pending requests are not deducted right away: <em>remaining with pending</em> shows what would be left if they were all approved, and it can go negative.",
+    "col": {
+      "user": "User",
+      "type": "Type",
+      "initialBalance": "Opening balance",
+      "accrued": "Accrued",
+      "used": "Used",
+      "pending": "Pending",
+      "residual": "Remaining",
+      "residualWithPending": "Remaining with pending"
+    }
+  },
+  "mine": {
+    "title": "My balances",
+    "subtitle": "Remaining holiday and leave hours available to you.",
+    "empty": "No holiday or leave quota assigned. Please contact your administrator.",
+    "available": "remaining available",
+    "withPending": "with pending requests:"
+  },
+  "field": {
+    "initialBalance": "Opening balance",
+    "accrued": "Accrued",
+    "usedApproved": "Used (approved)",
+    "pending": "Pending"
+  }
+}

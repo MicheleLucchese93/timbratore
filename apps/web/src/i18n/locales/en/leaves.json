@@ -1,0 +1,167 @@
+{
+  "heading": "Holidays & Leave",
+  "tab": {
+    "requests": "Requests",
+    "calendar": "Calendar",
+    "quotas": "Quotas",
+    "templates": "Templates"
+  },
+  "col": {
+    "user": "Employee",
+    "type": "Type",
+    "period": "Period",
+    "status": "Status",
+    "notes": "Notes / reason",
+    "decidedBy": "Decided by",
+    "actions": "Actions"
+  },
+  "status": {
+    "cancelled": "Cancelled",
+    "superseded_by_malattia": "Superseded by sick leave"
+  },
+  "requests": {
+    "new": "+ New request"
+  },
+  "reject": {
+    "title": "Reject request",
+    "label": "Reason for rejection"
+  },
+  "revoke": {
+    "title": "Revoke approved request",
+    "label": "Reason for revocation"
+  },
+  "action": {
+    "acceptCancel": "Accept cancellation",
+    "rejectCancel": "Reject cancellation",
+    "revoke": "Revoke"
+  },
+  "note": {
+    "inps": "INPS",
+    "paid": "paid",
+    "unpaid": "unpaid",
+    "rejection": "Rejection",
+    "cancellation": "Cancellation"
+  },
+  "calendar": {
+    "intro": "Calendar of all company absences.",
+    "addEvent": "+ Add event",
+    "clickToHide": "Click to hide",
+    "clickToShow": "Click to show"
+  },
+  "bulk": {
+    "title": "Add company event",
+    "titleLabel": "Title",
+    "titlePlaceholder": "August company closure",
+    "from": "From",
+    "to": "To",
+    "deduct": "Count as holiday (deducts from the balance). Leave unchecked for an unpaid closure.",
+    "recipients": "Recipients",
+    "allUsers": "Everyone",
+    "select": "Select",
+    "note": "Note (optional)",
+    "sending": "Sending…",
+    "createNotify": "Create and notify",
+    "errTitle": "Enter a title.",
+    "errDates": "Enter the dates.",
+    "errOrder": "The end date is before the start date.",
+    "errSelect": "Select at least one employee."
+  },
+  "quotas": {
+    "permessiPlural": "Leave",
+    "noTemplatesPre": "First create a quota template in the ",
+    "noTemplatesPost": " tab.",
+    "ferieBalance": "Holiday balance",
+    "ferieAccrual": "Holiday accrual",
+    "permessiBalance": "Leave balance",
+    "permessiAccrual": "Leave accrual",
+    "assign": "Assign",
+    "adjustHours": "Add/Remove hours",
+    "assignFirst": "Assign a quota first",
+    "manualHistory": "Manual change history"
+  },
+  "accrual": {
+    "none": "No accrual",
+    "monthly": "{{amount}}h every month on day {{day}}",
+    "yearly": "{{amount}}h every year on {{day}}/{{month}}"
+  },
+  "editor": {
+    "title": "{{type}} quota — {{user}}",
+    "template": "Template",
+    "choose": "— choose —",
+    "initialBalance": "Initial balance (hours)",
+    "initialBalanceHint": "Starting balance, before accruals and requests. Can be negative.",
+    "activeFrom": "Active from",
+    "accruedTotal": "Accrued total",
+    "usedApproved": "Used (approved)",
+    "currentBalance": "Current balance",
+    "lastAccrual": "Last accrual",
+    "errTemplate": "Select a template",
+    "closeTitle": "Close assignment?",
+    "closeMessage": "The accrual history remains visible.",
+    "closeConfirm": "Close"
+  },
+  "adjust": {
+    "title": "Manual hours adjustment — {{user}}",
+    "intro": "Add or remove hours from the balance. Every operation is tracked in the history.",
+    "type": "Type",
+    "operation": "Operation",
+    "add": "Add",
+    "remove": "Remove",
+    "date": "Date",
+    "note": "Note (optional)",
+    "noteAria": "Note",
+    "notePlaceholder": "Reason for the change",
+    "currentBalance": "Current {{type}} balance",
+    "errNoQuota": "No active quota for this type.",
+    "errHours": "Enter a number of hours greater than zero."
+  },
+  "accrualSource": {
+    "cron": "Automatic",
+    "manual": "Manual",
+    "adjustment": "Adjustment"
+  },
+  "audit": {
+    "title": "Change history — {{user}}",
+    "empty": "No accrual or change recorded.",
+    "colDate": "Date",
+    "colType": "Type",
+    "colChange": "Change",
+    "colSource": "Source",
+    "colNote": "Note",
+    "colBy": "Performed by",
+    "system": "System"
+  },
+  "templates": {
+    "new": "New template",
+    "deleteTitle": "Delete template?",
+    "annualRef": "Annual reference",
+    "accrual": "Accrual",
+    "active": "Active",
+    "inactive": "Disabled",
+    "editTemplate": "Edit template",
+    "deleteTemplate": "Delete template"
+  },
+  "templateForm": {
+    "editTitle": "Edit quota template",
+    "newTitle": "New quota template",
+    "name": "Name",
+    "annualHours": "Annual reference hours",
+    "autoAccrual": "Automatic accrual",
+    "amountPer": "Amount per accrual",
+    "unit": "Unit",
+    "unitHours": "hours",
+    "unitDays": "days",
+    "hoursPerDay": "Hours per day (conversion)",
+    "willSave": "{{hours}}h will be saved per accrual.",
+    "frequency": "Frequency",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "dayOfMonth": "Day of month",
+    "dayHint": "1–28 (to be safe in short months).",
+    "month": "Month",
+    "monthPlaceholder": "— month —",
+    "summaryMonthly": "Every month on day {{day}}, {{hours}}h will be added.",
+    "summaryYearly": "Every year on {{day}} {{month}}, {{hours}}h will be added.",
+    "active": "Active"
+  }
+}

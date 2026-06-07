@@ -1,0 +1,31 @@
+{
+  "title": "Residui",
+  "admin": {
+    "title": "Residui dipendenti",
+    "subtitle": "Ore residue di ferie e permessi per ogni dipendente. Chi non ha una quota assegnata compare comunque, senza valori (—).",
+    "note": "<strong>Residuo</strong> = saldo iniziale + maturato − usati approvati. Le richieste in attesa non vengono scalate subito: il <em>residuo con pending</em> mostra cosa resterebbe se venissero tutte approvate, e può diventare negativo.",
+    "col": {
+      "user": "Utente",
+      "type": "Tipo",
+      "initialBalance": "Saldo iniziale",
+      "accrued": "Maturato",
+      "used": "Usato",
+      "pending": "In attesa",
+      "residual": "Residuo",
+      "residualWithPending": "Residuo con pending"
+    }
+  },
+  "mine": {
+    "title": "I miei residui",
+    "subtitle": "Ore residue di ferie e permessi a tua disposizione.",
+    "empty": "Nessuna quota di ferie o permessi assegnata. Contatta l'amministratore.",
+    "available": "residuo disponibile",
+    "withPending": "con richieste in attesa:"
+  },
+  "field": {
+    "initialBalance": "Saldo iniziale",
+    "accrued": "Maturato",
+    "usedApproved": "Usato approvato",
+    "pending": "In attesa"
+  }
+}

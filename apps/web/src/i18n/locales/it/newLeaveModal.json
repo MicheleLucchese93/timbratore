@@ -1,0 +1,23 @@
+{
+  "title": "Nuova richiesta",
+  "field": {
+    "type": "Tipo",
+    "from": "Dal",
+    "to": "Al",
+    "inpsProtocol": "Protocollo INPS",
+    "assenzaSubtype": "Tipologia assenza",
+    "isPaid": "Retribuita",
+    "note": "Note",
+    "noteRequiredSuffix": " (obbligatorie)"
+  },
+  "validation": {
+    "datesRequired": "Inserisci le date.",
+    "endBeforeStart": "La fine precede l’inizio.",
+    "inpsRequired": "Protocollo INPS obbligatorio per malattia.",
+    "noteRequired": "La motivazione è obbligatoria per le assenze."
+  },
+  "btn": {
+    "submit": "Invia richiesta",
+    "submitting": "Invio…"
+  }
+}

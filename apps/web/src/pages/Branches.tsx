@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api.ts';
 import { PlaceSearchInput, type PlaceDetail } from '../components/PlaceSearchInput.tsx';
 import { BranchMapPreview } from '../components/BranchMapPreview.tsx';
@@ -22,6 +23,7 @@ interface Usage {
 }
 
 export function Branches() {
+  const { t } = useTranslation(['branches', 'common']);
   const [list, setList] = useState<Branch[]>([]);
   const [usage, setUsage] = useState<Usage | null>(null);
   const [editing, setEditing] = useState<Branch | null>(null);
@@ -45,7 +47,7 @@ export function Branches() {
   const atLimit = !!usage && branchesCount >= usage.max_branches;
 
   async function remove(id: string) {
-    if (!(await confirm({ title: 'Eliminare questa sede?', danger: true, confirmLabel: 'Elimina' }))) return;
+    if (!(await confirm({ title: t('deleteConfirm.title'), danger: true, confirmLabel: t('common:btn.delete') }))) return;
     await api(`/api/v1/branches/${id}`, { method: 'DELETE' });
     await load();
   }
@@ -53,20 +55,20 @@ export function Branches() {
   return (
     <div className="space-y-5">
       <header className="flex items-center justify-end gap-4 flex-wrap">
-        <h1 className="sr-only">Sedi</h1>
+        <h1 className="sr-only">{t('title')}</h1>
         <button
           className="btn btn-primary"
           disabled={atLimit}
-          title={atLimit ? 'Limite sedi raggiunto — contatta supporto' : ''}
+          title={atLimit ? t('limitReachedTitle') : ''}
           onClick={() => setShowCreate(true)}
         >
-          Nuova sede
+          {t('new')}
         </button>
       </header>
       {usage && (
         <div className="card flex gap-6 text-sm flex-wrap">
           <div>
-            <span className="muted">Sedi: </span>
+            <span className="muted">{t('count')}</span>
             <strong className="num">{branchesCount}</strong> / {usage.max_branches}
           </div>
         </div>
@@ -81,18 +83,18 @@ export function Branches() {
                 <div className="text-xs text-neutral-600 truncate">{b.address ?? '—'}</div>
                 <div className="text-xs text-neutral-500 mt-1">
                   {b.smart_working ? (
-                    <span className="badge badge-muted">Fuori sede</span>
+                    <span className="badge badge-muted">{t('offSite')}</span>
                   ) : (
                     <>
                       {b.latitude?.toFixed(4)}, {b.longitude?.toFixed(4)}
-                      {b.enforce_radius ? ` · raggio ${b.radius_m}m` : ' · senza raggio'}
+                      {b.enforce_radius ? ` · ${t('radius', { count: b.radius_m })}` : ` · ${t('noRadius')}`}
                     </>
                   )}
                 </div>
               </div>
               <div className="flex gap-2 shrink-0">
-                <button className="btn btn-secondary btn-sm" onClick={() => setEditing(b)}>Modifica</button>
-                <button className="btn btn-danger btn-sm" onClick={() => remove(b.id)}>Elimina</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setEditing(b)}>{t('common:btn.edit')}</button>
+                <button className="btn btn-danger btn-sm" onClick={() => remove(b.id)}>{t('common:btn.delete')}</button>
               </div>
             </div>
             {!b.smart_working && b.latitude !== null && b.longitude !== null && (
@@ -135,6 +137,7 @@ function BranchForm({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { t } = useTranslation(['branches', 'common']);
   const [name, setName] = useState(initial?.name ?? '');
   const [address, setAddress] = useState(initial?.address ?? '');
   const [lat, setLat] = useState<number | null>(initial?.latitude ?? null);
@@ -182,7 +185,7 @@ function BranchForm({
       }
       onSaved();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     } finally {
       setBusy(false);
     }
@@ -194,11 +197,11 @@ function BranchForm({
         onSubmit={submit}
         className="card w-full max-w-5xl max-h-[90vh] flex flex-col gap-4"
       >
-        <h2 className="text-lg font-semibold">{initial ? 'Modifica sede' : 'Nuova sede'}</h2>
+        <h2 className="text-lg font-semibold">{initial ? t('form.editTitle') : t('new')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div>
-              <label className="label">Nome</label>
+              <label className="label">{t('form.name')}</label>
               <input
                 className="input"
                 required
@@ -207,16 +210,16 @@ function BranchForm({
               />
             </div>
             <div>
-              <label className="label">Indirizzo</label>
+              <label className="label">{t('form.address')}</label>
               <PlaceSearchInput
                 value={address}
                 onChange={handleAddressChange}
                 onSelect={handlePlace}
-                placeholder="Cerca su Google Maps: es. Piazza Venezia, Roma"
+                placeholder={t('form.addressPlaceholder')}
                 disabled={smartWorking}
               />
               <p className="text-xs text-neutral-500 mt-1">
-                Scrivi almeno 3 caratteri e seleziona un risultato per impostare le coordinate.
+                {t('form.addressHint')}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -227,7 +230,7 @@ function BranchForm({
                 onChange={(e) => setSmartWorking(e.target.checked)}
               />
               <label htmlFor="sw" className="text-sm">
-                Fuori sede - timbratura senza GPS
+                {t('form.smartWorking')}
               </label>
             </div>
             {!smartWorking && (
@@ -240,18 +243,16 @@ function BranchForm({
                     onChange={(e) => setEnforceRadius(e.target.checked)}
                   />
                   <label htmlFor="er" className="text-sm">
-                    Limita timbratura entro un raggio
+                    {t('form.enforceRadius')}
                   </label>
                 </div>
                 <p className="text-xs text-neutral-500 -mt-2">
-                  Se disattivato: GPS viene comunque registrato sulla timbratura, ma senza
-                  controllo di distanza. La sede dovrà essere selezionata manualmente
-                  dall'utente (no auto-detect).
+                  {t('form.enforceRadiusHint')}
                 </p>
                 {enforceRadius && (
                   <>
                     <div>
-                      <label className="label">Raggio (50–1500 m): {radius}m</label>
+                      <label className="label">{t('form.radiusLabel', { radius })}</label>
                       <input
                         type="range"
                         min={50}
@@ -268,7 +269,7 @@ function BranchForm({
           </div>
           {!smartWorking && (
             <div className="flex flex-col">
-              <label className="label">Anteprima</label>
+              <label className="label">{t('form.preview')}</label>
               <BranchMapPreview
                 lat={lat}
                 lng={lng}
@@ -278,11 +279,11 @@ function BranchForm({
               {lat !== null && lng !== null ? (
                 <p className="text-xs text-neutral-500 mt-2">
                   {lat.toFixed(5)}, {lng.toFixed(5)}
-                  {enforceRadius ? ` · tolleranza ${radius}m` : ' · senza raggio'}
+                  {enforceRadius ? ` · ${t('form.tolerance', { radius })}` : ` · ${t('noRadius')}`}
                 </p>
               ) : (
                 <p className="text-xs text-neutral-500 mt-2">
-                  Seleziona un indirizzo per visualizzare la sede sulla mappa.
+                  {t('form.previewEmpty')}
                 </p>
               )}
             </div>
@@ -290,9 +291,9 @@ function BranchForm({
         </div>
         {err && <div className="text-sm text-[color:var(--color-error)]">{err}</div>}
         <div className="flex gap-2 justify-end pt-2 mt-auto">
-          <button type="button" className="btn btn-secondary" onClick={onClose}>Annulla</button>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>{t('common:btn.cancel')}</button>
           <button type="submit" className="btn btn-primary" disabled={busy}>
-            {busy ? 'Salvataggio…' : 'Salva'}
+            {busy ? t('common:state.saving') : t('common:btn.save')}
           </button>
         </div>
       </form>

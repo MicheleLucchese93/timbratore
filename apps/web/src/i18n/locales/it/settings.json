@@ -1,0 +1,29 @@
+{
+  "title": "Impostazioni",
+  "section": {
+    "profile": "Anagrafica e localizzazione",
+    "profileDesc": "Dati base dell'azienda e lingua di sistema. La ragione sociale e la partita IVA sono impostate al provisioning del tenant.",
+    "activeCompany": "Azienda attiva",
+    "activeCompanyDesc": "Il tuo account è collegato a più aziende. Cambia quella su cui stai lavorando: la pagina si ricaricherà con i dati della nuova azienda.",
+    "emailNotif": "Notifiche email",
+    "emailNotifDesc": "Le notifiche push sull'app mobile sono sempre attive (gestibili dall'app). Qui scegli, per categoria, quali notifiche ricevere anche via email. Disattivate di default."
+  },
+  "ragioneSociale": "Ragione sociale",
+  "partitaIva": "Partita IVA",
+  "readOnlyHint": "Solo lettura. Modificabile dal provider.",
+  "timezone": "Timezone",
+  "timezoneHint": "Influenza i fusi nei report.",
+  "languageHint": "La lingua è personale: vale solo per il tuo account.",
+  "company": "Azienda",
+  "switching": "Cambio azienda in corso…",
+  "switchHint": "Cambiando azienda verrai reindirizzato alla dashboard.",
+  "emailPref": {
+    "emailLeaveDecisions": "Esiti delle mie richieste (ferie, permessi, assenze)",
+    "emailLeaveSubmissions": "Nuove richieste di ferie/permessi da approvare",
+    "emailCorrectionDecisions": "Esiti delle mie correzioni timbratura",
+    "emailCorrectionSubmissions": "Nuove correzioni timbratura da approvare",
+    "emailLeaveReminders": "Promemoria 24h prima di un'assenza"
+  },
+  "toggleOn": "Attiva — clicca per disattivare",
+  "toggleOff": "Disattivata — clicca per attivare"
+}

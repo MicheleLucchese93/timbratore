@@ -1,0 +1,26 @@
+{
+  "title": "Branches",
+  "new": "New branch",
+  "limitReachedTitle": "Branch limit reached — contact support",
+  "count": "Branches: ",
+  "offSite": "Off-site",
+  "radius": "radius {{count}}m",
+  "noRadius": "no radius",
+  "deleteConfirm": {
+    "title": "Delete this branch?"
+  },
+  "form": {
+    "editTitle": "Edit branch",
+    "name": "Name",
+    "address": "Address",
+    "addressPlaceholder": "Search on Google Maps: e.g. Piazza Venezia, Rome",
+    "addressHint": "Type at least 3 characters and select a result to set the coordinates.",
+    "smartWorking": "Off-site - stamping without GPS",
+    "enforceRadius": "Restrict stamping within a radius",
+    "enforceRadiusHint": "If disabled: GPS is still recorded on the stamp, but without distance checking. The branch must be selected manually by the user (no auto-detect).",
+    "radiusLabel": "Radius (50–1500 m): {{radius}}m",
+    "preview": "Preview",
+    "tolerance": "tolerance {{radius}}m",
+    "previewEmpty": "Select an address to view the branch on the map."
+  }
+}

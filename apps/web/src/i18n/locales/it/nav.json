@@ -1,0 +1,20 @@
+{
+  "dashboard": "Dashboard",
+  "stamps": "Timbrature",
+  "corrections": "Correzioni",
+  "users": "Utenti",
+  "branches": "Sedi",
+  "shifts": "Orari",
+  "anomalies": "Anomalie",
+  "leaves": "Ferie & Permessi",
+  "residui": "Residui",
+  "exports": "Esportazioni",
+  "settings": "Impostazioni",
+  "manual": "Manuale Utente",
+  "myStamps": "Le mie timbrature",
+  "myCorrections": "Le mie richieste",
+  "closeMenu": "Chiudi menu",
+  "openMenu": "Apri menu",
+  "expandMenu": "Espandi menu",
+  "collapseMenu": "Comprimi menu"
+}

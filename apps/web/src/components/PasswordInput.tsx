@@ -1,10 +1,12 @@
 import { type InputHTMLAttributes, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & {
   id: string;
 };
 
 export function PasswordInput({ id, className = '', ...rest }: Props) {
+  const { t } = useTranslation('common');
   const [shown, setShown] = useState(false);
   return (
     <div className="pw-wrap">
@@ -18,7 +20,7 @@ export function PasswordInput({ id, className = '', ...rest }: Props) {
         type="button"
         className="pw-toggle"
         onClick={() => setShown((s) => !s)}
-        aria-label={shown ? 'Nascondi password' : 'Mostra password'}
+        aria-label={shown ? t('ui.hidePassword') : t('ui.showPassword')}
         tabIndex={-1}
       >
         {shown ? <EyeOff /> : <Eye />}

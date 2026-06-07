@@ -1,11 +1,14 @@
 import { type FormEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { isAuthConfigured, loginWithDevToken, loginWithPassword } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
 import { HeroAnimation } from '../components/HeroAnimation.tsx';
 import { PasswordInput } from '../components/PasswordInput.tsx';
+import { LanguageToggle } from '../components/LanguageSwitcher.tsx';
 
 export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
+  const { t } = useTranslation(['login', 'common']);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -26,7 +29,7 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
       await refresh();
       onLoggedIn();
     } catch (err) {
-      setErr(err instanceof Error ? err.message : 'Accesso fallito');
+      setErr(err instanceof Error ? err.message : t('failed'));
     } finally {
       setBusy(false);
     }
@@ -37,7 +40,10 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
       <div className="hidden md:flex md:w-1/2 xl:w-3/5">
         <HeroAnimation />
       </div>
-      <div className="flex flex-1 items-center justify-center overflow-y-auto px-4 py-6 sm:px-8">
+      <div className="relative flex flex-1 items-center justify-center overflow-y-auto px-4 py-6 sm:px-8">
+        <div className="absolute right-4 top-4">
+          <LanguageToggle />
+        </div>
         <div className="w-full max-w-md">
           <form onSubmit={submit} className="card space-y-4">
             <div className="text-center mb-2 flex flex-col items-center">
@@ -56,12 +62,12 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
                 sono<span style={{ color: 'var(--color-on-primary-container)' }}>Qui</span>
               </div>
               <p className="mt-1 text-sm text-neutral-600">
-                Il tempo che lavori, semplice come dirlo.
+                {t('tagline')}
               </p>
             </div>
 
             <div>
-              <label className="label" htmlFor="email">Email</label>
+              <label className="label" htmlFor="email">{t('email')}</label>
               <input
                 id="email"
                 type="email"
@@ -70,15 +76,15 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@azienda.it"
+                placeholder={t('emailPlaceholder')}
               />
             </div>
 
             <div>
               <div className="flex items-baseline justify-between">
-                <label className="label" htmlFor="password">Password</label>
+                <label className="label" htmlFor="password">{t('password')}</label>
                 <Link to="/forgot-password" className="text-xs font-medium" style={{ color: 'var(--color-primary)' }}>
-                  Password dimenticata?
+                  {t('forgotPassword')}
                 </Link>
               </div>
               <PasswordInput
@@ -98,7 +104,7 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
             )}
 
             <button className="btn btn-primary w-full" disabled={busy} type="submit">
-              {busy ? 'Accesso in corso…' : 'Accedi'}
+              {busy ? t('signingIn') : t('signIn')}
             </button>
           </form>
         </div>

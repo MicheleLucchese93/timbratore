@@ -1,0 +1,36 @@
+{
+  "ariaLabel": "Nuova richiesta di correzione",
+  "title": {
+    "date": "Quale giorno?",
+    "edit": "Modifica timbratura",
+    "new": "Nuova timbratura"
+  },
+  "aria": {
+    "close": "Chiudi",
+    "back": "Indietro"
+  },
+  "date": {
+    "intro": "Scegli la data per cui vuoi richiedere una correzione. Caricheremo le tue timbrature di quel giorno: potrai modificarne una o aggiungerne una mancante.",
+    "label": "Data",
+    "loading": "Carico…"
+  },
+  "pickStamp": {
+    "intro": "Seleziona una timbratura da correggere, oppure aggiungi una timbratura mancante.",
+    "empty": "Nessuna timbratura in questa data.",
+    "addMissing": "+ Aggiungi una timbratura mancante"
+  },
+  "edit": {
+    "eventType": "Tipo evento",
+    "date": "Data",
+    "time": "Ora",
+    "branch": "Sede",
+    "justification": "Motivazione",
+    "justificationPlaceholder": "Es. avevo dimenticato di timbrare l'uscita",
+    "submit": "Invia richiesta",
+    "submitting": "Invio…"
+  },
+  "error": {
+    "justificationTooShort": "Spiega la motivazione in almeno 5 caratteri.",
+    "generic": "errore"
+  }
+}

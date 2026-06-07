@@ -1,0 +1,150 @@
+{
+  "app": {
+    "name": "sonoQui",
+    "tenantFallback": "Azienda"
+  },
+  "btn": {
+    "save": "Salva",
+    "cancel": "Annulla",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "confirm": "Conferma",
+    "close": "Chiudi",
+    "add": "Aggiungi",
+    "back": "Indietro",
+    "next": "Avanti",
+    "continue": "Continua",
+    "search": "Cerca",
+    "filter": "Filtra",
+    "retry": "Riprova",
+    "send": "Invia",
+    "download": "Scarica",
+    "export": "Esporta",
+    "generate": "Genera",
+    "approve": "Approva",
+    "reject": "Rifiuta",
+    "create": "Crea",
+    "new": "Nuovo",
+    "yes": "Sì",
+    "no": "No",
+    "ok": "OK",
+    "logout": "Esci",
+    "refresh": "Aggiorna"
+  },
+  "state": {
+    "loading": "Caricamento…",
+    "saving": "Salvataggio…",
+    "all": "Tutte",
+    "none": "Nessuno",
+    "empty": "Nessun dato",
+    "error": "Errore",
+    "saved": "Impostazione salvata.",
+    "saveError": "Errore di salvataggio",
+    "prefSaved": "Preferenza salvata.",
+    "errorGeneric": "Si è verificato un errore"
+  },
+  "role": {
+    "admin": "Amministratore",
+    "user": "Dipendente"
+  },
+  "status": {
+    "pending": "In attesa",
+    "approved": "Approvata",
+    "rejected": "Rifiutata",
+    "cancelled": "Cancellata",
+    "submitted": "Inviata",
+    "cancel_requested": "Annullamento richiesto"
+  },
+  "stampEvent": {
+    "clock_in": "Entrata",
+    "clock_out": "Uscita",
+    "break_start": "Inizio pausa",
+    "break_end": "Fine pausa",
+    "lunch_start": "Inizio pausa pranzo",
+    "lunch_end": "Fine pausa pranzo"
+  },
+  "workState": {
+    "working": "Al lavoro",
+    "on_break": "In pausa",
+    "on_lunch": "In pausa pranzo",
+    "off": "Fuori servizio"
+  },
+  "origin": {
+    "app": "app",
+    "correction": "correz.",
+    "admin": "admin"
+  },
+  "leaveType": {
+    "ferie": "Ferie",
+    "permessi": "Permesso",
+    "malattia": "Malattia",
+    "assenza": "Assenza",
+    "chiusura": "Chiusura aziendale"
+  },
+  "assenzaSubtype": {
+    "lutto": "Lutto",
+    "donazione_sangue": "Donazione sangue",
+    "permesso_studio": "Permesso studio",
+    "permesso_elettorale": "Permesso elettorale",
+    "matrimonio": "Matrimonio",
+    "allattamento": "Allattamento",
+    "congedo_parentale": "Congedo parentale",
+    "legge_104": "Legge 104",
+    "assemblea_sindacale": "Assemblea sindacale",
+    "visita_medica": "Visita medica",
+    "motivi_personali": "Motivi personali"
+  },
+  "anomaly": {
+    "missing_clock_in": "Entrata mancante",
+    "missing_clock_out": "Uscita mancante",
+    "late_clock_in": "Entrata in ritardo",
+    "early_clock_out": "Uscita anticipata",
+    "short_hours": "Ore giornaliere insufficienti",
+    "worked_on_rest_day": "Lavoro in giorno di riposo",
+    "break_too_short": "Pausa troppo breve",
+    "break_too_long": "Pausa troppo lunga",
+    "lunch_too_short": "Pausa pranzo troppo breve",
+    "lunch_too_long": "Pausa pranzo troppo lunga",
+    "lunch_outside_window": "Pausa pranzo fuori finestra",
+    "clock_out_out_of_area": "Uscita fuori area"
+  },
+  "unit": {
+    "hours": "Ore",
+    "hoursShort": "h",
+    "days": "giorni",
+    "day": "giorno",
+    "minutes": "minuti"
+  },
+  "lang": {
+    "label": "Lingua",
+    "it": "Italiano",
+    "en": "English",
+    "interfaceLabel": "Lingua interfaccia"
+  },
+  "ui": {
+    "showPassword": "Mostra password",
+    "hidePassword": "Nascondi password"
+  },
+  "errors": {
+    "UNAUTHORIZED": "Accesso non autorizzato",
+    "FORBIDDEN": "Operazione non consentita",
+    "NOT_FOUND": "Risorsa non trovata",
+    "VALIDATION": "Dati non validi",
+    "NO_ACTIVE_TENANT": "Nessuna azienda attiva associata al tuo account",
+    "MISSING_IDEMPOTENCY_KEY": "Richiesta non valida, riprova",
+    "INVALID_TRANSITION": "Stato non valido per questa azione",
+    "DUPLICATE_TOO_FAST": "Hai già timbrato pochi secondi fa",
+    "OUT_OF_GEOFENCE": "Sei fuori dall'area consentita",
+    "MOCK_LOCATION_BLOCKED": "Posizione finta non consentita",
+    "GPS_REQUIRED": "Posizione GPS richiesta per timbrare",
+    "WEB_CLOCK_IN_DISABLED": "La timbratura da web non è abilitata",
+    "STAMPING_DISABLED": "Timbratura non abilitata",
+    "CLOCK_SKEW": "L'orario del dispositivo non è allineato al server",
+    "UNDO_WINDOW_EXPIRED": "Finestra di annullamento scaduta",
+    "LIMIT_REACHED": "Limite del piano raggiunto",
+    "LAST_ADMIN": "Non puoi rimuovere l'ultimo amministratore",
+    "GEOCODING_UNAVAILABLE": "Geocodifica non disponibile",
+    "CONFLICT": "Conflitto con lo stato attuale",
+    "INTERNAL": "Errore interno del server"
+  }
+}

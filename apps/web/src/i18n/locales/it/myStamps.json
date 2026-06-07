@@ -1,0 +1,9 @@
+{
+  "heading": "Le mie timbrature",
+  "col": {
+    "when": "Quando",
+    "event": "Evento",
+    "origin": "Origine",
+    "notes": "Note"
+  }
+}

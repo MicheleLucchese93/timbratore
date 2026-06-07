@@ -1,0 +1,60 @@
+{
+  "title": "Dashboard",
+  "kpi": {
+    "presentNow": "Presenti ora",
+    "absentToday": "Assenti oggi",
+    "toApprove": "Da approvare",
+    "anomalies7d": "Anomalie 7 gg",
+    "branches": "Sedi"
+  },
+  "inbox": {
+    "title": "Da approvare",
+    "total": "Totale: {{n}}",
+    "tab": {
+      "corrections": "Correzioni",
+      "leaves": "Ferie / permessi / malattia",
+      "revocations": "Revoche"
+    },
+    "emptyCorrections": "Nessuna correzione in coda",
+    "emptyLeaves": "Nessuna richiesta in coda",
+    "emptyRevocations": "Nessuna revoca da decidere",
+    "openDetail": "Apri dettaglio",
+    "inps": "INPS: {{protocol}}",
+    "reason": "Motivo: {{reason}}",
+    "acceptCancellation": "Accetta annullamento",
+    "rejectCancellation": "Rifiuta annullamento"
+  },
+  "absences": {
+    "nowTitle": "Assenti ora",
+    "upcomingTitle": "Prossime 14 giorni",
+    "noneNow": "Nessuna assenza in corso",
+    "noneUpcoming": "Nessuna assenza programmata",
+    "until": "Fino al {{date}}"
+  },
+  "status": {
+    "title": "Stato attuale",
+    "noEmployees": "Nessun dipendente ancora",
+    "noEmployeesHint": "Invita il primo collaboratore dalla sezione Utenti.",
+    "viewList": "Elenco",
+    "viewByBranch": "Per sede",
+    "branch": "Sede: {{name}}",
+    "last": "Ultimo: {{event}}",
+    "noActivity": "Nessuna attività oggi",
+    "nobodyPresent": "Nessuno presente",
+    "nobodyPresentHint": "Nessun dipendente ha timbrato l'ingresso al momento.",
+    "noBranch": "Senza sede"
+  },
+  "anomalies": {
+    "title": "Anomalie ultimi 7 giorni",
+    "seeAll": "Vedi tutte →",
+    "mostRecent": "Più recenti",
+    "delta": " · {{n}}m",
+    "none": "Nessuna anomalia negli ultimi 7 giorni"
+  },
+  "reject": {
+    "leaveTitle": "Rifiuta richiesta",
+    "correctionTitle": "Rifiuta correzione",
+    "leaveLabel": "Motivo del rifiuto",
+    "correctionLabel": "Nota di rifiuto (opzionale)"
+  }
+}

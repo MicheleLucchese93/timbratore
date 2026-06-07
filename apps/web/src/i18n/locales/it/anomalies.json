@@ -1,0 +1,51 @@
+{
+  "heading": "Anomalie orario",
+  "filter": {
+    "from": "Dal",
+    "to": "Al",
+    "user": "Utente",
+    "allUsers": "Tutti"
+  },
+  "notDeployed": "La funzione \"Anomalie orario\" è disponibile dopo l'aggiornamento del backend. Riprova quando il deploy sarà completato.",
+  "empty": "Nessuna anomalia nel periodo selezionato.",
+  "row": {
+    "scheduleLabel": "Orario:",
+    "expected": "Atteso",
+    "actual": "Effettivo",
+    "deltaShort": "Δ {{minutes}}min",
+    "breakShort": "Pausa {{minutes}}min",
+    "justified": "Giustificata: {{note}}"
+  },
+  "correct": "Correggi ▾",
+  "action": {
+    "label": "Azione",
+    "standard": "Timbratura standard (orari del giorno)",
+    "ferie": "Inserisci ferie",
+    "permesso": "Inserisci permesso",
+    "note": "Giustifica con nota"
+  },
+  "recap": {
+    "title": "Riepilogo",
+    "noMissingStamp": "Nessun timbro mancante.",
+    "addsEvent": "Aggiunge <strong>{{event}}</strong> alle <strong>{{time}}</strong>",
+    "ferieFor": "Ferie per <strong>{{date}}</strong> ({{from}}–{{to}}). Le ore vengono calcolate dall'orario assegnato.",
+    "permFrom": "Dalle",
+    "permTo": "Alle",
+    "duration": "Durata"
+  },
+  "noteSection": {
+    "title": "Nota di giustificazione",
+    "hint": "L'anomalia resta visibile ma annotata; la nota compare nelle esportazioni."
+  },
+  "noteField": {
+    "optionalPlaceholder": "Nota per il dipendente (opzionale)",
+    "placeholder": "Motivazione…"
+  },
+  "justificationStandard": "Timbratura standard: {{kind}}",
+  "errors": {
+    "noMissingStamp": "Nessun timbro mancante da aggiungere.",
+    "invalidPermWindow": "Finestra del permesso non valida.",
+    "permMinDuration": "Durata minima del permesso: 15 minuti.",
+    "noteRequired": "Inserisci una nota di giustificazione."
+  }
+}

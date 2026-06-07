@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
+import { fmtDateTime } from '../i18n/format.ts';
 
 interface Stamp {
   id: string;
@@ -13,6 +15,7 @@ interface Stamp {
 }
 
 export function MyStamps() {
+  const { t } = useTranslation(['myStamps', 'common']);
   const [list, setList] = useState<Stamp[]>([]);
 
   async function load() {
@@ -29,57 +32,57 @@ export function MyStamps() {
     () => [
       {
         field: 'occurred_at',
-        headerName: 'Quando',
+        headerName: t('col.when'),
         width: 180,
         type: 'dateTime',
         valueGetter: (_v, row) => new Date(row.occurred_at),
         renderCell: (p) => (
-          <span className="text-xs num">{(p.value as Date).toLocaleString('it-IT')}</span>
+          <span className="text-xs num">{fmtDateTime(p.value as Date)}</span>
         ),
       },
       {
         field: 'event_type',
-        headerName: 'Evento',
+        headerName: t('col.event'),
         width: 150,
         type: 'singleSelect',
         valueOptions: [
-          { value: 'clock_in', label: 'Ingresso' },
-          { value: 'clock_out', label: 'Uscita' },
-          { value: 'break_start', label: 'Inizio pausa' },
-          { value: 'break_end', label: 'Fine pausa' },
-          { value: 'lunch_start', label: 'Inizio pausa pranzo' },
-          { value: 'lunch_end', label: 'Fine pausa pranzo' },
+          { value: 'clock_in', label: t('common:stampEvent.clock_in') },
+          { value: 'clock_out', label: t('common:stampEvent.clock_out') },
+          { value: 'break_start', label: t('common:stampEvent.break_start') },
+          { value: 'break_end', label: t('common:stampEvent.break_end') },
+          { value: 'lunch_start', label: t('common:stampEvent.lunch_start') },
+          { value: 'lunch_end', label: t('common:stampEvent.lunch_end') },
         ],
         renderCell: (p) => (
-          <span className={`badge ${badgeOf(p.row.event_type)}`}>{labelEvent(p.row.event_type)}</span>
+          <span className={`badge ${badgeOf(p.row.event_type)}`}>{t(`common:stampEvent.${p.row.event_type}`)}</span>
         ),
       },
       {
         field: 'source',
-        headerName: 'Origine',
+        headerName: t('col.origin'),
         width: 120,
         type: 'singleSelect',
         valueOptions: [
-          { value: 'employee_app', label: 'app' },
-          { value: 'employee_correction', label: 'correz.' },
-          { value: 'admin_manual', label: 'admin' },
+          { value: 'employee_app', label: t('common:origin.app') },
+          { value: 'employee_correction', label: t('common:origin.correction') },
+          { value: 'admin_manual', label: t('common:origin.admin') },
         ],
-        renderCell: (p) => <span className="badge badge-muted">{sourceLabel(p.row.source)}</span>,
+        renderCell: (p) => <span className="badge badge-muted">{sourceLabel(p.row.source, t)}</span>,
       },
       {
         field: 'notes',
-        headerName: 'Note',
+        headerName: t('col.notes'),
         flex: 1,
         minWidth: 200,
         renderCell: (p) => <span className="text-xs">{p.row.notes ?? ''}</span>,
       },
     ],
-    []
+    [t]
   );
 
   return (
     <div className="space-y-5">
-      <h1 className="sr-only">Le mie timbrature</h1>
+      <h1 className="sr-only">{t('heading')}</h1>
 
       <div className="card" style={{ padding: 0 }}>
         <DataGrid<Stamp>
@@ -94,24 +97,19 @@ export function MyStamps() {
   );
 }
 
-function labelEvent(e: string): string {
-  switch (e) {
-    case 'clock_in': return 'Ingresso';
-    case 'clock_out': return 'Uscita';
-    case 'break_start': return 'Inizio pausa';
-    case 'break_end': return 'Fine pausa';
-    case 'lunch_start': return 'Inizio pausa pranzo';
-    case 'lunch_end': return 'Fine pausa pranzo';
-    default: return e;
-  }
-}
 function badgeOf(e: string): string {
   if (e === 'clock_in') return 'badge-ok';
   if (e === 'clock_out') return 'badge-muted';
   return 'badge-warn';
 }
-function sourceLabel(s: string): string {
-  return s === 'employee_app' ? 'app' : s === 'employee_correction' ? 'correz.' : s === 'admin_manual' ? 'admin' : s;
+function sourceLabel(s: string, t: (k: string) => string): string {
+  return s === 'employee_app'
+    ? t('common:origin.app')
+    : s === 'employee_correction'
+      ? t('common:origin.correction')
+      : s === 'admin_manual'
+        ? t('common:origin.admin')
+        : s;
 }
 function isoToday(): string { return new Date().toISOString().slice(0, 10); }
 function isoNDaysAgo(n: number): string {

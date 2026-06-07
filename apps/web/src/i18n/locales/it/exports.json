@@ -1,0 +1,31 @@
+{
+  "title": "Esportazioni",
+  "from": "Dal",
+  "to": "Al",
+  "format": "Formato",
+  "formatXlsx": "XLSX (commercialista)",
+  "sending": "Invio…",
+  "downloadFailed": "Download fallito",
+  "deleteConfirm": {
+    "title": "Eliminare questa esportazione?"
+  },
+  "deleteAriaLabel": "Elimina esportazione",
+  "column": {
+    "period": "Periodo",
+    "status": "Stato",
+    "created": "Creata",
+    "actions": "Azioni"
+  },
+  "filter": {
+    "pending": "In coda",
+    "running": "In elaborazione",
+    "ready": "Pronta",
+    "failed": "Errore"
+  },
+  "badge": {
+    "pending": "in coda",
+    "running": "in elaborazione",
+    "ready": "pronta",
+    "failed": "errore"
+  }
+}

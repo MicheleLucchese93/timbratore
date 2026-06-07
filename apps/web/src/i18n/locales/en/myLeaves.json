@@ -1,0 +1,30 @@
+{
+  "heading": "Holidays & Leave",
+  "kpiPermessi": "Leave",
+  "tab": {
+    "mine": "Mine",
+    "calendar": "Calendar",
+    "inbox": "To approve ({{count}})"
+  },
+  "newRequest": "+ New request",
+  "quota": {
+    "totalUsed": "Total {{total}} · Used {{used}}",
+    "none": "No allowance"
+  },
+  "empty": {
+    "mine": "No requests.",
+    "inbox": "Nothing to approve."
+  },
+  "status": {
+    "supersededByMalattia": "Superseded by sick leave"
+  },
+  "action": {
+    "requestCancellation": "Request cancellation",
+    "acceptCancellation": "Accept cancel.",
+    "rejectCancellation": "Reject cancel."
+  },
+  "prompt": {
+    "cancellationReason": "Reason for the cancellation request:",
+    "rejectReason": "Reason for rejection:"
+  }
+}

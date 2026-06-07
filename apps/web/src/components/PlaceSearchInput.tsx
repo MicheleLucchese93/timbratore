@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api.ts';
 
 export interface PlaceSuggestion {
@@ -35,6 +36,7 @@ export function PlaceSearchInput({
   disabled,
   required,
 }: Props) {
+  const { t } = useTranslation('components');
   const listId = useId();
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [open, setOpen] = useState(false);
@@ -75,7 +77,7 @@ export function PlaceSearchInput({
         if (myReq !== reqIdRef.current) return;
         setSuggestions([]);
         setOpen(false);
-        setError(e instanceof Error ? e.message : 'errore ricerca');
+        setError(e instanceof Error ? e.message : t('placeSearch.searchError'));
       } finally {
         if (myReq === reqIdRef.current) setLoading(false);
       }
@@ -105,7 +107,7 @@ export function PlaceSearchInput({
       );
       onSelect(detail);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'errore dettagli');
+      setError(e instanceof Error ? e.message : t('placeSearch.detailsError'));
     }
   }
 

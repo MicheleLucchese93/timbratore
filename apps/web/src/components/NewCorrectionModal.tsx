@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { StampEventType } from '@sonoqui/shared';
 import { api } from '../lib/api.ts';
+import { fmtDate, fmtTime } from '../i18n/format.ts';
 
 /**
  * Self-service correction-request form, at parity with the mobile
@@ -24,13 +26,13 @@ interface DayStamp {
   branch_id: string | null;
 }
 
-const EVENT_OPTIONS: Array<{ value: StampEventType; label: string }> = [
-  { value: 'clock_in', label: 'Ingresso' },
-  { value: 'clock_out', label: 'Uscita' },
-  { value: 'break_start', label: 'Inizio pausa' },
-  { value: 'break_end', label: 'Fine pausa' },
-  { value: 'lunch_start', label: 'Inizio pausa pranzo' },
-  { value: 'lunch_end', label: 'Fine pausa pranzo' },
+const EVENT_TYPES: StampEventType[] = [
+  'clock_in',
+  'clock_out',
+  'break_start',
+  'break_end',
+  'lunch_start',
+  'lunch_end',
 ];
 
 export function NewCorrectionModal({
@@ -42,6 +44,7 @@ export function NewCorrectionModal({
   onDone: () => void;
   branches: Array<{ id: string; name: string }>;
 }) {
+  const { t } = useTranslation(['newCorrectionModal', 'common']);
   const [step, setStep] = useState<Step>('date');
   const [targetDate, setTargetDate] = useState(() => isoLocalDate(new Date()));
   const [dayStamps, setDayStamps] = useState<DayStamp[] | null>(null);
@@ -71,7 +74,7 @@ export function NewCorrectionModal({
       setDayStamps(rows);
       setStep('pickStamp');
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('error.generic'));
     } finally {
       setLoadingDay(false);
     }
@@ -96,7 +99,7 @@ export function NewCorrectionModal({
   async function submit() {
     setErr(null);
     if (justification.trim().length < 5) {
-      setErr('Spiega la motivazione in almeno 5 caratteri.');
+      setErr(t('error.justificationTooShort'));
       return;
     }
     setSubmitting(true);
@@ -113,7 +116,7 @@ export function NewCorrectionModal({
       });
       onDone();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('error.generic'));
     } finally {
       setSubmitting(false);
     }
@@ -128,12 +131,12 @@ export function NewCorrectionModal({
 
   const title =
     step === 'date'
-      ? 'Quale giorno?'
+      ? t('title.date')
       : step === 'pickStamp'
       ? formatDateLong(targetDate)
       : originalStampId
-      ? 'Modifica timbratura'
-      : 'Nuova timbratura';
+      ? t('title.edit')
+      : t('title.new');
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50" onClick={onClose}>
@@ -141,7 +144,7 @@ export function NewCorrectionModal({
         className="card w-full max-w-lg space-y-4 max-h-[90vh] overflow-y-auto"
         role="dialog"
         aria-modal="true"
-        aria-label="Nuova richiesta di correzione"
+        aria-label={t('ariaLabel')}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2">
@@ -149,7 +152,7 @@ export function NewCorrectionModal({
             type="button"
             className="btn btn-secondary btn-sm"
             onClick={back}
-            aria-label={step === 'date' ? 'Chiudi' : 'Indietro'}
+            aria-label={step === 'date' ? t('aria.close') : t('aria.back')}
           >
             {step === 'date' ? '✕' : '←'}
           </button>
@@ -161,11 +164,10 @@ export function NewCorrectionModal({
         {step === 'date' && (
           <div className="space-y-3">
             <p className="muted text-sm">
-              Scegli la data per cui vuoi richiedere una correzione. Caricheremo le tue timbrature di
-              quel giorno: potrai modificarne una o aggiungerne una mancante.
+              {t('date.intro')}
             </p>
             <div>
-              <label className="label" htmlFor="corr-date">Data</label>
+              <label className="label" htmlFor="corr-date">{t('date.label')}</label>
               <input
                 id="corr-date"
                 type="date"
@@ -182,7 +184,7 @@ export function NewCorrectionModal({
                 onClick={goToPickStamp}
                 disabled={loadingDay}
               >
-                {loadingDay ? 'Carico…' : 'Continua'}
+                {loadingDay ? t('date.loading') : t('common:btn.continue')}
               </button>
             </div>
           </div>
@@ -191,10 +193,10 @@ export function NewCorrectionModal({
         {step === 'pickStamp' && (
           <div className="space-y-3">
             <p className="muted text-sm">
-              Seleziona una timbratura da correggere, oppure aggiungi una timbratura mancante.
+              {t('pickStamp.intro')}
             </p>
             {dayStamps && dayStamps.length === 0 && (
-              <div className="card text-sm text-neutral-600">Nessuna timbratura in questa data.</div>
+              <div className="card text-sm text-neutral-600">{t('pickStamp.empty')}</div>
             )}
             <ul className="space-y-2">
               {dayStamps?.map((s) => (
@@ -205,9 +207,9 @@ export function NewCorrectionModal({
                     style={{ borderColor: 'var(--color-border, #e5e7eb)' }}
                     onClick={() => chooseExisting(s)}
                   >
-                    <span className="text-sm font-medium">{labelEvent(s.event_type)}</span>
+                    <span className="text-sm font-medium">{t(`common:stampEvent.${s.event_type}`)}</span>
                     <span className="text-sm tabular-nums">
-                      {new Date(s.occurred_at).toLocaleTimeString('it-IT', {
+                      {fmtTime(new Date(s.occurred_at), {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
@@ -222,7 +224,7 @@ export function NewCorrectionModal({
                   style={{ borderColor: 'var(--color-primary, #2563eb)', color: 'var(--color-primary, #2563eb)' }}
                   onClick={chooseMissing}
                 >
-                  + Aggiungi una timbratura mancante
+                  {t('pickStamp.addMissing')}
                 </button>
               </li>
             </ul>
@@ -232,25 +234,25 @@ export function NewCorrectionModal({
         {step === 'edit' && (
           <div className="space-y-3">
             <div>
-              <label className="label" htmlFor="corr-event">Tipo evento</label>
+              <label className="label" htmlFor="corr-event">{t('edit.eventType')}</label>
               <select
                 id="corr-event"
                 className="input"
                 value={eventType}
                 onChange={(e) => setEventType(e.target.value as StampEventType)}
               >
-                {EVENT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
+                {EVENT_TYPES.map((value) => (
+                  <option key={value} value={value}>{t(`common:stampEvent.${value}`)}</option>
                 ))}
               </select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="label">Data</label>
+                <label className="label">{t('edit.date')}</label>
                 <div className="input flex items-center" aria-readonly="true">{formatDateLong(targetDate)}</div>
               </div>
               <div>
-                <label className="label" htmlFor="corr-time">Ora</label>
+                <label className="label" htmlFor="corr-time">{t('edit.time')}</label>
                 <input
                   id="corr-time"
                   type="time"
@@ -262,7 +264,7 @@ export function NewCorrectionModal({
             </div>
             {branches.length > 1 && (
               <div>
-                <label className="label" htmlFor="corr-branch">Sede</label>
+                <label className="label" htmlFor="corr-branch">{t('edit.branch')}</label>
                 <select
                   id="corr-branch"
                   className="input"
@@ -276,22 +278,22 @@ export function NewCorrectionModal({
               </div>
             )}
             <div>
-              <label className="label" htmlFor="corr-just">Motivazione</label>
+              <label className="label" htmlFor="corr-just">{t('edit.justification')}</label>
               <textarea
                 id="corr-just"
                 className="input"
                 rows={3}
                 value={justification}
                 onChange={(e) => setJustification(e.target.value)}
-                placeholder="Es. avevo dimenticato di timbrare l'uscita"
+                placeholder={t('edit.justificationPlaceholder')}
               />
             </div>
             <div className="flex justify-end gap-2">
               <button type="button" className="btn btn-secondary" onClick={onClose} disabled={submitting}>
-                Annulla
+                {t('common:btn.cancel')}
               </button>
               <button type="button" className="btn btn-primary" onClick={submit} disabled={submitting}>
-                {submitting ? 'Invio…' : 'Invia richiesta'}
+                {submitting ? t('edit.submitting') : t('edit.submit')}
               </button>
             </div>
           </div>
@@ -299,18 +301,6 @@ export function NewCorrectionModal({
       </div>
     </div>
   );
-}
-
-function labelEvent(e: StampEventType): string {
-  switch (e) {
-    case 'clock_in': return 'Ingresso';
-    case 'clock_out': return 'Uscita';
-    case 'break_start': return 'Inizio pausa';
-    case 'break_end': return 'Fine pausa';
-    case 'lunch_start': return 'Inizio pausa pranzo';
-    case 'lunch_end': return 'Fine pausa pranzo';
-    default: return e;
-  }
 }
 
 function pad(n: number): string {
@@ -333,7 +323,7 @@ function combineLocalDateTime(date: string, time: string): string {
 
 function formatDateLong(date: string): string {
   const [y, mo, d] = date.split('-').map((s) => parseInt(s, 10));
-  return new Date(y!, (mo ?? 1) - 1, d ?? 1).toLocaleDateString('it-IT', {
+  return fmtDate(new Date(y!, (mo ?? 1) - 1, d ?? 1), {
     weekday: 'long',
     day: '2-digit',
     month: 'long',

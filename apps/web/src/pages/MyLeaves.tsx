@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api.ts';
 import { LeaveCalendar, type CalendarEvent } from '../components/LeaveCalendar.tsx';
 import { NewLeaveModal } from '../components/NewLeaveModal.tsx';
-import { leaveTypeLabel } from '@sonoqui/shared';
+import { localeTag } from '../i18n/format.ts';
 
 type LeaveType = 'ferie' | 'permessi' | 'malattia' | 'assenza';
 
@@ -24,20 +25,23 @@ interface LeaveRequest {
 
 interface QuotaSummary {
   type: 'ferie' | 'permessi';
+  initial_balance: number;
+  accrued_total: number;
   used_approved: number;
   used_pending: number;
   residual_strict: number;
   residual_with_pending: number;
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  pending: 'In attesa',
-  approved: 'Approvata',
-  rejected: 'Rifiutata',
-  cancelled: 'Annullata',
-  cancellation_pending: 'Annullamento richiesto',
-  cancelled_post_approval: 'Annullata',
-  superseded_by_malattia: 'Sostituita da malattia',
+// Maps a request status to an i18n key (resolved with t() at render).
+const STATUS_LABEL_KEY: Record<string, string> = {
+  pending: 'common:status.pending',
+  approved: 'common:status.approved',
+  rejected: 'common:status.rejected',
+  cancelled: 'common:status.cancelled',
+  cancellation_pending: 'common:status.cancel_requested',
+  cancelled_post_approval: 'common:status.cancelled',
+  superseded_by_malattia: 'status.supersededByMalattia',
 };
 
 function fmtRange(from: string, to: string, type: string): string {
@@ -47,10 +51,10 @@ function fmtRange(from: string, to: string, type: string): string {
   const d: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
   const h: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
   if (type === 'permessi' && sameDay) {
-    return `${f.toLocaleDateString('it-IT', d)} ${f.toLocaleTimeString('it-IT', h)}–${t.toLocaleTimeString('it-IT', h)}`;
+    return `${f.toLocaleDateString(localeTag(), d)} ${f.toLocaleTimeString(localeTag(), h)}–${t.toLocaleTimeString(localeTag(), h)}`;
   }
-  if (sameDay) return f.toLocaleDateString('it-IT', d);
-  return `${f.toLocaleDateString('it-IT', d)} → ${t.toLocaleDateString('it-IT', d)}`;
+  if (sameDay) return f.toLocaleDateString(localeTag(), d);
+  return `${f.toLocaleDateString(localeTag(), d)} → ${t.toLocaleDateString(localeTag(), d)}`;
 }
 
 function toCalEvent(r: LeaveRequest): CalendarEvent {
@@ -65,6 +69,11 @@ function toCalEvent(r: LeaveRequest): CalendarEvent {
 }
 
 export function MyLeaves() {
+  const { t } = useTranslation(['myLeaves', 'common']);
+  const statusLabel = (s: string): string => {
+    const key = STATUS_LABEL_KEY[s];
+    return key ? t(key) : s;
+  };
   const [tab, setTab] = useState<'mine' | 'calendar' | 'inbox'>('mine');
   const [mine, setMine] = useState<LeaveRequest[]>([]);
   const [inbox, setInbox] = useState<LeaveRequest[]>([]);
@@ -81,9 +90,9 @@ export function MyLeaves() {
       setMine(list);
       setQuotas(q);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     }
-  }, []);
+  }, [t]);
   const loadInbox = useCallback(async () => {
     try {
       setInbox(await api<LeaveRequest[]>('/api/v1/leaves?scope=inbox'));
@@ -100,18 +109,11 @@ export function MyLeaves() {
   const calEvents = useMemo(() => mine.map(toCalEvent), [mine]);
   const pendingInbox = inbox.filter((r) => r.status === 'pending' || r.status === 'cancellation_pending');
 
-  // KPI counts over my own requests: how many I've asked, by outcome.
-  const mineStats = useMemo(() => {
-    let pending = 0;
-    let approved = 0;
-    let rejected = 0;
-    for (const r of mine) {
-      if (r.status === 'pending' || r.status === 'cancellation_pending') pending += 1;
-      else if (r.status === 'approved') approved += 1;
-      else if (r.status === 'rejected') rejected += 1;
-    }
-    return { pending, approved, rejected };
-  }, [mine]);
+  // Outstanding requests awaiting a decision (pending + cancellation requests).
+  const pendingCount = useMemo(
+    () => mine.filter((r) => r.status === 'pending' || r.status === 'cancellation_pending').length,
+    [mine]
+  );
   const ferieQuota = quotas.find((q) => q.type === 'ferie');
   const permessiQuota = quotas.find((q) => q.type === 'permessi');
 
@@ -121,21 +123,21 @@ export function MyLeaves() {
       await api(path, { method: 'POST', json });
       await Promise.all([loadMine(), loadInbox()]);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'errore');
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
     }
   }
 
   return (
     <div className="space-y-5">
-      <h1 className="sr-only">Ferie & Permessi</h1>
+      <h1 className="sr-only">{t('heading')}</h1>
 
       <div className="card p-0">
         <div className="flex border-b" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>
-          <TabButton active={tab === 'mine'} onClick={() => setTab('mine')}>Le mie</TabButton>
-          <TabButton active={tab === 'calendar'} onClick={() => setTab('calendar')}>Calendario</TabButton>
+          <TabButton active={tab === 'mine'} onClick={() => setTab('mine')}>{t('tab.mine')}</TabButton>
+          <TabButton active={tab === 'calendar'} onClick={() => setTab('calendar')}>{t('tab.calendar')}</TabButton>
           {pendingInbox.length > 0 && (
             <TabButton active={tab === 'inbox'} onClick={() => setTab('inbox')}>
-              Da approvare ({pendingInbox.length})
+              {t('tab.inbox', { count: pendingInbox.length })}
             </TabButton>
           )}
         </div>
@@ -146,61 +148,69 @@ export function MyLeaves() {
           {tab === 'mine' && (
             <div className="space-y-3">
               <div className="stat-grid">
-                {ferieQuota && (
-                  <Kpi
-                    label="Ferie residue"
-                    value={fmtH(ferieQuota.residual_strict)}
-                    sub={`Richieste ${fmtH(ferieQuota.used_approved + ferieQuota.used_pending)}`}
-                    icon={<IconSun />}
-                    tone="ferie"
-                  />
-                )}
-                {permessiQuota && (
-                  <Kpi
-                    label="Permessi residui"
-                    value={fmtH(permessiQuota.residual_strict)}
-                    sub={`Richieste ${fmtH(permessiQuota.used_approved + permessiQuota.used_pending)}`}
-                    icon={<IconClock />}
-                    tone="permessi"
-                  />
-                )}
-                <Kpi label="In attesa" value={String(mineStats.pending)} icon={<IconHourglass />} tone="warn" />
-                <Kpi label="Approvate" value={String(mineStats.approved)} icon={<IconCheck />} tone="ok" />
-                <Kpi label="Rifiutate" value={String(mineStats.rejected)} icon={<IconX />} tone="err" />
+                <Kpi
+                  label={t('common:leaveType.ferie')}
+                  value={ferieQuota ? fmtH(ferieQuota.residual_strict) : '—'}
+                  sub={
+                    ferieQuota
+                      ? t('quota.totalUsed', {
+                          total: fmtH(ferieQuota.initial_balance + ferieQuota.accrued_total),
+                          used: fmtH(ferieQuota.used_approved),
+                        })
+                      : t('quota.none')
+                  }
+                  icon={<IconSun />}
+                  tone="ferie"
+                />
+                <Kpi
+                  label={t('kpiPermessi')}
+                  value={permessiQuota ? fmtH(permessiQuota.residual_strict) : '—'}
+                  sub={
+                    permessiQuota
+                      ? t('quota.totalUsed', {
+                          total: fmtH(permessiQuota.initial_balance + permessiQuota.accrued_total),
+                          used: fmtH(permessiQuota.used_approved),
+                        })
+                      : t('quota.none')
+                  }
+                  icon={<IconClock />}
+                  tone="permessi"
+                />
+                <Kpi label={t('common:status.pending')} value={String(pendingCount)} icon={<IconHourglass />} tone="warn" />
               </div>
               <div className="flex justify-end">
-                <button type="button" className="btn btn-primary" onClick={() => setShowNew(true)}>+ Nuova richiesta</button>
+                <button type="button" className="btn btn-primary" onClick={() => setShowNew(true)}>{t('newRequest')}</button>
               </div>
               {mine.length === 0 ? (
-                <p className="muted text-sm">Nessuna richiesta.</p>
+                <p className="muted text-sm">{t('empty.mine')}</p>
               ) : (
                 <div className="space-y-2">
                   {mine.map((r) => (
                     <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded border p-2.5" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>
                       <div>
                         <div className="text-sm font-medium">
-                          {r.title || leaveTypeLabel(r.type)}
+                          {r.title || t(`common:leaveType.${r.type}`)}
                           <span className="ml-2 text-xs opacity-70">{fmtRange(r.from_ts, r.to_ts, r.type)}</span>
                         </div>
                         <div className="text-xs opacity-70">
-                          {r.duration_hours}h · {STATUS_LABEL[r.status] ?? r.status}
+                          {r.duration_hours}{t('common:unit.hoursShort')} · {statusLabel(r.status)}
                           {r.rejection_reason ? ` · ${r.rejection_reason}` : ''}
                         </div>
                       </div>
                       <div className="flex gap-2">
                         {r.status === 'pending' && (
-                          <button type="button" className="btn btn-secondary btn-sm" onClick={() => act(`/api/v1/leaves/${r.id}/cancel`)}>Annulla</button>
+                          <button type="button" className="btn btn-secondary btn-sm" onClick={() => act(`/api/v1/leaves/${r.id}/cancel`)}>{t('common:btn.cancel')}</button>
                         )}
                         {r.status === 'approved' && r.type !== 'malattia' && r.type !== 'chiusura' && (
                           <button
                             type="button"
                             className="btn btn-secondary btn-sm"
                             onClick={() => {
-                              const reason = window.prompt('Motivo della richiesta di annullamento:');
+                              const reason = window.prompt(t('prompt.cancellationReason'));
                               if (reason && reason.trim()) act(`/api/v1/leaves/${r.id}/request-cancellation`, { cancellation_reason: reason.trim() });
                             }}
                           >
-                            Richiedi annullamento
+                            {t('action.requestCancellation')}
                           </button>
                         )}
                       </div>
@@ -216,35 +226,35 @@ export function MyLeaves() {
           {tab === 'inbox' && (
             <div className="space-y-2">
               {pendingInbox.length === 0 ? (
-                <p className="muted text-sm">Niente da approvare.</p>
+                <p className="muted text-sm">{t('empty.inbox')}</p>
               ) : (
                 pendingInbox.map((r) => (
                   <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded border p-2.5" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>
                     <div>
                       <div className="text-sm font-medium">
-                        {r.user_display_name || r.user_email} · {leaveTypeLabel(r.type)}
+                        {r.user_display_name || r.user_email} · {t(`common:leaveType.${r.type}`)}
                       </div>
-                      <div className="text-xs opacity-70">{fmtRange(r.from_ts, r.to_ts, r.type)} · {r.duration_hours}h</div>
+                      <div className="text-xs opacity-70">{fmtRange(r.from_ts, r.to_ts, r.type)} · {r.duration_hours}{t('common:unit.hoursShort')}</div>
                     </div>
                     <div className="flex gap-2">
                       {r.status === 'pending' ? (
                         <>
-                          <button type="button" className="btn btn-primary btn-sm" onClick={() => act(`/api/v1/leaves/${r.id}/approve`)}>Approva</button>
+                          <button type="button" className="btn btn-primary btn-sm" onClick={() => act(`/api/v1/leaves/${r.id}/approve`)}>{t('common:btn.approve')}</button>
                           <button
                             type="button"
                             className="btn btn-danger btn-sm"
                             onClick={() => {
-                              const reason = window.prompt('Motivo del rifiuto:');
+                              const reason = window.prompt(t('prompt.rejectReason'));
                               if (reason && reason.trim()) act(`/api/v1/leaves/${r.id}/reject`, { rejection_reason: reason.trim() });
                             }}
                           >
-                            Rifiuta
+                            {t('common:btn.reject')}
                           </button>
                         </>
                       ) : (
                         <>
-                          <button type="button" className="btn btn-primary btn-sm" onClick={() => act(`/api/v1/leaves/${r.id}/decide-cancellation`, { approve: true })}>Accetta annull.</button>
-                          <button type="button" className="btn btn-secondary btn-sm" onClick={() => act(`/api/v1/leaves/${r.id}/decide-cancellation`, { approve: false })}>Rifiuta annull.</button>
+                          <button type="button" className="btn btn-primary btn-sm" onClick={() => act(`/api/v1/leaves/${r.id}/decide-cancellation`, { approve: true })}>{t('action.acceptCancellation')}</button>
+                          <button type="button" className="btn btn-secondary btn-sm" onClick={() => act(`/api/v1/leaves/${r.id}/decide-cancellation`, { approve: false })}>{t('action.rejectCancellation')}</button>
                         </>
                       )}
                     </div>
@@ -339,20 +349,6 @@ function IconHourglass() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M6 3h12M6 21h12M7 3c0 5 4 6 5 9 1-3 5-4 5-9M7 21c0-5 4-6 5-9 1 3 5 4 5 9" />
-    </svg>
-  );
-}
-function IconCheck() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 6L9 17l-5-5" />
-    </svg>
-  );
-}
-function IconX() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 6L6 18M6 6l12 12" />
     </svg>
   );
 }

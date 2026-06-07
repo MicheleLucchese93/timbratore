@@ -1,0 +1,36 @@
+{
+  "ariaLabel": "New correction request",
+  "title": {
+    "date": "Which day?",
+    "edit": "Edit stamp",
+    "new": "New stamp"
+  },
+  "aria": {
+    "close": "Close",
+    "back": "Back"
+  },
+  "date": {
+    "intro": "Choose the date you want to request a correction for. We'll load your stamps for that day: you can edit one or add a missing one.",
+    "label": "Date",
+    "loading": "Loading…"
+  },
+  "pickStamp": {
+    "intro": "Select a stamp to correct, or add a missing one.",
+    "empty": "No stamps on this date.",
+    "addMissing": "+ Add a missing stamp"
+  },
+  "edit": {
+    "eventType": "Event type",
+    "date": "Date",
+    "time": "Time",
+    "branch": "Branch",
+    "justification": "Reason",
+    "justificationPlaceholder": "E.g. I forgot to clock out",
+    "submit": "Send request",
+    "submitting": "Sending…"
+  },
+  "error": {
+    "justificationTooShort": "Please explain the reason in at least 5 characters.",
+    "generic": "error"
+  }
+}

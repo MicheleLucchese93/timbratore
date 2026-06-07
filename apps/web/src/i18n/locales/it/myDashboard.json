@@ -1,0 +1,12 @@
+{
+  "greeting": "Ciao, {{name}}",
+  "stateLabel": "Stato",
+  "lastEvent": "Ultimo evento: {{event}} alle {{time}}",
+  "mobileHint": {
+    "before": "Per timbrare usa l'app mobile su ",
+    "after": "."
+  },
+  "recentTitle": "Ultime timbrature",
+  "viewAll": "Vedi tutte",
+  "empty": "Nessuna timbratura registrata."
+}
