@@ -1,0 +1,7 @@
+{
+  "biometricFallback": "biometria",
+  "subtitle": "App bloccata",
+  "unlockWith": "Sblocca con {{label}}",
+  "failed": "Sblocco non riuscito. Riprova.",
+  "exit": "Esci e usa la password"
+}

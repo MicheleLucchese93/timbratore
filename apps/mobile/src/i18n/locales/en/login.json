@@ -1,0 +1,17 @@
+{
+  "tagline": "The time you work, as simple as saying it.",
+  "email": "Email",
+  "emailPlaceholder": "email@company.com",
+  "password": "Password",
+  "forgotPassword": "Forgot password?",
+  "forgotPasswordA11y": "Forgot password",
+  "show": "Show",
+  "hide": "Hide",
+  "showPassword": "Show password",
+  "hidePassword": "Hide password",
+  "signIn": "Sign in",
+  "emailRequired": "Enter your email.",
+  "passwordRequired": "Enter your password.",
+  "failed": "Sign-in failed",
+  "noAccount": "Don't have an account? Contact your company administrator."
+}

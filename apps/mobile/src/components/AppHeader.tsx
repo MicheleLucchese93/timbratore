@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { color, space, type as t } from '@sonoqui/shared';
 import { useSession } from '../store/session';
 import { NotificationBell } from './NotificationBell';
@@ -12,6 +13,7 @@ interface AppHeaderProps {
 
 export function AppHeader({ rightSlot, centerSlot }: AppHeaderProps) {
   const router = useRouter();
+  const { t } = useTranslation(['components', 'common']);
   const { me } = useSession();
   const initial = me ? userInitial(me.user) : '?';
 
@@ -21,7 +23,7 @@ export function AppHeader({ rightSlot, centerSlot }: AppHeaderProps) {
         onPress={() => router.push('/profilo')}
         activeOpacity={0.7}
         accessibilityRole="button"
-        accessibilityLabel="Profilo">
+        accessibilityLabel={t('header.profileA11y')}>
         <View style={styles.profileIcon}>
           <Text style={styles.profileInitial}>{initial}</Text>
         </View>

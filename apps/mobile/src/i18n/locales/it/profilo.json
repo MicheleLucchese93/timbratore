@@ -1,0 +1,58 @@
+{
+  "title": "Profilo",
+  "section": {
+    "profile": "Profilo",
+    "company": "Azienda",
+    "branches": "Sedi",
+    "branch": "Sede",
+    "language": "Lingua",
+    "security": "Sicurezza",
+    "notifications": "Notifiche",
+    "support": "Informazioni e supporto"
+  },
+  "company": {
+    "legalName": "Ragione sociale",
+    "switch": "Cambia azienda",
+    "switchHint": "Hai più aziende collegate"
+  },
+  "branches": {
+    "empty": "Nessuna sede assegnata.",
+    "offSite": "Fuori sede",
+    "onSite": "In sede"
+  },
+  "security": {
+    "bioTitleDefault": "Accesso biometrico",
+    "bioTitleWith": "Accesso con {{label}}",
+    "bioChecking": "Verifica disponibilità…",
+    "bioHintAvailable": "Sblocca l'app con {{label}} all'avvio.",
+    "bioHintNotConfigured": "Nessuna biometria configurata sul dispositivo.",
+    "bioHintNoHardware": "Non disponibile su questo dispositivo."
+  },
+  "notifications": {
+    "push": "PUSH",
+    "pushOn": "Attive su questo dispositivo",
+    "pushOff": "Non attive",
+    "leaveDecisions": "Esiti ferie e permessi",
+    "leaveDecisionsHint": "Approvazioni e rifiuti delle tue richieste",
+    "correctionDecisions": "Esiti correzioni",
+    "correctionDecisionsHint": "Approvazioni e rifiuti delle tue correzioni",
+    "leaveReminders": "Promemoria 24h prima",
+    "leaveRemindersHint": "Avviso il giorno prima di una tua assenza (es. domani ferie)",
+    "leaveSubmissions": "Nuove richieste ferie e permessi",
+    "leaveSubmissionsHint": "Richieste da approvare e annullamenti",
+    "correctionSubmissions": "Nuove correzioni da approvare",
+    "correctionSubmissionsHint": "Correzioni inviate dai dipendenti"
+  },
+  "support": {
+    "contact": "Contatta il supporto"
+  },
+  "legal": {
+    "privacy": "Informativa sulla Privacy",
+    "terms": "Termini e Condizioni",
+    "eula": "EULA",
+    "cookie": "Cookie Policy"
+  },
+  "linkOpenError": "Impossibile aprire il link.",
+  "saveError": "Errore di salvataggio",
+  "logoutConfirm": "Vuoi uscire?"
+}

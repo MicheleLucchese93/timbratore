@@ -13,10 +13,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useSession } from '../store/session';
+import { useLock } from '../store/lock';
 import { color, space, type as t } from '@sonoqui/shared';
 import { userDisplayName } from '../lib/user-display';
 import { api } from '../lib/api';
+import i18n from '../i18n';
+import { LanguageRow } from '../components/LanguageRow';
 
 const AVATAR_PALETTE = [
   '#24389c',
@@ -63,25 +67,52 @@ const PUSH_PREF_DEFAULTS: Record<PushPrefKey, boolean> = {
 const SITE_BASE = 'https://sonoqui.xdevapp.it/it';
 const CONTACT_EMAIL = 'michele.lucchese@outlook.it';
 const LEGAL_LINKS = [
-  { icon: 'shield-checkmark-outline', label: 'Informativa sulla Privacy', url: `${SITE_BASE}/privacy-policy/` },
-  { icon: 'document-text-outline', label: 'Termini e Condizioni', url: `${SITE_BASE}/termini-e-condizioni/` },
-  { icon: 'document-lock-outline', label: 'EULA', url: `${SITE_BASE}/eula/` },
-  { icon: 'cafe-outline', label: 'Cookie Policy', url: `${SITE_BASE}/cookie-policy/` },
+  { icon: 'shield-checkmark-outline', labelKey: 'legal.privacy', url: `${SITE_BASE}/privacy-policy/` },
+  { icon: 'document-text-outline', labelKey: 'legal.terms', url: `${SITE_BASE}/termini-e-condizioni/` },
+  { icon: 'document-lock-outline', labelKey: 'legal.eula', url: `${SITE_BASE}/eula/` },
+  { icon: 'cafe-outline', labelKey: 'legal.cookie', url: `${SITE_BASE}/cookie-policy/` },
 ] as const;
 
 async function openExternal(url: string) {
   try {
     await Linking.openURL(url);
   } catch {
-    const msg = 'Impossibile aprire il link.';
+    const msg = i18n.t('profilo:linkOpenError');
     if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert('Errore', msg);
+    else Alert.alert(i18n.t('common:state.error'), msg);
   }
 }
 
 export function ProfiloScreen() {
+  const { t: tr } = useTranslation(['profilo', 'common']);
   const { me, logout, refresh } = useSession();
+  const tenants = useSession((s) => s.tenants);
   const router = useRouter();
+
+  const lockReady = useLock((s) => s.ready);
+  const lockEnabled = useLock((s) => s.enabled);
+  const lockCapability = useLock((s) => s.capability);
+  const enableLock = useLock((s) => s.enable);
+  const disableLock = useLock((s) => s.disable);
+  const [bioBusy, setBioBusy] = useState(false);
+
+  async function toggleBiometric(next: boolean) {
+    if (bioBusy) return;
+    setBioBusy(true);
+    try {
+      if (next) {
+        const res = await enableLock();
+        if (!res.ok && res.error) {
+          if (Platform.OS === 'web') window.alert(res.error);
+          else Alert.alert(tr('security.bioTitleDefault'), res.error);
+        }
+      } else {
+        await disableLock();
+      }
+    } finally {
+      setBioBusy(false);
+    }
+  }
 
   const initialPushPrefs = {
     ...PUSH_PREF_DEFAULTS,
@@ -110,9 +141,9 @@ export function ProfiloScreen() {
       await refresh();
     } catch (e) {
       setPushPrefs((p) => ({ ...p, [key]: prev }));
-      const msg = e instanceof Error ? e.message : 'Errore di salvataggio';
+      const msg = e instanceof Error ? e.message : tr('saveError');
       if (Platform.OS === 'web') window.alert(msg);
-      else Alert.alert('Errore', msg);
+      else Alert.alert(tr('common:state.error'), msg);
     } finally {
       setSavingPushKey(null);
     }
@@ -130,12 +161,12 @@ export function ProfiloScreen() {
     };
     if (Platform.OS === 'web') {
       // eslint-disable-next-line no-alert
-      if (window.confirm('Vuoi uscire?')) doLogout();
+      if (window.confirm(tr('logoutConfirm'))) doLogout();
       return;
     }
-    Alert.alert('Esci', 'Vuoi uscire?', [
-      { text: 'Annulla', style: 'cancel' },
-      { text: 'Esci', style: 'destructive', onPress: () => { doLogout(); } },
+    Alert.alert(tr('common:btn.logout'), tr('logoutConfirm'), [
+      { text: tr('common:btn.cancel'), style: 'cancel' },
+      { text: tr('common:btn.logout'), style: 'destructive', onPress: () => { doLogout(); } },
     ]);
   }
 
@@ -147,6 +178,23 @@ export function ProfiloScreen() {
   const isAdmin = me.user.role === 'admin';
   const pushEnabled = !!me.preferences?.push_token_registered;
 
+  const bioLabel = lockCapability?.label ?? 'biometria';
+  const bioAvailable = !!lockCapability?.available;
+  const bioTitle =
+    bioLabel === 'biometria' ? tr('security.bioTitleDefault') : tr('security.bioTitleWith', { label: bioLabel });
+  const bioIcon =
+    bioLabel === 'Face ID' || bioLabel === 'riconoscimento facciale'
+      ? 'scan-outline'
+      : 'finger-print-outline';
+  const bioHint = !lockReady
+    ? tr('security.bioChecking')
+    : bioAvailable
+      ? tr('security.bioHintAvailable', { label: bioLabel })
+      : lockCapability?.hasHardware
+        ? tr('security.bioHintNotConfigured')
+        : tr('security.bioHintNoHardware');
+  const bioDisabled = bioBusy || !lockReady || !bioAvailable;
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -155,17 +203,17 @@ export function ProfiloScreen() {
           style={styles.backButton}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Indietro">
+          accessibilityLabel={tr('common:btn.back')}>
           <Ionicons name="arrow-back" size={24} color={color.onSurface} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profilo</Text>
+        <Text style={styles.headerTitle}>{tr('title')}</Text>
         <View style={styles.backButton} />
       </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionLabel}>Profilo</Text>
+        <Text style={styles.sectionLabel}>{tr('section.profile')}</Text>
         <View style={styles.card}>
           <View style={styles.profileRow}>
             <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
@@ -181,70 +229,106 @@ export function ProfiloScreen() {
                   color={color.primary}
                 />
                 <Text style={styles.rolePillText}>
-                  {me.user.role === 'admin' ? 'Amministratore' : 'Dipendente'}
+                  {me.user.role === 'admin' ? tr('common:role.admin') : tr('common:role.user')}
                 </Text>
               </View>
             </View>
           </View>
         </View>
 
-        <Text style={styles.sectionLabel}>Azienda</Text>
+        <Text style={styles.sectionLabel}>{tr('section.company')}</Text>
         <View style={styles.card}>
-          <Row icon="business-outline" label="Ragione sociale" value={me.tenant.ragione_sociale} />
+          <Row icon="business-outline" label={tr('company.legalName')} value={me.tenant.ragione_sociale} />
+          {tenants.length > 1 && (
+            <>
+              <View style={styles.divider} />
+              <LinkRow
+                icon="swap-horizontal-outline"
+                label={tr('company.switch')}
+                value={tr('company.switchHint')}
+                onPress={() => router.push('/choose-tenant')}
+              />
+            </>
+          )}
         </View>
 
         <Text style={styles.sectionLabel}>
-          {me.branches.length > 1 ? 'Sedi' : 'Sede'}
+          {me.branches.length > 1 ? tr('section.branches') : tr('section.branch')}
         </Text>
         <View style={styles.card}>
           {me.branches.length === 0 && (
-            <Text style={styles.empty}>Nessuna sede assegnata.</Text>
+            <Text style={styles.empty}>{tr('branches.empty')}</Text>
           )}
           {me.branches.map((b, i) => (
             <View key={b.id}>
               <Row
                 icon={b.smart_working ? 'laptop-outline' : 'business-outline'}
                 label={b.name}
-                value={b.smart_working ? 'Fuori sede' : 'In sede'}
+                value={b.smart_working ? tr('branches.offSite') : tr('branches.onSite')}
               />
               {i < me.branches.length - 1 && <View style={styles.divider} />}
             </View>
           ))}
         </View>
 
-        <Text style={styles.sectionLabel}>Notifiche</Text>
+        <Text style={styles.sectionLabel}>{tr('section.language')}</Text>
+        <View style={styles.card}>
+          <LanguageRow />
+        </View>
+
+        <Text style={styles.sectionLabel}>{tr('section.security')}</Text>
+        <View style={styles.card}>
+          <View style={styles.row}>
+            <View style={styles.rowIcon}>
+              <Ionicons name={bioIcon} size={18} color={color.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowValue}>{bioTitle}</Text>
+              <Text style={[styles.rowLabel, bioDisabled && styles.subRowDisabled]}>
+                {bioHint}
+              </Text>
+            </View>
+            <Switch
+              value={lockEnabled && bioAvailable}
+              onValueChange={toggleBiometric}
+              disabled={bioDisabled}
+            />
+          </View>
+        </View>
+
+        <Text style={styles.sectionLabel}>{tr('section.notifications')}</Text>
         <View style={styles.card}>
           <View style={styles.row}>
             <View style={styles.rowIcon}>
               <Ionicons name="notifications-outline" size={18} color={color.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.rowLabel}>PUSH</Text>
+              <Text style={styles.rowLabel}>{tr('notifications.push')}</Text>
               <Text style={styles.rowValue}>
-                {pushEnabled ? 'Attive su questo dispositivo' : 'Non attive'}
+                {pushEnabled ? tr('notifications.pushOn') : tr('notifications.pushOff')}
               </Text>
             </View>
           </View>
           <View style={styles.divider} />
           <PushToggleRow
-            label="Esiti ferie e permessi"
-            hint="Approvazioni e rifiuti delle tue richieste"
+            label={tr('notifications.leaveDecisions')}
+            hint={tr('notifications.leaveDecisionsHint')}
             value={pushPrefs.push_leave_decisions}
             disabled={!pushEnabled || savingPushKey !== null}
             onChange={(v) => togglePushPref('push_leave_decisions', v)}
           />
           <View style={styles.divider} />
           <PushToggleRow
-            label="Esiti correzioni"
-            hint="Approvazioni e rifiuti delle tue correzioni"
+            label={tr('notifications.correctionDecisions')}
+            hint={tr('notifications.correctionDecisionsHint')}
             value={pushPrefs.push_correction_decisions}
             disabled={!pushEnabled || savingPushKey !== null}
             onChange={(v) => togglePushPref('push_correction_decisions', v)}
           />
           <View style={styles.divider} />
           <PushToggleRow
-            label="Promemoria 24h prima"
-            hint="Avviso il giorno prima di una tua assenza (es. domani ferie)"
+            label={tr('notifications.leaveReminders')}
+            hint={tr('notifications.leaveRemindersHint')}
             value={pushPrefs.push_leave_reminders}
             disabled={!pushEnabled || savingPushKey !== null}
             onChange={(v) => togglePushPref('push_leave_reminders', v)}
@@ -253,16 +337,16 @@ export function ProfiloScreen() {
             <>
               <View style={styles.divider} />
               <PushToggleRow
-                label="Nuove richieste ferie e permessi"
-                hint="Richieste da approvare e annullamenti"
+                label={tr('notifications.leaveSubmissions')}
+                hint={tr('notifications.leaveSubmissionsHint')}
                 value={pushPrefs.push_leave_submissions}
                 disabled={!pushEnabled || savingPushKey !== null}
                 onChange={(v) => togglePushPref('push_leave_submissions', v)}
               />
               <View style={styles.divider} />
               <PushToggleRow
-                label="Nuove correzioni da approvare"
-                hint="Correzioni inviate dai dipendenti"
+                label={tr('notifications.correctionSubmissions')}
+                hint={tr('notifications.correctionSubmissionsHint')}
                 value={pushPrefs.push_correction_submissions}
                 disabled={!pushEnabled || savingPushKey !== null}
                 onChange={(v) => togglePushPref('push_correction_submissions', v)}
@@ -271,11 +355,11 @@ export function ProfiloScreen() {
           )}
         </View>
 
-        <Text style={styles.sectionLabel}>Informazioni e supporto</Text>
+        <Text style={styles.sectionLabel}>{tr('section.support')}</Text>
         <View style={styles.card}>
           <LinkRow
             icon="mail-outline"
-            label="Contatta il supporto"
+            label={tr('support.contact')}
             value={CONTACT_EMAIL}
             onPress={() => openExternal(`mailto:${CONTACT_EMAIL}`)}
           />
@@ -284,7 +368,7 @@ export function ProfiloScreen() {
               <View style={styles.divider} />
               <LinkRow
                 icon={link.icon}
-                label={link.label}
+                label={tr(link.labelKey)}
                 onPress={() => openExternal(link.url)}
               />
             </View>
@@ -295,7 +379,7 @@ export function ProfiloScreen() {
           onPress={confirmLogout}
           style={styles.logoutButton}
           activeOpacity={0.8}>
-          <Text style={styles.logoutText}>Esci</Text>
+          <Text style={styles.logoutText}>{tr('common:btn.logout')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

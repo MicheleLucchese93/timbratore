@@ -1,0 +1,17 @@
+{
+  "tagline": "Il tempo che lavori, semplice come dirlo.",
+  "email": "Email",
+  "emailPlaceholder": "email@azienda.it",
+  "password": "Password",
+  "forgotPassword": "Password dimenticata?",
+  "forgotPasswordA11y": "Password dimenticata",
+  "show": "Mostra",
+  "hide": "Nascondi",
+  "showPassword": "Mostra password",
+  "hidePassword": "Nascondi password",
+  "signIn": "Accedi",
+  "emailRequired": "Inserisci l'email.",
+  "passwordRequired": "Inserisci la password.",
+  "failed": "Accesso fallito",
+  "noAccount": "Non hai un account? Contatta l'amministratore della tua azienda."
+}

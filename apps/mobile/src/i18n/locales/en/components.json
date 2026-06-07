@@ -1,0 +1,34 @@
+{
+  "header": {
+    "profileA11y": "Profile"
+  },
+  "tab": {
+    "dashboard": "Dashboard",
+    "timbrature": "Stamps",
+    "storico": "History",
+    "correzioni": "Corrections",
+    "richieste": "Requests"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllReadA11y": "Mark all as read",
+    "markReadA11y": "Mark as read",
+    "filterUnread": "Unread",
+    "filterUnreadCount": "Unread · {{count}}",
+    "emptyTitle": "No notifications",
+    "emptySub": "Updates on requests and corrections appear here.",
+    "emptyUnreadTitle": "All caught up",
+    "emptyUnreadSub": "No unread notifications.",
+    "timeAgo": {
+      "now": "now",
+      "minutes": "{{count}} min",
+      "hours": "{{count}} h",
+      "days": "{{count}} d"
+    }
+  },
+  "dateField": {
+    "selectDate": "Select date",
+    "selectTime": "Select time",
+    "done": "Done"
+  }
+}

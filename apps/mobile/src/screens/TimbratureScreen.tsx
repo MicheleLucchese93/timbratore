@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useSession } from '../store/session';
 import { api } from '../lib/api';
 import { acquireLocation } from '../lib/acquire-location';
@@ -21,9 +23,14 @@ import { stateFromLastEvent } from '@sonoqui/shared';
 import type { StampEventType } from '@sonoqui/shared';
 import { color, space, type as t } from '@sonoqui/shared';
 import { formatDuration, isoDay, type DayStamp } from '../lib/day-totals';
-import { computeCountedDay, type ActiveAssignment } from '../lib/counted-day';
+import {
+  computeCountedDay,
+  type ActiveAssignment,
+  type LeaveInterval,
+} from '../lib/counted-day';
 import { AppHeader } from '../components/AppHeader';
 import { WorkStateChip } from '../components/WorkStateChip';
+import { fmtTime } from '../i18n/format';
 
 interface CurrentState {
   state: 'nothing' | 'clocked_in' | 'on_break' | 'on_lunch';
@@ -48,10 +55,12 @@ function alertCross(title: string, msg: string): void {
 }
 
 export function TimbratureScreen() {
+  const { t } = useTranslation(['timbrature', 'common']);
   const { me } = useSession();
   const [state, setState] = useState<CurrentState | null>(null);
   const [todayStamps, setTodayStamps] = useState<DayStamp[]>([]);
   const [assignment, setAssignment] = useState<ActiveAssignment | null>(null);
+  const [leaves, setLeaves] = useState<LeaveInterval[]>([]);
   const [working, setWorking] = useState<StampEventType | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [now, setNow] = useState(() => new Date());
@@ -78,14 +87,18 @@ export function TimbratureScreen() {
   const fetchAll = useCallback(async () => {
     const today = isoDay(new Date());
     try {
-      const [s, list, a] = await Promise.all([
+      const [s, list, a, lv] = await Promise.all([
         api<CurrentState>('/api/v1/stamps/me/current-state'),
         api<DayStamp[]>(`/api/v1/stamps/me?from=${today}&to=${today}`),
         api<ActiveAssignment | null>('/api/v1/shifts/assignments/me').catch(() => null),
+        api<LeaveInterval[]>(
+          `/api/v1/leaves?scope=mine&status=approved&from=${today}&to=${today}`
+        ).catch(() => []),
       ]);
       setState(s);
       setTodayStamps(list);
       setAssignment(a);
+      setLeaves(lv);
     } catch {
       /* ignore */
     }
@@ -144,21 +157,21 @@ export function TimbratureScreen() {
         // as an anomaly rather than silently succeeding.
         if (event === 'clock_out' && created.out_of_geofence) {
           alertCross(
-            'Uscita fuori area',
-            'Eri fuori dall\'area della sede: l\'uscita è stata registrata con un\'anomalia.'
+            t('alert.outOfAreaTitle'),
+            t('alert.outOfAreaMessage')
           );
         }
       } catch (err) {
         const e = err as { code?: string; message?: string };
         if (!e.code || e.code === 'NETWORK' || e.message?.includes('Network')) {
           enqueueStamp(idem, payload);
-          alertCross('Senza connessione', 'Timbratura accodata. Verrà inviata quando torni online.');
+          alertCross(t('alert.offlineTitle'), t('alert.offlineMessage'));
         } else {
-          alertCross('Timbratura non riuscita', humanError(e));
+          alertCross(t('alert.stampFailedTitle'), humanError(e, t));
         }
       }
     } catch (err) {
-      alertCross('Posizione GPS', humanError(err));
+      alertCross(t('alert.gpsTitle'), humanError(err, t));
     } finally {
       setWorking(null);
     }
@@ -172,7 +185,7 @@ export function TimbratureScreen() {
       setLastSubmittedAt(null);
       await fetchAll();
     } catch (err) {
-      alertCross('Impossibile annullare', humanError(err));
+      alertCross(t('alert.undoFailedTitle'), humanError(err, t));
     }
   }
 
@@ -187,7 +200,20 @@ export function TimbratureScreen() {
   const currentState = state?.state ?? stateFromLastEvent(null);
   const branchLocked = currentState !== 'nothing';
   const lockedBranchId = branchLocked ? openShiftBranchId(todayStamps) : null;
-  const totals = computeCountedDay(todayStamps, assignment, now);
+  const totals = computeCountedDay(todayStamps, assignment, now, leaves);
+
+  // Today's assigned shift: the slots scheduled for this weekday + their total,
+  // so the worker sees the hours expected of them today.
+  const todayDow = now.getDay() === 0 ? 7 : now.getDay();
+  const todaySlots = (assignment?.slots ?? [])
+    .filter((s) => s.day_of_week === todayDow)
+    .sort((a, b) => a.start_time.localeCompare(b.start_time));
+  const expectedMin = todaySlots.reduce((acc, s) => acc + slotMinutes(s.start_time, s.end_time), 0);
+  // Feature B auto-lunch: the lunch is auto-deducted, never stamped — so hide
+  // the "Inizio pranzo" button on those days.
+  const autoLunchToday = (assignment?.day_lunch ?? []).some(
+    (d) => d.day_of_week === todayDow && d.lunch_min > 0
+  );
 
   useEffect(() => {
     if (branchLocked && lockedBranchId && selectedBranchId !== lockedBranchId) {
@@ -196,20 +222,20 @@ export function TimbratureScreen() {
   }, [branchLocked, lockedBranchId, selectedBranchId]);
   const buttons: Array<{ event: StampEventType; label: string; icon: keyof typeof Ionicons.glyphMap; variant: 'primary' | 'secondary' }> = [];
   if (currentState === 'nothing') {
-    buttons.push({ event: 'clock_in', label: 'Timbra ingresso', icon: 'log-in-outline', variant: 'primary' });
+    buttons.push({ event: 'clock_in', label: t('action.clockIn'), icon: 'log-in-outline', variant: 'primary' });
   } else if (currentState === 'clocked_in') {
-    buttons.push({ event: 'clock_out', label: 'Timbra uscita', icon: 'log-out-outline', variant: 'primary' });
-    buttons.push({ event: 'break_start', label: 'Inizia pausa', icon: 'pause-outline', variant: 'secondary' });
-    buttons.push({ event: 'lunch_start', label: 'Inizia pausa pranzo', icon: 'restaurant-outline', variant: 'secondary' });
+    buttons.push({ event: 'clock_out', label: t('action.clockOut'), icon: 'log-out-outline', variant: 'primary' });
+    buttons.push({ event: 'break_start', label: t('action.breakStart'), icon: 'pause-outline', variant: 'secondary' });
+    if (!autoLunchToday) {
+      buttons.push({ event: 'lunch_start', label: t('action.lunchStart'), icon: 'restaurant-outline', variant: 'secondary' });
+    }
   } else if (currentState === 'on_break') {
-    buttons.push({ event: 'break_end', label: 'Termina pausa', icon: 'play-outline', variant: 'primary' });
+    buttons.push({ event: 'break_end', label: t('action.breakEnd'), icon: 'play-outline', variant: 'primary' });
   } else if (currentState === 'on_lunch') {
-    buttons.push({ event: 'lunch_end', label: 'Termina pausa pranzo', icon: 'play-outline', variant: 'primary' });
+    buttons.push({ event: 'lunch_end', label: t('action.lunchEnd'), icon: 'play-outline', variant: 'primary' });
   }
   const undoVisible =
     lastUndoId && lastSubmittedAt && Date.now() - lastSubmittedAt.getTime() < 60_000;
-
-  const stateMeta = stateBadge(currentState);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -221,11 +247,11 @@ export function TimbratureScreen() {
         <View style={styles.heroCard}>
           <View style={styles.heroTopRow}>
             <View style={styles.heroTopCol}>
-              <Text style={styles.heroLabel}>Ore lavorate</Text>
+              <Text style={styles.heroLabel}>{t('hero.workedHours')}</Text>
               <Text style={styles.heroAmount}>{formatDuration(totals.workedMs)}</Text>
             </View>
             <View style={styles.heroTopColRight}>
-              <Text style={styles.heroLabel}>Ore conteggiate</Text>
+              <Text style={styles.heroLabel}>{t('hero.countedHours')}</Text>
               <Text style={styles.heroAmount}>
                 {assignment ? formatDuration(totals.countedTotalMs) : '—'}
               </Text>
@@ -233,25 +259,58 @@ export function TimbratureScreen() {
           </View>
           <View style={styles.heroDivider} />
           <View style={styles.heroRow}>
-            <HeroStat label="Entrata" value={totals.firstInAt ? formatTime(totals.firstInAt) : '—'} />
+            <HeroStat label={t('common:stampEvent.clock_in')} value={totals.firstInAt ? fmtTime(totals.firstInAt, { hour: '2-digit', minute: '2-digit' }) : '—'} />
             <View style={styles.heroSep} />
-            <HeroStat label="Pause" value={formatDuration(totals.breakMs)} />
+            <HeroStat label={t('hero.breaks')} value={formatDuration(totals.breakMs)} />
             <View style={styles.heroSep} />
             <HeroStat
-              label="Uscita"
-              value={totals.lastOutAt && !totals.isOpen ? formatTime(totals.lastOutAt) : '—'}
+              label={t('common:stampEvent.clock_out')}
+              value={totals.lastOutAt && !totals.isOpen ? fmtTime(totals.lastOutAt, { hour: '2-digit', minute: '2-digit' }) : '—'}
             />
           </View>
         </View>
 
+        {assignment && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>{t('schedule.title')}</Text>
+              {todaySlots.length > 0 && (
+                <Text style={styles.scheduleTotal}>
+                  {t('schedule.total', { duration: formatDuration(expectedMin * 60_000) })}
+                </Text>
+              )}
+            </View>
+            {todaySlots.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.pillRow}>
+                {todaySlots.map((s, i) => (
+                  <View key={i} style={styles.slotPill}>
+                    <Ionicons name="time-outline" size={14} color={color.primary} />
+                    <Text style={styles.slotPillText}>
+                      {s.start_time}–{s.end_time}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <View style={styles.restRow}>
+                <Ionicons name="bed-outline" size={16} color={color.onSurfaceVariant} />
+                <Text style={styles.restText}>{t('schedule.restDay')}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
         {branches.length > 1 && (
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Sede</Text>
+              <Text style={styles.sectionTitle}>{t('branch.title')}</Text>
               {branchLocked && (
                 <View style={styles.lockHint}>
                   <Ionicons name="lock-closed" size={11} color={color.onSurfaceVariant} />
-                  <Text style={styles.lockHintText}>Bloccata fino all'uscita</Text>
+                  <Text style={styles.lockHintText}>{t('branch.lockedUntilExit')}</Text>
                 </View>
               )}
             </View>
@@ -297,7 +356,7 @@ export function TimbratureScreen() {
               />
               <Text style={styles.branchRowText}>{selectedBranch.name}</Text>
               {selectedBranch.smart_working && (
-                <Text style={styles.branchRowTag}>Fuori sede</Text>
+                <Text style={styles.branchRowTag}>{t('branch.offSite')}</Text>
               )}
             </View>
           </View>
@@ -312,7 +371,7 @@ export function TimbratureScreen() {
                 color={color.onSurfaceVariant}
               />
               <Text style={styles.disabledNoticeText}>
-                La timbratura non è abilitata per il tuo profilo. Contatta l'amministratore.
+                {t('disabledNotice')}
               </Text>
             </View>
           )}
@@ -330,7 +389,7 @@ export function TimbratureScreen() {
           {undoVisible && (
             <TouchableOpacity onPress={undo} activeOpacity={0.7} style={styles.undoBtn}>
               <Ionicons name="arrow-undo-outline" size={16} color={color.error} />
-              <Text style={styles.undoText}>Annulla ultima timbratura</Text>
+              <Text style={styles.undoText}>{t('undoLast')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -339,7 +398,10 @@ export function TimbratureScreen() {
           <View style={styles.lastEvent}>
             <Ionicons name="time-outline" size={14} color={color.onSurfaceVariant} />
             <Text style={styles.lastEventText}>
-              Ultimo evento: {humanEvent(state.lastEvent)} alle {formatTime(state.lastEventAt)}
+              {t('lastEvent', {
+                event: humanEvent(state.lastEvent, t),
+                time: fmtTime(state.lastEventAt, { hour: '2-digit', minute: '2-digit' }),
+              })}
             </Text>
           </View>
         )}
@@ -401,43 +463,31 @@ function openShiftBranchId(stamps: DayStamp[]): string | null {
   return openBranch;
 }
 
-function stateBadge(s: 'nothing' | 'clocked_in' | 'on_break' | 'on_lunch'): { label: string; bg: string; fg: string } {
-  if (s === 'clocked_in') return { label: 'Al lavoro', bg: '#e8f3ec', fg: color.success };
-  if (s === 'on_break') return { label: 'In pausa', bg: '#fff3d1', fg: color.warning };
-  if (s === 'on_lunch') return { label: 'In pausa pranzo', bg: '#fff3d1', fg: color.warning };
-  return { label: 'Fuori servizio', bg: color.surfaceVariant, fg: color.onSurfaceVariant };
+function humanEvent(e: StampEventType | null, t: TFunction): string {
+  if (!e) return '–';
+  return t(`common:stampEvent.${e}`);
 }
 
-function humanEvent(e: StampEventType | null): string {
-  switch (e) {
-    case 'clock_in': return 'Ingresso';
-    case 'clock_out': return 'Uscita';
-    case 'break_start': return 'Inizio pausa';
-    case 'break_end': return 'Fine pausa';
-    case 'lunch_start': return 'Inizio pausa pranzo';
-    case 'lunch_end': return 'Fine pausa pranzo';
-    default: return '–';
-  }
+// Minutes between two "HH:MM" slot bounds (same day, end ≥ start).
+function slotMinutes(start: string, end: string): number {
+  const [sh, sm] = start.split(':').map(Number) as [number, number];
+  const [eh, em] = end.split(':').map(Number) as [number, number];
+  return Math.max(0, eh * 60 + em - (sh * 60 + sm));
 }
 
-function formatTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-}
-
-function humanError(err: unknown): string {
+function humanError(err: unknown, t: TFunction): string {
   const e = err as { code?: string; message?: string };
   switch (e.code) {
-    case 'OUT_OF_GEOFENCE': return 'Sei fuori dall\'area consentita.';
-    case 'INVALID_TRANSITION': return 'Operazione non valida per lo stato attuale.';
-    case 'DUPLICATE_TOO_FAST': return 'Hai già timbrato pochi secondi fa.';
-    case 'GPS_REQUIRED': return 'Serve il GPS per timbrare.';
-    case 'MOCK_LOCATION_BLOCKED': return 'Posizione finta non consentita.';
-    case 'LOCATION_PERMISSION_DENIED': return 'Permesso posizione negato. Vai alle Impostazioni.';
-    case 'ACQUISITION_TIMEOUT': return 'GPS non disponibile. Spostati all\'aperto e riprova.';
-    case 'WEB_CLOCK_IN_DISABLED': return 'Timbratura da web non consentita per questo utente.';
-    case 'STAMPING_DISABLED': return 'La timbratura non è abilitata per il tuo profilo.';
-    default: return e.message ?? 'Errore sconosciuto.';
+    case 'OUT_OF_GEOFENCE': return t('common:errors.OUT_OF_GEOFENCE');
+    case 'INVALID_TRANSITION': return t('common:errors.INVALID_TRANSITION');
+    case 'DUPLICATE_TOO_FAST': return t('common:errors.DUPLICATE_TOO_FAST');
+    case 'GPS_REQUIRED': return t('common:errors.GPS_REQUIRED');
+    case 'MOCK_LOCATION_BLOCKED': return t('common:errors.MOCK_LOCATION_BLOCKED');
+    case 'STAMPING_DISABLED': return t('common:errors.STAMPING_DISABLED');
+    case 'LOCATION_PERMISSION_DENIED': return t('error.LOCATION_PERMISSION_DENIED');
+    case 'ACQUISITION_TIMEOUT': return t('error.ACQUISITION_TIMEOUT');
+    case 'WEB_CLOCK_IN_DISABLED': return t('error.WEB_CLOCK_IN_DISABLED');
+    default: return e.message ?? t('error.unknown');
   }
 }
 
@@ -446,17 +496,6 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 44 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
-
-  statePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-  },
-  statePillDot: { width: 6, height: 6, borderRadius: 3 },
-  statePillText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
 
   heroCard: {
     marginHorizontal: 6,
@@ -532,6 +571,41 @@ const styles = StyleSheet.create({
   pillDisabled: { opacity: 0.4 },
   pillText: { fontSize: 14, fontWeight: '600', color: color.onSurfaceVariant },
   pillTextActive: { color: color.onPrimary },
+
+  scheduleTotal: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: color.primary,
+    fontVariant: ['tabular-nums'],
+    letterSpacing: 0.3,
+  },
+  slotPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: color.primaryContainer,
+  },
+  slotPillText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: color.primary,
+    fontVariant: ['tabular-nums'],
+    letterSpacing: 0.3,
+  },
+  restRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: space.s2,
+    paddingHorizontal: space.s4,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+  },
+  restText: { fontSize: 14, fontWeight: '600', color: color.onSurfaceVariant },
 
   sectionHeaderRow: {
     flexDirection: 'row',

@@ -16,7 +16,15 @@ export interface DayTotals {
   isOpen: boolean;
 }
 
-export function computeDayTotals(stamps: DayStamp[], now: Date = new Date()): DayTotals {
+// `tickOpen` extends any still-open segment to `now` (live "today" behaviour).
+// Pass false for closed historical days so a dangling clock_in (missing
+// clock_out) contributes 0 instead of ticking for days — mirrors the backend
+// export, which only counts completed segments.
+export function computeDayTotals(
+  stamps: DayStamp[],
+  now: Date = new Date(),
+  tickOpen = true
+): DayTotals {
   const sorted = [...stamps].sort(
     (a, b) => new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime()
   );
@@ -73,9 +81,11 @@ export function computeDayTotals(stamps: DayStamp[], now: Date = new Date()): Da
     }
   }
   const isOpen = inAt !== null || breakAt !== null || lunchAt !== null;
-  if (inAt) workedMs += now.getTime() - inAt.getTime();
-  if (breakAt) breakMs += now.getTime() - breakAt.getTime();
-  if (lunchAt) lunchMs += now.getTime() - lunchAt.getTime();
+  if (tickOpen) {
+    if (inAt) workedMs += now.getTime() - inAt.getTime();
+    if (breakAt) breakMs += now.getTime() - breakAt.getTime();
+    if (lunchAt) lunchMs += now.getTime() - lunchAt.getTime();
+  }
   return { workedMs, breakMs, lunchMs, firstInAt, lastOutAt, isOpen };
 }
 

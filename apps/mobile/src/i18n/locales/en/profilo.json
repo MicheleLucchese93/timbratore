@@ -1,0 +1,58 @@
+{
+  "title": "Profile",
+  "section": {
+    "profile": "Profile",
+    "company": "Company",
+    "branches": "Branches",
+    "branch": "Branch",
+    "language": "Language",
+    "security": "Security",
+    "notifications": "Notifications",
+    "support": "Info & support"
+  },
+  "company": {
+    "legalName": "Legal name",
+    "switch": "Switch company",
+    "switchHint": "You belong to several companies"
+  },
+  "branches": {
+    "empty": "No branch assigned.",
+    "offSite": "Off-site",
+    "onSite": "On-site"
+  },
+  "security": {
+    "bioTitleDefault": "Biometric unlock",
+    "bioTitleWith": "Unlock with {{label}}",
+    "bioChecking": "Checking availability…",
+    "bioHintAvailable": "Unlock the app with {{label}} on launch.",
+    "bioHintNotConfigured": "No biometrics set up on this device.",
+    "bioHintNoHardware": "Not available on this device."
+  },
+  "notifications": {
+    "push": "PUSH",
+    "pushOn": "Active on this device",
+    "pushOff": "Not active",
+    "leaveDecisions": "Holiday & leave outcomes",
+    "leaveDecisionsHint": "Approvals and rejections of your requests",
+    "correctionDecisions": "Correction outcomes",
+    "correctionDecisionsHint": "Approvals and rejections of your corrections",
+    "leaveReminders": "Reminder 24h before",
+    "leaveRemindersHint": "Alert the day before an absence of yours (e.g. holiday tomorrow)",
+    "leaveSubmissions": "New holiday & leave requests",
+    "leaveSubmissionsHint": "Requests to approve and cancellations",
+    "correctionSubmissions": "New corrections to approve",
+    "correctionSubmissionsHint": "Corrections submitted by employees"
+  },
+  "support": {
+    "contact": "Contact support"
+  },
+  "legal": {
+    "privacy": "Privacy Policy",
+    "terms": "Terms & Conditions",
+    "eula": "EULA",
+    "cookie": "Cookie Policy"
+  },
+  "linkOpenError": "Could not open the link.",
+  "saveError": "Save failed",
+  "logoutConfirm": "Do you want to log out?"
+}

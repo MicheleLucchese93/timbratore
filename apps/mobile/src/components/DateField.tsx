@@ -8,7 +8,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { color } from '@sonoqui/shared';
+import { fmtDate, fmtTime } from '../i18n/format';
 
 // Lazy-require the native picker so the web bundle doesn't try to load it.
 // Mirrors the pattern used in Documents/Penno.
@@ -73,13 +75,13 @@ function serialize(d: Date, mode: Mode): string {
 function displayLabel(value: string, mode: Mode): string {
   const d = parse(value, mode);
   if (mode === 'date') {
-    return d.toLocaleDateString('it-IT', {
+    return fmtDate(d, {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
     });
   }
-  return d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+  return fmtTime(d, { hour: '2-digit', minute: '2-digit' });
 }
 
 export function DateField({
@@ -112,6 +114,7 @@ export function DateField({
     );
   }
 
+  const { t } = useTranslation(['components', 'common']);
   const [open, setOpen] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(() => parse(value, mode));
 
@@ -192,13 +195,13 @@ export function DateField({
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={handleCancel} hitSlop={8}>
-                <Text style={styles.modalCancel}>Annulla</Text>
+                <Text style={styles.modalCancel}>{t('common:btn.cancel')}</Text>
               </TouchableOpacity>
               <Text style={styles.modalTitle}>
-                {mode === 'date' ? 'Seleziona data' : 'Seleziona ora'}
+                {mode === 'date' ? t('dateField.selectDate') : t('dateField.selectTime')}
               </Text>
               <TouchableOpacity onPress={handleConfirm} hitSlop={8}>
-                <Text style={styles.modalDone}>Fatto</Text>
+                <Text style={styles.modalDone}>{t('dateField.done')}</Text>
               </TouchableOpacity>
             </View>
             {RNDateTimePicker ? (

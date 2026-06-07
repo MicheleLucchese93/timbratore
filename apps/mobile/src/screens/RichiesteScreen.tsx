@@ -16,8 +16,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { color, space } from '@sonoqui/shared';
+import i18n from '../i18n';
+import { fmtDateTime, fmtDate, fmtTime } from '../i18n/format';
 import { api } from '../lib/api';
+import { useNotifications } from '../lib/notifications';
 import { useSession } from '../store/session';
 import { AppHeader } from '../components/AppHeader';
 import { WorkStateChip } from '../components/WorkStateChip';
@@ -91,25 +95,17 @@ interface QuotaSummary {
   accrual_month: number | null;
 }
 
-const TYPE_LABEL: Record<LeaveType, string> = {
-  ferie: 'Ferie',
-  permessi: 'Permesso',
-  malattia: 'Malattia',
-  assenza: 'Assenza',
-};
-
-const ASSENZA_SUBTYPE_LABEL: Record<AssenzaSubtype, string> = {
-  lutto: 'Lutto',
-  donazione_sangue: 'Donazione sangue',
-  permesso_studio: 'Permesso studio (diritto allo studio)',
-  permesso_elettorale: 'Permesso elettorale',
-  matrimonio: 'Matrimonio',
-  allattamento: 'Allattamento',
-  congedo_parentale: 'Congedo parentale',
-  legge_104: 'Legge 104 (assistenza disabili)',
-  assemblea_sindacale: 'Assemblea sindacale',
-  visita_medica: 'Visita medica',
-  motivi_personali: 'Motivi personali',
+// Display labels for leave types / assenza subtypes / statuses are resolved at
+// render time from the shared `common` namespace (and a few request-specific
+// keys in `richieste`). See `typeLabel`, `statusBadge`.
+const STATUS_KEY: Record<LeaveStatus, string> = {
+  pending: 'common:status.pending',
+  approved: 'common:status.approved',
+  rejected: 'common:status.rejected',
+  cancelled: 'common:status.cancelled',
+  cancellation_pending: 'common:status.cancel_requested',
+  cancelled_post_approval: 'common:status.cancelled',
+  superseded_by_malattia: 'richieste:status.superseded_by_malattia',
 };
 
 const ASSENZA_SUBTYPES_ORDER: AssenzaSubtype[] = [
@@ -126,15 +122,9 @@ const ASSENZA_SUBTYPES_ORDER: AssenzaSubtype[] = [
   'motivi_personali',
 ];
 
-const STATUS_LABEL: Record<LeaveStatus, string> = {
-  pending: 'In attesa',
-  approved: 'Approvata',
-  rejected: 'Rifiutata',
-  cancelled: 'Annullata',
-  cancellation_pending: 'Annullamento richiesto',
-  cancelled_post_approval: 'Annullata',
-  superseded_by_malattia: 'Sostituita da malattia',
-};
+function typeLabel(t: LeaveType): string {
+  return i18n.t(`common:leaveType.${t}`);
+}
 
 type RichiesteTab = 'mine' | 'calendar' | 'inbox';
 
@@ -145,8 +135,10 @@ interface CalUser {
 }
 
 export function RichiesteScreen() {
+  const { t } = useTranslation(['richieste', 'common']);
   const { me } = useSession();
   const isAdmin = me?.user.role === 'admin';
+  const refreshNotif = useNotifications((s) => s.refresh);
   const [tab, setTab] = useState<RichiesteTab>('mine');
   const [mineRows, setMineRows] = useState<LeaveRequest[]>([]);
   const [inboxRows, setInboxRows] = useState<LeaveRequest[]>([]);
@@ -222,7 +214,7 @@ export function RichiesteScreen() {
   }, [isAdmin]);
 
   async function cancel(r: LeaveRequest) {
-    confirmAction('Annullare richiesta?', 'Verrà annullata definitivamente.', async () => {
+    confirmAction(t('confirm.cancelTitle'), t('confirm.cancelMessage'), async () => {
       try {
         await api(`/api/v1/leaves/${r.id}/cancel`, { method: 'POST', json: {} });
         await load();
@@ -233,7 +225,7 @@ export function RichiesteScreen() {
   }
 
   async function requestCancellation(r: LeaveRequest) {
-    promptText('Motivo dell\'annullamento', async (reason) => {
+    promptText(t('prompt.cancellationReason'), async (reason) => {
       if (!reason || reason.trim().length < 1) return;
       try {
         await api(`/api/v1/leaves/${r.id}/request-cancellation`, {
@@ -248,10 +240,11 @@ export function RichiesteScreen() {
   }
 
   async function approve(r: LeaveRequest) {
-    confirmAction('Approvare?', `${TYPE_LABEL[r.type]} • ${r.duration_hours}h`, async () => {
+    confirmAction(t('confirm.approveTitle'), t('confirm.summary', { type: typeLabel(r.type), hours: r.duration_hours }), async () => {
       try {
         await api(`/api/v1/leaves/${r.id}/approve`, { method: 'POST', json: {} });
         await load();
+        await refreshNotif();
       } catch (e) {
         showError(e);
       }
@@ -259,9 +252,9 @@ export function RichiesteScreen() {
   }
 
   async function reject(r: LeaveRequest) {
-    promptText('Motivo del rifiuto', async (reason) => {
+    promptText(t('prompt.rejectionReason'), async (reason) => {
       if (!reason || reason.trim().length < 1) {
-        Alert.alert('Motivo obbligatorio', 'Inserisci un motivo per il rifiuto.');
+        Alert.alert(t('prompt.rejectionRequiredTitle'), t('prompt.rejectionRequiredMessage'));
         return;
       }
       try {
@@ -270,6 +263,7 @@ export function RichiesteScreen() {
           json: { rejection_reason: reason.trim() },
         });
         await load();
+        await refreshNotif();
       } catch (e) {
         showError(e);
       }
@@ -278,8 +272,8 @@ export function RichiesteScreen() {
 
   async function decideCancel(r: LeaveRequest, approveCancel: boolean) {
     confirmAction(
-      approveCancel ? 'Accettare annullamento?' : 'Rifiutare annullamento?',
-      `${TYPE_LABEL[r.type]} • ${r.duration_hours}h`,
+      approveCancel ? t('confirm.acceptCancelTitle') : t('confirm.rejectCancelTitle'),
+      t('confirm.summary', { type: typeLabel(r.type), hours: r.duration_hours }),
       async () => {
         try {
           await api(`/api/v1/leaves/${r.id}/decide-cancellation`, {
@@ -287,6 +281,7 @@ export function RichiesteScreen() {
             json: { approve: approveCancel },
           });
           await load();
+          await refreshNotif();
         } catch (e) {
           showError(e);
         }
@@ -298,19 +293,6 @@ export function RichiesteScreen() {
     () => inboxRows.filter((r) => r.status === 'pending').length,
     [inboxRows]
   );
-
-  // KPI counts over my own requests: how many I've asked, by outcome.
-  const mineStats = useMemo(() => {
-    let pending = 0;
-    let approved = 0;
-    let rejected = 0;
-    for (const r of mineRows) {
-      if (r.status === 'pending' || r.status === 'cancellation_pending') pending += 1;
-      else if (r.status === 'approved') approved += 1;
-      else if (r.status === 'rejected') rejected += 1;
-    }
-    return { pending, approved, rejected };
-  }, [mineRows]);
 
   const ferieQuota = quotas.find((q) => q.type === 'ferie');
   const permessiQuota = quotas.find((q) => q.type === 'permessi');
@@ -391,51 +373,42 @@ export function RichiesteScreen() {
         />
       }>
       <View style={styles.kpiRow}>
-        {ferieQuota && (
-          <KpiTile
-            label="Ferie residue"
-            value={fmtH(ferieQuota.residual_strict)}
-            sub={`Richieste ${fmtH(ferieQuota.used_approved + ferieQuota.used_pending)}`}
-            icon="sunny-outline"
-            fg={typeFg('ferie')}
-            bg={typeBg('ferie')}
-          />
-        )}
-        {permessiQuota && (
-          <KpiTile
-            label="Permessi residui"
-            value={fmtH(permessiQuota.residual_strict)}
-            sub={`Richieste ${fmtH(permessiQuota.used_approved + permessiQuota.used_pending)}`}
-            icon="time-outline"
-            fg={typeFg('permessi')}
-            bg={typeBg('permessi')}
-          />
-        )}
         <KpiTile
-          label="In attesa"
-          value={String(mineStats.pending)}
-          icon="hourglass-outline"
-          fg={color.warning}
-          bg="#fff3d1"
+          wide
+          label={t('kpi.ferie')}
+          value={ferieQuota ? fmtH(ferieQuota.residual_strict) : '—'}
+          sub={
+            ferieQuota
+              ? t('kpi.total', {
+                  total: fmtH(ferieQuota.initial_balance + ferieQuota.accrued_total),
+                  used: fmtH(ferieQuota.used_approved),
+                })
+              : t('kpi.noQuota')
+          }
+          icon="sunny-outline"
+          fg={typeFg('ferie')}
+          bg={typeBg('ferie')}
         />
         <KpiTile
-          label="Approvate"
-          value={String(mineStats.approved)}
-          icon="checkmark-circle-outline"
-          fg={color.success}
-          bg="#e8f3ec"
-        />
-        <KpiTile
-          label="Rifiutate"
-          value={String(mineStats.rejected)}
-          icon="close-circle-outline"
-          fg={color.error}
-          bg="#fde4e4"
+          wide
+          label={t('kpi.permessi')}
+          value={permessiQuota ? fmtH(permessiQuota.residual_strict) : '—'}
+          sub={
+            permessiQuota
+              ? t('kpi.total', {
+                  total: fmtH(permessiQuota.initial_balance + permessiQuota.accrued_total),
+                  used: fmtH(permessiQuota.used_approved),
+                })
+              : t('kpi.noQuota')
+          }
+          icon="time-outline"
+          fg={typeFg('permessi')}
+          bg={typeBg('permessi')}
         />
       </View>
       {quotas.length > 0 && (
         <View style={styles.quotaCard}>
-          <Text style={styles.quotaCardTitle}>Disponibilità</Text>
+          <Text style={styles.quotaCardTitle}>{t('quota.title')}</Text>
           {quotas.map((q) => (
             <View key={q.type} style={styles.quotaItem}>
               <View style={styles.quotaItemHeader}>
@@ -446,7 +419,7 @@ export function RichiesteScreen() {
                     color={typeFg(q.type)}
                   />
                   <Text style={styles.quotaItemTitle}>
-                    {q.type === 'ferie' ? 'Ferie' : 'Permessi'}
+                    {q.type === 'ferie' ? t('quota.ferie') : t('quota.permessi')}
                   </Text>
                 </View>
                 <Text style={[styles.quotaItemResidual, { color: typeFg(q.type) }]}>
@@ -454,16 +427,16 @@ export function RichiesteScreen() {
                 </Text>
               </View>
               <View style={styles.quotaBreakdownRow}>
-                <QuotaStat label="Iniziale" value={q.initial_balance} />
-                <QuotaStat label="Maturate" value={q.accrued_total} />
-                <QuotaStat label="Usate" value={q.used_approved} />
+                <QuotaStat label={t('quota.initial')} value={q.initial_balance} />
+                <QuotaStat label={t('quota.accrued')} value={q.accrued_total} />
+                <QuotaStat label={t('quota.used')} value={q.used_approved} />
                 {q.used_pending > 0 && (
-                  <QuotaStat label="In attesa" value={q.used_pending} />
+                  <QuotaStat label={t('quota.pending')} value={q.used_pending} />
                 )}
               </View>
               {q.used_pending > 0 && (
                 <Text style={styles.quotaPendingHint}>
-                  Residuo dopo richieste in attesa: {q.residual_with_pending.toFixed(2)}h
+                  {t('quota.residualAfterPending', { value: q.residual_with_pending.toFixed(2) })}
                 </Text>
               )}
             </View>
@@ -478,7 +451,7 @@ export function RichiesteScreen() {
       {!loadingMine && mineRows.length === 0 && (
         <View style={styles.emptyCard}>
           <Ionicons name="calendar-outline" size={32} color={color.onSurfaceVariant} />
-          <Text style={styles.empty}>Non hai richieste.</Text>
+          <Text style={styles.empty}>{t('empty.mine')}</Text>
         </View>
       )}
       {mineRows.map((r) => (
@@ -518,7 +491,7 @@ export function RichiesteScreen() {
       {!loadingInbox && inboxRows.length === 0 && (
         <View style={styles.emptyCard}>
           <Ionicons name="calendar-outline" size={32} color={color.onSurfaceVariant} />
-          <Text style={styles.empty}>Nessuna richiesta da approvare.</Text>
+          <Text style={styles.empty}>{t('empty.inbox')}</Text>
         </View>
       )}
       {inboxRows.map((r) => (
@@ -543,9 +516,9 @@ export function RichiesteScreen() {
 
       <SwipeableTabs
         tabs={[
-          { id: 'mine', label: 'Le mie' },
-          { id: 'calendar', label: 'Calendario' },
-          { id: 'inbox', label: 'Da approvare', badge: pendingInboxCount },
+          { id: 'mine', label: t('tab.mine') },
+          { id: 'calendar', label: t('tab.calendar') },
+          { id: 'inbox', label: t('tab.inbox'), badge: pendingInboxCount },
         ]}
         activeId={tab}
         onChange={setTab}>
@@ -557,7 +530,7 @@ export function RichiesteScreen() {
           onPress={() => setFormOpen(true)}
           activeOpacity={0.8}
           style={styles.fab}
-          accessibilityLabel="Nuova richiesta">
+          accessibilityLabel={t('fab')}>
           <Ionicons name="add" size={28} color={color.onPrimary} />
         </TouchableOpacity>
       )}
@@ -594,6 +567,7 @@ function LeaveCard({
   onRequestCancellation: () => void;
   onDecideCancellation: (approveCancel: boolean) => void;
 }) {
+  const { t } = useTranslation(['richieste', 'common']);
   const isMine = row.user_id === myUserId;
   const status = statusBadge(row.status);
   return (
@@ -610,7 +584,7 @@ function LeaveCard({
             color={typeFg(row.type)}
           />
           <Text style={[styles.typeChipText, { color: typeFg(row.type) }]}>
-            {TYPE_LABEL[row.type]}
+            {t(`common:leaveType.${row.type}`)}
           </Text>
         </View>
         <View style={[styles.statusPill, { backgroundColor: status.bg }]}>
@@ -641,7 +615,7 @@ function LeaveCard({
       {row.type === 'malattia' && row.inps_protocol ? (
         <View style={styles.metaRow}>
           <Ionicons name="medkit-outline" size={14} color={color.onSurfaceVariant} />
-          <Text style={styles.metaText}>INPS: {row.inps_protocol}</Text>
+          <Text style={styles.metaText}>{t('card.inps', { protocol: row.inps_protocol })}</Text>
         </View>
       ) : null}
 
@@ -653,8 +627,8 @@ function LeaveCard({
             color={color.onSurfaceVariant}
           />
           <Text style={styles.metaText}>
-            {ASSENZA_SUBTYPE_LABEL[row.assenza_subtype]} ·{' '}
-            {row.is_paid ? 'retribuita' : 'non retribuita'}
+            {t(`common:assenzaSubtype.${row.assenza_subtype}`)} ·{' '}
+            {row.is_paid ? t('card.paid') : t('card.unpaid')}
           </Text>
         </View>
       ) : null}
@@ -663,13 +637,13 @@ function LeaveCard({
 
       {row.rejection_reason ? (
         <View style={[styles.noteBox, { backgroundColor: '#fde4e4' }]}>
-          <Text style={styles.noteLabel}>Motivo rifiuto</Text>
+          <Text style={styles.noteLabel}>{t('card.rejectionReason')}</Text>
           <Text style={styles.noteText}>{row.rejection_reason}</Text>
         </View>
       ) : null}
       {row.cancellation_reason ? (
         <View style={[styles.noteBox, { backgroundColor: '#fff3d1' }]}>
-          <Text style={styles.noteLabel}>Annullamento</Text>
+          <Text style={styles.noteLabel}>{t('card.cancellation')}</Text>
           <Text style={styles.noteText}>{row.cancellation_reason}</Text>
         </View>
       ) : null}
@@ -681,7 +655,7 @@ function LeaveCard({
             activeOpacity={0.8}
             style={[styles.actionBtn, styles.actionReject]}>
             <Ionicons name="close-outline" size={18} color={color.error} />
-            <Text style={[styles.actionText, { color: color.error }]}>Annulla</Text>
+            <Text style={[styles.actionText, { color: color.error }]}>{t('common:btn.cancel')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -697,7 +671,7 @@ function LeaveCard({
               style={[styles.actionBtn, styles.actionReject]}>
               <Ionicons name="close-outline" size={18} color={color.error} />
               <Text style={[styles.actionText, { color: color.error }]}>
-                Richiedi annullamento
+                {t('card.requestCancellation')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -710,7 +684,7 @@ function LeaveCard({
             activeOpacity={0.8}
             style={[styles.actionBtn, styles.actionReject]}>
             <Ionicons name="close-outline" size={18} color={color.error} />
-            <Text style={[styles.actionText, { color: color.error }]}>Rifiuta</Text>
+            <Text style={[styles.actionText, { color: color.error }]}>{t('common:btn.reject')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={onApprove}
@@ -718,7 +692,7 @@ function LeaveCard({
             style={[styles.actionBtn, styles.actionApprove]}>
             <Ionicons name="checkmark-outline" size={18} color={color.onPrimary} />
             <Text style={[styles.actionText, { color: color.onPrimary }]}>
-              Approva
+              {t('common:btn.approve')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -730,20 +704,20 @@ function LeaveCard({
             onPress={() => onDecideCancellation(false)}
             activeOpacity={0.8}
             style={[styles.actionBtn, styles.actionReject]}>
-            <Text style={[styles.actionText, { color: color.error }]}>Rifiuta</Text>
+            <Text style={[styles.actionText, { color: color.error }]}>{t('common:btn.reject')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => onDecideCancellation(true)}
             activeOpacity={0.8}
             style={[styles.actionBtn, styles.actionApprove]}>
             <Text style={[styles.actionText, { color: color.onPrimary }]}>
-              Accetta annullamento
+              {t('card.acceptCancellation')}
             </Text>
           </TouchableOpacity>
         </View>
       )}
 
-      <Text style={styles.created}>Inviata {fmtFull(row.created_at)}</Text>
+      <Text style={styles.created}>{t('card.sentAt', { date: fmtFull(row.created_at) })}</Text>
     </View>
   );
 }
@@ -759,6 +733,7 @@ function NewLeaveModal({
   onCreated: () => void;
   quotas: QuotaSummary[];
 }) {
+  const { t } = useTranslation(['richieste', 'common']);
   const { me } = useSession();
   const [type, setType] = useState<LeaveType>('ferie');
   const [allDay, setAllDay] = useState(true);
@@ -779,9 +754,9 @@ function NewLeaveModal({
     if (visible) {
       setType('ferie');
       setAllDay(true);
-      const t = isoLocal(new Date());
-      setFromDate(t);
-      setToDate(t);
+      const today = isoLocal(new Date());
+      setFromDate(today);
+      setToDate(today);
       setFromTime('09:00');
       setToTime('13:00');
       setInpsProtocol('');
@@ -815,8 +790,8 @@ function NewLeaveModal({
   async function submit() {
     if (type === 'malattia' && !inpsProtocol.trim()) {
       Alert.alert(
-        'Protocollo INPS',
-        'Inserisci il numero di protocollo INPS della malattia.'
+        t('modal.inpsRequiredTitle'),
+        t('modal.inpsRequiredMessage')
       );
       return;
     }
@@ -831,7 +806,7 @@ function NewLeaveModal({
       ? combineLocalDateTime(toDate, toTime)
       : combineLocalDateTime(toDate, '23:59');
     if (new Date(to).getTime() <= new Date(from).getTime()) {
-      Alert.alert('Periodo', 'L\'orario di fine deve essere dopo l\'inizio.');
+      Alert.alert(t('modal.periodTitle'), t('modal.periodMessage'));
       return;
     }
     setSubmitting(true);
@@ -872,7 +847,7 @@ function NewLeaveModal({
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1 }}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Nuova richiesta</Text>
+            <Text style={styles.modalTitle}>{t('modal.title')}</Text>
             <Pressable onPress={onClose} style={styles.iconBtn}>
               <Ionicons name="close" size={22} color={color.onSurface} />
             </Pressable>
@@ -880,18 +855,18 @@ function NewLeaveModal({
           <ScrollView
             contentContainerStyle={styles.formContent}
             keyboardShouldPersistTaps="handled">
-            <Text style={styles.fieldLabel}>Tipo</Text>
+            <Text style={styles.fieldLabel}>{t('modal.typeLabel')}</Text>
             <View style={styles.typeGrid}>
               {(['ferie', 'permessi', 'malattia', 'assenza'] as LeaveType[]).map(
-                (t) => {
-                  const sel = t === type;
+                (lt) => {
+                  const sel = lt === type;
                   return (
                     <Pressable
-                      key={t}
-                      onPress={() => setType(t)}
+                      key={lt}
+                      onPress={() => setType(lt)}
                       style={[styles.typeOpt, sel && styles.typeOptSel]}>
                       <Ionicons
-                        name={typeIcon(t)}
+                        name={typeIcon(lt)}
                         size={18}
                         color={sel ? color.onPrimary : color.primary}
                       />
@@ -900,7 +875,7 @@ function NewLeaveModal({
                           styles.typeOptText,
                           sel && styles.typeOptTextSel,
                         ]}>
-                        {TYPE_LABEL[t]}
+                        {t(`common:leaveType.${lt}`)}
                       </Text>
                     </Pressable>
                   );
@@ -910,22 +885,21 @@ function NewLeaveModal({
 
             {residual && (
               <Text style={styles.quotaHintInline}>
-                Disponibili: {residual.residual_strict.toFixed(2)}h ·{' '}
+                {t('modal.quotaHint', { strict: residual.residual_strict.toFixed(2) })}
                 <Text style={{ opacity: 0.7 }}>
-                  {residual.residual_with_pending.toFixed(2)}h dopo richieste in
-                  attesa
+                  {t('modal.quotaHintPending', { pending: residual.residual_with_pending.toFixed(2) })}
                 </Text>
               </Text>
             )}
 
             {type === 'assenza' && (
               <>
-                <Text style={styles.fieldLabel}>Tipologia di assenza</Text>
+                <Text style={styles.fieldLabel}>{t('modal.assenzaTypeLabel')}</Text>
                 <Pressable
                   onPress={() => setSubtypePickerOpen((v) => !v)}
                   style={styles.subtypeBtn}>
                   <Text style={styles.subtypeBtnText}>
-                    {ASSENZA_SUBTYPE_LABEL[assenzaSubtype]}
+                    {t(`common:assenzaSubtype.${assenzaSubtype}`)}
                   </Text>
                   <Ionicons
                     name={subtypePickerOpen ? 'chevron-up' : 'chevron-down'}
@@ -953,7 +927,7 @@ function NewLeaveModal({
                               styles.subtypeRowText,
                               sel && styles.subtypeRowTextSel,
                             ]}>
-                            {ASSENZA_SUBTYPE_LABEL[s]}
+                            {t(`common:assenzaSubtype.${s}`)}
                           </Text>
                           {sel && (
                             <Ionicons
@@ -968,7 +942,7 @@ function NewLeaveModal({
                   </View>
                 )}
 
-                <Text style={styles.fieldLabel}>Retribuzione</Text>
+                <Text style={styles.fieldLabel}>{t('modal.compensationLabel')}</Text>
                 <View style={styles.allDayRow}>
                   <Pressable
                     onPress={() => setIsPaid(true)}
@@ -981,7 +955,7 @@ function NewLeaveModal({
                         styles.allDayOptText,
                         isPaid && styles.allDayOptTextSel,
                       ]}>
-                      Retribuita
+                      {t('modal.paid')}
                     </Text>
                   </Pressable>
                   <Pressable
@@ -995,7 +969,7 @@ function NewLeaveModal({
                         styles.allDayOptText,
                         !isPaid && styles.allDayOptTextSel,
                       ]}>
-                      Non retribuita
+                      {t('modal.unpaid')}
                     </Text>
                   </Pressable>
                 </View>
@@ -1004,7 +978,7 @@ function NewLeaveModal({
 
             <View style={styles.dateRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.fieldLabel}>Dal</Text>
+                <Text style={styles.fieldLabel}>{t('modal.from')}</Text>
                 <DateField
                   mode="date"
                   value={fromDate}
@@ -1015,14 +989,14 @@ function NewLeaveModal({
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.fieldLabel}>Al</Text>
+                <Text style={styles.fieldLabel}>{t('modal.to')}</Text>
                 <DateField mode="date" value={toDate} onChange={setToDate} />
               </View>
             </View>
 
             {(type === 'ferie' || type === 'permessi') && (
               <>
-                <Text style={styles.fieldLabel}>Durata</Text>
+                <Text style={styles.fieldLabel}>{t('modal.durationLabel')}</Text>
                 <View style={styles.allDayRow}>
                   <Pressable
                     onPress={() => setAllDay(true)}
@@ -1035,7 +1009,7 @@ function NewLeaveModal({
                         styles.allDayOptText,
                         allDay && styles.allDayOptTextSel,
                       ]}>
-                      Tutto il giorno
+                      {t('modal.allDay')}
                     </Text>
                   </Pressable>
                   <Pressable
@@ -1049,14 +1023,14 @@ function NewLeaveModal({
                         styles.allDayOptText,
                         !allDay && styles.allDayOptTextSel,
                       ]}>
-                      Orario specifico
+                      {t('modal.specificTime')}
                     </Text>
                   </Pressable>
                 </View>
                 {!allDay && (
                   <View style={styles.dateRow}>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.fieldLabel}>Ora inizio</Text>
+                      <Text style={styles.fieldLabel}>{t('modal.startTime')}</Text>
                       <DateField
                         mode="time"
                         value={fromTime}
@@ -1065,7 +1039,7 @@ function NewLeaveModal({
                       />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.fieldLabel}>Ora fine</Text>
+                      <Text style={styles.fieldLabel}>{t('modal.endTime')}</Text>
                       <DateField
                         mode="time"
                         value={toTime}
@@ -1087,21 +1061,23 @@ function NewLeaveModal({
                 />
                 <Text style={styles.approverText}>
                   {approvers.length === 0
-                    ? 'Nessun approvatore configurato'
-                    : `Approvatore: ${approvers
-                        .map((a) => a.display_name || a.email)
-                        .join(', ')}`}
+                    ? t('modal.noApprover')
+                    : t('modal.approver', {
+                        names: approvers
+                          .map((a) => a.display_name || a.email)
+                          .join(', '),
+                      })}
                 </Text>
               </View>
             )}
 
             {type === 'malattia' && (
               <>
-                <Text style={styles.fieldLabel}>Numero protocollo INPS</Text>
+                <Text style={styles.fieldLabel}>{t('modal.inpsLabel')}</Text>
                 <TextInput
                   value={inpsProtocol}
                   onChangeText={setInpsProtocol}
-                  placeholder="es. 1234567890"
+                  placeholder={t('modal.inpsPlaceholder')}
                   placeholderTextColor={color.onSurfaceVariant}
                   style={styles.input}
                   autoCapitalize="none"
@@ -1110,12 +1086,12 @@ function NewLeaveModal({
             )}
 
             <Text style={styles.fieldLabel}>
-              {type === 'assenza' ? 'Motivazione (facoltativa)' : 'Note (facoltative)'}
+              {type === 'assenza' ? t('modal.reasonOptional') : t('modal.notesOptional')}
             </Text>
             <TextInput
               value={note}
               onChangeText={setNote}
-              placeholder={notePlaceholder(type)}
+              placeholder={t(`notePlaceholder.${type}`)}
               placeholderTextColor={color.onSurfaceVariant}
               multiline
               numberOfLines={3}
@@ -1134,8 +1110,8 @@ function NewLeaveModal({
                   <Ionicons name="send-outline" size={18} color={color.onPrimary} />
                   <Text style={styles.submitText}>
                     {type === 'malattia'
-                      ? 'Invia segnalazione'
-                      : 'Invia richiesta'}
+                      ? t('modal.submitReport')
+                      : t('modal.submitRequest')}
                   </Text>
                 </>
               )}
@@ -1147,13 +1123,6 @@ function NewLeaveModal({
   );
 }
 
-function notePlaceholder(t: LeaveType): string {
-  if (t === 'malattia') return 'Es. influenza';
-  if (t === 'permessi') return 'Es. visita medica';
-  if (t === 'assenza') return 'Es. funerale del nonno';
-  return 'Es. matrimonio fratello';
-}
-
 /* ----- helpers ----- */
 
 function confirmAction(title: string, msg: string, fn: () => void): void {
@@ -1162,8 +1131,8 @@ function confirmAction(title: string, msg: string, fn: () => void): void {
     return;
   }
   Alert.alert(title, msg, [
-    { text: 'Annulla', style: 'cancel' },
-    { text: 'Conferma', onPress: fn },
+    { text: i18n.t('common:btn.cancel'), style: 'cancel' },
+    { text: i18n.t('common:btn.confirm'), onPress: fn },
   ]);
 }
 
@@ -1178,26 +1147,26 @@ function promptText(title: string, fn: (text: string | null) => void): void {
       title,
       undefined,
       [
-        { text: 'Annulla', style: 'cancel' },
-        { text: 'Conferma', onPress: (t?: string) => fn(t ?? '') },
+        { text: i18n.t('common:btn.cancel'), style: 'cancel' },
+        { text: i18n.t('common:btn.confirm'), onPress: (text?: string) => fn(text ?? '') },
       ],
       'plain-text'
     );
     return;
   }
-  Alert.alert(title, 'Su Android conferma senza testo aggiuntivo.', [
-    { text: 'Annulla', style: 'cancel' },
-    { text: 'Conferma', onPress: () => fn('motivo non specificato') },
+  Alert.alert(title, i18n.t('richieste:androidPromptHint'), [
+    { text: i18n.t('common:btn.cancel'), style: 'cancel' },
+    { text: i18n.t('common:btn.confirm'), onPress: () => fn(i18n.t('richieste:unspecifiedReason')) },
   ]);
 }
 
 function showError(err: unknown): void {
   const e = err as { message?: string };
   if (Platform.OS === 'web') {
-    window.alert(e.message ?? 'Errore');
+    window.alert(e.message ?? i18n.t('richieste:error.generic'));
     return;
   }
-  Alert.alert('Errore', e.message ?? 'Operazione non riuscita.');
+  Alert.alert(i18n.t('common:state.error'), e.message ?? i18n.t('richieste:error.operationFailed'));
 }
 
 function QuotaStat({ label, value }: { label: string; value: number }) {
@@ -1216,6 +1185,7 @@ function KpiTile({
   icon,
   fg,
   bg,
+  wide,
 }: {
   label: string;
   value: string;
@@ -1223,9 +1193,10 @@ function KpiTile({
   icon: keyof typeof Ionicons.glyphMap;
   fg: string;
   bg: string;
+  wide?: boolean;
 }) {
   return (
-    <View style={styles.kpiTile}>
+    <View style={[styles.kpiTile, wide && styles.kpiTileWide]}>
       <View style={[styles.kpiIcon, { backgroundColor: bg }]}>
         <Ionicons name={icon} size={16} color={fg} />
       </View>
@@ -1234,7 +1205,7 @@ function KpiTile({
       </Text>
       <Text style={[styles.kpiValue, { color: fg }]}>{value}</Text>
       {sub ? (
-        <Text style={styles.kpiSub} numberOfLines={1}>
+        <Text style={styles.kpiSub} numberOfLines={2}>
           {sub}
         </Text>
       ) : null}
@@ -1270,16 +1241,17 @@ function typeFg(t: LeaveType): string {
 }
 
 function statusBadge(s: LeaveStatus): { label: string; bg: string; fg: string } {
-  if (s === 'approved') return { label: STATUS_LABEL[s], bg: '#e8f3ec', fg: color.success };
+  const label = i18n.t(STATUS_KEY[s]);
+  if (s === 'approved') return { label, bg: '#e8f3ec', fg: color.success };
   if (s === 'rejected' || s === 'superseded_by_malattia')
-    return { label: STATUS_LABEL[s], bg: '#fde4e4', fg: color.error };
+    return { label, bg: '#fde4e4', fg: color.error };
   if (s === 'pending' || s === 'cancellation_pending')
-    return { label: STATUS_LABEL[s], bg: '#fff3d1', fg: color.warning };
-  return { label: STATUS_LABEL[s], bg: color.surfaceVariant, fg: color.onSurfaceVariant };
+    return { label, bg: '#fff3d1', fg: color.warning };
+  return { label, bg: color.surfaceVariant, fg: color.onSurfaceVariant };
 }
 
 function fmtFull(iso: string): string {
-  return new Date(iso).toLocaleString('it-IT', {
+  return fmtDateTime(iso, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -1290,15 +1262,15 @@ function fmtFull(iso: string): string {
 
 function fmtRange(from: string, to: string, type: LeaveType): string {
   const f = new Date(from);
-  const t = new Date(to);
-  const sameDay = f.toDateString() === t.toDateString();
+  const tDate = new Date(to);
+  const sameDay = f.toDateString() === tDate.toDateString();
   const d: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
   const h: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
   if (type === 'permessi' && sameDay) {
-    return `${f.toLocaleDateString('it-IT', d)} ${f.toLocaleTimeString('it-IT', h)}–${t.toLocaleTimeString('it-IT', h)}`;
+    return `${fmtDate(f, d)} ${fmtTime(f, h)}–${fmtTime(tDate, h)}`;
   }
-  if (sameDay) return f.toLocaleDateString('it-IT', d);
-  return `${f.toLocaleDateString('it-IT', d)} → ${t.toLocaleDateString('it-IT', d)}`;
+  if (sameDay) return fmtDate(f, d);
+  return `${fmtDate(f, d)} → ${fmtDate(tDate, d)}`;
 }
 
 function pad(n: number): string {
@@ -1336,6 +1308,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 10,
     gap: 2,
+  },
+  kpiTileWide: {
+    flexBasis: '46%',
+    minWidth: 150,
   },
   kpiIcon: {
     width: 28,

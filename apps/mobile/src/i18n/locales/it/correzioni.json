@@ -1,0 +1,55 @@
+{
+  "newRequest": "Nuova richiesta",
+  "empty": {
+    "admin": "Nessuna richiesta da gestire.",
+    "user": "Non hai richieste."
+  },
+  "diff": {
+    "current": "Attuale",
+    "requested": "Richiesto",
+    "event": "Evento",
+    "when": "Quando",
+    "branch": "Sede",
+    "missingTitle": "Timbratura mancante da aggiungere"
+  },
+  "justificationLabel": "Motivazione",
+  "justificationPlaceholder": "Es. avevo dimenticato di timbrare l'uscita",
+  "approverReply": "Risposta approvatore",
+  "sentAt": "Inviata {{date}}",
+  "status": {
+    "superseded": "Superata"
+  },
+  "confirm": {
+    "approveTitle": "Approvare?",
+    "approveMsg": "La timbratura verrà creata o aggiornata."
+  },
+  "reject": {
+    "promptTitle": "Motivo del rifiuto",
+    "androidMsg": "Procedere senza nota?"
+  },
+  "validation": {
+    "justificationMsg": "Spiega in almeno 5 caratteri."
+  },
+  "errorFallback": "Operazione non riuscita.",
+  "modal": {
+    "whichDay": "Quale giorno?",
+    "editStamp": "Modifica timbratura",
+    "newStamp": "Nuova timbratura"
+  },
+  "dateStep": {
+    "helper": "Scegli la data per cui vuoi richiedere una correzione. Caricheremo le tue timbrature di quel giorno e potrai modificarle o aggiungerne una mancante."
+  },
+  "pickStep": {
+    "helper": "Tocca una timbratura per correggerla, oppure segnala una timbratura mancante.",
+    "noStamps": "Nessuna timbratura in questa data.",
+    "addMissing": "Aggiungi una timbratura mancante"
+  },
+  "field": {
+    "date": "Data",
+    "time": "Ora",
+    "branch": "Sede",
+    "eventType": "Tipo evento",
+    "justification": "Motivazione"
+  },
+  "submit": "Invia richiesta"
+}

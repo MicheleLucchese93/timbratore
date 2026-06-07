@@ -1,0 +1,43 @@
+{
+  "hero": {
+    "workedHours": "Ore lavorate",
+    "countedHours": "Ore conteggiate",
+    "breaks": "Pause"
+  },
+  "schedule": {
+    "title": "Orario di oggi",
+    "total": "Totale {{duration}}",
+    "restDay": "Oggi è un giorno di riposo"
+  },
+  "branch": {
+    "title": "Sede",
+    "lockedUntilExit": "Bloccata fino all'uscita",
+    "offSite": "Fuori sede"
+  },
+  "action": {
+    "clockIn": "Timbra ingresso",
+    "clockOut": "Timbra uscita",
+    "breakStart": "Inizia pausa",
+    "lunchStart": "Inizia pausa pranzo",
+    "breakEnd": "Termina pausa",
+    "lunchEnd": "Termina pausa pranzo"
+  },
+  "disabledNotice": "La timbratura non è abilitata per il tuo profilo. Contatta l'amministratore.",
+  "undoLast": "Annulla ultima timbratura",
+  "lastEvent": "Ultimo evento: {{event}} alle {{time}}",
+  "alert": {
+    "outOfAreaTitle": "Uscita fuori area",
+    "outOfAreaMessage": "Eri fuori dall'area della sede: l'uscita è stata registrata con un'anomalia.",
+    "offlineTitle": "Senza connessione",
+    "offlineMessage": "Timbratura accodata. Verrà inviata quando torni online.",
+    "stampFailedTitle": "Timbratura non riuscita",
+    "gpsTitle": "Posizione GPS",
+    "undoFailedTitle": "Impossibile annullare"
+  },
+  "error": {
+    "LOCATION_PERMISSION_DENIED": "Permesso posizione negato. Vai alle Impostazioni.",
+    "ACQUISITION_TIMEOUT": "GPS non disponibile. Spostati all'aperto e riprova.",
+    "WEB_CLOCK_IN_DISABLED": "Timbratura da web non consentita per questo utente.",
+    "unknown": "Errore sconosciuto."
+  }
+}

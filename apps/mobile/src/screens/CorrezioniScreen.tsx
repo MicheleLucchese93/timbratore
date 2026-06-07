@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import type { StampEventType } from '@sonoqui/shared';
 import { color, space } from '@sonoqui/shared';
 import { api } from '../lib/api';
@@ -25,17 +26,36 @@ import { AppHeader } from '../components/AppHeader';
 import { WorkStateChip } from '../components/WorkStateChip';
 import { DateField } from '../components/DateField';
 import { SwipeableTabs } from '../components/SwipeableTabs';
+import i18n from '../i18n';
+import { fmtDate, fmtDateTime, fmtTime } from '../i18n/format';
 
 type CorrezioniTab = 'pending' | 'all';
 
-const EVENT_OPTIONS: Array<{ value: StampEventType; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
-  { value: 'clock_in', label: 'Ingresso', icon: 'log-in-outline' },
-  { value: 'clock_out', label: 'Uscita', icon: 'log-out-outline' },
-  { value: 'break_start', label: 'Inizio pausa', icon: 'pause-outline' },
-  { value: 'break_end', label: 'Fine pausa', icon: 'play-outline' },
-  { value: 'lunch_start', label: 'Inizio pausa pranzo', icon: 'restaurant-outline' },
-  { value: 'lunch_end', label: 'Fine pausa pranzo', icon: 'play-outline' },
+const EVENT_OPTIONS: Array<{ value: StampEventType; icon: keyof typeof Ionicons.glyphMap }> = [
+  { value: 'clock_in', icon: 'log-in-outline' },
+  { value: 'clock_out', icon: 'log-out-outline' },
+  { value: 'break_start', icon: 'pause-outline' },
+  { value: 'break_end', icon: 'play-outline' },
+  { value: 'lunch_start', icon: 'restaurant-outline' },
+  { value: 'lunch_end', icon: 'play-outline' },
 ];
+
+// Locale-aware date formatting options, kept identical to the previous
+// hard-coded `it-IT` calls so the rendered layout is unchanged.
+const FULL_DT_OPTS: Intl.DateTimeFormatOptions = {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+};
+const LONG_DATE_OPTS: Intl.DateTimeFormatOptions = {
+  weekday: 'long',
+  day: '2-digit',
+  month: 'long',
+  year: 'numeric',
+};
+const TIME_OPTS: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
 
 interface DayStamp {
   id: string;
@@ -45,6 +65,7 @@ interface DayStamp {
 }
 
 export function CorrezioniScreen() {
+  const { t } = useTranslation(['correzioni', 'common']);
   const { me } = useSession();
   const isAdmin = me?.user.role === 'admin';
 
@@ -92,11 +113,11 @@ export function CorrezioniScreen() {
   }, [loadPending, loadAll]);
 
   async function approve(cr: CorrectionRow) {
-    confirmAction('Approvare?', 'La timbratura verrà creata o aggiornata.', async () => {
+    confirmAction(t('confirm.approveTitle'), t('confirm.approveMsg'), async () => {
       try {
         await api(`/api/v1/correction-requests/${cr.id}/approve`, { method: 'POST', json: {} });
         await load();
-        await refreshNotif(me?.user.role ?? 'user');
+        await refreshNotif();
       } catch (e) {
         showError(e);
       }
@@ -104,14 +125,14 @@ export function CorrezioniScreen() {
   }
 
   async function reject(cr: CorrectionRow) {
-    promptNote('Motivo del rifiuto', async (note) => {
+    promptNote(t('reject.promptTitle'), async (note) => {
       try {
         await api(`/api/v1/correction-requests/${cr.id}/reject`, {
           method: 'POST',
           json: { resolution_note: note ?? '' },
         });
         await load();
-        await refreshNotif(me?.user.role ?? 'user');
+        await refreshNotif();
       } catch (e) {
         showError(e);
       }
@@ -134,7 +155,7 @@ export function CorrezioniScreen() {
         <View style={styles.emptyCard}>
           <Ionicons name="document-text-outline" size={32} color={color.onSurfaceVariant} />
           <Text style={styles.empty}>
-            {isAdmin ? 'Nessuna richiesta da gestire.' : 'Non hai richieste.'}
+            {isAdmin ? t('empty.admin') : t('empty.user')}
           </Text>
         </View>
       )}
@@ -156,8 +177,8 @@ export function CorrezioniScreen() {
 
       <SwipeableTabs
         tabs={[
-          { id: 'pending', label: 'In attesa', badge: pendingCount },
-          { id: 'all', label: 'Tutte' },
+          { id: 'pending', label: t('common:status.pending'), badge: pendingCount },
+          { id: 'all', label: t('common:state.all') },
         ]}
         activeId={tab}
         onChange={setTab}>
@@ -179,7 +200,7 @@ export function CorrezioniScreen() {
         onPress={() => setFormOpen(true)}
         activeOpacity={0.8}
         style={styles.fab}
-        accessibilityLabel="Nuova richiesta">
+        accessibilityLabel={t('newRequest')}>
         <Ionicons name="add" size={28} color={color.onPrimary} />
       </TouchableOpacity>
 
@@ -207,6 +228,7 @@ function CorrectionCard({
   onApprove: () => void;
   onReject: () => void;
 }) {
+  const { t } = useTranslation(['correzioni', 'common']);
   const statusMeta = statusBadge(row.status);
   const isEdit = row.original_stamp_id != null && row.original_occurred_at != null;
   return (
@@ -215,11 +237,11 @@ function CorrectionCard({
         <View style={[styles.eventChip, { backgroundColor: eventBg(row.claimed_event_type) }]}>
           <Ionicons name={eventIcon(row.claimed_event_type)} size={14} color={eventFg(row.claimed_event_type)} />
           <Text style={[styles.eventChipText, { color: eventFg(row.claimed_event_type) }]}>
-            {humanEvent(row.claimed_event_type)}
+            {t(`common:stampEvent.${row.claimed_event_type}`)}
           </Text>
         </View>
         <View style={[styles.statusPill, { backgroundColor: statusMeta.bg }]}>
-          <Text style={[styles.statusPillText, { color: statusMeta.fg }]}>{statusMeta.label}</Text>
+          <Text style={[styles.statusPillText, { color: statusMeta.fg }]}>{t(statusMeta.labelKey)}</Text>
         </View>
       </View>
 
@@ -233,24 +255,24 @@ function CorrectionCard({
       {isEdit ? (
         <View style={styles.diffRow}>
           <View style={[styles.diffBox, styles.diffOld]}>
-            <Text style={styles.diffLabel}>Attuale</Text>
-            <DiffField label="Evento" value={humanEvent(row.original_event_type as StampEventType)} />
+            <Text style={styles.diffLabel}>{t('diff.current')}</Text>
+            <DiffField label={t('diff.event')} value={t(`common:stampEvent.${row.original_event_type as StampEventType}`)} />
             <DiffField
-              label="Quando"
-              value={formatFull(row.original_occurred_at as string)}
+              label={t('diff.when')}
+              value={fmtDateTime(row.original_occurred_at as string, FULL_DT_OPTS)}
             />
-            <DiffField label="Sede" value={row.original_branch_name ?? '—'} />
+            <DiffField label={t('diff.branch')} value={row.original_branch_name ?? '—'} />
           </View>
           <View style={[styles.diffBox, styles.diffNew]}>
-            <Text style={styles.diffLabel}>Richiesto</Text>
+            <Text style={styles.diffLabel}>{t('diff.requested')}</Text>
             <DiffField
-              label="Evento"
-              value={humanEvent(row.claimed_event_type)}
+              label={t('diff.event')}
+              value={t(`common:stampEvent.${row.claimed_event_type}`)}
               changed={row.claimed_event_type !== row.original_event_type}
             />
             <DiffField
-              label="Quando"
-              value={formatFull(row.claimed_occurred_at)}
+              label={t('diff.when')}
+              value={fmtDateTime(row.claimed_occurred_at, FULL_DT_OPTS)}
               changed={
                 row.original_occurred_at == null ||
                 new Date(row.claimed_occurred_at).getTime() !==
@@ -258,7 +280,7 @@ function CorrectionCard({
               }
             />
             <DiffField
-              label="Sede"
+              label={t('diff.branch')}
               value={row.claimed_branch_name ?? '—'}
               changed={row.claimed_branch_id !== row.original_branch_id}
             />
@@ -266,36 +288,36 @@ function CorrectionCard({
         </View>
       ) : (
         <View style={[styles.diffBox, styles.diffMissing, { marginTop: 10 }]}>
-          <Text style={styles.diffLabel}>Timbratura mancante da aggiungere</Text>
-          <DiffField label="Evento" value={humanEvent(row.claimed_event_type)} />
-          <DiffField label="Quando" value={formatFull(row.claimed_occurred_at)} />
-          <DiffField label="Sede" value={row.claimed_branch_name ?? '—'} />
+          <Text style={styles.diffLabel}>{t('diff.missingTitle')}</Text>
+          <DiffField label={t('diff.event')} value={t(`common:stampEvent.${row.claimed_event_type}`)} />
+          <DiffField label={t('diff.when')} value={fmtDateTime(row.claimed_occurred_at, FULL_DT_OPTS)} />
+          <DiffField label={t('diff.branch')} value={row.claimed_branch_name ?? '—'} />
         </View>
       )}
 
       <View style={styles.justificationBlock}>
-        <Text style={styles.diffLabel}>Motivazione</Text>
+        <Text style={styles.diffLabel}>{t('justificationLabel')}</Text>
         <Text style={styles.justification}>{row.justification}</Text>
       </View>
 
       {row.resolution_note?.trim() ? (
         <View style={[styles.noteBox, { backgroundColor: row.status === 'rejected' ? '#fde4e4' : '#e8f3ec' }]}>
-          <Text style={styles.noteLabel}>Risposta approvatore</Text>
+          <Text style={styles.noteLabel}>{t('approverReply')}</Text>
           <Text style={styles.noteText}>{row.resolution_note}</Text>
         </View>
       ) : null}
 
-      <Text style={styles.created}>Inviata {formatFull(row.created_at)}</Text>
+      <Text style={styles.created}>{t('sentAt', { date: fmtDateTime(row.created_at, FULL_DT_OPTS) })}</Text>
 
       {canDecide && row.status === 'pending' && (
         <View style={styles.actions}>
           <TouchableOpacity onPress={onReject} activeOpacity={0.8} style={[styles.actionBtn, styles.actionReject]}>
             <Ionicons name="close-outline" size={18} color={color.error} />
-            <Text style={[styles.actionText, { color: color.error }]}>Rifiuta</Text>
+            <Text style={[styles.actionText, { color: color.error }]}>{t('common:btn.reject')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={onApprove} activeOpacity={0.8} style={[styles.actionBtn, styles.actionApprove]}>
             <Ionicons name="checkmark-outline" size={18} color={color.onPrimary} />
-            <Text style={[styles.actionText, { color: color.onPrimary }]}>Approva</Text>
+            <Text style={[styles.actionText, { color: color.onPrimary }]}>{t('common:btn.approve')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -327,6 +349,7 @@ function NewRequestModal({
   onCreated: () => void;
   branches: Array<{ id: string; name: string }>;
 }) {
+  const { t } = useTranslation(['correzioni', 'common']);
   const [step, setStep] = useState<ModalStep>('date');
   const [targetDate, setTargetDate] = useState(() => isoLocal(new Date()));
   const [dayStamps, setDayStamps] = useState<DayStamp[] | null>(null);
@@ -388,7 +411,7 @@ function NewRequestModal({
 
   async function submit() {
     if (justification.trim().length < 5) {
-      Alert.alert('Motivazione', 'Spiega in almeno 5 caratteri.');
+      Alert.alert(t('field.justification'), t('validation.justificationMsg'));
       return;
     }
     setSubmitting(true);
@@ -420,12 +443,12 @@ function NewRequestModal({
 
   const headerTitle =
     step === 'date'
-      ? 'Quale giorno?'
+      ? t('modal.whichDay')
       : step === 'pickStamp'
       ? formatDateLong(targetDate)
       : originalStampId
-      ? 'Modifica timbratura'
-      : 'Nuova timbratura';
+      ? t('modal.editStamp')
+      : t('modal.newStamp');
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -434,7 +457,7 @@ function NewRequestModal({
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1 }}>
           <View style={styles.modalHeader}>
-            <Pressable onPress={back} style={styles.iconBtn} accessibilityLabel="Indietro">
+            <Pressable onPress={back} style={styles.iconBtn} accessibilityLabel={t('common:btn.back')}>
               <Ionicons
                 name={step === 'date' ? 'close' : 'chevron-back'}
                 size={22}
@@ -450,10 +473,9 @@ function NewRequestModal({
           {step === 'date' && (
             <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
               <Text style={styles.helperText}>
-                Scegli la data per cui vuoi richiedere una correzione. Caricheremo le tue
-                timbrature di quel giorno e potrai modificarle o aggiungerne una mancante.
+                {t('dateStep.helper')}
               </Text>
-              <Text style={styles.fieldLabel}>Data</Text>
+              <Text style={styles.fieldLabel}>{t('field.date')}</Text>
               <DateField mode="date" value={targetDate} onChange={setTargetDate} maximumDate={new Date()} />
               <TouchableOpacity
                 onPress={goToPickStamp}
@@ -465,7 +487,7 @@ function NewRequestModal({
                 ) : (
                   <>
                     <Ionicons name="arrow-forward-outline" size={18} color={color.onPrimary} />
-                    <Text style={styles.submitText}>Continua</Text>
+                    <Text style={styles.submitText}>{t('common:btn.continue')}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -475,13 +497,13 @@ function NewRequestModal({
           {step === 'pickStamp' && (
             <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
               <Text style={styles.helperText}>
-                Tocca una timbratura per correggerla, oppure segnala una timbratura mancante.
+                {t('pickStep.helper')}
               </Text>
 
               {dayStamps && dayStamps.length === 0 && (
                 <View style={styles.emptyCard}>
                   <Ionicons name="document-text-outline" size={28} color={color.onSurfaceVariant} />
-                  <Text style={styles.empty}>Nessuna timbratura in questa data.</Text>
+                  <Text style={styles.empty}>{t('pickStep.noStamps')}</Text>
                 </View>
               )}
 
@@ -494,14 +516,11 @@ function NewRequestModal({
                   <View style={[styles.eventChip, { backgroundColor: eventBg(s.event_type) }]}>
                     <Ionicons name={eventIcon(s.event_type)} size={14} color={eventFg(s.event_type)} />
                     <Text style={[styles.eventChipText, { color: eventFg(s.event_type) }]}>
-                      {humanEvent(s.event_type)}
+                      {t(`common:stampEvent.${s.event_type}`)}
                     </Text>
                   </View>
                   <Text style={styles.stampTime}>
-                    {new Date(s.occurred_at).toLocaleTimeString('it-IT', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    {fmtTime(s.occurred_at, TIME_OPTS)}
                   </Text>
                   <Ionicons name="chevron-forward" size={18} color={color.onSurfaceVariant} />
                 </TouchableOpacity>
@@ -513,7 +532,7 @@ function NewRequestModal({
                 style={[styles.stampRow, styles.missingRow]}>
                 <Ionicons name="add-circle-outline" size={20} color={color.primary} />
                 <Text style={[styles.stampTime, { color: color.primary }]}>
-                  Aggiungi una timbratura mancante
+                  {t('pickStep.addMissing')}
                 </Text>
                 <Ionicons name="chevron-forward" size={18} color={color.primary} />
               </TouchableOpacity>
@@ -522,7 +541,7 @@ function NewRequestModal({
 
           {step === 'edit' && (
             <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
-              <Text style={styles.fieldLabel}>Tipo evento</Text>
+              <Text style={styles.fieldLabel}>{t('field.eventType')}</Text>
               <View style={styles.eventGrid}>
                 {EVENT_OPTIONS.map((e) => {
                   const sel = e.value === eventType;
@@ -532,7 +551,7 @@ function NewRequestModal({
                       onPress={() => setEventType(e.value)}
                       style={[styles.eventOpt, sel && styles.eventOptSel]}>
                       <Ionicons name={e.icon} size={18} color={sel ? color.onPrimary : color.primary} />
-                      <Text style={[styles.eventOptText, sel && styles.eventOptTextSel]}>{e.label}</Text>
+                      <Text style={[styles.eventOptText, sel && styles.eventOptTextSel]}>{t(`common:stampEvent.${e.value}`)}</Text>
                     </Pressable>
                   );
                 })}
@@ -540,20 +559,20 @@ function NewRequestModal({
 
               <View style={styles.dateRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.fieldLabel}>Data</Text>
+                  <Text style={styles.fieldLabel}>{t('field.date')}</Text>
                   <View style={styles.fieldStatic}>
                     <Text style={styles.fieldStaticText}>{formatDateLong(targetDate)}</Text>
                   </View>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.fieldLabel}>Ora</Text>
+                  <Text style={styles.fieldLabel}>{t('field.time')}</Text>
                   <DateField mode="time" value={time} onChange={setTime} minuteInterval={5} />
                 </View>
               </View>
 
               {branches.length > 1 && (
                 <>
-                  <Text style={styles.fieldLabel}>Sede</Text>
+                  <Text style={styles.fieldLabel}>{t('field.branch')}</Text>
                   <View style={styles.branchRow}>
                     {branches.map((b) => {
                       const sel = b.id === branchId;
@@ -570,11 +589,11 @@ function NewRequestModal({
                 </>
               )}
 
-              <Text style={styles.fieldLabel}>Motivazione</Text>
+              <Text style={styles.fieldLabel}>{t('field.justification')}</Text>
               <TextInput
                 value={justification}
                 onChangeText={setJustification}
-                placeholder="Es. avevo dimenticato di timbrare l'uscita"
+                placeholder={t('justificationPlaceholder')}
                 placeholderTextColor={color.onSurfaceVariant}
                 multiline
                 numberOfLines={4}
@@ -591,7 +610,7 @@ function NewRequestModal({
                 ) : (
                   <>
                     <Ionicons name="send-outline" size={18} color={color.onPrimary} />
-                    <Text style={styles.submitText}>Invia richiesta</Text>
+                    <Text style={styles.submitText}>{t('submit')}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -609,8 +628,8 @@ function confirmAction(title: string, msg: string, fn: () => void): void {
     return;
   }
   Alert.alert(title, msg, [
-    { text: 'Annulla', style: 'cancel' },
-    { text: 'Conferma', onPress: fn },
+    { text: i18n.t('common:btn.cancel'), style: 'cancel' },
+    { text: i18n.t('common:btn.confirm'), onPress: fn },
   ]);
 }
 
@@ -625,37 +644,26 @@ function promptNote(title: string, fn: (note: string | null) => void): void {
       title,
       undefined,
       [
-        { text: 'Annulla', style: 'cancel' },
-        { text: 'Conferma', onPress: (note?: string) => fn(note ?? '') },
+        { text: i18n.t('common:btn.cancel'), style: 'cancel' },
+        { text: i18n.t('common:btn.confirm'), onPress: (note?: string) => fn(note ?? '') },
       ],
       'plain-text'
     );
     return;
   }
-  Alert.alert(title, 'Procedere senza nota?', [
-    { text: 'Annulla', style: 'cancel' },
-    { text: 'Rifiuta', onPress: () => fn('') },
+  Alert.alert(title, i18n.t('correzioni:reject.androidMsg'), [
+    { text: i18n.t('common:btn.cancel'), style: 'cancel' },
+    { text: i18n.t('common:btn.reject'), onPress: () => fn('') },
   ]);
 }
 
 function showError(err: unknown): void {
   const e = err as { message?: string };
   if (Platform.OS === 'web') {
-    window.alert(e.message ?? 'Errore');
+    window.alert(e.message ?? i18n.t('common:state.error'));
     return;
   }
-  Alert.alert('Errore', e.message ?? 'Operazione non riuscita.');
-}
-
-function humanEvent(e: StampEventType): string {
-  switch (e) {
-    case 'clock_in': return 'Ingresso';
-    case 'clock_out': return 'Uscita';
-    case 'break_start': return 'Inizio pausa';
-    case 'break_end': return 'Fine pausa';
-    case 'lunch_start': return 'Inizio pausa pranzo';
-    case 'lunch_end': return 'Fine pausa pranzo';
-  }
+  Alert.alert(i18n.t('common:state.error'), e.message ?? i18n.t('correzioni:errorFallback'));
 }
 
 function eventIcon(e: StampEventType): keyof typeof Ionicons.glyphMap {
@@ -693,34 +701,18 @@ function eventFg(e: StampEventType): string {
   }
 }
 
-function statusBadge(s: CorrectionRow['status']): { label: string; bg: string; fg: string } {
+function statusBadge(s: CorrectionRow['status']): { labelKey: string; bg: string; fg: string } {
   switch (s) {
-    case 'pending': return { label: 'In attesa', bg: '#fff3d1', fg: color.warning };
-    case 'approved': return { label: 'Approvata', bg: '#e8f3ec', fg: color.success };
-    case 'rejected': return { label: 'Rifiutata', bg: '#fde4e4', fg: color.error };
-    case 'superseded': return { label: 'Superata', bg: color.surfaceVariant, fg: color.onSurfaceVariant };
+    case 'pending': return { labelKey: 'common:status.pending', bg: '#fff3d1', fg: color.warning };
+    case 'approved': return { labelKey: 'common:status.approved', bg: '#e8f3ec', fg: color.success };
+    case 'rejected': return { labelKey: 'common:status.rejected', bg: '#fde4e4', fg: color.error };
+    case 'superseded': return { labelKey: 'correzioni:status.superseded', bg: color.surfaceVariant, fg: color.onSurfaceVariant };
   }
-}
-
-function formatFull(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString('it-IT', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 function formatDateLong(date: string): string {
   const [y, mo, d] = date.split('-').map((s) => parseInt(s, 10));
-  return new Date(y, (mo ?? 1) - 1, d ?? 1).toLocaleDateString('it-IT', {
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  });
+  return fmtDate(new Date(y, (mo ?? 1) - 1, d ?? 1), LONG_DATE_OPTS);
 }
 
 function pad(n: number): string {

@@ -12,12 +12,10 @@ export function NotificationBell() {
   const refresh = useNotifications((s) => s.refresh);
   const [open, setOpen] = useState(false);
 
-  const role = me?.user.role ?? 'user';
-
   useEffect(() => {
     if (!me) return;
-    refresh(role);
-  }, [me, role, refresh]);
+    refresh();
+  }, [me, refresh]);
 
   const onOpen = useCallback(() => setOpen(true), []);
   const onClose = useCallback(() => setOpen(false), []);

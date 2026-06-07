@@ -1,0 +1,108 @@
+{
+  "btn": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "confirm": "Confirm",
+    "close": "Close",
+    "add": "Add",
+    "back": "Back",
+    "next": "Next",
+    "continue": "Continue",
+    "retry": "Retry",
+    "send": "Send",
+    "approve": "Approve",
+    "reject": "Reject",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "logout": "Log out",
+    "refresh": "Refresh"
+  },
+  "state": {
+    "loading": "Loading…",
+    "saving": "Saving…",
+    "all": "All",
+    "none": "None",
+    "empty": "No data",
+    "error": "Error",
+    "errorGeneric": "Something went wrong"
+  },
+  "role": {
+    "admin": "Admin",
+    "user": "Employee"
+  },
+  "status": {
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "cancelled": "Cancelled",
+    "submitted": "Submitted",
+    "cancel_requested": "Cancellation requested"
+  },
+  "stampEvent": {
+    "clock_in": "Clock-in",
+    "clock_out": "Clock-out",
+    "break_start": "Break start",
+    "break_end": "Break end",
+    "lunch_start": "Lunch start",
+    "lunch_end": "Lunch end"
+  },
+  "workState": {
+    "working": "Working",
+    "on_break": "On break",
+    "on_lunch": "At lunch",
+    "off": "Off duty"
+  },
+  "leaveType": {
+    "ferie": "Holiday",
+    "permessi": "Leave",
+    "malattia": "Sick leave",
+    "assenza": "Absence",
+    "chiusura": "Company closure"
+  },
+  "assenzaSubtype": {
+    "lutto": "Bereavement",
+    "donazione_sangue": "Blood donation",
+    "permesso_studio": "Study leave",
+    "permesso_elettorale": "Electoral leave",
+    "matrimonio": "Marriage",
+    "allattamento": "Nursing leave",
+    "congedo_parentale": "Parental leave",
+    "legge_104": "Law 104",
+    "assemblea_sindacale": "Union assembly",
+    "visita_medica": "Medical appointment",
+    "motivi_personali": "Personal reasons"
+  },
+  "unit": {
+    "hours": "Hours",
+    "hoursShort": "h",
+    "days": "days",
+    "day": "day",
+    "minutes": "minutes"
+  },
+  "lang": {
+    "label": "Language",
+    "it": "Italiano",
+    "en": "English"
+  },
+  "errors": {
+    "INVALID_TRANSITION": "Invalid state for this action",
+    "DUPLICATE_TOO_FAST": "You just stamped a moment ago",
+    "OUT_OF_GEOFENCE": "You are outside the allowed area",
+    "MOCK_LOCATION_BLOCKED": "Mock location not allowed",
+    "GPS_ACCURACY_TOO_LOW": "GPS signal too weak",
+    "GPS_REQUIRED": "GPS location required to stamp",
+    "CLOCK_SKEW": "Device clock is not in sync with the server",
+    "UNDO_WINDOW_EXPIRED": "Undo window has expired",
+    "STAMPING_DISABLED": "Stamping not enabled",
+    "LIMIT_REACHED": "Plan limit reached",
+    "LAST_ADMIN": "Cannot remove the last administrator",
+    "NO_ACTIVE_TENANT": "No active company linked to your account",
+    "UNAUTHORIZED": "Unauthorized",
+    "FORBIDDEN": "Forbidden",
+    "NOT_FOUND": "Not found",
+    "VALIDATION": "Invalid input"
+  }
+}

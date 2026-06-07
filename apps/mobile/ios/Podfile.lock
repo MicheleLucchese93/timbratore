@@ -1,9 +1,9 @@
 PODS:
   - EXApplication (56.0.3):
     - ExpoModulesCore
-  - EXConstants (56.0.15):
+  - EXConstants (56.0.16):
     - ExpoModulesCore
-  - Expo (56.0.4):
+  - Expo (56.0.8):
     - ExpoModulesCore
     - ExpoModulesJSI
     - hermes-engine
@@ -29,7 +29,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - ExpoAsset (56.0.14):
+  - ExpoAsset (56.0.15):
     - ExpoModulesCore
   - ExpoDevice (56.0.4):
     - ExpoModulesCore
@@ -47,11 +47,13 @@ PODS:
     - ExpoModulesCore
   - ExpoLinking (56.0.11):
     - ExpoModulesCore
+  - ExpoLocalAuthentication (56.0.4):
+    - ExpoModulesCore
   - ExpoLocation (56.0.13):
     - ExpoModulesCore
   - ExpoLogBox (56.0.12):
     - React-Core
-  - ExpoModulesCore (56.0.12):
+  - ExpoModulesCore (56.0.14):
     - ExpoModulesJSI
     - hermes-engine
     - RCTRequired
@@ -78,10 +80,10 @@ PODS:
   - ExpoModulesJSI (56.0.7):
     - React-Core
     - ReactCommon
-  - ExpoModulesWorklets (56.0.12):
+  - ExpoModulesWorklets (56.0.14):
     - ExpoModulesCore
     - ExpoModulesJSI
-  - ExpoModulesWorkletsAdapter (56.0.12):
+  - ExpoModulesWorkletsAdapter (56.0.14):
     - ExpoModulesCore
     - ExpoModulesJSI
     - ExpoModulesWorklets
@@ -2237,6 +2239,7 @@ DEPENDENCIES:
   - ExpoImage (from `../../../node_modules/expo-image/ios/ExpoImage.podspec`)
   - ExpoKeepAwake (from `../../../node_modules/expo-keep-awake/ios`)
   - ExpoLinking (from `../../../node_modules/expo-linking/ios`)
+  - ExpoLocalAuthentication (from `../../../node_modules/expo-local-authentication/ios`)
   - ExpoLocation (from `../../../node_modules/expo-location/ios/ExpoLocation.podspec`)
   - "ExpoLogBox (from `../../../node_modules/@expo/log-box`)"
   - ExpoModulesCore (from `../../../node_modules/expo-modules-core/ExpoModulesCore.podspec`)
@@ -2360,6 +2363,8 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/expo-keep-awake/ios"
   ExpoLinking:
     :path: "../../../node_modules/expo-linking/ios"
+  ExpoLocalAuthentication:
+    :path: "../../../node_modules/expo-local-authentication/ios"
   ExpoLocation:
     :podspec: "../../../node_modules/expo-location/ios/ExpoLocation.podspec"
   ExpoLogBox:
@@ -2556,9 +2561,9 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   EXApplication: e6040c92edc5522accd62852342e6b14742d42c0
-  EXConstants: 7ad8cebfd251d7275fa2e3878ad0ad64552937e1
-  Expo: c705adbda900eb7e5d2b4d378ae82b254d9e1e05
-  ExpoAsset: 98f83c25d558707659dd6b117adcc03104dd287b
+  EXConstants: 1c400bb9969f4c9e5ab324553138b74ae47b9efe
+  Expo: c82930e1c8b6f2e26308e364499773d3de12d55d
+  ExpoAsset: c2e7b5ba1fe75be683282d6264e38fd7cd8defbb
   ExpoDevice: f527f8bbefa6efa12f8ef63e9038dd1d5d903697
   ExpoDomWebView: 27205be8754f9992913b8a9a08e65019f2207075
   ExpoFileSystem: d730a1cb33f2c91dec01561f0d710054fda32ae9
@@ -2567,12 +2572,13 @@ SPEC CHECKSUMS:
   ExpoImage: 3f44073bf450afdb87333f9671ffe7b9bfa5f70e
   ExpoKeepAwake: 359c47a1d9ccc3a3c519bca6e39562cce230c5bb
   ExpoLinking: 63319fd84bfa6d2ba4b565fc2af1947c65281478
+  ExpoLocalAuthentication: 93f29833d2a8b957f996eddc05a632eb2bdeaa7d
   ExpoLocation: 60630ca1a329177b57113644e1f06ad96aa305be
   ExpoLogBox: 7aa03244fe5eeced5129e4ec7ad5bd9a3994378e
-  ExpoModulesCore: 1e599fe1f769d428fd64a0b76097341fde151db0
+  ExpoModulesCore: 4636484a9a6a551b14e02b896db3979d83fdab19
   ExpoModulesJSI: f25a013ea9a79904bdd535e4bea0872e155cde09
-  ExpoModulesWorklets: 5349d7281651a11e0a5d14f32db8bb47e32c2ff4
-  ExpoModulesWorkletsAdapter: 5916329001093e070f1bbab2d9c4d9b79d1b09ab
+  ExpoModulesWorklets: 3f847eb6ba544bd4b55d585f89b3b18f8cd73a72
+  ExpoModulesWorkletsAdapter: 08d0a87724d7ec02bcc887f59d19aed44dfa894f
   ExpoNotifications: d44bcad88060b913143633e0aee2d331a2dc6f05
   ExpoRouter: ec5c793ef2a5ade5ecbd3097831c7b9411ed43be
   ExpoSecureStore: f1bd083c1b7b8d4142013ffcc0082d377d9f49f4

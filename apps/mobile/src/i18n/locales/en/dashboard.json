@@ -1,0 +1,32 @@
+{
+  "title": "Dashboard",
+  "kpi": {
+    "presentNow": "Present now",
+    "onBreak": "On break",
+    "absentToday": "Absent today",
+    "toApprove": "To approve",
+    "anomalies7d": "Anomalies 7d",
+    "branches": "Branches"
+  },
+  "absences": {
+    "title": "Absences",
+    "horizon": {
+      "today": "Today",
+      "d7": "7d",
+      "d14": "14d"
+    },
+    "emptyToday": "No absences today",
+    "emptyUpcoming": "No scheduled absences",
+    "until": "until {{date}}",
+    "on": "on {{date}}",
+    "range": "{{from}} → {{to}}"
+  },
+  "currentState": {
+    "title": "Current status",
+    "list": "List",
+    "byBranch": "By branch",
+    "noEmployees": "No employees yet",
+    "nobodyPresent": "Nobody present",
+    "noBranch": "No branch"
+  }
+}

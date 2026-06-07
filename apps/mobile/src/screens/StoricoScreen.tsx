@@ -11,22 +11,33 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
 import type { StampEventType } from '@sonoqui/shared';
 import { color, space, type as t } from '@sonoqui/shared';
-import { computeDayTotals, formatDuration, isoDay, type DayStamp } from '../lib/day-totals';
+import { fmtDate, fmtTime } from '../i18n/format';
+import { formatDuration, isoDay, type DayStamp } from '../lib/day-totals';
+import {
+  computeCountedDayClosed,
+  isScheduledWorkday,
+  type ActiveAssignment,
+  type LeaveInterval,
+} from '../lib/counted-day';
 import { AppHeader } from '../components/AppHeader';
 import { WorkStateChip } from '../components/WorkStateChip';
 
 const RANGES = [
-  { id: 7, label: '7 giorni' },
-  { id: 30, label: '30 giorni' },
-  { id: 90, label: '90 giorni' },
+  { id: 7, labelKey: 'range.7' },
+  { id: 30, labelKey: 'range.30' },
+  { id: 90, labelKey: 'range.90' },
 ] as const;
 
 export function StoricoScreen() {
+  const { t: tr } = useTranslation(['storico', 'common']);
   const [days, setDays] = useState(30);
   const [stamps, setStamps] = useState<DayStamp[]>([]);
+  const [assignment, setAssignment] = useState<ActiveAssignment | null>(null);
+  const [leaves, setLeaves] = useState<LeaveInterval[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -35,8 +46,16 @@ export function StoricoScreen() {
     const from = new Date();
     from.setDate(from.getDate() - n);
     try {
-      const list = await api<DayStamp[]>(`/api/v1/stamps/me?from=${isoDay(from)}&to=${isoDay(to)}`);
+      const [list, a, lv] = await Promise.all([
+        api<DayStamp[]>(`/api/v1/stamps/me?from=${isoDay(from)}&to=${isoDay(to)}`),
+        api<ActiveAssignment | null>('/api/v1/shifts/assignments/me').catch(() => null),
+        api<LeaveInterval[]>(
+          `/api/v1/leaves?scope=mine&status=approved&from=${isoDay(from)}&to=${isoDay(to)}`
+        ).catch(() => []),
+      ]);
       setStamps(list);
+      setAssignment(a);
+      setLeaves(lv);
     } catch {
       /* ignore */
     } finally {
@@ -50,11 +69,27 @@ export function StoricoScreen() {
     fetchStamps(days);
   }, [fetchStamps, days]);
 
-  const byDay = useMemo(() => groupByDay(stamps), [stamps]);
-  const totalWorkedMs = useMemo(
-    () => byDay.reduce((acc, d) => acc + computeDayTotals(d.stamps).workedMs, 0),
-    [byDay]
-  );
+  // Hide rest days (no shift slot for that weekday) unless work was actually
+  // logged on them; scheduled work days always show. Without an assignment the
+  // schedule is unknown, so every stamped day is kept.
+  const byDay = useMemo(() => {
+    const grouped = groupByDay(stamps);
+    if (!assignment) return grouped;
+    return grouped.filter((d) => {
+      if (isScheduledWorkday(assignment, d.day)) return true;
+      return computeCountedDayClosed(d.stamps, assignment, d.day, leaves).workedMs > 0;
+    });
+  }, [stamps, assignment, leaves]);
+  const totals = useMemo(() => {
+    let worked = 0;
+    let counted = 0;
+    for (const d of byDay) {
+      const c = computeCountedDayClosed(d.stamps, assignment, d.day, leaves);
+      worked += c.workedMs;
+      counted += c.countedTotalMs;
+    }
+    return { worked, counted };
+  }, [byDay, assignment, leaves]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -68,7 +103,9 @@ export function StoricoScreen() {
               onPress={() => setDays(r.id)}
               activeOpacity={0.7}
               style={[styles.tabPill, sel && styles.tabPillActive]}>
-              <Text style={[styles.tabPillText, sel && styles.tabPillTextActive]}>{r.label}</Text>
+              <Text style={[styles.tabPillText, sel && styles.tabPillTextActive]}>
+                {tr(r.labelKey)}
+              </Text>
             </TouchableOpacity>
           );
         })}
@@ -88,13 +125,16 @@ export function StoricoScreen() {
         }>
         {!loading && byDay.length > 0 && (
           <View style={styles.summaryCard}>
-            <View>
-              <Text style={styles.summaryLabel}>Totale lavorato</Text>
-              <Text style={styles.summaryValue}>{formatDuration(totalWorkedMs)}</Text>
+            <View style={styles.summaryLeft}>
+              <Text style={styles.summaryLabel}>{tr('summary.countedTotal')}</Text>
+              <Text style={styles.summaryValue}>{formatDuration(totals.counted)}</Text>
+              <Text style={styles.summarySub}>
+                {tr('summary.worked', { value: formatDuration(totals.worked) })}
+              </Text>
             </View>
             <View style={styles.summaryRight}>
               <Text style={styles.summaryDays}>{byDay.length}</Text>
-              <Text style={styles.summaryDaysLabel}>giorni</Text>
+              <Text style={styles.summaryDaysLabel}>{tr('common:unit.days')}</Text>
             </View>
           </View>
         )}
@@ -107,20 +147,31 @@ export function StoricoScreen() {
         {!loading && byDay.length === 0 && (
           <View style={styles.emptyCard}>
             <Ionicons name="calendar-outline" size={32} color={color.onSurfaceVariant} />
-            <Text style={styles.empty}>Nessuna timbratura nel periodo.</Text>
+            <Text style={styles.empty}>{tr('empty')}</Text>
           </View>
         )}
         {byDay.map((d) => (
-          <DayCard key={d.day} day={d.day} stamps={d.stamps} />
+          <DayCard key={d.day} day={d.day} stamps={d.stamps} assignment={assignment} leaves={leaves} />
         ))}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function DayCard({ day, stamps }: { day: string; stamps: DayStamp[] }) {
+function DayCard({
+  day,
+  stamps,
+  assignment,
+  leaves,
+}: {
+  day: string;
+  stamps: DayStamp[];
+  assignment: ActiveAssignment | null;
+  leaves: LeaveInterval[];
+}) {
+  const { t: tr } = useTranslation(['storico', 'common']);
   const [expanded, setExpanded] = useState(false);
-  const totals = computeDayTotals(stamps);
+  const totals = computeCountedDayClosed(stamps, assignment, day, leaves);
   const sorted = [...stamps].sort(
     (a, b) => new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime()
   );
@@ -130,18 +181,15 @@ function DayCard({ day, stamps }: { day: string; stamps: DayStamp[] }) {
         onPress={() => setExpanded((v) => !v)}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
-        accessibilityLabel={expanded ? 'Comprimi giorno' : 'Espandi giorno'}
+        accessibilityLabel={expanded ? tr('a11y.collapseDay') : tr('a11y.expandDay')}
         style={styles.cardHeader}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.dayLabel}>{formatDay(day)}</Text>
+          <Text style={styles.dayLabel}>{formatDay(day, tr)}</Text>
           {(totals.breakMs > 0 || totals.lunchMs > 0) && (
             <Text style={styles.breakLine}>
-              Pause {formatDuration(totals.breakMs + totals.lunchMs)}
+              {tr('breaks', { value: formatDuration(totals.breakMs + totals.lunchMs) })}
             </Text>
           )}
-        </View>
-        <View style={styles.dayTotalBadge}>
-          <Text style={styles.dayTotal}>{formatDuration(totals.workedMs)}</Text>
         </View>
         <View style={styles.chevron}>
           <Ionicons
@@ -151,6 +199,23 @@ function DayCard({ day, stamps }: { day: string; stamps: DayStamp[] }) {
           />
         </View>
       </Pressable>
+
+      <View style={styles.metricStrip}>
+        <View style={styles.metricCol}>
+          <Text style={styles.metricCaption}>{tr('metric.worked')}</Text>
+          <Text style={styles.metricWorked}>{formatDuration(totals.workedMs)}</Text>
+        </View>
+        <View style={styles.metricDivider} />
+        <View style={styles.metricCol}>
+          <Text style={styles.metricCaption}>{tr('metric.counted')}</Text>
+          <Text style={styles.metricCounted}>{formatDuration(totals.countedTotalMs)}</Text>
+          {totals.overtimeMs > 0 && (
+            <Text style={styles.metricExtra}>
+              {tr('metric.overtime', { value: formatDuration(totals.overtimeMs) })}
+            </Text>
+          )}
+        </View>
+      </View>
       {expanded && (
         <View style={styles.eventList}>
           {sorted.map((s) => (
@@ -158,8 +223,10 @@ function DayCard({ day, stamps }: { day: string; stamps: DayStamp[] }) {
               <View style={[styles.eventIcon, { backgroundColor: dotBg(s.event_type) }]}>
                 <Ionicons name={eventIcon(s.event_type)} size={14} color={dotFg(s.event_type)} />
               </View>
-              <Text style={styles.eventLabel}>{humanEvent(s.event_type)}</Text>
-              <Text style={styles.eventTime}>{formatTime(s.occurred_at)}</Text>
+              <Text style={styles.eventLabel}>{tr(`common:stampEvent.${s.event_type}`)}</Text>
+              <Text style={styles.eventTime}>
+                {fmtTime(s.occurred_at, { hour: '2-digit', minute: '2-digit' })}
+              </Text>
             </View>
           ))}
         </View>
@@ -181,29 +248,13 @@ function groupByDay(stamps: DayStamp[]): Array<{ day: string; stamps: DayStamp[]
     .sort((a, b) => (a.day < b.day ? 1 : -1));
 }
 
-function formatDay(iso: string): string {
+function formatDay(iso: string, tr: (key: string) => string): string {
   const d = new Date(`${iso}T12:00:00`);
   const today = isoDay(new Date());
   const yesterday = isoDay(new Date(Date.now() - 86400_000));
-  if (iso === today) return 'Oggi';
-  if (iso === yesterday) return 'Ieri';
-  return d.toLocaleDateString('it-IT', { weekday: 'long', day: '2-digit', month: 'long' });
-}
-
-function formatTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-}
-
-function humanEvent(e: StampEventType): string {
-  switch (e) {
-    case 'clock_in': return 'Ingresso';
-    case 'clock_out': return 'Uscita';
-    case 'break_start': return 'Inizio pausa';
-    case 'break_end': return 'Fine pausa';
-    case 'lunch_start': return 'Inizio pausa pranzo';
-    case 'lunch_end': return 'Fine pausa pranzo';
-  }
+  if (iso === today) return tr('today');
+  if (iso === yesterday) return tr('yesterday');
+  return fmtDate(d, { weekday: 'long', day: '2-digit', month: 'long' });
 }
 
 function eventIcon(e: StampEventType): keyof typeof Ionicons.glyphMap {
@@ -283,6 +334,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 2,
   },
+  summaryLeft: { flex: 1 },
   summaryLabel: {
     fontSize: 11,
     fontWeight: '600',
@@ -298,7 +350,14 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     letterSpacing: -0.5,
   },
-  summaryRight: { alignItems: 'flex-end' },
+  summarySub: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: color.onSurfaceVariant,
+    marginTop: 2,
+    fontVariant: ['tabular-nums'],
+  },
+  summaryRight: { alignItems: 'flex-end', paddingLeft: space.s3 },
   summaryDays: { fontSize: 24, fontWeight: '700', color: color.onSurface, fontVariant: ['tabular-nums'] },
   summaryDaysLabel: { fontSize: 11, fontWeight: '600', color: color.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.5 },
 
@@ -338,17 +397,53 @@ const styles = StyleSheet.create({
     color: color.onSurface,
     textTransform: 'capitalize',
   },
-  dayTotalBadge: {
-    backgroundColor: '#ffe0c8',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-  },
-  dayTotal: { fontSize: 14, fontWeight: '700', color: color.primary, fontVariant: ['tabular-nums'] },
   breakLine: {
     fontSize: 12,
     color: color.onSurfaceVariant,
     marginTop: 2,
+  },
+
+  metricStrip: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: color.surfaceVariant,
+  },
+  metricCol: { flex: 1, gap: 3 },
+  metricDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: 'stretch',
+    backgroundColor: color.surfaceVariant,
+    marginHorizontal: space.s3,
+  },
+  metricCaption: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: color.onSurfaceVariant,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  metricWorked: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: color.onSurface,
+    fontVariant: ['tabular-nums'],
+    letterSpacing: -0.3,
+  },
+  metricCounted: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: color.primary,
+    fontVariant: ['tabular-nums'],
+    letterSpacing: -0.3,
+  },
+  metricExtra: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: color.onSurfaceVariant,
+    fontVariant: ['tabular-nums'],
   },
 
   eventList: { marginTop: 14, gap: 10 },

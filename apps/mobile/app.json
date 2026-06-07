@@ -66,6 +66,12 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "sonoQui usa Face ID per sbloccare l'app e proteggere l'accesso al tuo account. sonoQui uses Face ID to unlock the app and protect access to your account."
+        }
+      ],
       "expo-sqlite",
       "@react-native-community/datetimepicker",
       "./plugins/withInstallGroupFix"

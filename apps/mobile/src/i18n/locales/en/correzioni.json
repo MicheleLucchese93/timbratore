@@ -1,0 +1,55 @@
+{
+  "newRequest": "New request",
+  "empty": {
+    "admin": "No requests to review.",
+    "user": "You have no requests."
+  },
+  "diff": {
+    "current": "Current",
+    "requested": "Requested",
+    "event": "Event",
+    "when": "When",
+    "branch": "Branch",
+    "missingTitle": "Missing stamp to add"
+  },
+  "justificationLabel": "Reason",
+  "justificationPlaceholder": "E.g. I forgot to clock out",
+  "approverReply": "Approver reply",
+  "sentAt": "Sent {{date}}",
+  "status": {
+    "superseded": "Superseded"
+  },
+  "confirm": {
+    "approveTitle": "Approve?",
+    "approveMsg": "The stamp will be created or updated."
+  },
+  "reject": {
+    "promptTitle": "Reason for rejection",
+    "androidMsg": "Proceed without a note?"
+  },
+  "validation": {
+    "justificationMsg": "Explain in at least 5 characters."
+  },
+  "errorFallback": "The operation failed.",
+  "modal": {
+    "whichDay": "Which day?",
+    "editStamp": "Edit stamp",
+    "newStamp": "New stamp"
+  },
+  "dateStep": {
+    "helper": "Choose the date you want to request a correction for. We'll load your stamps for that day so you can edit them or add a missing one."
+  },
+  "pickStep": {
+    "helper": "Tap a stamp to correct it, or report a missing stamp.",
+    "noStamps": "No stamps on this date.",
+    "addMissing": "Add a missing stamp"
+  },
+  "field": {
+    "date": "Date",
+    "time": "Time",
+    "branch": "Branch",
+    "eventType": "Event type",
+    "justification": "Reason"
+  },
+  "submit": "Send request"
+}

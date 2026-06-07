@@ -2,8 +2,6 @@ import { AppState, type AppStateStatus, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { useNotifications } from './notifications';
 
-type Role = 'admin' | 'user';
-
 // SDK 56: shouldShowAlert replaced by shouldShowBanner + shouldShowList.
 // Register at module load (app/index.tsx imports this synchronously)
 // so a push arriving before setupBadgeSync runs still surfaces.
@@ -27,10 +25,10 @@ export async function updateAppBadgeCount(count: number): Promise<void> {
   }
 }
 
-export function setupBadgeSync(role: Role): () => void {
+export function setupBadgeSync(): () => void {
   if (Platform.OS === 'web') return () => {};
 
-  const refresh = () => useNotifications.getState().refresh(role);
+  const refresh = () => useNotifications.getState().refresh();
 
   // Mirror in-app unread count to OS badge whenever it changes
   // (markAsRead, markAllAsRead, refresh result, etc.).

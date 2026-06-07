@@ -11,7 +11,7 @@ import { setupBadgeSync } from '../lib/badgeSync';
 const REFRESH_SAFETY_MS = 1500;
 
 export default function Index() {
-  const { me, loading, refresh } = useSession();
+  const { me, loading, tenants, activeTenantId, refresh } = useSession();
   const [bootDone, setBootDone] = useState(false);
   const cancelledRef = useRef(false);
 
@@ -49,7 +49,7 @@ export default function Index() {
   const role = me?.user.role;
   useEffect(() => {
     if (!role) return;
-    const teardown = setupBadgeSync(role);
+    const teardown = setupBadgeSync();
     return teardown;
   }, [role]);
 
@@ -61,5 +61,7 @@ export default function Index() {
     );
   }
   if (me) return <Redirect href={me.user.role === 'admin' ? '/dashboard' : '/timbrature'} />;
+  // Authenticated but a member of several companies with none chosen yet.
+  if (tenants.length > 1 && !activeTenantId) return <Redirect href="/choose-tenant" />;
   return <LoginScreen />;
 }

@@ -1,0 +1,24 @@
+{
+  "range": {
+    "7": "7 giorni",
+    "30": "30 giorni",
+    "90": "90 giorni"
+  },
+  "summary": {
+    "countedTotal": "Totale conteggiato",
+    "worked": "Lavorate {{value}}"
+  },
+  "empty": "Nessuna timbratura nel periodo.",
+  "today": "Oggi",
+  "yesterday": "Ieri",
+  "breaks": "Pause {{value}}",
+  "metric": {
+    "worked": "Lavorate",
+    "counted": "Conteggiate",
+    "overtime": "di cui {{value}} straord."
+  },
+  "a11y": {
+    "expandDay": "Espandi giorno",
+    "collapseDay": "Comprimi giorno"
+  }
+}

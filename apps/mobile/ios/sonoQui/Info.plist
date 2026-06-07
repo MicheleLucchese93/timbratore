@@ -47,6 +47,8 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSFaceIDUsageDescription</key>
+	<string>sonoQui usa Face ID per sbloccare l'app e proteggere l'accesso al tuo account. sonoQui uses Face ID to unlock the app and protect access to your account.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>sonoQui usa la posizione SOLO al momento della timbratura per verificare che tu sia presso la sede di lavoro. La posizione NON viene mai tracciata in background. sonoQui uses your location ONLY at clock-in to verify you are at the work site. Location is NEVER tracked in the background.</string>
 	<key>NSMotionUsageDescription</key>

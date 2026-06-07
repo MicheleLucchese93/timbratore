@@ -12,10 +12,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Trans, useTranslation } from 'react-i18next';
 import { color, space } from '@sonoqui/shared';
 import { recoverPassword } from '../lib/api';
 
 export function ForgotPasswordScreen() {
+  const { t } = useTranslation(['forgotPassword', 'common']);
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -58,18 +60,19 @@ export function ForgotPasswordScreen() {
             <Text style={styles.brand}>
               sono<Text style={styles.brandAccent}>Qui</Text>
             </Text>
-            <Text style={styles.subtitle}>Password dimenticata</Text>
+            <Text style={styles.subtitle}>{t('subtitle')}</Text>
           </View>
 
           {sent ? (
             <View>
               <View style={styles.successBanner}>
-                <Text style={styles.successTitle}>Controlla la tua casella</Text>
+                <Text style={styles.successTitle}>{t('success.title')}</Text>
                 <Text style={styles.successBody}>
-                  Se l&apos;email{' '}
-                  <Text style={styles.emailHighlight}>{email.trim()}</Text>{' '}
-                  è registrata, abbiamo inviato un link per reimpostare la
-                  password. Controlla anche la cartella spam.
+                  <Trans
+                    i18nKey="forgotPassword:success.bodyRegistered"
+                    values={{ email: email.trim() }}
+                    components={{ 0: <Text style={styles.emailHighlight} /> }}
+                  />
                 </Text>
               </View>
               <Pressable
@@ -80,7 +83,7 @@ export function ForgotPasswordScreen() {
                   pressed && styles.ctaPressed,
                 ]}
               >
-                <Text style={styles.ctaText}>Torna al login</Text>
+                <Text style={styles.ctaText}>{t('backToLogin')}</Text>
               </Pressable>
             </View>
           ) : (

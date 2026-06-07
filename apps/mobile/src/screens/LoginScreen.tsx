@@ -15,8 +15,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Constants from 'expo-constants';
+import { useTranslation } from 'react-i18next';
 import { loginWithPassword } from '../lib/api';
 import { useSession } from '../store/session';
+import { useLock } from '../store/lock';
 import { color, space } from '@sonoqui/shared';
 
 const LOGO = require('../../assets/images/icon.png');
@@ -35,6 +37,7 @@ const DEV_PASSWORD = isExpoGoDev
   : '';
 
 export function LoginScreen() {
+  const { t } = useTranslation('login');
   const [email, setEmail] = useState(DEV_EMAIL);
   const [password, setPassword] = useState(DEV_PASSWORD);
   const [busy, setBusy] = useState(false);
@@ -44,6 +47,7 @@ export function LoginScreen() {
   const [pwdVisible, setPwdVisible] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const refresh = useSession((s) => s.refresh);
+  const markUnlocked = useLock((s) => s.markUnlocked);
 
   // `keyboardWillShow`/`Hide` fire in lockstep with the iOS keyboard's own
   // animation, so the brand block disappears and the form slides up in a
@@ -70,20 +74,23 @@ export function LoginScreen() {
   async function submit() {
     if (busy) return;
     if (!email.trim()) {
-      setErr("Inserisci l'email.");
+      setErr(t('emailRequired'));
       return;
     }
     if (!password) {
-      setErr('Inserisci la password.');
+      setErr(t('passwordRequired'));
       return;
     }
     setBusy(true);
     setErr(null);
     try {
       await loginWithPassword(email.trim().toLowerCase(), password);
+      // The password itself just proved identity — don't immediately gate
+      // this session behind the biometric lock (if enabled on this device).
+      markUnlocked();
       await refresh();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Accesso fallito');
+      setErr(e instanceof Error ? e.message : t('failed'));
     } finally {
       setBusy(false);
     }
@@ -121,7 +128,7 @@ export function LoginScreen() {
                 sono<Text style={styles.brandAccent}>Qui</Text>
               </Text>
               <Text style={styles.subtitle}>
-                Il tempo che lavori, semplice come dirlo.
+                {t('tagline')}
               </Text>
             </View>
           ) : null}
@@ -134,12 +141,12 @@ export function LoginScreen() {
             ) : null}
 
             <View style={styles.fieldWrapper}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={styles.label}>{t('email')}</Text>
               <TextInput
                 style={[styles.input, emailFocus && styles.inputFocused]}
                 value={email}
                 onChangeText={setEmail}
-                placeholder="email@azienda.it"
+                placeholder={t('emailPlaceholder')}
                 placeholderTextColor={color.outline}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -154,15 +161,15 @@ export function LoginScreen() {
 
             <View style={styles.fieldWrapper}>
               <View style={styles.labelRow}>
-                <Text style={styles.label}>Password</Text>
+                <Text style={styles.label}>{t('password')}</Text>
                 <Pressable
                   onPress={openForgot}
                   hitSlop={8}
                   accessibilityRole="link"
-                  accessibilityLabel="Password dimenticata"
+                  accessibilityLabel={t('forgotPasswordA11y')}
                   style={({ pressed }) => [pressed && styles.forgotPressed]}
                 >
-                  <Text style={styles.forgotText}>Password dimenticata?</Text>
+                  <Text style={styles.forgotText}>{t('forgotPassword')}</Text>
                 </Pressable>
               </View>
               <View style={[styles.inputShell, pwdFocus && styles.inputFocused]}>
@@ -186,7 +193,7 @@ export function LoginScreen() {
                   hitSlop={12}
                   accessibilityRole="button"
                   accessibilityLabel={
-                    pwdVisible ? 'Nascondi password' : 'Mostra password'
+                    pwdVisible ? t('hidePassword') : t('showPassword')
                   }
                   style={({ pressed }) => [
                     styles.toggle,
@@ -194,7 +201,7 @@ export function LoginScreen() {
                   ]}
                 >
                   <Text style={styles.toggleText}>
-                    {pwdVisible ? 'Nascondi' : 'Mostra'}
+                    {pwdVisible ? t('hide') : t('show')}
                   </Text>
                 </Pressable>
               </View>
@@ -204,7 +211,7 @@ export function LoginScreen() {
               onPress={busy ? undefined : submit}
               disabled={busy}
               accessibilityRole="button"
-              accessibilityLabel="Accedi"
+              accessibilityLabel={t('signIn')}
               style={({ pressed }) => [
                 styles.cta,
                 pressed && styles.ctaPressed,
@@ -214,14 +221,14 @@ export function LoginScreen() {
               {busy ? (
                 <ActivityIndicator color={color.onPrimary} />
               ) : (
-                <Text style={styles.ctaText}>Accedi</Text>
+                <Text style={styles.ctaText}>{t('signIn')}</Text>
               )}
             </Pressable>
           </View>
 
           {!keyboardVisible ? (
             <Text style={styles.hint}>
-              Non hai un account? Contatta l&apos;amministratore della tua azienda.
+              {t('noAccount')}
             </Text>
           ) : null}
         </ScrollView>

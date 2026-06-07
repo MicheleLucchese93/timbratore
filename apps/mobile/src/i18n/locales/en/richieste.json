@@ -1,0 +1,96 @@
+{
+  "tab": {
+    "mine": "Mine",
+    "calendar": "Calendar",
+    "inbox": "To approve"
+  },
+  "status": {
+    "superseded_by_malattia": "Superseded by sick leave"
+  },
+  "kpi": {
+    "ferie": "Holiday",
+    "permessi": "Leave",
+    "total": "Total {{total}} · Used {{used}}",
+    "noQuota": "No allowance"
+  },
+  "quota": {
+    "title": "Availability",
+    "ferie": "Holiday",
+    "permessi": "Leave",
+    "initial": "Initial",
+    "accrued": "Accrued",
+    "used": "Used",
+    "pending": "Pending",
+    "residualAfterPending": "Remaining after pending requests: {{value}}h"
+  },
+  "empty": {
+    "mine": "You have no requests.",
+    "inbox": "No requests to approve."
+  },
+  "fab": "New request",
+  "card": {
+    "paid": "paid",
+    "unpaid": "unpaid",
+    "inps": "INPS: {{protocol}}",
+    "rejectionReason": "Rejection reason",
+    "cancellation": "Cancellation",
+    "requestCancellation": "Request cancellation",
+    "acceptCancellation": "Accept cancellation",
+    "sentAt": "Sent {{date}}"
+  },
+  "confirm": {
+    "cancelTitle": "Cancel request?",
+    "cancelMessage": "It will be cancelled permanently.",
+    "approveTitle": "Approve?",
+    "summary": "{{type}} • {{hours}}h",
+    "acceptCancelTitle": "Accept cancellation?",
+    "rejectCancelTitle": "Reject cancellation?"
+  },
+  "prompt": {
+    "cancellationReason": "Reason for cancellation",
+    "rejectionReason": "Reason for rejection",
+    "rejectionRequiredTitle": "Reason required",
+    "rejectionRequiredMessage": "Enter a reason for the rejection."
+  },
+  "error": {
+    "generic": "Error",
+    "operationFailed": "Operation failed."
+  },
+  "modal": {
+    "title": "New request",
+    "typeLabel": "Type",
+    "quotaHint": "Available: {{strict}}h · ",
+    "quotaHintPending": "{{pending}}h after pending requests",
+    "assenzaTypeLabel": "Absence type",
+    "compensationLabel": "Pay",
+    "paid": "Paid",
+    "unpaid": "Unpaid",
+    "from": "From",
+    "to": "To",
+    "durationLabel": "Duration",
+    "allDay": "All day",
+    "specificTime": "Specific time",
+    "startTime": "Start time",
+    "endTime": "End time",
+    "noApprover": "No approver configured",
+    "approver": "Approver: {{names}}",
+    "inpsLabel": "INPS protocol number",
+    "inpsPlaceholder": "e.g. 1234567890",
+    "reasonOptional": "Reason (optional)",
+    "notesOptional": "Notes (optional)",
+    "submitReport": "Submit report",
+    "submitRequest": "Submit request",
+    "inpsRequiredTitle": "INPS protocol",
+    "inpsRequiredMessage": "Enter the INPS protocol number for the sick leave.",
+    "periodTitle": "Period",
+    "periodMessage": "The end time must be after the start."
+  },
+  "notePlaceholder": {
+    "malattia": "e.g. flu",
+    "permessi": "e.g. medical appointment",
+    "assenza": "e.g. grandfather's funeral",
+    "ferie": "e.g. brother's wedding"
+  },
+  "androidPromptHint": "On Android, confirm without additional text.",
+  "unspecifiedReason": "reason not specified"
+}

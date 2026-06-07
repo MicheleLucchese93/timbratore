@@ -4,6 +4,9 @@ import { Platform } from 'react-native';
 
 const ACCESS_KEY = 'sonoqui.access_token';
 const REFRESH_KEY = 'sonoqui.refresh_token';
+// Chosen company, sent as X-Tenant-Id on every request (users may belong to
+// several). Cached in memory so we don't hit the keychain on each call.
+const TENANT_KEY = 'sonoqui.tenant_id';
 
 // Mirrors Documents/Penno/apps/mobile/src/services/secureStorage.ts —
 // cold-start keychain reads throw transiently on iOS (first read after
@@ -112,10 +115,36 @@ export async function setTokens(access: string, refresh: string): Promise<void> 
   await storeSet(REFRESH_KEY, refresh);
   scheduleProactiveRefresh(access);
 }
+
+let tenantIdCache: string | null | undefined; // undefined = not yet loaded
+export async function getTenantId(): Promise<string | null> {
+  if (tenantIdCache !== undefined) return tenantIdCache;
+  tenantIdCache = await storeGet(TENANT_KEY);
+  return tenantIdCache;
+}
+export async function setTenantId(id: string | null): Promise<void> {
+  tenantIdCache = id;
+  if (id) await storeSet(TENANT_KEY, id);
+  else await storeDel(TENANT_KEY);
+}
+
 export async function clearTokens(): Promise<void> {
   clearProactiveTimer();
+  tenantIdCache = null;
   await storeDel(ACCESS_KEY);
   await storeDel(REFRESH_KEY);
+  await storeDel(TENANT_KEY);
+}
+
+// UI language ('it' | 'en'). Persisted alongside tokens so the chosen language
+// survives restarts and is read once at cold start to seed i18next. Kept here
+// to reuse the same dual web/native storage + retry ladder as the tokens.
+const LANG_KEY = 'sonoqui.lang';
+export async function getStoredLang(): Promise<string | null> {
+  return storeGet(LANG_KEY);
+}
+export async function setStoredLang(value: string): Promise<void> {
+  await storeSet(LANG_KEY, value);
 }
 
 export interface ApiError extends Error {
@@ -151,13 +180,19 @@ async function refreshAccessToken(): Promise<boolean> {
 
 export async function api<T = unknown>(
   path: string,
-  init: RequestInit & { json?: unknown } = {}
+  init: RequestInit & { json?: unknown; noTenant?: boolean } = {}
 ): Promise<T> {
   const exec = async (): Promise<Response> => {
     const headers = new Headers(init.headers ?? {});
     headers.set('Accept', 'application/json');
     const token = await getToken();
     if (token) headers.set('Authorization', `Bearer ${token}`);
+    // Tenant scope. Skipped for the company-list call (noTenant) so a stale
+    // stored id can't 403 us out of our own list.
+    if (!init.noTenant) {
+      const tid = await getTenantId();
+      if (tid) headers.set('X-Tenant-Id', tid);
+    }
     let body = init.body;
     if (init.json !== undefined) {
       headers.set('Content-Type', 'application/json');

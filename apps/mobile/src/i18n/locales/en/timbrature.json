@@ -1,0 +1,43 @@
+{
+  "hero": {
+    "workedHours": "Hours worked",
+    "countedHours": "Counted hours",
+    "breaks": "Breaks"
+  },
+  "schedule": {
+    "title": "Today's schedule",
+    "total": "Total {{duration}}",
+    "restDay": "Today is a rest day"
+  },
+  "branch": {
+    "title": "Location",
+    "lockedUntilExit": "Locked until clock-out",
+    "offSite": "Off-site"
+  },
+  "action": {
+    "clockIn": "Clock in",
+    "clockOut": "Clock out",
+    "breakStart": "Start break",
+    "lunchStart": "Start lunch break",
+    "breakEnd": "End break",
+    "lunchEnd": "End lunch break"
+  },
+  "disabledNotice": "Stamping is not enabled for your profile. Contact your administrator.",
+  "undoLast": "Undo last stamp",
+  "lastEvent": "Last event: {{event}} at {{time}}",
+  "alert": {
+    "outOfAreaTitle": "Clock-out outside area",
+    "outOfAreaMessage": "You were outside the location's area: the clock-out was recorded as an anomaly.",
+    "offlineTitle": "No connection",
+    "offlineMessage": "Stamp queued. It will be sent when you're back online.",
+    "stampFailedTitle": "Stamp failed",
+    "gpsTitle": "GPS location",
+    "undoFailedTitle": "Unable to undo"
+  },
+  "error": {
+    "LOCATION_PERMISSION_DENIED": "Location permission denied. Go to Settings.",
+    "ACQUISITION_TIMEOUT": "GPS unavailable. Move outdoors and try again.",
+    "WEB_CLOCK_IN_DISABLED": "Web stamping is not allowed for this user.",
+    "unknown": "Unknown error."
+  }
+}

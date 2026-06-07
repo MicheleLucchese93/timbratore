@@ -1,0 +1,96 @@
+{
+  "tab": {
+    "mine": "Le mie",
+    "calendar": "Calendario",
+    "inbox": "Da approvare"
+  },
+  "status": {
+    "superseded_by_malattia": "Sostituita da malattia"
+  },
+  "kpi": {
+    "ferie": "Ferie",
+    "permessi": "Permessi",
+    "total": "Totale {{total}} · Usate {{used}}",
+    "noQuota": "Nessuna quota"
+  },
+  "quota": {
+    "title": "Disponibilità",
+    "ferie": "Ferie",
+    "permessi": "Permessi",
+    "initial": "Iniziale",
+    "accrued": "Maturate",
+    "used": "Usate",
+    "pending": "In attesa",
+    "residualAfterPending": "Residuo dopo richieste in attesa: {{value}}h"
+  },
+  "empty": {
+    "mine": "Non hai richieste.",
+    "inbox": "Nessuna richiesta da approvare."
+  },
+  "fab": "Nuova richiesta",
+  "card": {
+    "paid": "retribuita",
+    "unpaid": "non retribuita",
+    "inps": "INPS: {{protocol}}",
+    "rejectionReason": "Motivo rifiuto",
+    "cancellation": "Annullamento",
+    "requestCancellation": "Richiedi annullamento",
+    "acceptCancellation": "Accetta annullamento",
+    "sentAt": "Inviata {{date}}"
+  },
+  "confirm": {
+    "cancelTitle": "Annullare richiesta?",
+    "cancelMessage": "Verrà annullata definitivamente.",
+    "approveTitle": "Approvare?",
+    "summary": "{{type}} • {{hours}}h",
+    "acceptCancelTitle": "Accettare annullamento?",
+    "rejectCancelTitle": "Rifiutare annullamento?"
+  },
+  "prompt": {
+    "cancellationReason": "Motivo dell'annullamento",
+    "rejectionReason": "Motivo del rifiuto",
+    "rejectionRequiredTitle": "Motivo obbligatorio",
+    "rejectionRequiredMessage": "Inserisci un motivo per il rifiuto."
+  },
+  "error": {
+    "generic": "Errore",
+    "operationFailed": "Operazione non riuscita."
+  },
+  "modal": {
+    "title": "Nuova richiesta",
+    "typeLabel": "Tipo",
+    "quotaHint": "Disponibili: {{strict}}h · ",
+    "quotaHintPending": "{{pending}}h dopo richieste in attesa",
+    "assenzaTypeLabel": "Tipologia di assenza",
+    "compensationLabel": "Retribuzione",
+    "paid": "Retribuita",
+    "unpaid": "Non retribuita",
+    "from": "Dal",
+    "to": "Al",
+    "durationLabel": "Durata",
+    "allDay": "Tutto il giorno",
+    "specificTime": "Orario specifico",
+    "startTime": "Ora inizio",
+    "endTime": "Ora fine",
+    "noApprover": "Nessun approvatore configurato",
+    "approver": "Approvatore: {{names}}",
+    "inpsLabel": "Numero protocollo INPS",
+    "inpsPlaceholder": "es. 1234567890",
+    "reasonOptional": "Motivazione (facoltativa)",
+    "notesOptional": "Note (facoltative)",
+    "submitReport": "Invia segnalazione",
+    "submitRequest": "Invia richiesta",
+    "inpsRequiredTitle": "Protocollo INPS",
+    "inpsRequiredMessage": "Inserisci il numero di protocollo INPS della malattia.",
+    "periodTitle": "Periodo",
+    "periodMessage": "L'orario di fine deve essere dopo l'inizio."
+  },
+  "notePlaceholder": {
+    "malattia": "Es. influenza",
+    "permessi": "Es. visita medica",
+    "assenza": "Es. funerale del nonno",
+    "ferie": "Es. matrimonio fratello"
+  },
+  "androidPromptHint": "Su Android conferma senza testo aggiuntivo.",
+  "unspecifiedReason": "motivo non specificato"
+}

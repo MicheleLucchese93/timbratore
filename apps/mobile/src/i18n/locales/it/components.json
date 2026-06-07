@@ -1,0 +1,34 @@
+{
+  "header": {
+    "profileA11y": "Profilo"
+  },
+  "tab": {
+    "dashboard": "Dashboard",
+    "timbrature": "Timbrature",
+    "storico": "Storico",
+    "correzioni": "Correzioni",
+    "richieste": "Richieste"
+  },
+  "notifications": {
+    "title": "Notifiche",
+    "markAllReadA11y": "Segna tutte come lette",
+    "markReadA11y": "Segna come letta",
+    "filterUnread": "Non lette",
+    "filterUnreadCount": "Non lette · {{count}}",
+    "emptyTitle": "Nessuna notifica",
+    "emptySub": "Aggiornamenti su richieste e correzioni qui.",
+    "emptyUnreadTitle": "Tutto a posto",
+    "emptyUnreadSub": "Nessuna notifica non letta.",
+    "timeAgo": {
+      "now": "ora",
+      "minutes": "{{count}} min",
+      "hours": "{{count}} h",
+      "days": "{{count}} g"
+    }
+  },
+  "dateField": {
+    "selectDate": "Seleziona data",
+    "selectTime": "Seleziona ora",
+    "done": "Fatto"
+  }
+}
