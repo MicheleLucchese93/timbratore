@@ -30,7 +30,7 @@
     "errorGeneric": "Si è verificato un errore"
   },
   "role": {
-    "admin": "Admin",
+    "admin": "Amministratore",
     "user": "Dipendente"
   },
   "status": {
