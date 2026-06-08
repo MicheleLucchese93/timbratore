@@ -6,11 +6,17 @@ test.describe('web — Ferie & Permessi tabs (admin)', () => {
     await expect(page.getByRole('heading', { name: 'Ferie & Permessi' })).toBeVisible({ timeout: 15_000 });
   });
 
-  test('renders all four tabs', async ({ page }) => {
+  test('renders all five tabs', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'Richieste', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Calendario', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Quote', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Modelli', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Residui', exact: true })).toBeVisible();
+  });
+
+  test('Residui tab shows the employee balances roster', async ({ page }) => {
+    await page.getByRole('button', { name: 'Residui', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Residui dipendenti' })).toBeVisible({ timeout: 10_000 });
   });
 
   test('"+ Nuova richiesta" lets the admin file a self-request', async ({ page }) => {
@@ -39,6 +45,21 @@ test.describe('web — Ferie & Permessi tabs (admin)', () => {
     // "Saldo permessi", "Accredito permessi".
     await expect(page.getByText('Saldo ferie', { exact: false })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('Saldo permessi', { exact: false })).toBeVisible();
+  });
+
+  test('Quote tab → selecting rows reveals the bulk "Assegna quota" action', async ({ page }) => {
+    await page.getByRole('button', { name: 'Quote', exact: true }).click();
+    const grid = page.locator('.MuiDataGrid-root');
+    await expect(grid).toBeVisible({ timeout: 15_000 });
+    // Tick the first row's selection checkbox → the bulk bar appears.
+    await grid.locator('.MuiDataGrid-row').first().getByRole('checkbox').check();
+    const bulkAssign = page.getByRole('button', { name: 'Assegna quota', exact: true });
+    await expect(bulkAssign).toBeVisible({ timeout: 10_000 });
+    // The bulk dialog reuses the assign form fields (type + initial balance).
+    await bulkAssign.click();
+    await expect(page.getByText('Bilancio iniziale (ore)')).toBeVisible({ timeout: 10_000 });
+    // Two "Annulla" buttons exist (bulk bar + modal); scope to the modal form.
+    await page.locator('form').getByRole('button', { name: 'Annulla', exact: true }).click();
   });
 
   test('Modelli tab → Nuovo modello dialog has frequency radios', async ({ page }) => {

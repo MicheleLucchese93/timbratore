@@ -23,7 +23,6 @@ const Settings = lazy(() => import('../pages/Settings.tsx').then((m) => ({ defau
 const Shifts = lazy(() => import('../pages/Shifts.tsx').then((m) => ({ default: m.Shifts })));
 const Anomalies = lazy(() => import('../pages/Anomalies.tsx').then((m) => ({ default: m.Anomalies })));
 const Leaves = lazy(() => import('../pages/Leaves.tsx').then((m) => ({ default: m.Leaves })));
-const Residui = lazy(() => import('../pages/Residui.tsx').then((m) => ({ default: m.Residui })));
 const MyStamps = lazy(() => import('../pages/MyStamps.tsx').then((m) => ({ default: m.MyStamps })));
 const MyLeaves = lazy(() => import('../pages/MyLeaves.tsx').then((m) => ({ default: m.MyLeaves })));
 const MyDashboard = lazy(() => import('../pages/MyDashboard.tsx').then((m) => ({ default: m.MyDashboard })));
@@ -78,7 +77,6 @@ export function App() {
             <Route path="/shifts" element={<Shifts />} />
             <Route path="/anomalies" element={<Anomalies />} />
             <Route path="/leaves" element={<Leaves />} />
-            <Route path="/residui" element={<Residui />} />
             <Route path="/manual" element={<Manual />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
@@ -96,7 +94,6 @@ export function App() {
           <Route path="/me/stamps" element={<MyStamps />} />
           <Route path="/me/corrections" element={<Corrections />} />
           <Route path="/me/leaves" element={<MyLeaves />} />
-          <Route path="/me/residui" element={<Residui />} />
           <Route path="/manual" element={<Manual />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

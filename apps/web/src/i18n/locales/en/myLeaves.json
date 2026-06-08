@@ -4,7 +4,8 @@
   "tab": {
     "mine": "Mine",
     "calendar": "Calendar",
-    "inbox": "To approve ({{count}})"
+    "inbox": "To approve ({{count}})",
+    "residui": "Balances"
   },
   "newRequest": "+ New request",
   "quota": {

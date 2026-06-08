@@ -1,17 +1,18 @@
 import { test, expect } from '@playwright/test';
 
-// The "Residui" sidebar entry opens a read-only roster of every employee's
-// residual ferie/permessi hours. Quota management still lives in the
-// Ferie & Permessi → Quote tab.
+// "Residui" is the last tab of Ferie & Permessi: a read-only roster of every
+// employee's residual ferie/permessi hours. Quota management lives in the
+// neighbouring Quote tab. There is no longer a standalone sidebar entry.
 test.describe('web — Residui (admin)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/residui');
+    await page.goto('/leaves');
+    await page.getByRole('button', { name: 'Residui', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Residui dipendenti' })).toBeVisible({ timeout: 15_000 });
   });
 
-  test('sidebar exposes the Residui entry', async ({ page }) => {
+  test('no standalone Residui sidebar entry (merged into Ferie & Permessi)', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('link', { name: 'Residui', exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('link', { name: 'Residui', exact: true })).toHaveCount(0);
   });
 
   test('renders the residual DataGrid with the expected columns', async ({ page }) => {

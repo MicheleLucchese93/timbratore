@@ -222,8 +222,7 @@ const MAIN_IT = `
           <div class="mini-card"><div class="mini-title">Sedi</div><div class="mini-desc">Luoghi di lavoro con geofencing GPS</div></div>
           <div class="mini-card"><div class="mini-title">Orari</div><div class="mini-desc">Modelli settimanali di turni</div></div>
           <div class="mini-card"><div class="mini-title">Anomalie</div><div class="mini-desc">Deviazioni rispetto agli orari attesi</div></div>
-          <div class="mini-card"><div class="mini-title">Ferie &amp; Permessi</div><div class="mini-desc">Richieste, quote e modelli</div></div>
-          <div class="mini-card"><div class="mini-title">Residui</div><div class="mini-desc">Ore residue ferie/permessi per dipendente</div></div>
+          <div class="mini-card"><div class="mini-title">Ferie &amp; Permessi</div><div class="mini-desc">Richieste, quote, modelli e residui</div></div>
           <div class="mini-card"><div class="mini-title">Esportazioni</div><div class="mini-desc">Export XLSX/JSON per il commercialista</div></div>
           <div class="mini-card"><div class="mini-title">Impostazioni</div><div class="mini-desc">Configurazione azienda</div></div>
         </div>
@@ -633,6 +632,7 @@ const MAIN_IT = `
       <div class="feature">
         <h3>Tab Quote</h3>
         <p>Per ogni utente vedi il <strong>saldo Ferie</strong> e il <strong>saldo Permessi</strong> con il relativo accredito automatico. Premi sul saldo (o su <strong>Assegna</strong> se manca) per cambiare l'assegnazione: template, saldo iniziale e data inizio.</p>
+        <p><strong>Assegnazione multipla:</strong> seleziona più dipendenti con le caselle a sinistra (o la casella in testata per tutti), poi premi <strong>Assegna quota</strong> nella barra che compare in alto. Scegli tipo (Ferie o Permessi), modello, saldo iniziale e data: la quota viene assegnata a tutti i selezionati in un colpo. Chi ha già una quota dello stesso tipo viene sovrascritto (la precedente si chiude).</p>
         <p>Nella colonna <strong>Azioni</strong> trovi due strumenti per ogni dipendente:</p>
         <ul class="tidy">
           <li><strong>Modifica manuale ore</strong> (icona ±) — apre una finestra dove scegli il tipo (Ferie o Permessi), l'operazione <strong>Aggiungi</strong> o <strong>Rimuovi</strong>, il numero di ore, la data e una nota facoltativa. È il modo per correggere a mano il saldo di un singolo dipendente (es. accreditare ore residue dell'anno precedente o scalare un permesso gestito fuori sistema). La modifica si riflette <em>subito</em> sul residuo del dipendente, anche nella sua app.</li>
@@ -663,8 +663,8 @@ const MAIN_IT = `
       </div>
 
       <div class="feature" id="web-admin-residui">
-        <h3>Menu Residui</h3>
-        <p>La voce <strong>Residui</strong> nella barra laterale apre una tabella con le ore residue di ferie e permessi di <strong>tutti i dipendenti</strong>. Anche chi non ha una quota assegnata compare in elenco, con i valori indicati come «—». Una riga per dipendente e tipo, con le colonne:</p>
+        <h3>Tab Residui</h3>
+        <p>La <strong>tab Residui</strong> (l'ultima in Ferie &amp; Permessi) mostra una tabella con le ore residue di ferie e permessi di <strong>tutti i dipendenti</strong>. Anche chi non ha una quota assegnata compare in elenco, con i valori indicati come «—». Una riga per dipendente e tipo, con le colonne:</p>
         <ul class="tidy">
           <li><strong>Saldo iniziale</strong> — ore assegnate all'avvio della quota.</li>
           <li><strong>Maturato</strong> — accantonamenti accumulati nel tempo.</li>
@@ -796,8 +796,8 @@ const MAIN_IT = `
       </div>
 
       <div class="feature" id="web-user-residui">
-        <h3>Menu Residui</h3>
-        <p>La voce <strong>Residui</strong> mostra una scheda per i tuoi residui di <strong>Ferie</strong> e <strong>Permessi</strong>. Per ciascuno vedi il <strong>residuo disponibile</strong> in evidenza e il dettaglio: saldo iniziale, maturato, usato approvato e ore di richieste ancora in attesa.</p>
+        <h3>Tab Residui</h3>
+        <p>La <strong>tab Residui</strong> in Ferie &amp; Permessi mostra una scheda per i tuoi residui di <strong>Ferie</strong> e <strong>Permessi</strong>. Per ciascuno vedi il <strong>residuo disponibile</strong> in evidenza e il dettaglio: saldo iniziale, maturato, usato approvato e ore di richieste ancora in attesa.</p>
         <div class="callout callout-info">
           Le richieste <em>in attesa</em> non vengono scalate finché non sono approvate. Sotto al residuo trovi quindi anche cosa resterebbe se quelle pending venissero approvate.
         </div>

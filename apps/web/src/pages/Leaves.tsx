@@ -1,6 +1,11 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-data-grid';
+import {
+  DataGrid,
+  type GridColDef,
+  type GridRenderCellParams,
+  type GridRowSelectionModel,
+} from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { fmtDate, fmtTime, localeTag } from '../i18n/format.ts';
@@ -8,6 +13,7 @@ import { IconButton } from '../components/IconButton.tsx';
 import { LeaveCalendar, type CalendarEvent } from '../components/LeaveCalendar.tsx';
 import { NewLeaveModal } from '../components/NewLeaveModal.tsx';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
+import { AdminResidui } from './Residui.tsx';
 
 type LeaveType = 'ferie' | 'permessi' | 'malattia' | 'assenza';
 type AssenzaSubtype =
@@ -176,7 +182,9 @@ function fmtRange(from: string, to: string, type: LeaveType): string {
 
 export function Leaves() {
   const { t } = useTranslation(['leaves', 'common']);
-  const [tab, setTab] = useState<'requests' | 'calendar' | 'quotas' | 'templates'>('requests');
+  const [tab, setTab] = useState<'requests' | 'calendar' | 'quotas' | 'templates' | 'residui'>(
+    'requests'
+  );
   return (
     <div className="space-y-5">
       <h1 className="sr-only">{t('heading')}</h1>
@@ -194,12 +202,16 @@ export function Leaves() {
           <TabButton active={tab === 'templates'} onClick={() => setTab('templates')}>
             {t('tab.templates')}
           </TabButton>
+          <TabButton active={tab === 'residui'} onClick={() => setTab('residui')}>
+            {t('tab.residui')}
+          </TabButton>
         </div>
         <div className="p-4">
           {tab === 'requests' && <RequestsTab />}
           {tab === 'calendar' && <CalendarTab />}
           {tab === 'quotas' && <QuotasTab />}
           {tab === 'templates' && <TemplatesTab />}
+          {tab === 'residui' && <AdminResidui embedded />}
         </div>
       </div>
     </div>
@@ -655,6 +667,16 @@ function QuotasTab() {
   const [adjustTarget, setAdjustTarget] = useState<QuotaRow | null>(null);
   const [historyTarget, setHistoryTarget] = useState<UserRow | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
+    type: 'include',
+    ids: new Set<string>(),
+  });
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const selectedCount = rowSelection.ids.size;
+  const selectedIds = useMemo(() => Array.from(rowSelection.ids) as string[], [rowSelection]);
+  function clearSelection() {
+    setRowSelection({ type: 'include', ids: new Set() });
+  }
 
   async function load() {
     try {
@@ -704,12 +726,36 @@ function QuotasTab() {
           {t('quotas.noTemplatesPre')}<strong>{t('tab.templates')}</strong>{t('quotas.noTemplatesPost')}
         </div>
       )}
-      <QuotasDataGrid
-        grid={grid}
-        onEdit={(u, type, existing) => setEditor({ user: u, type, existing })}
-        onAdjust={setAdjustTarget}
-        onHistory={setHistoryTarget}
-      />
+      <div className="card" style={{ padding: 0 }}>
+        {selectedCount > 0 && (
+          <div className="bulk-bar">
+            <div>
+              <strong>{selectedCount}</strong> {t('quotas.selected', { count: selectedCount })}
+            </div>
+            <div className="bulk-bar-actions">
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                disabled={templates.length === 0}
+                onClick={() => setBulkOpen(true)}
+              >
+                {t('quotas.bulkAssign')}
+              </button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={clearSelection}>
+                {t('common:btn.cancel')}
+              </button>
+            </div>
+          </div>
+        )}
+        <QuotasDataGrid
+          grid={grid}
+          rowSelection={rowSelection}
+          onRowSelectionChange={setRowSelection}
+          onEdit={(u, type, existing) => setEditor({ user: u, type, existing })}
+          onAdjust={setAdjustTarget}
+          onHistory={setHistoryTarget}
+        />
+      </div>
       {editor && (
         <AssignmentEditor
           user={editor.user}
@@ -736,6 +782,143 @@ function QuotasTab() {
       {historyTarget && (
         <AuditLogModal user={historyTarget} onClose={() => setHistoryTarget(null)} />
       )}
+      {bulkOpen && (
+        <BulkAssignQuotaModal
+          userIds={selectedIds}
+          templates={templates.filter((tpl) => tpl.active)}
+          onClose={() => setBulkOpen(false)}
+          onSaved={async () => {
+            setBulkOpen(false);
+            clearSelection();
+            await load();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ---------- Bulk quota assignment ---------- */
+
+function BulkAssignQuotaModal({
+  userIds,
+  templates,
+  onClose,
+  onSaved,
+}: {
+  userIds: string[];
+  templates: Template[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const { t } = useTranslation(['leaves', 'common']);
+  const [type, setType] = useState<'ferie' | 'permessi'>('ferie');
+  const byType = useMemo(() => templates.filter((tpl) => tpl.type === type), [templates, type]);
+  const [templateId, setTemplateId] = useState<string>('');
+  const [initialBalance, setInitialBalance] = useState<number>(0);
+  const [startedOn, setStartedOn] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  // Keep the picked template valid when the type filter changes.
+  useEffect(() => {
+    setTemplateId((prev) => (byType.some((tpl) => tpl.id === prev) ? prev : byType[0]?.id ?? ''));
+  }, [byType]);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!templateId) {
+      setErr(t('editor.errTemplate'));
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      await Promise.all(
+        userIds.map((uid) =>
+          api('/api/v1/leave-quotas/assignments', {
+            method: 'POST',
+            json: {
+              user_id: uid,
+              template_id: templateId,
+              initial_balance: initialBalance,
+              started_on: startedOn,
+            },
+          })
+        )
+      );
+      onSaved();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : t('common:state.error'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
+      <form onSubmit={submit} className="card w-full max-w-md space-y-3">
+        <h2 className="section-title">{t('quotas.bulkTitle', { count: userIds.length })}</h2>
+        <div>
+          <label className="label">{t('adjust.type')}</label>
+          <select
+            className="input"
+            value={type}
+            onChange={(e) => setType(e.target.value as 'ferie' | 'permessi')}
+          >
+            <option value="ferie">{t('common:leaveType.ferie')}</option>
+            <option value="permessi">{t('quotas.permessiPlural')}</option>
+          </select>
+        </div>
+        <div>
+          <label className="label">{t('editor.template')}</label>
+          <select
+            className="input"
+            value={templateId}
+            onChange={(e) => setTemplateId(e.target.value)}
+          >
+            <option value="">{t('editor.choose')}</option>
+            {byType.map((tpl) => (
+              <option key={tpl.id} value={tpl.id}>
+                {tpl.name} — {fmtAccrual(tpl, t)}
+              </option>
+            ))}
+          </select>
+          {byType.length === 0 && (
+            <p className="text-xs muted mt-1">{t('quotas.bulkNoTemplates')}</p>
+          )}
+        </div>
+        <div>
+          <label className="label">{t('editor.initialBalance')}</label>
+          <input
+            type="number"
+            step="0.25"
+            className="input"
+            value={initialBalance}
+            onChange={(e) => setInitialBalance(Number(e.target.value))}
+          />
+          <p className="text-xs muted mt-1">{t('editor.initialBalanceHint')}</p>
+        </div>
+        <div>
+          <label className="label">{t('editor.activeFrom')}</label>
+          <input
+            type="date"
+            className="input"
+            value={startedOn}
+            onChange={(e) => setStartedOn(e.target.value)}
+          />
+        </div>
+        <div className="callout callout-warn text-sm">{t('quotas.bulkOverwrite')}</div>
+        {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
+        <div className="flex justify-end gap-2">
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
+            {t('common:btn.cancel')}
+          </button>
+          <button type="submit" className="btn btn-primary" disabled={busy || !templateId}>
+            {busy ? t('common:state.saving') : t('common:btn.save')}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
@@ -1654,11 +1837,15 @@ interface QuotaRow {
 
 function QuotasDataGrid({
   grid,
+  rowSelection,
+  onRowSelectionChange,
   onEdit,
   onAdjust,
   onHistory,
 }: {
   grid: QuotaRow[];
+  rowSelection: GridRowSelectionModel;
+  onRowSelectionChange: (model: GridRowSelectionModel) => void;
   onEdit: (user: UserRow, type: 'ferie' | 'permessi', existing?: Assignment) => void;
   onAdjust: (row: QuotaRow) => void;
   onHistory: (user: UserRow) => void;
@@ -1761,6 +1948,9 @@ function QuotasDataGrid({
       rows={grid}
       columns={columns}
       getRowId={(r: QuotaRow) => r.user.user_id}
+      checkboxSelection
+      rowSelectionModel={rowSelection}
+      onRowSelectionModelChange={onRowSelectionChange}
       sx={dataGridSx}
       {...dataGridDefaults}
     />

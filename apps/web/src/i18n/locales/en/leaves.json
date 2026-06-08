@@ -4,7 +4,8 @@
     "requests": "Requests",
     "calendar": "Calendar",
     "quotas": "Quotas",
-    "templates": "Templates"
+    "templates": "Templates",
+    "residui": "Balances"
   },
   "col": {
     "user": "Employee",
@@ -77,7 +78,14 @@
     "assign": "Assign",
     "adjustHours": "Add/Remove hours",
     "assignFirst": "Assign a quota first",
-    "manualHistory": "Manual change history"
+    "manualHistory": "Manual change history",
+    "bulkAssign": "Assign quota",
+    "selected_one": "user selected",
+    "selected_other": "users selected",
+    "bulkTitle_one": "Assign quota to {{count}} user",
+    "bulkTitle_other": "Assign quota to {{count}} users",
+    "bulkNoTemplates": "No active template for this type.",
+    "bulkOverwrite": "Users who already have a quota of the same type will be overwritten: the previous one is closed and a new one starts."
   },
   "accrual": {
     "none": "No accrual",

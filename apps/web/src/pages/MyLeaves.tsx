@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api.ts';
 import { LeaveCalendar, type CalendarEvent } from '../components/LeaveCalendar.tsx';
 import { NewLeaveModal } from '../components/NewLeaveModal.tsx';
+import { MyResidui } from './Residui.tsx';
 import { localeTag } from '../i18n/format.ts';
 
 type LeaveType = 'ferie' | 'permessi' | 'malattia' | 'assenza';
@@ -74,7 +75,7 @@ export function MyLeaves() {
     const key = STATUS_LABEL_KEY[s];
     return key ? t(key) : s;
   };
-  const [tab, setTab] = useState<'mine' | 'calendar' | 'inbox'>('mine');
+  const [tab, setTab] = useState<'mine' | 'calendar' | 'inbox' | 'residui'>('mine');
   const [mine, setMine] = useState<LeaveRequest[]>([]);
   const [inbox, setInbox] = useState<LeaveRequest[]>([]);
   const [quotas, setQuotas] = useState<QuotaSummary[]>([]);
@@ -140,6 +141,7 @@ export function MyLeaves() {
               {t('tab.inbox', { count: pendingInbox.length })}
             </TabButton>
           )}
+          <TabButton active={tab === 'residui'} onClick={() => setTab('residui')}>{t('tab.residui')}</TabButton>
         </div>
 
         <div className="p-4">
@@ -263,6 +265,8 @@ export function MyLeaves() {
               )}
             </div>
           )}
+
+          {tab === 'residui' && <MyResidui />}
         </div>
       </div>
 

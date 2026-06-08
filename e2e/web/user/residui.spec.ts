@@ -9,19 +9,21 @@ import {
   type ApiHandle,
 } from '../../fixtures/api-client';
 
-// Employees get their own "Residui" page; the admin roster is gated to admins.
+// Employees reach their balances from the "Residui" tab of Ferie & Permessi
+// (no standalone sidebar entry). The admin roster stays gated to admins.
 // These structural checks don't depend on any seeded quota.
 test.describe('web — Residui (employee)', () => {
-  test('sidebar exposes the Residui entry', async ({ page }) => {
+  test('no standalone Residui sidebar entry (merged into Ferie & Permessi)', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('link', { name: 'Residui', exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('link', { name: 'Residui', exact: true })).toHaveCount(0);
   });
 
-  test('/me/residui shows the personal view, not the admin roster', async ({ page }) => {
-    await page.goto('/me/residui');
+  test('Residui tab shows the personal view, not the admin roster', async ({ page }) => {
+    await page.goto('/me/leaves');
+    await page.getByRole('button', { name: 'Residui', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'I miei residui' })).toBeVisible({ timeout: 15_000 });
     // Role-branch guard: the admin roster ("Residui dipendenti") must never
-    // render on the employee route.
+    // render for an employee.
     await expect(page.getByRole('heading', { name: 'Residui dipendenti' })).toHaveCount(0);
   });
 });
@@ -64,7 +66,8 @@ test.describe('web — Residui card with seeded quota (employee)', () => {
   });
 
   test('renders a Ferie residual card with the seeded balance', async ({ page }) => {
-    await page.goto('/me/residui');
+    await page.goto('/me/leaves');
+    await page.getByRole('button', { name: 'Residui', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'I miei residui' })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole('heading', { name: 'Ferie', exact: true })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText('residuo disponibile').first()).toBeVisible();

@@ -4,7 +4,8 @@
     "requests": "Richieste",
     "calendar": "Calendario",
     "quotas": "Quote",
-    "templates": "Modelli"
+    "templates": "Modelli",
+    "residui": "Residui"
   },
   "col": {
     "user": "Utente",
@@ -77,7 +78,14 @@
     "assign": "Assegna",
     "adjustHours": "Aggiungi/Rimuovi ore",
     "assignFirst": "Assegna prima una quota",
-    "manualHistory": "Storico modifiche manuali"
+    "manualHistory": "Storico modifiche manuali",
+    "bulkAssign": "Assegna quota",
+    "selected_one": "utente selezionato",
+    "selected_other": "utenti selezionati",
+    "bulkTitle_one": "Assegna quota a {{count}} utente",
+    "bulkTitle_other": "Assegna quota a {{count}} utenti",
+    "bulkNoTemplates": "Nessun modello attivo per questo tipo.",
+    "bulkOverwrite": "Gli utenti che hanno già una quota dello stesso tipo verranno sovrascritti: la precedente viene chiusa e ne parte una nuova."
   },
   "accrual": {
     "none": "Nessun accredito",

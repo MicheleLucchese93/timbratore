@@ -7,9 +7,11 @@ test.describe('web — employee role (test3)', () => {
 
   test('sidebar shows only the 3 employee items', async ({ page }) => {
     // Must be present.
-    for (const label of ['Dashboard', 'Le mie timbrature', 'Le mie richieste', 'Ferie & Permessi', 'Residui']) {
+    for (const label of ['Dashboard', 'Le mie timbrature', 'Le mie richieste', 'Ferie & Permessi']) {
       await expect(page.getByRole('link', { name: label, exact: true })).toBeVisible();
     }
+    // Residui is no longer a sidebar entry — it moved into a tab of Ferie & Permessi.
+    await expect(page.getByRole('link', { name: 'Residui', exact: true })).toHaveCount(0);
     // Must NOT be present.
     for (const adminOnly of ['Utenti', 'Sedi', 'Esportazioni', 'Impostazioni', 'Anomalie', 'Orari']) {
       await expect(page.getByRole('link', { name: adminOnly, exact: true })).toHaveCount(0);
@@ -34,8 +36,8 @@ test.describe('web — employee role (test3)', () => {
     // the catch-all in App.tsx, but exercising that round-trip is fragile
     // because the bootstrap bounces through /login during the GoTrue
     // refresh — see the "session bootstrap" notes in summary.md.
-    // NB: 'Ferie & Permessi' and 'Residui' are NOT admin-only — employees have
-    // both on web (self-request + own residuals). Keep them out of this list.
+    // NB: 'Ferie & Permessi' is NOT admin-only — employees have it on web
+    // (self-request + own residuals via the Residui tab). Keep it out of this list.
     const adminOnly = ['Utenti', 'Sedi', 'Esportazioni', 'Impostazioni', 'Anomalie', 'Orari'];
     for (const label of adminOnly) {
       await expect(

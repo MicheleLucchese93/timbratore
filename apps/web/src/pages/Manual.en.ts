@@ -215,8 +215,7 @@ export const MAIN_EN = `
           <div class="mini-card"><div class="mini-title">Branches</div><div class="mini-desc">Places of work with GPS geofencing</div></div>
           <div class="mini-card"><div class="mini-title">Shifts</div><div class="mini-desc">Weekly shift models</div></div>
           <div class="mini-card"><div class="mini-title">Anomalies</div><div class="mini-desc">Deviations from the expected shifts</div></div>
-          <div class="mini-card"><div class="mini-title">Holiday &amp; Leave</div><div class="mini-desc">Requests, balances and models</div></div>
-          <div class="mini-card"><div class="mini-title">Balances</div><div class="mini-desc">Remaining holiday/leave hours per employee</div></div>
+          <div class="mini-card"><div class="mini-title">Holiday &amp; Leave</div><div class="mini-desc">Requests, quotas, models and balances</div></div>
           <div class="mini-card"><div class="mini-title">Exports</div><div class="mini-desc">XLSX/JSON export for the accountant</div></div>
           <div class="mini-card"><div class="mini-title">Settings</div><div class="mini-desc">Company configuration</div></div>
         </div>
@@ -624,8 +623,9 @@ export const MAIN_EN = `
       </div>
 
       <div class="feature">
-        <h3>Balances tab</h3>
+        <h3>Quotas tab</h3>
         <p>For each user you see the <strong>Holiday balance</strong> and the <strong>Leave balance</strong> with the related automatic accrual. Press on the balance (or on <strong>Assign</strong> if it is missing) to change the assignment: template, initial balance and start date.</p>
+        <p><strong>Bulk assignment:</strong> select several employees with the checkboxes on the left (or the header checkbox for all), then press <strong>Assign quota</strong> in the bar that appears at the top. Pick the type (Holiday or Leave), template, initial balance and date: the quota is assigned to everyone selected at once. Anyone who already has a quota of the same type is overwritten (the previous one is closed).</p>
         <p>In the <strong>Actions</strong> column you find two tools for each employee:</p>
         <ul class="tidy">
           <li><strong>Manual hours adjustment</strong> (± icon) — opens a window where you choose the type (Holiday or Leave), the operation <strong>Add</strong> or <strong>Remove</strong>, the number of hours, the date and an optional note. It is the way to adjust a single employee's balance by hand (e.g. credit carried-over hours from the previous year or deduct leave handled outside the system). The change is reflected <em>immediately</em> on the employee's balance, including in their app.</li>
@@ -656,8 +656,8 @@ export const MAIN_EN = `
       </div>
 
       <div class="feature" id="web-admin-residui">
-        <h3>Balances menu</h3>
-        <p>The <strong>Balances</strong> item in the sidebar opens a table with the remaining holiday and leave hours of <strong>all employees</strong>. Even those without an assigned balance appear in the list, with the values shown as «—». One row per employee and type, with the columns:</p>
+        <h3>Balances tab</h3>
+        <p>The <strong>Balances</strong> tab (the last one in Holiday &amp; Leave) opens a table with the remaining holiday and leave hours of <strong>all employees</strong>. Even those without an assigned balance appear in the list, with the values shown as «—». One row per employee and type, with the columns:</p>
         <ul class="tidy">
           <li><strong>Initial balance</strong> — hours assigned at the start of the balance.</li>
           <li><strong>Accrued</strong> — accruals accumulated over time.</li>
@@ -666,7 +666,7 @@ export const MAIN_EN = `
           <li><strong>Balance</strong> — initial balance + accrued − approved used.</li>
           <li><strong>Balance with pending</strong> — what would be left if all the pending requests were approved.</li>
         </ul>
-        <p>The table is sortable, filterable and exportable from the buttons at the top right. It is a read-only view: to <em>change</em> the balances use the <strong>Balances</strong> tab of Holiday &amp; Leave.</p>
+        <p>The table is sortable, filterable and exportable from the buttons at the top right. It is a read-only view: to <em>change</em> the balances use the <strong>Quotas</strong> tab of Holiday &amp; Leave.</p>
       </div>
     </section>
 
@@ -784,8 +784,8 @@ export const MAIN_EN = `
       </div>
 
       <div class="feature" id="web-user-residui">
-        <h3>Balances menu</h3>
-        <p>The <strong>Balances</strong> item shows a card for your <strong>Holiday</strong> and <strong>Leave</strong> balances. For each one you see the <strong>available balance</strong> highlighted and the detail: initial balance, accrued, approved used and hours of requests still pending.</p>
+        <h3>Balances tab</h3>
+        <p>The <strong>Balances</strong> tab in Holiday &amp; Leave shows a card for your <strong>Holiday</strong> and <strong>Leave</strong> balances. For each one you see the <strong>available balance</strong> highlighted and the detail: initial balance, accrued, approved used and hours of requests still pending.</p>
         <div class="callout callout-info">
           <em>Pending</em> requests are not deducted until they are approved. Below the balance you therefore also find what would be left if those pending ones were approved.
         </div>

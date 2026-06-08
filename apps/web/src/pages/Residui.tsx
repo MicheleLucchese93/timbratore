@@ -3,7 +3,6 @@ import { Trans, useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
-import { useSession } from '../store/session.ts';
 import { fmtNumber } from '../i18n/format.ts';
 import i18n from '../i18n/index.ts';
 
@@ -44,21 +43,9 @@ const fmtH = (n: number): string =>
 const residualStrict = (r: { initial_balance: number; accrued_total: number; used_approved: number }): number =>
   r.initial_balance + r.accrued_total - r.used_approved;
 
-export function Residui() {
-  const { t } = useTranslation(['residui', 'common']);
-  const { me } = useSession();
-  const isAdmin = me?.user.role === 'admin';
-  return (
-    <div className="space-y-5">
-      <h1 className="sr-only">{t('title')}</h1>
-      {isAdmin ? <AdminResidui /> : <MyResidui />}
-    </div>
-  );
-}
-
 /* ---------- Admin: residui di tutti i dipendenti ---------- */
 
-function AdminResidui() {
+export function AdminResidui({ embedded = false }: { embedded?: boolean } = {}) {
   const { t } = useTranslation(['residui', 'common']);
   const [rows, setRows] = useState<AssignmentRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -146,7 +133,7 @@ function AdminResidui() {
   );
 
   return (
-    <div className="card space-y-3">
+    <div className={embedded ? 'space-y-3' : 'card space-y-3'}>
       <div>
         <h2 className="section-title">{t('admin.title')}</h2>
         <p className="muted text-sm">
@@ -174,7 +161,7 @@ function AdminResidui() {
 
 /* ---------- Dipendente: solo i propri residui ---------- */
 
-function MyResidui() {
+export function MyResidui() {
   const { t } = useTranslation(['residui', 'common']);
   const [rows, setRows] = useState<QuotaSummary[]>([]);
   const [err, setErr] = useState<string | null>(null);
