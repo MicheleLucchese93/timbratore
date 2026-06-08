@@ -161,32 +161,38 @@ internalE2eRouter.post(
             AND ( note ILIKE 'e2e %' OR note ILIKE 'e2e-%' )`,
         [TEST_TENANT_ID]
       );
-      // Wipe every stamp in the pinned test tenant, regardless of source. The
-      // anomaly specs seed via POST /admin/stamps (source='admin_manual'), but
-      // restricting the sweep to that source left NON-admin residue behind on
-      // the persistent test3 user: a leftover open clock-in that the nightly
-      // auto-clockout cron later closes (source 'auto'), plus the gps/web/mobile
-      // stamps sibling specs create. Those bracket a seeded anomaly day with a
-      // bogus effective span (e.g. 07:30–00:55 around a 09:00–13:00 seed),
-      // breaking the Correggi/Giustifica UI in mutating-anomalies-correction.
-      // The test tenant is a disposable QA tenant (no real users) and no
-      // read-only spec asserts baseline stamps on the persistent QA accounts —
-      // they only assert quotas/approvers/display_name (e2e/fixtures/test-data.ts)
-      // and page render — so an all-source, tenant-scoped wipe is safe. The
-      // tenant pin ($1) is the same safety boundary every sweep in this file
-      // relies on. Subsumes the e2e-user-scoped stamp delete above (st).
+      // Wipe every stamp, regardless of source, for the tenant's EMPLOYEE
+      // (role='user') QA accounts — i.e. test3. The anomaly specs seed via POST
+      // /admin/stamps (source='admin_manual'), but restricting the sweep to that
+      // source left NON-admin residue behind on test3: a leftover open clock-in
+      // that the nightly auto-clockout cron later closes (source 'auto'), plus
+      // the gps/web/mobile stamps sibling specs create. Those bracket a seeded
+      // anomaly day with a bogus effective span (e.g. 07:30–00:55 around a
+      // 09:00–13:00 seed), breaking the Correggi/Giustifica UI in
+      // mutating-anomalies-correction. No read-only spec asserts baseline stamps
+      // on the employee account (the test3 views are render-only), so a full
+      // wipe there is safe.
+      //
+      // Scope to role='user' so the persistent ADMIN accounts (test1/test2) keep
+      // their intentional baseline timbrature — the mobile Storico spec
+      // (e2e/mobile/storico.spec.ts) renders the logged-in admin's day cards and
+      // breaks if that history is wiped. Residue only accumulates on the employee
+      // account anyway (specs seed stamps on the `user` handle, never the admin).
       //
       // The single FK into stamps is correction_requests.original_stamp_id
       // (nullable, ON DELETE RESTRICT — see 004_correction_requests.sql). The
       // e2e-user + marker correction sweeps above (cr, crm) already cleared the
-      // correction rows we own, but a non-e2e correction left on a QA account
-      // can still pin its stamp and would trip the FK. Skip any stamp a
-      // correction still references — those belong to a correction flow the
-      // correction sweeps clean separately, and the residue that breaks the
-      // anomaly specs (auto-clockouts, orphan clock-ins) is never referenced.
+      // correction rows we own, but a non-e2e correction left on the account can
+      // still pin its stamp and would trip the FK. Skip any stamp a correction
+      // still references — those belong to a correction flow the correction
+      // sweeps clean separately, and the anomaly residue is never referenced.
       const stm = await client.query(
         `DELETE FROM stamps s
           WHERE s.tenant_id = $1
+            AND s.user_id IN (
+              SELECT user_id FROM memberships
+               WHERE tenant_id = $1 AND role = 'user' AND deleted_at IS NULL
+            )
             AND NOT EXISTS (
               SELECT 1 FROM correction_requests cr WHERE cr.original_stamp_id = s.id
             )`,
