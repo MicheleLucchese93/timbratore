@@ -13,7 +13,7 @@
   "readOnlyHint": "Solo lettura. Modificabile dal provider.",
   "timezone": "Timezone",
   "timezoneHint": "Influenza i fusi nei report.",
-  "languageHint": "La lingua è personale: vale solo per il tuo account.",
+  "languageHint": "La lingua è personale: vale solo per il tuo account. All'inizio segue quella del browser (le altre lingue ripiegano su inglese).",
   "company": "Azienda",
   "switching": "Cambio azienda in corso…",
   "switchHint": "Cambiando azienda verrai reindirizzato alla dashboard.",

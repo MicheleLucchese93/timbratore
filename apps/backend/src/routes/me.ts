@@ -122,7 +122,10 @@ meRouter.get(
       tenant: tenant.rows[0],
       branches: branches.rows,
       preferences: {
-        language: pref.language ?? 'it',
+        // null = the user has never explicitly picked a language. The client
+        // keeps its browser-detected default (EN for non-IT/EN browsers) until
+        // the user chooses in Settings; only an explicit choice is persisted.
+        language: pref.language ?? null,
         email_notifications_enabled: !!pref.email_notifications_enabled,
         push_token_registered: !!pref.push_token,
         notification_preferences: notifPrefs,

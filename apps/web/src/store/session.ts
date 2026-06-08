@@ -38,7 +38,7 @@ export interface MeResponse {
     smart_working: boolean;
   }>;
   preferences?: {
-    language: 'it' | 'en';
+    language: 'it' | 'en' | null;
     email_notifications_enabled?: boolean;
     push_token_registered?: boolean;
     notification_preferences?: Record<string, boolean>;

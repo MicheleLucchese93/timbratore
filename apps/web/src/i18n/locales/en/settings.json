@@ -13,7 +13,7 @@
   "readOnlyHint": "Read-only. Editable by the provider.",
   "timezone": "Timezone",
   "timezoneHint": "Affects time zones in reports.",
-  "languageHint": "The language is personal: it applies only to your account.",
+  "languageHint": "The language is personal: it applies only to your account. It initially follows your browser (other languages fall back to English).",
   "company": "Company",
   "switching": "Switching company…",
   "switchHint": "Switching company will redirect you to the dashboard.",

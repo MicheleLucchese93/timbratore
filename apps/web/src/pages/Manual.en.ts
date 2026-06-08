@@ -719,7 +719,7 @@ export const MAIN_EN = `
         <ul class="tidy">
           <li><strong>Company name</strong> and <strong>VAT number</strong> — read-only (editable by the provider).</li>
           <li><strong>Timezone</strong> — company time zone (Europe/Rome by default).</li>
-          <li><strong>Language</strong> — Italian or English. It is a <em>personal</em> preference: it applies only to your account and can also be switched on the fly from the IT/EN selector at the bottom of the sidebar (on mobile from <em>Profile &rarr; Language</em>).</li>
+          <li><strong>Language</strong> — Italian or English. The app initially picks your browser's language (anything other than Italian or English falls back to <em>English</em>); it stays a <em>personal</em> preference that applies only to your account and you change it here (on mobile from <em>Profile &rarr; Language</em>).</li>
           <li><strong>Country</strong> — optional, read-only.</li>
         </ul>
       </div>

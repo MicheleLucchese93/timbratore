@@ -26,6 +26,12 @@ export default defineConfig({
   workers: 1,
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'e2e/playwright-report' }]],
   use: {
+    // Pin the browser locale to Italian. The web UI now derives its default
+    // language from the browser (EN for non-IT/EN browsers) when the user has
+    // no explicit saved preference, so without this the default Chromium en-US
+    // locale would render the UI in English and break every Italian-copy
+    // assertion. it-IT keeps the suite on the primary-audience language.
+    locale: 'it-IT',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

@@ -726,7 +726,7 @@ const MAIN_IT = `
         <ul class="tidy">
           <li><strong>Ragione sociale</strong> e <strong>Partita IVA</strong> — sola lettura (modificabili dal provider).</li>
           <li><strong>Timezone</strong> — fuso orario aziendale (Europe/Rome di default).</li>
-          <li><strong>Lingua</strong> — Italiano o English. È una preferenza <em>personale</em>: vale solo per il tuo account (su mobile da <em>Profilo → Lingua</em>).</li>
+          <li><strong>Lingua</strong> — Italiano o English. All'inizio l'app usa la lingua del browser (le lingue diverse da italiano e inglese ripiegano su <em>English</em>); resta una preferenza <em>personale</em> che vale solo per il tuo account e la cambi qui (su mobile da <em>Profilo → Lingua</em>).</li>
           <li><strong>Paese</strong> — opzionale, sola lettura.</li>
         </ul>
       </div>

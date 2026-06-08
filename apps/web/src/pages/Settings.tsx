@@ -32,7 +32,7 @@ const TIMEZONE_OPTIONS = [
 type Toast = { kind: 'ok' | 'err'; text: string } | null;
 
 interface MePrefs {
-  language: 'it' | 'en';
+  language: 'it' | 'en' | null;
   email_notifications_enabled: boolean;
   push_token_registered: boolean;
   notification_preferences?: Record<string, boolean>;

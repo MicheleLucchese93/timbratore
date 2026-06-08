@@ -23,6 +23,27 @@ export type Lang = 'it' | 'en';
 export const LANGS: Lang[] = ['it', 'en'];
 const STORAGE_KEY = 'sonoqui.lang';
 
+// Map the browser's preferred languages to a supported UI language. Walk the
+// ordered navigator list and take the first IT or EN match; anything else
+// (French, German, …) falls back to English.
+function detectBrowser(): Lang {
+  try {
+    const prefs = navigator.languages?.length ? navigator.languages : [navigator.language];
+    for (const p of prefs) {
+      const base = p?.toLowerCase().split('-')[0];
+      if (base === 'it') return 'it';
+      if (base === 'en') return 'en';
+    }
+  } catch {
+    /* ignore */
+  }
+  return 'en';
+}
+
+// Initial language, highest priority first: an explicit prior choice cached in
+// localStorage, otherwise the browser's language (EN for non-IT/EN browsers).
+// The per-user server preference, once known, is reconciled by
+// applyServerLanguage after /me resolves.
 function detectInitial(): Lang {
   try {
     const v = localStorage.getItem(STORAGE_KEY);
@@ -30,7 +51,7 @@ function detectInitial(): Lang {
   } catch {
     /* ignore */
   }
-  return 'it';
+  return detectBrowser();
 }
 
 void i18n.use(initReactI18next).init({
