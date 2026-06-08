@@ -161,15 +161,22 @@ internalE2eRouter.post(
             AND ( note ILIKE 'e2e %' OR note ILIKE 'e2e-%' )`,
         [TEST_TENANT_ID]
       );
-      // Stamps seeded by the anomaly specs go through POST /admin/stamps, which
-      // sets source='admin_manual' (the 'e2e ' marker lands in the audit log,
-      // not on the row). If a spec crashes before its afterEach delete they
-      // linger on the persistent test3 user and pollute later anomaly-day
-      // computations (the day's stamps merge into a bogus effective span).
-      // Sweep admin-seeded stamps in the test tenant — real employee stamps use
-      // source 'web'/'mobile'/'gps', never 'admin_manual'. Scoped to the tenant.
+      // Wipe every stamp in the pinned test tenant, regardless of source. The
+      // anomaly specs seed via POST /admin/stamps (source='admin_manual'), but
+      // restricting the sweep to that source left NON-admin residue behind on
+      // the persistent test3 user: a leftover open clock-in that the nightly
+      // auto-clockout cron later closes (source 'auto'), plus the gps/web/mobile
+      // stamps sibling specs create. Those bracket a seeded anomaly day with a
+      // bogus effective span (e.g. 07:30–00:55 around a 09:00–13:00 seed),
+      // breaking the Correggi/Giustifica UI in mutating-anomalies-correction.
+      // The test tenant is a disposable QA tenant (no real users) and no
+      // read-only spec asserts baseline stamps on the persistent QA accounts —
+      // they only assert quotas/approvers/display_name (e2e/fixtures/test-data.ts)
+      // and page render — so an all-source, tenant-scoped wipe is safe. The
+      // tenant pin ($1) is the same safety boundary every sweep in this file
+      // relies on. Subsumes the e2e-user-scoped stamp delete above (st).
       const stm = await client.query(
-        `DELETE FROM stamps WHERE tenant_id = $1 AND source = 'admin_manual'`,
+        `DELETE FROM stamps WHERE tenant_id = $1`,
         [TEST_TENANT_ID]
       );
       await client.query('COMMIT');
