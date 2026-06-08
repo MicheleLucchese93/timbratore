@@ -672,8 +672,6 @@ function QuotasTab() {
     ids: new Set<string>(),
   });
   const [bulkOpen, setBulkOpen] = useState(false);
-  const selectedCount = rowSelection.ids.size;
-  const selectedIds = useMemo(() => Array.from(rowSelection.ids) as string[], [rowSelection]);
   function clearSelection() {
     setRowSelection({ type: 'include', ids: new Set() });
   }
@@ -715,6 +713,16 @@ function QuotasTab() {
       permessi: byUser.get(u.user_id)?.permessi,
     }));
   }, [assignments, users]);
+
+  // MUI's "select all" header returns an exclude-model ({type:'exclude', ids:∅}),
+  // so resolve the selection against the row list to cover both modes.
+  const selectedIds = useMemo(() => {
+    const all = grid.map((r) => r.user.user_id);
+    return rowSelection.type === 'exclude'
+      ? all.filter((id) => !rowSelection.ids.has(id))
+      : all.filter((id) => rowSelection.ids.has(id));
+  }, [grid, rowSelection]);
+  const selectedCount = selectedIds.length;
 
   return (
     <div className="space-y-3">

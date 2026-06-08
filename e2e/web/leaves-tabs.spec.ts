@@ -47,7 +47,7 @@ test.describe('web — Ferie & Permessi tabs (admin)', () => {
     await expect(page.getByText('Saldo permessi', { exact: false })).toBeVisible();
   });
 
-  test('Quote tab → selecting rows reveals the bulk "Assegna quota" action', async ({ page }) => {
+  test('Quote tab → single-row select reveals the bulk "Assegna quota" action', async ({ page }) => {
     await page.getByRole('button', { name: 'Quote', exact: true }).click();
     const grid = page.locator('.MuiDataGrid-root');
     await expect(grid).toBeVisible({ timeout: 15_000 });
@@ -60,6 +60,20 @@ test.describe('web — Ferie & Permessi tabs (admin)', () => {
     await expect(page.getByText('Bilancio iniziale (ore)')).toBeVisible({ timeout: 10_000 });
     // Two "Annulla" buttons exist (bulk bar + modal); scope to the modal form.
     await page.locator('form').getByRole('button', { name: 'Annulla', exact: true }).click();
+  });
+
+  test('Quote tab → header "select all" also reveals the bulk action', async ({ page }) => {
+    // Regression guard: MUI's header select-all returns an exclude-style model
+    // ({type:'exclude', ids:∅}), so the bar must resolve selection against the
+    // row list rather than trusting ids.size.
+    await page.getByRole('button', { name: 'Quote', exact: true }).click();
+    const grid = page.locator('.MuiDataGrid-root');
+    await expect(grid).toBeVisible({ timeout: 15_000 });
+    // The header checkbox input is tabindex=-1; click the MUI ButtonBase span.
+    await grid.locator('.MuiDataGrid-columnHeaderCheckbox .MuiButtonBase-root').click();
+    await expect(page.getByRole('button', { name: 'Assegna quota', exact: true })).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test('Modelli tab → Nuovo modello dialog has frequency radios', async ({ page }) => {

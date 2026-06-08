@@ -77,11 +77,15 @@ export function Users() {
     type: 'include',
     ids: new Set<string>(),
   });
-  const selectedCount = rowSelection.ids.size;
-  const selectedIdsArray = useMemo(
-    () => Array.from(rowSelection.ids) as string[],
-    [rowSelection]
-  );
+  // MUI's "select all" header returns an exclude-model ({type:'exclude', ids:∅}),
+  // so resolve the selection against the row list to cover both modes.
+  const selectedIdsArray = useMemo(() => {
+    const all = list.map((u) => u.user_id);
+    return rowSelection.type === 'exclude'
+      ? all.filter((id) => !rowSelection.ids.has(id))
+      : all.filter((id) => rowSelection.ids.has(id));
+  }, [list, rowSelection]);
+  const selectedCount = selectedIdsArray.length;
   function clearSelection() {
     setRowSelection({ type: 'include', ids: new Set() });
   }
