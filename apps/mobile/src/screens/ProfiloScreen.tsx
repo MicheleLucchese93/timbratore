@@ -65,7 +65,7 @@ const PUSH_PREF_DEFAULTS: Record<PushPrefKey, boolean> = {
 };
 
 const SITE_BASE = 'https://sonoqui.xdevapp.it/it';
-const CONTACT_EMAIL = 'michele.lucchese@outlook.it';
+const CONTACT_FORM_URL = `${SITE_BASE}/#contact`;
 const LEGAL_LINKS = [
   { icon: 'shield-checkmark-outline', labelKey: 'legal.privacy', url: `${SITE_BASE}/privacy-policy/` },
   { icon: 'document-text-outline', labelKey: 'legal.terms', url: `${SITE_BASE}/termini-e-condizioni/` },
@@ -358,10 +358,9 @@ export function ProfiloScreen() {
         <Text style={styles.sectionLabel}>{tr('section.support')}</Text>
         <View style={styles.card}>
           <LinkRow
-            icon="mail-outline"
+            icon="chatbubble-ellipses-outline"
             label={tr('support.contact')}
-            value={CONTACT_EMAIL}
-            onPress={() => openExternal(`mailto:${CONTACT_EMAIL}`)}
+            onPress={() => openExternal(CONTACT_FORM_URL)}
           />
           {LEGAL_LINKS.map((link) => (
             <View key={link.url}>
