@@ -161,15 +161,15 @@ internalE2eRouter.post(
             AND ( note ILIKE 'e2e %' OR note ILIKE 'e2e-%' )`,
         [TEST_TENANT_ID]
       );
-      // Stamps seeded against the persistent test3 QA user carry an 'e2e '
-      // justification marker. If a spec crashes before its afterEach delete,
-      // they linger and pollute later anomaly-day computations (the day's
-      // stamps merge into a bogus effective span). Marker-sweep them like the
-      // leave/correction rows above. Scoped to the test tenant.
+      // Stamps seeded by the anomaly specs go through POST /admin/stamps, which
+      // sets source='admin_manual' (the 'e2e ' marker lands in the audit log,
+      // not on the row). If a spec crashes before its afterEach delete they
+      // linger on the persistent test3 user and pollute later anomaly-day
+      // computations (the day's stamps merge into a bogus effective span).
+      // Sweep admin-seeded stamps in the test tenant — real employee stamps use
+      // source 'web'/'mobile'/'gps', never 'admin_manual'. Scoped to the tenant.
       const stm = await client.query(
-        `DELETE FROM stamps
-          WHERE tenant_id = $1
-            AND ( justification ILIKE 'e2e %' OR justification ILIKE 'e2e-%' )`,
+        `DELETE FROM stamps WHERE tenant_id = $1 AND source = 'admin_manual'`,
         [TEST_TENANT_ID]
       );
       await client.query('COMMIT');
