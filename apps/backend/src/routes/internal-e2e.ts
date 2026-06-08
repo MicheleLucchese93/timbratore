@@ -90,6 +90,35 @@ internalE2eRouter.post(
         `DELETE FROM user_shift_assignments WHERE user_id ${inE2eUsers} AND tenant_id = $2`,
         argsT
       );
+      // Shift templates + their assignments are created against the persistent
+      // test3 QA user (NOT an e2e-*@e2e.local fixture), so the user-scoped
+      // delete above misses them and residue accumulates across runs —
+      // overlapping/inverted assignment rows then corrupt the per-day
+      // resolution in /anomalies and the payroll export. Sweep the pinned test
+      // tenant for spec-created templates (name 'e2e%' or already soft-deleted)
+      // plus any inverted/orphan assignment rows. Assignments first, then the
+      // template children (slots, day_lunch), then the templates (FK order).
+      const e2eTpl = `SELECT id FROM shift_templates
+                        WHERE tenant_id = $1 AND (name ILIKE 'e2e%' OR deleted_at IS NOT NULL)`;
+      const usaSweep = await client.query(
+        `DELETE FROM user_shift_assignments
+          WHERE tenant_id = $1
+            AND ( valid_to < valid_from OR shift_template_id IN (${e2eTpl}) )`,
+        [TEST_TENANT_ID]
+      );
+      await client.query(
+        `DELETE FROM shift_template_slots WHERE shift_template_id IN (${e2eTpl})`,
+        [TEST_TENANT_ID]
+      );
+      await client.query(
+        `DELETE FROM shift_template_day_lunch WHERE shift_template_id IN (${e2eTpl})`,
+        [TEST_TENANT_ID]
+      );
+      const stpl = await client.query(
+        `DELETE FROM shift_templates
+          WHERE tenant_id = $1 AND (name ILIKE 'e2e%' OR deleted_at IS NOT NULL)`,
+        [TEST_TENANT_ID]
+      );
       // user_preferences has no tenant_id — scoped purely to the e2e user set.
       const up = await client.query(`DELETE FROM user_preferences WHERE user_id ${inE2eUsers}`, argsU);
       const bm = await client.query(
@@ -144,7 +173,8 @@ internalE2eRouter.post(
           correction_requests: totalCorr,
           correction_approvers: cap.rowCount,
           stamps: st.rowCount,
-          user_shift_assignments: usa.rowCount,
+          user_shift_assignments: (usa.rowCount ?? 0) + (usaSweep.rowCount ?? 0),
+          shift_templates: stpl.rowCount,
           user_preferences: up.rowCount,
           branch_memberships: bm.rowCount,
           memberships: m.rowCount,
@@ -164,7 +194,8 @@ internalE2eRouter.post(
         correction_approvers_deleted: cap.rowCount,
         anomaly_justifications_deleted: ajm.rowCount,
         stamps_deleted: st.rowCount,
-        user_shift_assignments_deleted: usa.rowCount,
+        user_shift_assignments_deleted: (usa.rowCount ?? 0) + (usaSweep.rowCount ?? 0),
+        shift_templates_deleted: stpl.rowCount,
         user_preferences_deleted: up.rowCount,
         branch_memberships_deleted: bm.rowCount,
         memberships_deleted: m.rowCount,

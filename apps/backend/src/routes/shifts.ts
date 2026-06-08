@@ -464,10 +464,20 @@ shiftsRouter.post(
       if (tpl.rowCount === 0) throw new NotFoundError('shift_template');
     }
 
+    // Supersede any open assignment at valid_from. Rows that start on/after
+    // valid_from are fully replaced — delete them, because closing at
+    // valid_from-1 would leave an inverted (valid_to < valid_from) row that
+    // later corrupts the per-day assignment resolution in /anomalies and the
+    // payroll export. Rows that started earlier are closed the day before.
+    await client.query(
+      `DELETE FROM user_shift_assignments
+        WHERE user_id = $1 AND valid_to IS NULL AND valid_from >= $2::date`,
+      [user_id, valid_from]
+    );
     await client.query(
       `UPDATE user_shift_assignments
           SET valid_to = ($2::date - INTERVAL '1 day')::date
-        WHERE user_id = $1 AND valid_to IS NULL`,
+        WHERE user_id = $1 AND valid_to IS NULL AND valid_from < $2::date`,
       [user_id, valid_from]
     );
 
@@ -523,10 +533,16 @@ shiftsRouter.post(
       if (tpl.rowCount === 0) throw new NotFoundError('shift_template');
     }
 
+    // Same supersede-without-inverting rule as the single-user endpoint above.
+    await client.query(
+      `DELETE FROM user_shift_assignments
+        WHERE user_id = ANY($1::uuid[]) AND valid_to IS NULL AND valid_from >= $2::date`,
+      [user_ids, valid_from]
+    );
     await client.query(
       `UPDATE user_shift_assignments
           SET valid_to = ($2::date - INTERVAL '1 day')::date
-        WHERE user_id = ANY($1::uuid[]) AND valid_to IS NULL`,
+        WHERE user_id = ANY($1::uuid[]) AND valid_to IS NULL AND valid_from < $2::date`,
       [user_ids, valid_from]
     );
 
