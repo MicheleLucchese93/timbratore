@@ -175,8 +175,21 @@ internalE2eRouter.post(
       // and page render — so an all-source, tenant-scoped wipe is safe. The
       // tenant pin ($1) is the same safety boundary every sweep in this file
       // relies on. Subsumes the e2e-user-scoped stamp delete above (st).
+      //
+      // The single FK into stamps is correction_requests.original_stamp_id
+      // (nullable, ON DELETE RESTRICT — see 004_correction_requests.sql). The
+      // e2e-user + marker correction sweeps above (cr, crm) already cleared the
+      // correction rows we own, but a non-e2e correction left on a QA account
+      // can still pin its stamp and would trip the FK. Skip any stamp a
+      // correction still references — those belong to a correction flow the
+      // correction sweeps clean separately, and the residue that breaks the
+      // anomaly specs (auto-clockouts, orphan clock-ins) is never referenced.
       const stm = await client.query(
-        `DELETE FROM stamps WHERE tenant_id = $1`,
+        `DELETE FROM stamps s
+          WHERE s.tenant_id = $1
+            AND NOT EXISTS (
+              SELECT 1 FROM correction_requests cr WHERE cr.original_stamp_id = s.id
+            )`,
         [TEST_TENANT_ID]
       );
       await client.query('COMMIT');
