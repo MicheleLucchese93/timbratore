@@ -62,11 +62,24 @@ test.describe('web — Utenti CRUD (mutating)', () => {
   test('reset-password action shows a confirmation in the Utenti grid', async ({ page }) => {
     await page.goto('/users');
     await expect(page.locator('.MuiDataGrid-root')).toBeVisible({ timeout: 15_000 });
-    const row = page.locator('.MuiDataGrid-row', { hasText: email });
+    // Locate by data-id (stable under column virtualisation — the email cell
+    // unrenders once we scroll right). The Utenti grid is wide (shift/approvers/
+    // stamp-mode/branch columns), so the actions column is virtualised off the
+    // right edge; scroll the body fully right to render the row's action
+    // buttons before clicking reset-password.
+    const row = page.locator(`.MuiDataGrid-row[data-id="${createdUserId}"]`);
     await expect(row).toBeVisible({ timeout: 15_000 });
-    await row
-      .getByRole('button', { name: 'Invia email per reimpostare la password' })
-      .click();
+    await row.scrollIntoViewIfNeeded();
+    await page
+      .locator('.MuiDataGrid-virtualScroller')
+      .evaluate((el) => {
+        el.scrollLeft = el.scrollWidth;
+      });
+    const resetBtn = row.getByRole('button', {
+      name: 'Invia email per reimpostare la password',
+    });
+    await resetBtn.scrollIntoViewIfNeeded();
+    await resetBtn.click();
     await expect(
       page.getByText(`Email per reimpostare la password inviata a ${email}.`)
     ).toBeVisible({ timeout: 10_000 });

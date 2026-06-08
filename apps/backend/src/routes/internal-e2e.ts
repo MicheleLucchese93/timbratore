@@ -161,6 +161,17 @@ internalE2eRouter.post(
             AND ( note ILIKE 'e2e %' OR note ILIKE 'e2e-%' )`,
         [TEST_TENANT_ID]
       );
+      // Stamps seeded against the persistent test3 QA user carry an 'e2e '
+      // justification marker. If a spec crashes before its afterEach delete,
+      // they linger and pollute later anomaly-day computations (the day's
+      // stamps merge into a bogus effective span). Marker-sweep them like the
+      // leave/correction rows above. Scoped to the test tenant.
+      const stm = await client.query(
+        `DELETE FROM stamps
+          WHERE tenant_id = $1
+            AND ( justification ILIKE 'e2e %' OR justification ILIKE 'e2e-%' )`,
+        [TEST_TENANT_ID]
+      );
       await client.query('COMMIT');
       const totalLeave = (lr.rowCount ?? 0) + (lrm.rowCount ?? 0);
       const totalCorr = (cr.rowCount ?? 0) + (crm.rowCount ?? 0);
@@ -172,7 +183,7 @@ internalE2eRouter.post(
           leave_approvers: lap.rowCount,
           correction_requests: totalCorr,
           correction_approvers: cap.rowCount,
-          stamps: st.rowCount,
+          stamps: (st.rowCount ?? 0) + (stm.rowCount ?? 0),
           user_shift_assignments: (usa.rowCount ?? 0) + (usaSweep.rowCount ?? 0),
           shift_templates: stpl.rowCount,
           user_preferences: up.rowCount,
@@ -193,7 +204,7 @@ internalE2eRouter.post(
         correction_requests_deleted: totalCorr,
         correction_approvers_deleted: cap.rowCount,
         anomaly_justifications_deleted: ajm.rowCount,
-        stamps_deleted: st.rowCount,
+        stamps_deleted: (st.rowCount ?? 0) + (stm.rowCount ?? 0),
         user_shift_assignments_deleted: (usa.rowCount ?? 0) + (usaSweep.rowCount ?? 0),
         shift_templates_deleted: stpl.rowCount,
         user_preferences_deleted: up.rowCount,
