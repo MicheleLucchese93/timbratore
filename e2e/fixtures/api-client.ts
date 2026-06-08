@@ -210,6 +210,77 @@ export async function deleteStampAdmin(adminToken: string, stampId: string): Pro
   }
 }
 
+export interface StampRow {
+  id: string;
+  user_id: string;
+  event_type: string;
+  occurred_at: string;
+}
+
+/** Admin list of stamps, filtered by user + date range (GET /stamps, admin-only). */
+export async function listStampsAdmin(
+  adminToken: string,
+  query: { user_id: string; from?: string; to?: string; limit?: number },
+): Promise<StampRow[]> {
+  const p = new URLSearchParams({ user_id: query.user_id });
+  if (query.from) p.set('from', query.from);
+  if (query.to) p.set('to', query.to);
+  if (query.limit != null) p.set('limit', String(query.limit));
+  return apiGet<StampRow[]>(adminToken, `/api/v1/stamps?${p.toString()}`);
+}
+
+/**
+ * Ensure an admin user has recent stamped days so the mobile Storico screen
+ * renders its summary + per-day cards (e2e/mobile/storico.spec.ts:16). Storico
+ * defaults to the last 30 days, so this is the window we keep populated.
+ *
+ * Idempotent: no-ops when the user already has any stamp inside the 30-day
+ * window. Otherwise seeds the last 3 weekdays with a 09:00–17:00 Rome
+ * (07:00–15:00Z = 8h) pair each via POST /admin/stamps. The e2e purge is scoped
+ * to role='user', so these admin-baseline stamps survive teardown and only need
+ * re-seeding when they age out of the window. Replaces the one-off manual prod
+ * seed so the baseline is reproducible after a tenant reset. Returns the number
+ * of day-pairs seeded (0 when already populated).
+ */
+export async function ensureRecentAdminStorico(adminToken: string, userId: string): Promise<number> {
+  const today = new Date();
+  const from = new Date(today);
+  from.setUTCDate(from.getUTCDate() - 29);
+  const existing = await listStampsAdmin(adminToken, {
+    user_id: userId,
+    from: from.toISOString().slice(0, 10),
+    to: today.toISOString().slice(0, 10),
+    limit: 1,
+  });
+  if (existing.length > 0) return 0;
+
+  const days: string[] = [];
+  const d = new Date(today);
+  while (days.length < 3) {
+    d.setUTCDate(d.getUTCDate() - 1);
+    const dow = d.getUTCDay();
+    if (dow !== 0 && dow !== 6) days.push(d.toISOString().slice(0, 10));
+  }
+
+  let seeded = 0;
+  for (const day of days) {
+    const ci = await apiPost(adminToken, '/api/v1/admin/stamps', {
+      user_id: userId,
+      event_type: 'clock_in',
+      occurred_at: `${day}T07:00:00.000Z`,
+      justification: 'QA baseline storico',
+    });
+    const co = await apiPost(adminToken, '/api/v1/admin/stamps', {
+      user_id: userId,
+      event_type: 'clock_out',
+      occurred_at: `${day}T15:00:00.000Z`,
+      justification: 'QA baseline storico',
+    });
+    if (ci.status === 201 && co.status === 201) seeded += 1;
+  }
+  return seeded;
+}
+
 /* Leave quota helpers */
 
 export interface QuotaTemplateBody {
