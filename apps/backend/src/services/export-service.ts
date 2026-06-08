@@ -271,7 +271,9 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
     // "Ore conteggiate" rounds worked time down to 15-minute blocks: anything
     // below 15 min counts as 0. Overtime is already block-aligned by the
     // extraordinary_threshold_min step above, so no extra rounding here.
-    // Mirrors mobile counted-day.ts.
+    // This file holds the authoritative day-level rules; the mobile + web
+    // clients mirror them live from packages/shared/src/stamps/counted-day.ts
+    // (+ day-totals.ts). Keep the two in sync.
     for (const day of days.values()) {
       day.worked_minutes = Math.floor(Math.max(0, day.worked_minutes) / 15) * 15;
     }

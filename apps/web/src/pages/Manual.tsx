@@ -726,7 +726,7 @@ const MAIN_IT = `
         <ul class="tidy">
           <li><strong>Ragione sociale</strong> e <strong>Partita IVA</strong> — sola lettura (modificabili dal provider).</li>
           <li><strong>Timezone</strong> — fuso orario aziendale (Europe/Rome di default).</li>
-          <li><strong>Lingua</strong> — Italiano o English. È una preferenza <em>personale</em>: vale solo per il tuo account e si cambia anche al volo dal selettore IT/EN in fondo alla barra laterale (su mobile da <em>Profilo → Lingua</em>).</li>
+          <li><strong>Lingua</strong> — Italiano o English. È una preferenza <em>personale</em>: vale solo per il tuo account (su mobile da <em>Profilo → Lingua</em>).</li>
           <li><strong>Paese</strong> — opzionale, sola lettura.</li>
         </ul>
       </div>
@@ -806,16 +806,34 @@ const MAIN_IT = `
 
     <section class="chapter" id="web-user-dashboard">
       <h2><span class="chapter-num">17</span>La mia Dashboard <span class="badge badge-user">user</span> <span class="badge badge-web">web</span></h2>
-      <p class="lead">Una pagina sintetica con il tuo stato attuale e le ultime timbrature.</p>
+      <p class="lead">La tua home da dipendente: timbri la giornata e vedi a colpo d'occhio le ore di oggi, l'orario previsto e le ultime timbrature. Le stesse funzioni dell'app mobile, dal browser.</p>
 
       <div class="feature">
-        <h3>Card Stato</h3>
-        <p>Mostra in evidenza:</p>
-        <ul class="tidy">
-          <li>Il tuo <strong>stato</strong> attuale: <span class="pill pill-ok">Al lavoro</span> / <span class="pill pill-warn">In pausa</span> / <span class="pill">Fuori servizio</span>.</li>
-          <li>L'<strong>ultimo evento</strong> registrato, con orario (es. "Ingresso alle 09:15").</li>
-          <li>Un suggerimento: per timbrare usa l'app mobile.</li>
-        </ul>
+        <h3>Timbrare dal web</h3>
+        <p>Se per il tuo profilo è abilitata la modalità <strong>remoto</strong>, trovi i pulsanti per registrare la giornata, che cambiano in base allo stato:</p>
+        <table>
+          <thead><tr><th>Stato attuale</th><th>Azioni disponibili</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill">Fuori servizio</span></td><td><strong>Timbra ingresso</strong></td></tr>
+            <tr><td><span class="pill pill-ok">Al lavoro</span></td><td><strong>Timbra uscita</strong> · <strong>Inizia pausa</strong> · <strong>Inizia pausa pranzo</strong></td></tr>
+            <tr><td><span class="pill pill-warn">In pausa</span></td><td><strong>Termina pausa</strong></td></tr>
+            <tr><td><span class="pill pill-warn">In pausa pranzo</span></td><td><strong>Termina pausa pranzo</strong></td></tr>
+          </tbody>
+        </table>
+        <p>Appena timbrato hai <strong>60 secondi</strong> per annullare con <em>Annulla ultima timbratura</em>. Se sei assegnato a più sedi puoi sceglierla; una volta timbrato l'ingresso la sede resta bloccata fino all'uscita.</p>
+        <div class="callout callout-info">
+          La timbratura da web è <strong>"da remoto"</strong>: non richiede il GPS e non applica il controllo dell'area (geofence). Per questo è disponibile solo se l'amministratore ti ha assegnato la modalità <strong>remoto</strong>. Se non ce l'hai, vedrai l'avviso <em>"La timbratura da web non è abilitata"</em> e dovrai usare l'app mobile.
+        </div>
+      </div>
+
+      <div class="feature">
+        <h3>Riepilogo della giornata</h3>
+        <p>In alto la card mostra <strong>Ore lavorate</strong> e <strong>Ore conteggiate</strong> (in base all'orario assegnato, arrotondate per difetto a blocchi di 15 minuti) più <strong>Entrata</strong>, <strong>Pause</strong> e <strong>Uscita</strong> della giornata. Si aggiorna in tempo reale.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Orario di oggi e orario settimanale</h3>
+        <p>Se hai un orario assegnato, vedi i <strong>turni previsti per oggi</strong> come pillole (es. "09:00–18:00") con il <strong>Totale</strong> di ore attese, oppure "Oggi è un giorno di riposo". Il pulsante <strong>📅 Settimana</strong> apre l'<strong>orario settimanale</strong> completo (lunedì–domenica) con i turni e il totale di ore di ogni giorno, con il giorno corrente evidenziato.</p>
       </div>
 
       <div class="feature">
@@ -899,6 +917,7 @@ const MAIN_IT = `
       <div class="feature">
         <h3>Orario di oggi</h3>
         <p>Sotto la card principale, se hai un orario di lavoro assegnato, vedi i <strong>turni previsti per oggi</strong> come pillole (es. "09:00–18:00", o più pillole in caso di turno spezzato) e a destra il <strong>Totale</strong> di ore attese: così sai sempre quanto sei tenuto a lavorare nella giornata. Nei giorni di riposo (es. sabato/domenica secondo il tuo orario) compare "Oggi è un giorno di riposo". Senza orario assegnato la sezione non viene mostrata.</p>
+        <p>Tocca l'<strong>icona calendario</strong> in alto a destra della sezione per aprire l'<strong>orario settimanale</strong> completo: tutti i giorni da lunedì a domenica con i turni previsti e il totale di ore di ciascun giorno (il giorno corrente è evidenziato). Utile per sapere in anticipo cosa ti aspetta nei prossimi giorni.</p>
       </div>
 
       <div class="feature">
@@ -1115,7 +1134,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Lingua</h3>
-        <p>Nella sezione <strong>Lingua</strong> tocca <strong>Italiano</strong> o <strong>English</strong> per cambiare subito la lingua dell'app. È una preferenza <em>personale</em> (vale solo per il tuo account) e viene ricordata al prossimo avvio; le email e le notifiche push che ricevi seguono la stessa scelta. Sul Web la cambi da <strong>Impostazioni → Lingua interfaccia</strong> o dal selettore IT/EN in fondo alla barra laterale.</p>
+        <p>Nella sezione <strong>Lingua</strong> tocca <strong>Italiano</strong> o <strong>English</strong> per cambiare subito la lingua dell'app. È una preferenza <em>personale</em> (vale solo per il tuo account) e viene ricordata al prossimo avvio; le email e le notifiche push che ricevi seguono la stessa scelta. Sul Web la cambi da <strong>Impostazioni → Lingua interfaccia</strong>.</p>
       </div>
 
       <div class="feature">

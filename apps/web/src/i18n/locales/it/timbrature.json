@@ -9,6 +9,7 @@
     "total": "Totale {{duration}}",
     "restDay": "Oggi è un giorno di riposo",
     "weekTitle": "Orario settimanale",
+    "weekBtn": "Settimana",
     "viewWeekA11y": "Mostra orario settimanale",
     "rest": "Riposo"
   },
@@ -26,21 +27,10 @@
     "lunchEnd": "Termina pausa pranzo"
   },
   "disabledNotice": "La timbratura non è abilitata per il tuo profilo. Contatta l'amministratore.",
+  "webDisabledNotice": "La timbratura da web non è abilitata per il tuo profilo: usa l'app mobile per timbrare.",
   "undoLast": "Annulla ultima timbratura",
   "lastEvent": "Ultimo evento: {{event}} alle {{time}}",
-  "alert": {
-    "outOfAreaTitle": "Uscita fuori area",
-    "outOfAreaMessage": "Eri fuori dall'area della sede: l'uscita è stata registrata con un'anomalia.",
-    "offlineTitle": "Senza connessione",
-    "offlineMessage": "Timbratura accodata. Verrà inviata quando torni online.",
-    "stampFailedTitle": "Timbratura non riuscita",
-    "gpsTitle": "Posizione GPS",
-    "undoFailedTitle": "Impossibile annullare"
-  },
   "error": {
-    "LOCATION_PERMISSION_DENIED": "Permesso posizione negato. Vai alle Impostazioni.",
-    "ACQUISITION_TIMEOUT": "GPS non disponibile. Spostati all'aperto e riprova.",
-    "WEB_CLOCK_IN_DISABLED": "Timbratura da web non consentita per questo utente.",
     "unknown": "Errore sconosciuto."
   }
 }

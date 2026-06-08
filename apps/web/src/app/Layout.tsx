@@ -2,7 +2,6 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../store/session.ts';
-import { LanguageToggle } from '../components/LanguageSwitcher.tsx';
 
 interface NavItem { to: string; key: string; icon: ReactNode }
 
@@ -120,7 +119,6 @@ export function Layout({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="sidebar-foot">
-          <LanguageToggle collapsed={collapsed} />
           <div className="sidebar-user" title={email}>
             <div className="sidebar-user-avatar" aria-hidden="true">{initials}</div>
             {!collapsed && (

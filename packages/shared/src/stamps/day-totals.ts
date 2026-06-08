@@ -1,4 +1,7 @@
-import type { StampEventType } from '@sonoqui/shared';
+// Day-level "Ore lavorate" segment arithmetic, shared by mobile + web.
+// Mirrors the backend export-service segment arithmetic
+// (apps/backend/src/services/export-service.ts) — keep the two in sync.
+import type { StampEventType } from '../types/index.js';
 
 export interface DayStamp {
   id: string;

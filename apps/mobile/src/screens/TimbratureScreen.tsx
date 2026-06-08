@@ -22,14 +22,15 @@ import { enqueueStamp, drainQueue } from '../lib/offline-queue';
 import { stateFromLastEvent } from '@sonoqui/shared';
 import type { StampEventType } from '@sonoqui/shared';
 import { color, space, type as t } from '@sonoqui/shared';
-import { formatDuration, isoDay, type DayStamp } from '../lib/day-totals';
+import { formatDuration, isoDay, type DayStamp } from '@sonoqui/shared';
 import {
   computeCountedDay,
   type ActiveAssignment,
   type LeaveInterval,
-} from '../lib/counted-day';
+} from '@sonoqui/shared';
 import { AppHeader } from '../components/AppHeader';
 import { WorkStateChip } from '../components/WorkStateChip';
+import { WeekScheduleModal } from '../components/WeekScheduleModal';
 import { fmtTime } from '../i18n/format';
 
 interface CurrentState {
@@ -67,6 +68,7 @@ export function TimbratureScreen() {
   const [lastSubmittedAt, setLastSubmittedAt] = useState<Date | null>(null);
   const [lastUndoId, setLastUndoId] = useState<string | null>(null);
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
+  const [weekScheduleOpen, setWeekScheduleOpen] = useState(false);
 
   const branches = me?.branches ?? [];
   const stampModes = me?.user.stamp_modes ?? [];
@@ -274,11 +276,20 @@ export function TimbratureScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>{t('schedule.title')}</Text>
-              {todaySlots.length > 0 && (
-                <Text style={styles.scheduleTotal}>
-                  {t('schedule.total', { duration: formatDuration(expectedMin * 60_000) })}
-                </Text>
-              )}
+              <View style={styles.scheduleHeaderRight}>
+                {todaySlots.length > 0 && (
+                  <Text style={styles.scheduleTotal}>
+                    {t('schedule.total', { duration: formatDuration(expectedMin * 60_000) })}
+                  </Text>
+                )}
+                <Pressable
+                  onPress={() => setWeekScheduleOpen(true)}
+                  hitSlop={8}
+                  accessibilityLabel={t('schedule.viewWeekA11y')}
+                  style={styles.weekBtn}>
+                  <Ionicons name="calendar-outline" size={18} color={color.primary} />
+                </Pressable>
+              </View>
             </View>
             {todaySlots.length > 0 ? (
               <ScrollView
@@ -406,6 +417,14 @@ export function TimbratureScreen() {
           </View>
         )}
       </ScrollView>
+      {assignment && (
+        <WeekScheduleModal
+          visible={weekScheduleOpen}
+          onClose={() => setWeekScheduleOpen(false)}
+          assignment={assignment}
+          todayDow={todayDow}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -572,6 +591,15 @@ const styles = StyleSheet.create({
   pillText: { fontSize: 14, fontWeight: '600', color: color.onSurfaceVariant },
   pillTextActive: { color: color.onPrimary },
 
+  scheduleHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  weekBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: color.primaryContainer,
+  },
   scheduleTotal: {
     fontSize: 12,
     fontWeight: '700',

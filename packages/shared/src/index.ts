@@ -2,6 +2,8 @@ export * from './types/index.js';
 export * from './error-codes.js';
 export * from './stamps/state-machine.js';
 export * from './stamps/labels.js';
+export * from './stamps/day-totals.js';
+export * from './stamps/counted-day.js';
 export * from './geo.js';
 export * from './design/tokens.js';
 export * from './leaves/holidays.js';

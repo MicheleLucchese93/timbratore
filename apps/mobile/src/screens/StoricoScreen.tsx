@@ -16,13 +16,13 @@ import { api } from '../lib/api';
 import type { StampEventType } from '@sonoqui/shared';
 import { color, space, type as t } from '@sonoqui/shared';
 import { fmtDate, fmtTime } from '../i18n/format';
-import { formatDuration, isoDay, type DayStamp } from '../lib/day-totals';
+import { formatDuration, isoDay, type DayStamp } from '@sonoqui/shared';
 import {
   computeCountedDayClosed,
   isScheduledWorkday,
   type ActiveAssignment,
   type LeaveInterval,
-} from '../lib/counted-day';
+} from '@sonoqui/shared';
 import { AppHeader } from '../components/AppHeader';
 import { WorkStateChip } from '../components/WorkStateChip';
 

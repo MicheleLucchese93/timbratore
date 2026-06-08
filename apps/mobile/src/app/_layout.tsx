@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useLock } from '../store/lock';
 import { useSession } from '../store/session';
 import { LockScreen } from '../screens/LockScreen';
+import { setupBadgeSync } from '../lib/badgeSync';
 import { i18nReady, applyServerLanguage } from '../i18n';
 
 /**
@@ -49,6 +50,24 @@ function LockGate() {
   );
 }
 
+/**
+ * Mirrors the in-app notification unread count to the OS app-icon badge for
+ * the whole authenticated session. Lives at the root layout (like LockGate)
+ * because app/index.tsx unmounts on the post-login redirect — keeping the
+ * badge sync there froze the icon badge after boot (mark-all-read updated the
+ * in-app bell but never the OS badge). Re-runs on account / tenant switch so
+ * the initial reconcile re-pulls notifications for the active tenant.
+ */
+function BadgeSyncGate() {
+  const userId = useSession((s) => s.me?.user.id);
+  const activeTenantId = useSession((s) => s.activeTenantId);
+  useEffect(() => {
+    if (!userId) return;
+    return setupBadgeSync();
+  }, [userId, activeTenantId]);
+  return null;
+}
+
 export default function RootLayout() {
   // Gate first paint until the persisted language has been applied, so the UI
   // never flashes Italian before switching to the user's English preference.
@@ -83,6 +102,7 @@ export default function RootLayout() {
         <Stack.Screen name="profilo" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="forgot-password" options={{ animation: 'slide_from_right' }} />
       </Stack>
+      <BadgeSyncGate />
       <LockGate />
     </SafeAreaProvider>
   );

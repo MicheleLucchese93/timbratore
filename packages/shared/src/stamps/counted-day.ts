@@ -1,7 +1,7 @@
-// Live mirror of apps/backend/src/services/export-service.ts day-level rules,
-// reduced to what makes sense before the shift closes. Used by the mobile
-// hero card to show "Ore conteggiate" (timesheet-aware) alongside
-// "Ore lavorate" (raw arithmetic).
+// "Ore conteggiate" — live mirror of apps/backend/src/services/export-service.ts
+// day-level rules, reduced to what makes sense before the shift closes. Shown by
+// mobile + web alongside "Ore lavorate" (raw arithmetic). Keep in sync with the
+// backend export rules.
 //
 // While the day is open (no clock_out yet), we cannot know whether the user
 // will trigger the early-clock-out breach. We therefore skip that one rule
@@ -12,8 +12,8 @@
 // counted in whole blocks of extraordinary_threshold_min (15/30/60), a partial
 // block not counted. Only when count_extraordinary is on.
 
-import type { DayStamp, DayTotals } from './day-totals';
-import { computeDayTotals } from './day-totals';
+import type { DayStamp, DayTotals } from './day-totals.js';
+import { computeDayTotals } from './day-totals.js';
 
 export interface AssignmentSlot {
   day_of_week: number;

@@ -794,16 +794,34 @@ export const MAIN_EN = `
 
     <section class="chapter" id="web-user-dashboard">
       <h2><span class="chapter-num">17</span>My Dashboard <span class="badge badge-user">user</span> <span class="badge badge-web">web</span></h2>
-      <p class="lead">A concise page with your current status and latest stamps.</p>
+      <p class="lead">Your employee home: stamp your day and see at a glance today's hours, the planned schedule and your latest stamps. The same functions as the mobile app, from the browser.</p>
 
       <div class="feature">
-        <h3>Status card</h3>
-        <p>Highlights:</p>
-        <ul class="tidy">
-          <li>Your current <strong>status</strong>: <span class="pill pill-ok">At work</span> / <span class="pill pill-warn">On break</span> / <span class="pill">Off duty</span>.</li>
-          <li>The <strong>last event</strong> recorded, with its time (e.g. "Clock-in at 09:15").</li>
-          <li>A tip: to stamp, use the mobile app.</li>
-        </ul>
+        <h3>Stamping from the web</h3>
+        <p>If the <strong>remote</strong> mode is enabled for your profile, you get the buttons to record the day, which change with your current status:</p>
+        <table>
+          <thead><tr><th>Current status</th><th>Available actions</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill">Off duty</span></td><td><strong>Clock in</strong></td></tr>
+            <tr><td><span class="pill pill-ok">At work</span></td><td><strong>Clock out</strong> · <strong>Start break</strong> · <strong>Start lunch break</strong></td></tr>
+            <tr><td><span class="pill pill-warn">On break</span></td><td><strong>End break</strong></td></tr>
+            <tr><td><span class="pill pill-warn">On lunch break</span></td><td><strong>End lunch break</strong></td></tr>
+          </tbody>
+        </table>
+        <p>Right after stamping you have <strong>60 seconds</strong> to undo with <em>Undo last stamp</em>. If you are assigned to several locations you can pick one; once you clock in the location stays locked until clock-out.</p>
+        <div class="callout callout-info">
+          Web stamping is <strong>"remote"</strong>: it requires no GPS and does not apply the area check (geofence). For this reason it is available only if the administrator assigned you the <strong>remote</strong> mode. If you don't have it, you'll see the notice <em>"Web stamping is not enabled"</em> and you'll need to use the mobile app.
+        </div>
+      </div>
+
+      <div class="feature">
+        <h3>Day summary</h3>
+        <p>At the top the card shows <strong>Hours worked</strong> and <strong>Counted hours</strong> (based on your assigned shift, rounded down to 15-minute blocks) plus the day's <strong>Clock-in</strong>, <strong>Breaks</strong> and <strong>Clock-out</strong>. It updates in real time.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Today's schedule and weekly schedule</h3>
+        <p>If you have an assigned shift, you see the <strong>shifts planned for today</strong> as pills (e.g. "09:00–18:00") with the <strong>Total</strong> of expected hours, or "Today is a rest day". The <strong>📅 Week</strong> button opens the full <strong>weekly schedule</strong> (Monday–Sunday) with each day's shifts and total hours, with the current day highlighted.</p>
       </div>
 
       <div class="feature">
@@ -887,6 +905,7 @@ export const MAIN_EN = `
       <div class="feature">
         <h3>Today's shift</h3>
         <p>Below the main card, if you have a work shift assigned, you see the <strong>shifts planned for today</strong> as pills (e.g. "09:00–18:00", or several pills in case of a split shift) and on the right the <strong>Total</strong> of expected hours: so you always know how much you are required to work that day. On rest days (e.g. Saturday/Sunday according to your shift) "Today is a rest day" appears. Without an assigned shift the section is not shown.</p>
+        <p>Tap the <strong>calendar icon</strong> at the top right of the section to open the full <strong>weekly schedule</strong>: every day from Monday to Sunday with its planned shifts and total hours (the current day is highlighted). Handy to know in advance what the next days have in store.</p>
       </div>
 
       <div class="feature">
@@ -1104,7 +1123,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>Language</h3>
-        <p>In the <strong>Language</strong> section tap <strong>Italiano</strong> or <strong>English</strong> to switch the app language instantly. It is a <em>personal</em> preference (it applies only to your account) and is remembered on the next launch; the emails and push notifications you receive follow the same choice. On the Web you change it from <strong>Settings &rarr; Interface language</strong> or from the IT/EN selector at the bottom of the sidebar.</p>
+        <p>In the <strong>Language</strong> section tap <strong>Italiano</strong> or <strong>English</strong> to switch the app language instantly. It is a <em>personal</em> preference (it applies only to your account) and is remembered on the next launch; the emails and push notifications you receive follow the same choice. On the Web you change it from <strong>Settings &rarr; Interface language</strong>.</p>
       </div>
 
       <div class="feature">
