@@ -31,8 +31,11 @@ test.describe('web — Orari Settimana day & week totals', () => {
     // Per-day total appears on the same row.
     await expect(lun.getByText('4h 00m')).toBeVisible({ timeout: 5_000 });
 
-    // Weekly footer reflects the same total (only Lun has a fascia).
-    const footer = page.getByText('Totale settimanale').locator('xpath=..');
+    // Weekly footer reflects the same total (only Lun has a fascia). Match the
+    // modal's footer label exactly — existing template cards on the page render
+    // "Totale settimanale: <total>" (weeklyTotal), which would otherwise make
+    // the locator ambiguous (strict-mode dup) whenever a card shares the total.
+    const footer = page.getByText('Totale settimanale', { exact: true }).locator('xpath=..');
     await expect(footer.getByText('4h 00m')).toBeVisible();
 
     await page.getByRole('button', { name: 'Annulla' }).click();
@@ -49,7 +52,7 @@ test.describe('web — Orari Settimana day & week totals', () => {
       // apps/web/src/pages/Shifts.tsx) → 4h per day.
     }
 
-    const footer = page.getByText('Totale settimanale').locator('xpath=..');
+    const footer = page.getByText('Totale settimanale', { exact: true }).locator('xpath=..');
     await expect(footer.getByText('8h 00m')).toBeVisible({ timeout: 5_000 });
 
     await page.getByRole('button', { name: 'Annulla' }).click();
