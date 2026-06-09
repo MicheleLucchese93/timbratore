@@ -27,6 +27,7 @@ import { leavesRouter } from './routes/leaves.js';
 import { leaveQuotasRouter } from './routes/leave-quotas.js';
 import { helpdeskRouter } from './routes/helpdesk.js';
 import { internalE2eRouter } from './routes/internal-e2e.js';
+import { internalProvisionRouter } from './routes/internal-provision.js';
 
 export function createApp(): Express {
   const app = express();
@@ -117,6 +118,12 @@ export function createApp(): Express {
     console.warn(
       'E2E_PURGE_SECRET is set but E2E_TEST_TENANT_ID is missing — e2e purge endpoint NOT mounted (refusing an unscoped destructive route).'
     );
+  }
+
+  // Tenant provisioning (create tenant + invite first admin). Mounts ONLY when
+  // PROVISION_SECRET is configured, so a deploy without it exposes no such route.
+  if (env.PROVISION_SECRET) {
+    app.use('/api/v1/_internal/provision', internalProvisionRouter);
   }
 
   app.use(errorHandler);

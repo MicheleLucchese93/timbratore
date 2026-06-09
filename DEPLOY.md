@@ -41,11 +41,13 @@ docker compose up -d
 # 1.6 Apply app schema migrations (uses ADMIN_DATABASE_URL).
 docker exec -i sonoqui-api npx tsx scripts/migrate.ts
 
-# 1.7 Seed an initial tenant + admin user (optional — replace email).
-docker exec -i sonoqui-api npx tsx scripts/create-tenant.ts \
-  --ragione_sociale="Demo Bar Centrale Srl" \
-  --email=admin@demo.sonoqui.local \
-  --max_admins=2 --max_users=20
+# 1.7 Provision an initial tenant + first admin (optional). Sends the admin a
+#     GoTrue invite email to set their password, so use a real mailbox. Requires
+#     PROVISION_SECRET in apps/backend/.env.production (see env.ts).
+curl -sS -X POST https://api-sonoqui.xdevapp.it/api/v1/_internal/provision/tenant \
+  -H "Authorization: Bearer $PROVISION_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"ragione_sociale":"Demo Bar Centrale Srl","admin_email":"admin@example.com","max_admins":2,"max_users":20}'
 
 # 1.8 Smoke test.
 curl -sf https://api-sonoqui.xdevapp.it/health

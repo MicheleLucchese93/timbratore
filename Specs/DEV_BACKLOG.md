@@ -115,7 +115,7 @@ Recommended parallelism: 1 BE engineer drives schema + RLS; can run in parallel 
 - **Refs:** PRD §5.1 personal note ("do not manage auto-registration").
 - **Depends on:** TASK-FND-02.
 - **DoD:**
-  - `apps/backend/scripts/create-tenant.ts` (tsx-runnable, mirrors boilerplate's existing scripts folder convention). Takes: ragione sociale, country, timezone, language, max_admins, max_users, first-admin email. Calls GoTrue admin API to create the user (or finds them if exists), inserts `tenants` row, inserts `memberships` row with `role='admin'`. Emits the new tenant + user IDs.
+  - **Superseded (2026-06-09):** the throwaway `scripts/create-tenant.ts` was removed — it inserted only an `auth_users` mirror row with a random uuid (no GoTrue user/password), so the admin could never log in. Replaced by `POST /api/v1/_internal/provision/tenant` (`apps/backend/src/routes/internal-provision.ts`, bearer `PROVISION_SECRET`): inserts the `tenants` row, invites the first admin via GoTrue `/invite` (email → set own password), mirrors `auth_users`, inserts the `admin` membership. Idempotent on an existing email. Emits the new tenant + user IDs.
   - Idempotent: re-running with the same email finds the existing user instead of erroring.
   - Documented in `scripts/README.md` with example invocations for staging + prod.
 - **Owner:** BE.

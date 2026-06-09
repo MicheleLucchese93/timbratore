@@ -77,6 +77,12 @@ const Env = z.object({
   // the demo tenant lives alongside real ones. This is what makes running
   // e2e against prod safe.
   E2E_TEST_TENANT_ID: z.string().uuid().optional(),
+  // Bearer secret for the internal tenant-provisioning endpoint
+  // (POST /api/v1/_internal/provision/tenant). The router mounts ONLY when this
+  // is set (see app.ts), so a deploy without it has no provisioning route at
+  // all — fail closed. The endpoint creates a tenant and invites its first
+  // admin via GoTrue /invite. Min length keeps brute-force out of reach.
+  PROVISION_SECRET: z.string().min(32).optional(),
 });
 
 export const env = Env.parse(process.env);

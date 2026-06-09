@@ -3,75 +3,57 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Email confermata — sonoQui</title>
+<title>Accetta l'invito — sonoQui</title>
 <style>
   body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#fffbf8; color:#1f1b16; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:1.5rem; }
   .card { background:#fff; border-radius:16px; box-shadow:0 4px 24px rgba(0,0,0,0.06); max-width:420px; width:100%; padding:2rem; text-align:center; }
   .brand { font-size:2rem; font-weight:800; color:#b25500; margin-bottom:0.25rem; }
   h1 { font-size:1.25rem; margin:1rem 0 0.5rem; }
   p { color:#514440; }
-  a.btn { display:inline-block; margin-top:1.25rem; padding:0.75rem 1.25rem; background:#b25500; color:#fff; border-radius:8px; text-decoration:none; font-weight:600; }
+  .btn { display:inline-block; margin-top:1.25rem; padding:0.75rem 1.25rem; background:#b25500; color:#fff; border:0; border-radius:8px; text-decoration:none; font-weight:600; font-size:0.95rem; cursor:pointer; }
   .err { color:#ba1a1a; }
 </style>
 </head>
 <body>
   <div class="card">
     <div class="brand">sonoQui</div>
-    <h1 id="title">Verifica in corso…</h1>
-    <p id="body">Un attimo.</p>
-    <a id="cta" class="btn" href="https://app-sonoqui.xdevapp.it/">Apri sonoQui</a>
+    <h1 id="title">Accetta l'invito</h1>
+    <p id="body">Ti portiamo alla pagina per impostare la password…</p>
+    <button id="cta" class="btn" type="button" hidden>Imposta la password</button>
   </div>
 <script>
 (function () {
+  function $(id) { return document.getElementById(id); }
   var url = new URL(window.location.href);
   var tokenHash = url.searchParams.get('token_hash');
-  var type = url.searchParams.get('type') || 'signup';
+  var type = url.searchParams.get('type') || 'invite';
 
-  // GoTrue's /verify endpoint flips the email-confirmed flag AND issues
-  // an access_token in the fragment. For invites, this lands the user on
-  // reset-password.html via the recovery_url. For straight signup, we just
-  // show a success page here.
+  // This page NEVER calls GoTrue /verify. That call consumes the single-use
+  // OTP, so firing it on load lets a corporate mail scanner / Microsoft
+  // SafeLinks / Proofpoint burn the token with a mere GET — before the human
+  // clicks — and the user then sees "Email link is invalid or has expired".
+  // Instead we forward the token_hash to reset-password.html, which exchanges
+  // it SERVER-SIDE (POST /api/v1/auth/update-password, same origin) only when
+  // the user submits their new password. Mirrors the recovery flow and keeps
+  // a tight connect-src 'self' CSP (no cross-origin fetch from this page).
   if (!tokenHash) {
-    document.getElementById('title').textContent = 'Link non valido';
-    document.getElementById('body').className = 'err';
-    document.getElementById('body').textContent = 'Il link è incompleto. Richiedi un nuovo invito.';
+    $('title').textContent = 'Link non valido';
+    var b = $('body');
+    b.className = 'err';
+    b.textContent = 'Il link è incompleto. Richiedi un nuovo invito.';
     return;
   }
-  var gotrueUrl = 'https://auth-sonoqui.xdevapp.it';
-  var redirectTo = type === 'invite' ? '/reset-password.html' : '/confirm-email.html';
-  // Caddy origin → GoTrue. Direct POST to /verify with redirect_to so GoTrue
-  // returns the token fragment on the static page that handles password.
-  fetch(gotrueUrl + '/verify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      type: type,
-      token: tokenHash,
-      redirect_to: window.location.origin + redirectTo
-    })
-  }).then(async function (r) {
-    var j = await r.json().catch(function () { return {}; });
-    if (j.access_token) {
-      // Invite confirmation completed — bounce to reset-password with token.
-      var qs = new URLSearchParams({
-        access_token: j.access_token,
-        refresh_token: j.refresh_token || '',
-        type: type
-      }).toString();
-      window.location.href = redirectTo + '#' + qs;
-    } else if (j.error_description || j.msg) {
-      document.getElementById('title').textContent = 'Verifica fallita';
-      document.getElementById('body').className = 'err';
-      document.getElementById('body').textContent = j.error_description || j.msg;
-    } else {
-      document.getElementById('title').textContent = 'Email confermata';
-      document.getElementById('body').textContent = 'Puoi accedere a sonoQui.';
-    }
-  }).catch(function (e) {
-    document.getElementById('title').textContent = 'Errore';
-    document.getElementById('body').className = 'err';
-    document.getElementById('body').textContent = e.message;
-  });
+
+  var dest = '/reset-password.html?token_hash=' + encodeURIComponent(tokenHash) +
+             '&type=' + encodeURIComponent(type);
+
+  // Forwarding is a plain same-origin navigation (GET); it does NOT consume the
+  // OTP. The visible button is the manual fallback if the auto-redirect is
+  // suppressed (e.g. a scanner that runs scripts but blocks location changes).
+  var cta = $('cta');
+  cta.addEventListener('click', function () { window.location.assign(dest); });
+  cta.hidden = false;
+  window.location.replace(dest);
 })();
 </script>
 </body>

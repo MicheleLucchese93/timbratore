@@ -9,8 +9,7 @@
     "start": "node dist/index.js",
     "migrate": "tsx scripts/migrate.ts",
     "seed": "tsx scripts/seed.ts",
-    "test": "node --import tsx --test src/**/*.test.ts",
-    "create-tenant": "tsx scripts/create-tenant.ts"
+    "test": "node --import tsx --test src/**/*.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.687.0",
