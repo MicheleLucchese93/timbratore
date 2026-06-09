@@ -113,6 +113,9 @@ function MapInner({
         map,
         center,
         radius: radiusM,
+        // Let map clicks fall through to onClick (so you can drop the pin
+        // inside the radius) and keep the map's crosshair cursor over the circle.
+        clickable: false,
         strokeColor: '#0b416e',
         strokeOpacity: 0.7,
         strokeWeight: 1,
@@ -146,7 +149,7 @@ function MapInner({
   }
   const hasCoords = lat !== null && lng !== null;
   const options: google.maps.MapOptions = interactive
-    ? MAP_OPTIONS
+    ? { ...MAP_OPTIONS, ...(onLocationSelect ? { draggableCursor: 'crosshair' } : {}) }
     : {
         ...MAP_OPTIONS,
         gestureHandling: 'none',
