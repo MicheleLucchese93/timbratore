@@ -36,7 +36,15 @@ export function createApp(): Express {
   app.use(requestLogger);
   app.use(compression());
 
-  const allowed = env.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean);
+  // Configured cross-origin clients (web/mobile) PLUS the API's own origin: the
+  // static auth pages (reset-password.html, confirm-email.html) are served from
+  // BACKEND_URL and POST same-origin to /api/v1/auth/*; the browser still
+  // attaches an Origin header to those POSTs, so the API must allow its own
+  // origin or they fail with CORS_NOT_ALLOWED (hit both recovery and invite).
+  const allowed = [
+    ...env.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean),
+    env.BACKEND_URL.replace(/\/+$/, ''),
+  ];
   app.use(
     cors({
       origin: (origin, cb) => {
