@@ -6,7 +6,7 @@ import { adminPool } from '../lib/admin-db.js';
 import { ok } from '../lib/api-response.js';
 import { ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
 import { asyncHandler } from '../lib/route-helpers.js';
-import { triggerRecovery, updatePassword } from '../lib/gotrue-admin.js';
+import { triggerRecovery, updatePassword, verifyTokenHash } from '../lib/gotrue-admin.js';
 
 export const authRouter = Router();
 
@@ -23,10 +23,20 @@ authRouter.post(
   })
 );
 
-const UpdatePassword = z.object({
-  access_token: z.string().min(20),
-  password: z.string().min(8),
-});
+// Accepts either a session access_token (legacy hash flow, e.g. the invite
+// bounce) or a single-use token_hash straight from a recovery/invite email
+// link. token_hash is exchanged for a session here, server-side, so the static
+// set-password page never has to call GoTrue cross-origin (keeps its CSP tight).
+const UpdatePassword = z
+  .object({
+    access_token: z.string().min(20).optional(),
+    token_hash: z.string().min(10).optional(),
+    type: z.enum(['recovery', 'invite', 'signup', 'email']).optional(),
+    password: z.string().min(8),
+  })
+  .refine((d) => Boolean(d.access_token || d.token_hash), {
+    message: 'access_token or token_hash required',
+  });
 
 authRouter.post(
   '/update-password',
@@ -34,7 +44,10 @@ authRouter.post(
     const parse = UpdatePassword.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     try {
-      await updatePassword(parse.data.access_token, parse.data.password);
+      const accessToken =
+        parse.data.access_token ??
+        (await verifyTokenHash(parse.data.token_hash as string, parse.data.type ?? 'recovery'));
+      await updatePassword(accessToken, parse.data.password);
     } catch (err) {
       throw new ValidationError((err as Error).message);
     }

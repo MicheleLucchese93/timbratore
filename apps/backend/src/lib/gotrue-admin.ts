@@ -92,6 +92,31 @@ export async function updatePassword(accessToken: string, password: string): Pro
   }
 }
 
+// Exchange a single-use email-link OTP (token_hash from a recovery/invite link)
+// for a session access_token. Done server-side so the browser never calls GoTrue
+// cross-origin — the static set-password page can keep a tight `connect-src 'self'`
+// CSP and just POST the token_hash here. The token is consumed by this call, so
+// the caller must only invoke it when the user actually submits the form.
+export async function verifyTokenHash(
+  tokenHash: string,
+  type: 'recovery' | 'invite' | 'signup' | 'email' = 'recovery'
+): Promise<string> {
+  const r = await fetch(`${env.GOTRUE_URL}/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type, token_hash: tokenHash }),
+  });
+  const j = (await r.json().catch(() => ({}))) as {
+    access_token?: string;
+    error_description?: string;
+    msg?: string;
+  };
+  if (!r.ok || !j.access_token) {
+    throw new Error(j.error_description || j.msg || 'Link non valido o scaduto.');
+  }
+  return j.access_token;
+}
+
 // Admin-level create with a caller-chosen password. Used only by the e2e
 // fixture-user endpoint — never exposed to regular admin flows, which go
 // through `createUserSilently` (no email) and rely on the admin triggering a
