@@ -552,7 +552,7 @@ gotrue-<app>:
     GOTRUE_JWT_EXP: "3600"
     GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
     GOTRUE_MAILER_AUTOCONFIRM: "false"
-    GOTRUE_MAILER_OTP_EXP: "3600"
+    GOTRUE_MAILER_OTP_EXP: "86400"
     GOTRUE_MAILER_SUBJECTS_CONFIRMATION: '{{ if eq (.Data.language) "it" }}Conferma la registrazione{{ else }}Confirm Your Signup{{ end }}'
     GOTRUE_MAILER_SUBJECTS_RECOVERY: '{{ if eq (.Data.language) "it" }}Reimposta la password{{ else }}Reset Your Password{{ end }}'
     GOTRUE_MAILER_TEMPLATES_CONFIRMATION: "http://<app>-api:4000/templates/confirmation.html"
