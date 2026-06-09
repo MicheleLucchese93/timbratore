@@ -2,6 +2,7 @@
   "title": "New request",
   "field": {
     "type": "Type",
+    "allDay": "All day",
     "from": "From",
     "to": "To",
     "inpsProtocol": "INPS protocol",
@@ -10,6 +11,8 @@
     "note": "Notes",
     "noteRequiredSuffix": " (required)"
   },
+  "estimatedTotal": "Total requested: {{hours}}",
+  "noWorkingHours": "This request covers no working hours (check your assigned schedule).",
   "validation": {
     "datesRequired": "Please enter the dates.",
     "endBeforeStart": "The end is before the start.",

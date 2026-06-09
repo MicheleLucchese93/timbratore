@@ -42,6 +42,11 @@ const CreateBody = z.object({
   type: TypeEnum,
   from_ts: z.string().datetime({ offset: true }),
   to_ts: z.string().datetime({ offset: true }),
+  // All-day request (full scheduled day) vs a specific-time permesso. Only
+  // gates the 15-minute-multiple rule below; the duration itself always comes
+  // from the shift template / clip in computeDurationHours. Defaults to false
+  // so specific-time requests keep the strict validation.
+  all_day: z.boolean().optional(),
   inps_protocol: z.string().min(1).max(100).optional(),
   user_note: z.string().max(1000).optional(),
   assenza_subtype: AssenzaSubtypeEnum.optional(),
@@ -124,7 +129,10 @@ leavesRouter.post(
     if (to.getTime() <= from.getTime()) {
       throw new ValidationError('to_ts deve essere maggiore di from_ts');
     }
-    if (b.type === 'permessi') {
+    // Specific-time permessi must be clean 15-minute slots. An all-day permesso
+    // is exempt — its span is the whole calendar day and its duration comes from
+    // the shift template, not the raw start/end.
+    if (b.type === 'permessi' && !b.all_day) {
       const span = to.getTime() - from.getTime();
       if (span % quarterMs() !== 0) {
         throw new ValidationError('il permesso deve essere multiplo di 15 minuti');
@@ -229,6 +237,7 @@ const AdminCreateBody = z.object({
   type: z.enum(['ferie', 'permessi']),
   from_ts: z.string().datetime({ offset: true }),
   to_ts: z.string().datetime({ offset: true }),
+  all_day: z.boolean().optional(),
   user_note: z.string().max(1000).optional(),
 });
 
@@ -244,7 +253,7 @@ leavesRouter.post(
     if (to.getTime() <= from.getTime()) {
       throw new ValidationError('to_ts deve essere maggiore di from_ts');
     }
-    if (b.type === 'permessi') {
+    if (b.type === 'permessi' && !b.all_day) {
       const span = to.getTime() - from.getTime();
       if (span % quarterMs() !== 0) {
         throw new ValidationError('il permesso deve essere multiplo di 15 minuti');

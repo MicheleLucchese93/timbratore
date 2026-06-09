@@ -99,7 +99,9 @@ export async function getQuotaSummary(
 /**
  * Compute duration in hours for a leave request.
  *
- * - permessi: simply (to_ts - from_ts) in hours, expecting 15-min multiples.
+ * - permessi: the clipped (to_ts − from_ts) span per day, capped at the hours
+ *   the user is scheduled that day — so an all-day permesso equals the shift
+ *   length and a permesso on a non-working day counts 0.
  * - ferie / malattia / assenza: sum of expected work hours from the user's
  *   shift template over the day range. Days without an assigned template
  *   default to 8h per weekday, 0 on weekends — a conservative fallback so
@@ -122,11 +124,14 @@ export async function computeDurationHours(
  * For each Europe/Rome calendar day touched by [from_ts, to_ts), return the
  * hours that a leave request of the given type would claim on that day.
  *
- * - permessi: clipped (to − from) intersection within the day, in hours.
- * - ferie / malattia / assenza: shift-template hours for that weekday
- *   (Mon–Fri 8h fallback when no template is assigned).
+ * - permessi: clipped (to − from) intersection within the day, capped at the
+ *   shift-template hours for that weekday — so an all-day permesso (00:00–23:59)
+ *   collapses to the scheduled day length and a permesso on a non-working day
+ *   counts 0.
+ * - ferie / malattia / assenza: shift-template hours for that weekday.
  *
- * Powers both the total duration computation and the per-day cap check.
+ * Both use the same Mon–Fri 8h / weekend 0 fallback when no template is
+ * assigned. Powers both the total duration computation and the per-day cap.
  */
 export async function computeHoursPerDay(
   client: PoolClient,
@@ -141,27 +146,25 @@ export async function computeHoursPerDay(
   const out = new Map<string, number>();
   if (days.length === 0) return out;
 
+  const hoursByDow = await loadShiftHoursByDow(client, userId, days[0]!.iso);
+  const scheduledHours = (dow: number): number =>
+    hoursByDow.size > 0 ? hoursByDow.get(dow) ?? 0 : dow >= 1 && dow <= 5 ? 8 : 0;
+
   if (type === 'permessi') {
     for (const d of days) {
       const dayStart = romeStartOfDayMs(d.iso);
       const dayEnd = romeStartOfDayMs(addOneDay(d.iso));
       const startMs = Math.max(from.getTime(), dayStart);
       const endMs = Math.min(to.getTime(), dayEnd);
-      const hours = Math.max(0, (endMs - startMs) / 3_600_000);
+      const clipped = Math.max(0, (endMs - startMs) / 3_600_000);
+      const hours = Math.min(clipped, scheduledHours(d.dow));
       out.set(d.iso, Math.round(hours * 100) / 100);
     }
     return out;
   }
 
-  const hoursByDow = await loadShiftHoursByDow(client, userId, days[0]!.iso);
   for (const d of days) {
-    const h =
-      hoursByDow.size > 0
-        ? hoursByDow.get(d.dow) ?? 0
-        : d.dow >= 1 && d.dow <= 5
-        ? 8
-        : 0;
-    out.set(d.iso, h);
+    out.set(d.iso, scheduledHours(d.dow));
   }
   return out;
 }

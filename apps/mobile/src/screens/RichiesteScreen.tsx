@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { color, space } from '@sonoqui/shared';
+import { color, space, estimateLeaveHours, type ActiveAssignment } from '@sonoqui/shared';
 import i18n from '../i18n';
 import { fmtDateTime, fmtDate, fmtTime } from '../i18n/format';
 import { api } from '../lib/api';
@@ -406,43 +406,6 @@ export function RichiesteScreen() {
           bg={typeBg('permessi')}
         />
       </View>
-      {quotas.length > 0 && (
-        <View style={styles.quotaCard}>
-          <Text style={styles.quotaCardTitle}>{t('quota.title')}</Text>
-          {quotas.map((q) => (
-            <View key={q.type} style={styles.quotaItem}>
-              <View style={styles.quotaItemHeader}>
-                <View style={styles.quotaItemTitleRow}>
-                  <Ionicons
-                    name={typeIcon(q.type)}
-                    size={16}
-                    color={typeFg(q.type)}
-                  />
-                  <Text style={styles.quotaItemTitle}>
-                    {q.type === 'ferie' ? t('quota.ferie') : t('quota.permessi')}
-                  </Text>
-                </View>
-                <Text style={[styles.quotaItemResidual, { color: typeFg(q.type) }]}>
-                  {q.residual_strict.toFixed(2)}h
-                </Text>
-              </View>
-              <View style={styles.quotaBreakdownRow}>
-                <QuotaStat label={t('quota.initial')} value={q.initial_balance} />
-                <QuotaStat label={t('quota.accrued')} value={q.accrued_total} />
-                <QuotaStat label={t('quota.used')} value={q.used_approved} />
-                {q.used_pending > 0 && (
-                  <QuotaStat label={t('quota.pending')} value={q.used_pending} />
-                )}
-              </View>
-              {q.used_pending > 0 && (
-                <Text style={styles.quotaPendingHint}>
-                  {t('quota.residualAfterPending', { value: q.residual_with_pending.toFixed(2) })}
-                </Text>
-              )}
-            </View>
-          ))}
-        </View>
-      )}
       {loadingMine && (
         <View style={styles.centered}>
           <ActivityIndicator />
@@ -745,6 +708,7 @@ function NewLeaveModal({
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [approvers, setApprovers] = useState<Approver[]>([]);
+  const [assignment, setAssignment] = useState<ActiveAssignment | null>(null);
   const [assenzaSubtype, setAssenzaSubtype] =
     useState<AssenzaSubtype>('motivi_personali');
   const [isPaid, setIsPaid] = useState(true);
@@ -767,25 +731,39 @@ function NewLeaveModal({
     }
   }, [visible]);
 
-  // Load approver list once when the modal is opened. We only show it for
-  // ferie/permessi (malattia is just a notification — no approval needed).
+  // When the modal opens, load the approver list (shown for everything except
+  // malattia) and the user's active shift assignment. The assignment drives the
+  // live hours preview — see `estimatedHours` / estimateLeaveHours.
   useEffect(() => {
     if (!visible || !me?.user.id) return;
     let cancelled = false;
     (async () => {
-      try {
-        const list = await api<Approver[]>(
-          `/api/v1/users/${me.user.id}/approvers`
-        );
-        if (!cancelled) setApprovers(list);
-      } catch {
-        if (!cancelled) setApprovers([]);
+      const [list, asg] = await Promise.all([
+        api<Approver[]>(`/api/v1/users/${me.user.id}/approvers`).catch(
+          () => [] as Approver[]
+        ),
+        api<ActiveAssignment | null>('/api/v1/shifts/assignments/me').catch(
+          () => null
+        ),
+      ]);
+      if (!cancelled) {
+        setApprovers(list);
+        setAssignment(asg);
       }
     })();
     return () => {
       cancelled = true;
     };
   }, [visible, me?.user.id]);
+
+  // Hours the request will claim, mirroring the backend's duration_hours
+  // (apps/backend/src/lib/leave-quota.ts). null = invalid period (submit will
+  // alert); 0 = covers no working hours; >0 = the figure shown to the user.
+  const estimatedHours = useMemo<number | null>(() => {
+    const range = buildLeaveRange(type, allDay, fromDate, toDate, fromTime, toTime);
+    if (!range) return null;
+    return estimateLeaveHours(type, range.from, range.to, assignment);
+  }, [type, allDay, fromDate, toDate, fromTime, toTime, assignment]);
 
   async function submit() {
     if (type === 'malattia' && !inpsProtocol.trim()) {
@@ -795,18 +773,20 @@ function NewLeaveModal({
       );
       return;
     }
-    // Ferie and permessi carry start/end times (15-min slots) when the user
-    // unticks "Tutto il giorno". Otherwise (and always for malattia /
-    // assenza) the request covers the full day(s).
-    const useTime = (type === 'ferie' || type === 'permessi') && !allDay;
-    const from = useTime
-      ? combineLocalDateTime(fromDate, fromTime)
-      : combineLocalDateTime(fromDate, '00:00');
-    const to = useTime
-      ? combineLocalDateTime(toDate, toTime)
-      : combineLocalDateTime(toDate, '23:59');
-    if (new Date(to).getTime() <= new Date(from).getTime()) {
+    // Derive the period the same way the live hours preview does, so the
+    // submitted from/to always match the total shown to the user.
+    const range = buildLeaveRange(type, allDay, fromDate, toDate, fromTime, toTime);
+    if (!range) {
       Alert.alert(t('modal.periodTitle'), t('modal.periodMessage'));
+      return;
+    }
+    const { from, to } = range;
+    // Block requests that fall entirely outside the user's working schedule
+    // (e.g. ferie only on a Sunday). The backend rejects these too — this is the
+    // friendly client-side guard. A mixed range (Mon–Sun) is fine: only the
+    // scheduled days are counted, so the total is > 0.
+    if (estimatedHours === 0) {
+      Alert.alert(t('modal.noWorkingHoursTitle'), t('modal.noWorkingHours'));
       return;
     }
     setSubmitting(true);
@@ -817,6 +797,7 @@ function NewLeaveModal({
           type,
           from_ts: from,
           to_ts: to,
+          all_day: type === 'ferie' || type === 'permessi' ? allDay : true,
           inps_protocol: type === 'malattia' ? inpsProtocol.trim() : undefined,
           user_note: note.trim() || undefined,
           assenza_subtype: type === 'assenza' ? assenzaSubtype : undefined,
@@ -1052,6 +1033,17 @@ function NewLeaveModal({
               </>
             )}
 
+            {estimatedHours !== null && estimatedHours > 0 ? (
+              <View style={styles.totalBox}>
+                <Ionicons name="hourglass-outline" size={16} color={color.primary} />
+                <Text style={styles.totalText}>
+                  {t('modal.estimatedTotal', { hours: fmtH(estimatedHours) })}
+                </Text>
+              </View>
+            ) : estimatedHours === 0 ? (
+              <Text style={styles.totalNote}>{t('modal.noWorkingHours')}</Text>
+            ) : null}
+
             {type !== 'malattia' && (
               <View style={styles.approverBox}>
                 <Ionicons
@@ -1169,15 +1161,6 @@ function showError(err: unknown): void {
   Alert.alert(i18n.t('common:state.error'), e.message ?? i18n.t('richieste:error.operationFailed'));
 }
 
-function QuotaStat({ label, value }: { label: string; value: number }) {
-  return (
-    <View style={styles.quotaStat}>
-      <Text style={styles.quotaStatLabel}>{label}</Text>
-      <Text style={styles.quotaStatValue}>{value.toFixed(2)}h</Text>
-    </View>
-  );
-}
-
 function KpiTile({
   label,
   value,
@@ -1288,6 +1271,29 @@ function combineLocalDateTime(date: string, time: string): string {
   return dt.toISOString();
 }
 
+// Ferie and permessi carry start/end times (15-min slots) when the user unticks
+// "Tutto il giorno"; otherwise (and always for malattia / assenza) the request
+// covers full day(s). Returns null when the period is empty (end ≤ start).
+// Shared by submit() and the live hours preview so the two can never drift.
+function buildLeaveRange(
+  type: LeaveType,
+  allDay: boolean,
+  fromDate: string,
+  toDate: string,
+  fromTime: string,
+  toTime: string
+): { from: string; to: string } | null {
+  const useTime = (type === 'ferie' || type === 'permessi') && !allDay;
+  const from = useTime
+    ? combineLocalDateTime(fromDate, fromTime)
+    : combineLocalDateTime(fromDate, '00:00');
+  const to = useTime
+    ? combineLocalDateTime(toDate, toTime)
+    : combineLocalDateTime(toDate, '23:59');
+  if (new Date(to).getTime() <= new Date(from).getTime()) return null;
+  return { from, to };
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: color.surface },
 
@@ -1331,56 +1337,6 @@ const styles = StyleSheet.create({
   kpiValue: { fontSize: 20, fontWeight: '800', fontVariant: ['tabular-nums'] },
   kpiSub: { fontSize: 10, color: color.onSurfaceVariant, fontVariant: ['tabular-nums'] },
 
-  quotaCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: space.s3,
-    gap: 12,
-  },
-  quotaCardTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: color.onSurfaceVariant,
-  },
-  quotaItem: { gap: 8 },
-  quotaItemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  quotaItemTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  quotaItemTitle: { fontSize: 14, fontWeight: '700', color: color.onSurface },
-  quotaItemResidual: { fontSize: 18, fontWeight: '800' },
-  quotaBreakdownRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  quotaStat: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    backgroundColor: color.surfaceVariant,
-    minWidth: 70,
-  },
-  quotaStatLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    color: color.onSurfaceVariant,
-  },
-  quotaStatValue: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: color.onSurface,
-    marginTop: 2,
-    fontVariant: ['tabular-nums'],
-  },
-  quotaPendingHint: { fontSize: 11, color: color.onSurfaceVariant },
   quotaHintInline: {
     fontSize: 12,
     color: color.onSurfaceVariant,
@@ -1570,6 +1526,18 @@ const styles = StyleSheet.create({
   allDayOptSel: { backgroundColor: color.primary, borderColor: color.primary },
   allDayOptText: { fontSize: 13, fontWeight: '600', color: color.primary },
   allDayOptTextSel: { color: color.onPrimary },
+
+  totalBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: color.primaryContainer,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  totalText: { flex: 1, fontSize: 15, fontWeight: '700', color: color.primary },
+  totalNote: { fontSize: 13, color: color.warning, paddingHorizontal: 4 },
 
   approverBox: {
     flexDirection: 'row',

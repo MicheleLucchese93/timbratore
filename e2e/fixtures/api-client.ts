@@ -361,6 +361,8 @@ export interface LeaveCreateBody {
   type: 'ferie' | 'permessi' | 'malattia';
   from_ts: string;
   to_ts: string;
+  /** All-day request — exempts permessi from the 15-min-multiple rule. */
+  all_day?: boolean;
   inps_protocol?: string;
   user_note?: string;
 }

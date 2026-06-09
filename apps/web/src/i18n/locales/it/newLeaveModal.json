@@ -2,6 +2,7 @@
   "title": "Nuova richiesta",
   "field": {
     "type": "Tipo",
+    "allDay": "Tutto il giorno",
     "from": "Dal",
     "to": "Al",
     "inpsProtocol": "Protocollo INPS",
@@ -10,6 +11,8 @@
     "note": "Note",
     "noteRequiredSuffix": " (obbligatorie)"
   },
+  "estimatedTotal": "Totale richiesto: {{hours}}",
+  "noWorkingHours": "La richiesta non copre ore lavorative (controlla l’orario assegnato).",
   "validation": {
     "datesRequired": "Inserisci le date.",
     "endBeforeStart": "La fine precede l’inizio.",
