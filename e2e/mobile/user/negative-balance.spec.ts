@@ -53,17 +53,16 @@ test.describe('mobile — Negative ferie balance (employee view)', () => {
     if (templateId) await deleteQuotaTemplate(admin.token, templateId).catch(() => {});
   });
 
-  test('quota card on /richieste shows -8.00h residual', async ({ page }) => {
+  test('quota card on /richieste shows -8h residual', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('button', { name: 'Timbrature' })).toBeVisible({ timeout: 30_000 });
     await page.getByRole('button', { name: 'Richieste' }).click();
-    // Quota card renders only on the "Le mie" tab (default).  The card shows
-    // "Ferie" + "{residual_strict.toFixed(2)}h". With initial_balance=-8 and
-    // no consumption, residual_strict should be exactly -8.00. The
-    // "Residuo dopo richieste in attesa" hint only renders when
-    // used_pending > 0 (RichiesteScreen.tsx:308); we don't seed a pending
-    // request here, so the hint should NOT be on screen.
-    await expect(page.getByText(/-8\.00h/).first()).toBeVisible({ timeout: 15_000 });
+    // Quota card renders only on the "Le mie" tab (default). The KPI shows
+    // "Ferie" + fmtH(residual_strict); fmtH prints integers without decimals,
+    // so initial_balance=-8 with no consumption renders "-8h". The "Residuo
+    // dopo richieste in attesa" hint only renders when used_pending > 0; we
+    // don't seed a pending request here, so it must be absent.
+    await expect(page.getByText(/-8h/).first()).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(/dopo richieste in attesa/i)).toHaveCount(0);
   });
 });

@@ -68,8 +68,9 @@ test.describe('web — Manual leave-quota adjustment + audit (mutating)', () => 
 
     const row = page.getByRole('row').filter({ hasText: 'test2@test.it' });
     await expect(row).toBeVisible({ timeout: 15_000 });
-    // Fresh assignment starts at 0h.
-    await expect(row.getByRole('button', { name: '0.00h' })).toBeVisible({ timeout: 10_000 });
+    // Fresh assignment starts at 0h. exact:true so "0.00h" does not also match
+    // a stray "20.00h" balance button left on the shared tenant by prior runs.
+    await expect(row.getByRole('button', { name: '0.00h', exact: true })).toBeVisible({ timeout: 10_000 });
 
     // --- Add 8h ---
     await row.getByRole('button', { name: 'Aggiungi/Rimuovi ore' }).click();
@@ -78,7 +79,7 @@ test.describe('web — Manual leave-quota adjustment + audit (mutating)', () => 
     await form.getByLabel('Nota').fill(`${tag} add`);
     await form.getByRole('button', { name: 'Salva' }).click();
     await expect(form).toBeHidden({ timeout: 10_000 });
-    await expect(row.getByRole('button', { name: '8.00h' })).toBeVisible({ timeout: 10_000 });
+    await expect(row.getByRole('button', { name: '8.00h', exact: true })).toBeVisible({ timeout: 10_000 });
 
     // --- Remove 3h (same day → exercises migration 034) ---
     await row.getByRole('button', { name: 'Aggiungi/Rimuovi ore' }).click();
@@ -88,7 +89,7 @@ test.describe('web — Manual leave-quota adjustment + audit (mutating)', () => 
     await form.getByLabel('Nota').fill(`${tag} rem`);
     await form.getByRole('button', { name: 'Salva' }).click();
     await expect(form).toBeHidden({ timeout: 10_000 });
-    await expect(row.getByRole('button', { name: '5.00h' })).toBeVisible({ timeout: 10_000 });
+    await expect(row.getByRole('button', { name: '5.00h', exact: true })).toBeVisible({ timeout: 10_000 });
 
     // --- Audit log lists both operations, by unique note + signed amount ---
     await row.getByRole('button', { name: 'Storico modifiche manuali' }).click();
