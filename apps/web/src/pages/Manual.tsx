@@ -464,8 +464,9 @@ const MAIN_IT = `
           <li>Premi <strong>Nuova sede</strong>.</li>
           <li>Inserisci un <strong>nome</strong> identificativo.</li>
           <li>Digita l'<strong>indirizzo</strong> nell'autocomplete (suggerimenti Google Places).</li>
+          <li>Se l'indirizzo suggerito non è preciso, <strong>clicca o trascina il punto sulla mappa</strong>: l'indirizzo viene ricavato automaticamente dal punto scelto (reverse geocoding). Il punto sulla mappa è sempre la posizione che fa fede.</li>
           <li>Decidi se è una sede <strong>Fuori sede</strong>: se sì, GPS e raggio non servono.</li>
-          <li>Altrimenti imposta latitudine, longitudine (già popolate dall'indirizzo).</li>
+          <li>Altrimenti imposta latitudine, longitudine (già popolate dall'indirizzo o dal punto sulla mappa).</li>
           <li>Decidi se <strong>limitare la timbratura entro un raggio</strong>:
             <ul class="tidy">
               <li><strong>Attivo</strong> (default): imposta il <strong>raggio</strong> in metri (default 300m). La timbratura di ingresso fuori dal raggio viene rifiutata; l'uscita viene accettata ma segnalata come anomalia.</li>

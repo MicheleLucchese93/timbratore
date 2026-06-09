@@ -15,8 +15,23 @@ export interface GeocodeResult {
   components: Record<string, unknown>;
 }
 
+export interface ReverseGeocodeResult {
+  lat: number;
+  lng: number;
+  address: string;
+  components: Record<string, unknown>;
+}
+
 function hashAddr(addr: string): string {
   return createHash('sha256').update(addr.trim().toLowerCase()).digest('hex');
+}
+
+// Reverse-geocode cache key. Rounds to ~1m so near-identical map pins reuse the
+// same entry. Prefixed `rev:` to never collide with forward-geocode address hashes.
+function hashCoords(lat: number, lng: number): string {
+  return createHash('sha256')
+    .update(`rev:${lat.toFixed(5)},${lng.toFixed(5)}`)
+    .digest('hex');
 }
 
 export async function forwardGeocode(address: string): Promise<GeocodeResult> {
@@ -53,6 +68,57 @@ export async function forwardGeocode(address: string): Promise<GeocodeResult> {
     lat: Number(hit.lat),
     lng: Number(hit.lon),
     components: hit.address,
+  };
+  await pool.query(
+    `INSERT INTO geocode_cache(address_hash, result, created_at)
+     VALUES ($1, $2, now())
+     ON CONFLICT (address_hash) DO UPDATE SET result = EXCLUDED.result, created_at = now()`,
+    [h, result]
+  );
+  return result;
+}
+
+// coords -> address. Powers "drop a pin on the map to fill the address" when the
+// autocomplete result is imprecise. Shares the geocode_cache table + Nominatim
+// rate limiter with forwardGeocode.
+export async function reverseGeocode(lat: number, lng: number): Promise<ReverseGeocodeResult> {
+  const h = hashCoords(lat, lng);
+  const cached = await pool.query(
+    `SELECT result FROM geocode_cache
+     WHERE address_hash = $1 AND created_at > now() - interval '90 days'`,
+    [h]
+  );
+  if (cached.rowCount && cached.rows[0]) return cached.rows[0].result;
+
+  const wait = Math.max(0, MIN_INTERVAL_MS - (Date.now() - lastCallAt));
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  lastCallAt = Date.now();
+
+  const url =
+    'https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&lat=' +
+    encodeURIComponent(String(lat)) +
+    '&lon=' +
+    encodeURIComponent(String(lng));
+  let body: { display_name?: string; address?: Record<string, unknown>; error?: string };
+  try {
+    const r = await fetch(url, {
+      headers: { 'User-Agent': env.NOMINATIM_USER_AGENT },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!r.ok) throw new Error(`nominatim status ${r.status}`);
+    body = (await r.json()) as typeof body;
+  } catch (err) {
+    logger.warn({ err }, 'nominatim reverse failed');
+    throw new ExternalServiceError('Geocoding service unavailable', 'GEOCODING_UNAVAILABLE');
+  }
+  if (!body.display_name) {
+    throw new ExternalServiceError('Address not found', 'GEOCODING_UNAVAILABLE');
+  }
+  const result: ReverseGeocodeResult = {
+    lat,
+    lng,
+    address: body.display_name,
+    components: body.address ?? {},
   };
   await pool.query(
     `INSERT INTO geocode_cache(address_hash, result, created_at)

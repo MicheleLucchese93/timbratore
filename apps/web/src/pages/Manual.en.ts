@@ -457,8 +457,9 @@ export const MAIN_EN = `
           <li>Press <strong>New branch</strong>.</li>
           <li>Enter an identifying <strong>name</strong>.</li>
           <li>Type the <strong>address</strong> in the autocomplete (Google Places suggestions).</li>
+          <li>If the suggested address is imprecise, <strong>click or drag the point on the map</strong>: the address is derived automatically from the chosen point (reverse geocoding). The point on the map is always the authoritative location.</li>
           <li>Decide whether it is an <strong>off-site</strong> branch: if so, GPS and radius are not needed.</li>
-          <li>Otherwise set latitude, longitude (already populated from the address).</li>
+          <li>Otherwise set latitude, longitude (already populated from the address or the point on the map).</li>
           <li>Decide whether to <strong>limit stamping within a radius</strong>:
             <ul class="tidy">
               <li><strong>Active</strong> (default): set the <strong>radius</strong> in metres (default 300m). A clock-in stamp outside the radius is rejected; the clock-out is accepted but flagged as an anomaly.</li>

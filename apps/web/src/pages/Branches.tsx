@@ -1,7 +1,11 @@
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api.ts';
-import { PlaceSearchInput, type PlaceDetail } from '../components/PlaceSearchInput.tsx';
+import {
+  PlaceSearchInput,
+  type PlaceDetail,
+  type PlaceSearchHandle,
+} from '../components/PlaceSearchInput.tsx';
 import { BranchMapPreview } from '../components/BranchMapPreview.tsx';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
 
@@ -147,6 +151,10 @@ function BranchForm({
   const [smartWorking, setSmartWorking] = useState(initial?.smart_working ?? false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const [geoError, setGeoError] = useState(false);
+  const placeRef = useRef<PlaceSearchHandle>(null);
+  const geoReqRef = useRef(0);
 
   function handlePlace(detail: PlaceDetail) {
     setAddress(detail.formatted_address ?? detail.description);
@@ -164,9 +172,29 @@ function BranchForm({
     }
   }
 
-  function handleMapLocationSelect(point: { lat: number; lng: number }) {
+  // The pin is now authoritative: move the marker immediately, then reverse-geocode
+  // the point to fill the address field (use case: autocomplete result is imprecise).
+  async function handleMapLocationSelect(point: { lat: number; lng: number }) {
     setLat(point.lat);
     setLng(point.lng);
+    const myReq = ++geoReqRef.current;
+    setGeocoding(true);
+    setGeoError(false);
+    try {
+      const r = await api<{ address: string }>(
+        `/api/v1/places/reverse?lat=${point.lat}&lng=${point.lng}`
+      );
+      if (myReq !== geoReqRef.current) return;
+      if (r.address) {
+        placeRef.current?.suppressNextSearch();
+        setAddress(r.address);
+      }
+    } catch {
+      if (myReq !== geoReqRef.current) return;
+      setGeoError(true);
+    } finally {
+      if (myReq === geoReqRef.current) setGeocoding(false);
+    }
   }
 
   async function submit(e: FormEvent) {
@@ -217,15 +245,23 @@ function BranchForm({
             <div>
               <label className="label">{t('form.address')}</label>
               <PlaceSearchInput
+                ref={placeRef}
                 value={address}
                 onChange={handleAddressChange}
                 onSelect={handlePlace}
                 placeholder={t('form.addressPlaceholder')}
                 disabled={smartWorking}
+                busy={geocoding}
               />
-              <p className="text-xs text-neutral-500 mt-1">
-                {t('form.addressHint')}
-              </p>
+              {geocoding ? (
+                <p className="text-xs text-neutral-500 mt-1">{t('form.geocoding')}</p>
+              ) : geoError ? (
+                <p className="text-xs text-[color:var(--color-error)] mt-1">
+                  {t('form.geocodeError')}
+                </p>
+              ) : (
+                <p className="text-xs text-neutral-500 mt-1">{t('form.addressHint')}</p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <input

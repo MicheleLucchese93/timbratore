@@ -33,6 +33,10 @@ test.describe('web — Sedi (Branches) page', () => {
     await expect(enforceToggle).toBeVisible();
     await expect(enforceToggle).toBeChecked();
     await expect(page.locator('input[type="range"]')).toBeVisible();
+    // Address hint advertises pin-on-map → reverse geocoding. The pin→address
+    // flow itself needs live Google tiles + Nominatim, so only the copy is
+    // asserted here (the wiring is covered by component/manual verification).
+    await expect(page.getByText(/clicca o trascina il punto sulla mappa/i)).toBeVisible();
     // Close without saving.
     const cancel = page.getByRole('button', { name: 'Annulla' });
     if (await cancel.count()) await cancel.click();

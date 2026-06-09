@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api.ts';
 
@@ -26,16 +26,28 @@ interface Props {
   placeholder?: string;
   disabled?: boolean;
   required?: boolean;
+  /** Show the loading indicator from an external operation (e.g. reverse geocoding a map pin). */
+  busy?: boolean;
 }
 
-export function PlaceSearchInput({
+export interface PlaceSearchHandle {
+  /**
+   * Skip the search that the next `value` change would otherwise trigger. Call
+   * before programmatically setting the address (e.g. from a map pin) so the
+   * autocomplete dropdown stays closed instead of querying the new text.
+   */
+  suppressNextSearch: () => void;
+}
+
+export const PlaceSearchInput = forwardRef<PlaceSearchHandle, Props>(function PlaceSearchInput({
   value,
   onChange,
   onSelect,
   placeholder,
   disabled,
   required,
-}: Props) {
+  busy,
+}, ref) {
   const { t } = useTranslation('components');
   const listId = useId();
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
@@ -47,6 +59,18 @@ export function PlaceSearchInput({
   const reqIdRef = useRef(0);
   const skipSearchRef = useRef(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    suppressNextSearch() {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      // Invalidate any in-flight search so its late response can't reopen the list.
+      reqIdRef.current++;
+      skipSearchRef.current = true;
+      setLoading(false);
+      setOpen(false);
+      setSuggestions([]);
+    },
+  }), []);
 
   useEffect(() => {
     if (skipSearchRef.current) {
@@ -146,7 +170,7 @@ export function PlaceSearchInput({
         disabled={disabled}
         required={required}
       />
-      {loading && (
+      {(loading || busy) && (
         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-neutral-500">…</span>
       )}
       {open && suggestions.length > 0 && (
@@ -182,4 +206,4 @@ export function PlaceSearchInput({
       {error && <p className="text-xs text-[color:var(--color-error)] mt-1">{error}</p>}
     </div>
   );
-}
+});

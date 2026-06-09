@@ -172,7 +172,16 @@ function MapInner({
         mapRef.current = null;
       }}
     >
-      {hasCoords && <Marker position={{ lat, lng }} />}
+      {hasCoords && (
+        <Marker
+          position={{ lat, lng }}
+          draggable={!!onLocationSelect}
+          onDragEnd={(e) => {
+            if (!onLocationSelect || !e.latLng) return;
+            onLocationSelect({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+          }}
+        />
+      )}
     </GoogleMap>
   );
 }
