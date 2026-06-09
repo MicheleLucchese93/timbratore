@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../store/session.ts';
@@ -88,9 +88,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <div className="sidebar-brand-name">
                 sono<span style={{ color: 'var(--color-on-primary-container)' }}>Qui</span>
               </div>
-              <div className="sidebar-brand-tenant" title={me?.tenant.ragione_sociale}>
-                {me?.tenant.ragione_sociale ?? t('common:app.tenantFallback')}
-              </div>
+              <TenantSwitcher />
             </div>
           )}
         </div>
@@ -161,6 +159,96 @@ export function Layout({ children }: { children: ReactNode }) {
         </button>
         <div className="app-content">{children}</div>
       </div>
+    </div>
+  );
+}
+
+/* Company switcher in the brand area — only when the account spans more than
+   one company. Mirrors Settings → "Azienda attiva": picking one reloads the
+   session for that company (role, nav and data all follow). Single-company
+   accounts render the plain tenant label, unchanged. */
+function TenantSwitcher() {
+  const { t } = useTranslation(['nav', 'common']);
+  const tenants = useSession((s) => s.tenants);
+  const activeTenantId = useSession((s) => s.activeTenantId);
+  const chooseTenant = useSession((s) => s.chooseTenant);
+  const [open, setOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const active = tenants.find((tn) => tn.tenant_id === activeTenantId);
+  const label = active?.ragione_sociale ?? t('common:app.tenantFallback');
+
+  // Close on outside click / Escape while the menu is open.
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  // Single company → nothing to switch; keep the plain label.
+  if (tenants.length <= 1) {
+    return <div className="sidebar-brand-tenant" title={label}>{label}</div>;
+  }
+
+  async function pick(id: string) {
+    setOpen(false);
+    if (id === activeTenantId || switching) return;
+    setSwitching(true);
+    // chooseTenant reloads the session (App swaps in the skeleton and remounts
+    // the shell), so there's no success path to clean up — only the failure one.
+    try {
+      await chooseTenant(id);
+    } catch {
+      setSwitching(false);
+    }
+  }
+
+  return (
+    <div className="sidebar-tenant-switch" ref={ref}>
+      <button
+        type="button"
+        className="sidebar-tenant-trigger"
+        onClick={() => setOpen((v) => !v)}
+        disabled={switching}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        title={t('switchCompany')}
+      >
+        <span className="sidebar-brand-tenant">{label}</span>
+        <IconChevronDown open={open} />
+      </button>
+      {open && (
+        <ul className="sidebar-tenant-menu" role="listbox">
+          {tenants.map((tn) => (
+            <li key={tn.tenant_id}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={tn.tenant_id === activeTenantId}
+                className={`sidebar-tenant-item ${tn.tenant_id === activeTenantId ? 'is-active' : ''}`}
+                onClick={() => void pick(tn.tenant_id)}
+                disabled={switching}
+              >
+                <span className="sidebar-tenant-item-name">{tn.ragione_sociale}</span>
+                <span className="sidebar-tenant-item-role">
+                  {tn.role === 'admin' ? t('common:role.admin') : t('common:role.user')}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -251,6 +339,22 @@ function IconMenu() {
   return (
     <svg {...ICON_PROPS}>
       <path d="M3 6h18M3 12h18M3 18h18" />
+    </svg>
+  );
+}
+function IconChevronDown({ open }: { open?: boolean }) {
+  return (
+    <svg
+      {...ICON_PROPS}
+      width={14}
+      height={14}
+      style={{
+        flexShrink: 0,
+        transition: 'transform 120ms ease',
+        transform: open ? 'rotate(180deg)' : undefined,
+      }}
+    >
+      <path d="m6 9 6 6 6-6" />
     </svg>
   );
 }

@@ -15,5 +15,6 @@
   "closeMenu": "Chiudi menu",
   "openMenu": "Apri menu",
   "expandMenu": "Espandi menu",
-  "collapseMenu": "Comprimi menu"
+  "collapseMenu": "Comprimi menu",
+  "switchCompany": "Cambia azienda"
 }

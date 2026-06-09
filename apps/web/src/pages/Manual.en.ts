@@ -163,7 +163,7 @@ export const MAIN_EN = `
       <div class="feature">
         <h3>Multiple companies on the same account</h3>
         <p>If your email is associated with more than one company, after logging in the <strong>Choose company</strong> screen will appear: select the one you want to work on. If instead you belong to a single company you go straight in, with no extra steps.</p>
-        <p>You can switch company at any time from <strong>Settings → Active company</strong> (Web) or from <strong>Profile → Switch company</strong> (Mobile App). The app reloads with the data and role of the new company: you might be an administrator in one company and an employee in another.</p>
+        <p>You can switch company at any time: on the <strong>Web</strong> from the company name at the top-left (sidebar) or from <strong>Settings → Active company</strong>; on the <strong>Mobile App</strong> from <strong>Profile → Switch company</strong>. The app reloads with the data and role of the new company: you might be an administrator in one company and an employee in another.</p>
         <div class="callout callout-info">
           Each company stays separate: stamps, holiday and settings never mix between different companies.
         </div>
@@ -1068,6 +1068,7 @@ export const MAIN_EN = `
           <li>Add an optional <strong>note</strong> (e.g. "brother's wedding", "medical appointment"). For Absence the field is called <strong>Reason</strong> and is also optional.</li>
           <li>Press <strong>Submit request</strong> (for Holiday/Leave/Absence) or <strong>Submit report</strong> (for Sick leave).</li>
         </ol>
+        <p><strong>Total requested:</strong> the form shows the request's hours live, computed from the chosen period and your <strong>assigned schedule</strong>. An <em>All day</em> leave counts that day's scheduled hours (e.g. 8h, not 24h) and non-working days count 0. A request falling entirely outside your schedule (e.g. holiday on a Sunday only) is blocked; a mixed range (e.g. Mon→Sun) counts only the working days.</p>
       </div>
 
       <div class="feature">

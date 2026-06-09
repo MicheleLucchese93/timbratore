@@ -428,6 +428,7 @@ select.input { background-color: white; }
 .sidebar-collapsed { width: var(--sidebar-w-collapsed); }
 
 .sidebar-brand {
+  position: relative; /* anchors the company-switcher dropdown */
   display: flex;
   align-items: center;
   gap: 0.625rem;
@@ -459,6 +460,80 @@ select.input { background-color: white; }
   margin-top: 2px;
 }
 .sidebar-collapsed .sidebar-brand { justify-content: center; padding: 1rem 0.5rem; }
+
+/* Company switcher (brand area) ---------------------------------------- */
+.sidebar-tenant-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+  margin-top: 2px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-on-surface-variant);
+}
+.sidebar-tenant-trigger:hover:not(:disabled) { color: var(--color-on-surface); }
+.sidebar-tenant-trigger:disabled { cursor: default; opacity: 0.7; }
+.sidebar-tenant-trigger .sidebar-brand-tenant {
+  margin-top: 0;
+  flex: 1;
+  text-align: left;
+}
+
+.sidebar-tenant-menu {
+  position: absolute;
+  top: calc(100% - 6px);
+  left: 0.5rem;
+  right: 0.5rem;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0.25rem;
+  background: white;
+  border: 1px solid var(--color-surface-variant);
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.sidebar-tenant-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  background: none;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.8125rem;
+  color: var(--color-on-surface);
+}
+.sidebar-tenant-item:hover:not(:disabled) { background: var(--color-surface-variant); }
+.sidebar-tenant-item:disabled { cursor: default; }
+.sidebar-tenant-item.is-active {
+  background: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+  font-weight: 600;
+}
+.sidebar-tenant-item-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar-tenant-item-role {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-on-surface-variant);
+}
+.sidebar-tenant-item.is-active .sidebar-tenant-item-role { color: inherit; opacity: 0.8; }
 
 .sidebar-nav {
   flex: 1;

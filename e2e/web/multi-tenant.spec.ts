@@ -101,4 +101,31 @@ test.describe('web — tenant chooser (multi-company)', () => {
     // And we leave the chooser behind.
     await expect(page.getByRole('heading', { name: /Scegli l'azienda/i })).toBeHidden();
   });
+
+  test('sidebar exposes a company switcher once inside the app', async ({ page }) => {
+    // /me echoes whichever company the client selected, so switching round-trips.
+    await page.route('**/api/v1/me', (route) => {
+      const id = route.request().headers()['x-tenant-id'] === T2 ? T2 : T1;
+      const ragione = id === T2 ? 'Beta Spa' : 'Alpha Srl';
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(meStub(id, ragione)) });
+    });
+
+    await page.goto('/');
+    await page.getByRole('button', { name: /Alpha Srl/ }).click();
+
+    // Landed in the app — the brand carries a switcher showing the active company.
+    const trigger = page.locator('.sidebar-tenant-trigger');
+    await expect(trigger).toBeVisible({ timeout: 15_000 });
+    await expect(trigger).toContainText('Alpha Srl');
+
+    // Open it → both companies are listed as options.
+    await trigger.click();
+    const menu = page.getByRole('listbox');
+    await expect(menu.getByRole('option', { name: /Alpha Srl/ })).toBeVisible();
+    await expect(menu.getByRole('option', { name: /Beta Spa/ })).toBeVisible();
+
+    // Switch to Beta → session reloads and the brand now reflects Beta Spa.
+    await menu.getByRole('option', { name: /Beta Spa/ }).click();
+    await expect(page.locator('.sidebar-tenant-trigger')).toContainText('Beta Spa', { timeout: 15_000 });
+  });
 });

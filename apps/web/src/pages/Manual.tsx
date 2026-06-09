@@ -170,7 +170,7 @@ const MAIN_IT = `
       <div class="feature">
         <h3>Più aziende sullo stesso account</h3>
         <p>Se la tua email è associata a più aziende, dopo l'accesso comparirà la schermata <strong>Scegli l'azienda</strong>: seleziona quella su cui vuoi lavorare. Se invece appartieni a una sola azienda entri direttamente, senza passaggi extra.</p>
-        <p>Puoi cambiare azienda in qualsiasi momento da <strong>Impostazioni → Azienda attiva</strong> (Web) o da <strong>Profilo → Cambia azienda</strong> (App Mobile). L'app si ricarica con i dati e il ruolo della nuova azienda: potresti essere amministratore in un'azienda e dipendente in un'altra.</p>
+        <p>Puoi cambiare azienda in qualsiasi momento: sul <strong>Web</strong> dal nome dell'azienda in alto a sinistra (barra laterale) oppure da <strong>Impostazioni → Azienda attiva</strong>; nell'<strong>App Mobile</strong> da <strong>Profilo → Cambia azienda</strong>. L'app si ricarica con i dati e il ruolo della nuova azienda: potresti essere amministratore in un'azienda e dipendente in un'altra.</p>
         <div class="callout callout-info">
           Ogni azienda resta separata: timbrature, ferie e impostazioni non si mescolano mai tra aziende diverse.
         </div>
@@ -1080,6 +1080,7 @@ const MAIN_IT = `
           <li>Aggiungi una <strong>nota</strong> opzionale (es. "matrimonio fratello", "visita medica"). Per Assenza il campo si chiama <strong>Motivazione</strong> ed è anch'esso facoltativo.</li>
           <li>Premi <strong>Invia richiesta</strong> (per Ferie/Permessi/Assenza) o <strong>Invia segnalazione</strong> (per Malattia).</li>
         </ol>
+        <p><strong>Totale richiesto:</strong> il modulo mostra in tempo reale le ore della richiesta, calcolate dal periodo scelto e dal tuo <strong>orario assegnato</strong>. Un permesso <em>Tutto il giorno</em> vale le ore previste per quel giorno (es. 8h, non 24h) e i giorni non lavorativi contano 0. Una richiesta interamente fuori dal tuo orario (es. ferie solo di domenica) viene bloccata; un intervallo misto (es. lun→dom) conteggia solo i giorni lavorativi.</p>
       </div>
 
       <div class="feature">
