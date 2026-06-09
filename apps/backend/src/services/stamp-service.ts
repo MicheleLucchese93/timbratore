@@ -195,8 +195,12 @@ export async function evaluateStamp(
 
   if (input.source !== 'admin_manual') {
     const last = await client.query(
+      // Only events that have already happened define the current state. A
+      // future-dated stamp (e.g. an admin pre-entering a planned clock_out)
+      // must not be treated as the "last" event, or it would let duplicate
+      // clock_ins slip past the transition check.
       `SELECT event_type, occurred_at FROM stamps
-       WHERE user_id = $1 AND deleted_at IS NULL
+       WHERE user_id = $1 AND deleted_at IS NULL AND occurred_at <= now()
        ORDER BY occurred_at DESC, created_at DESC LIMIT 1`,
       [input.userId]
     );
@@ -237,8 +241,10 @@ export async function computeCurrentState(
   userId: string
 ): Promise<CurrentState> {
   const r = await client.query(
+    // Live state reflects only events up to now; a future-dated stamp (e.g. a
+    // planned clock_out entered ahead of time) must not flip the button.
     `SELECT event_type, occurred_at FROM stamps
-     WHERE user_id = $1 AND deleted_at IS NULL
+     WHERE user_id = $1 AND deleted_at IS NULL AND occurred_at <= now()
      ORDER BY occurred_at DESC, created_at DESC LIMIT 1`,
     [userId]
   );
