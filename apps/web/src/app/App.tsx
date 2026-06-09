@@ -7,6 +7,7 @@ import { Login } from '../pages/Login.tsx';
 import { ForgotPassword } from '../pages/ForgotPassword.tsx';
 import { ChooseTenant } from '../pages/ChooseTenant.tsx';
 import { Layout } from './Layout.tsx';
+import { ErrorBoundary } from '../components/ErrorBoundary.tsx';
 import { AppShellSkeleton, PageSkeleton } from './Skeleton.tsx';
 
 // Route pages are code-split so employees never download the admin-only
@@ -65,22 +66,24 @@ export function App() {
   if (me.user.role === 'admin') {
     return (
       <Layout>
-        <Suspense fallback={<PageSkeleton />}>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/branches" element={<Branches />} />
-            <Route path="/users" element={<Users />} />
-            <Route path="/stamps" element={<Stamps />} />
-            <Route path="/corrections" element={<Corrections />} />
-            <Route path="/exports" element={<Exports />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/shifts" element={<Shifts />} />
-            <Route path="/anomalies" element={<Anomalies />} />
-            <Route path="/leaves" element={<Leaves />} />
-            <Route path="/manual" element={<Manual />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
+        <ErrorBoundary key={loc.pathname}>
+          <Suspense fallback={<PageSkeleton />}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/branches" element={<Branches />} />
+              <Route path="/users" element={<Users />} />
+              <Route path="/stamps" element={<Stamps />} />
+              <Route path="/corrections" element={<Corrections />} />
+              <Route path="/exports" element={<Exports />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/shifts" element={<Shifts />} />
+              <Route path="/anomalies" element={<Anomalies />} />
+              <Route path="/leaves" element={<Leaves />} />
+              <Route path="/manual" element={<Manual />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </Layout>
     );
   }
@@ -88,16 +91,18 @@ export function App() {
   // role = user — own-data only, no admin pages.
   return (
     <Layout>
-      <Suspense fallback={<PageSkeleton />}>
-        <Routes>
-          <Route path="/" element={<MyDashboard />} />
-          <Route path="/me/stamps" element={<MyStamps />} />
-          <Route path="/me/corrections" element={<Corrections />} />
-          <Route path="/me/leaves" element={<MyLeaves />} />
-          <Route path="/manual" element={<Manual />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+      <ErrorBoundary key={loc.pathname}>
+        <Suspense fallback={<PageSkeleton />}>
+          <Routes>
+            <Route path="/" element={<MyDashboard />} />
+            <Route path="/me/stamps" element={<MyStamps />} />
+            <Route path="/me/corrections" element={<Corrections />} />
+            <Route path="/me/leaves" element={<MyLeaves />} />
+            <Route path="/manual" element={<Manual />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
     </Layout>
   );
 }

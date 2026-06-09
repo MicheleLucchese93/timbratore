@@ -7,7 +7,7 @@ test.describe('web — employee role (test3)', () => {
 
   test('sidebar shows only the 3 employee items', async ({ page }) => {
     // Must be present.
-    for (const label of ['Dashboard', 'Le mie timbrature', 'Le mie richieste', 'Ferie & Permessi']) {
+    for (const label of ['Dashboard', 'Le mie timbrature', 'Correzioni', 'Ferie & Permessi']) {
       await expect(page.getByRole('link', { name: label, exact: true })).toBeVisible();
     }
     // Residui is no longer a sidebar entry — it moved into a tab of Ferie & Permessi.

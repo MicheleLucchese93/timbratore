@@ -1077,3 +1077,84 @@ select.input { background-color: white; }
   font-size: 0.8125rem;
   color: var(--color-on-surface-variant);
 }
+
+/* Leave calendar -------------------------------------------------------- */
+/* Crisp uniform gridlines: the 1px gap reveals the wrapper's variant fill,
+   while each cell paints its own surface on top. */
+.cal-grid {
+  background: var(--color-surface-variant);
+  gap: 1px;
+}
+.cal-day {
+  background: var(--color-surface);
+  transition: background 0.12s ease;
+  cursor: pointer;
+}
+.cal-day:hover {
+  background: color-mix(in oklab, var(--color-primary-container) 35%, var(--color-surface));
+}
+.cal-day--out {
+  background: color-mix(in oklab, var(--color-surface-variant) 45%, var(--color-surface));
+}
+.cal-day--weekend {
+  background: color-mix(in oklab, var(--color-surface-variant) 30%, var(--color-surface));
+}
+.cal-day--weekend:hover,
+.cal-day--out:hover {
+  background: color-mix(in oklab, var(--color-primary-container) 35%, var(--color-surface));
+}
+/* "Today" date sits in a filled primary pill. */
+.cal-today {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-radius: 999px;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+/* Segmented day/week/month/year switcher. */
+.cal-seg {
+  display: inline-flex;
+  gap: 0.125rem;
+  padding: 0.1875rem;
+  border-radius: 0.625rem;
+  background: var(--color-surface-variant);
+}
+.cal-seg-btn {
+  border-radius: 0.4375rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--color-on-surface-variant);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.cal-seg-btn:hover {
+  color: var(--color-on-surface);
+}
+.cal-seg-btn[aria-pressed='true'] {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+/* Event chip: a solid left rail in the type colour. Pending = dashed outline. */
+.cal-chip {
+  border-left: 3px solid var(--cal-chip-color, var(--color-primary));
+  border-radius: 0.25rem;
+  padding: 0.0625rem 0.375rem;
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--color-on-surface);
+}
+.cal-chip--solid {
+  background: color-mix(in oklab, var(--cal-chip-color) 16%, var(--color-surface));
+}
+.cal-chip--pending {
+  background: transparent;
+  border: 1px dashed var(--cal-chip-color, var(--color-primary));
+  border-left-width: 3px;
+  border-left-style: solid;
+}

@@ -3,6 +3,14 @@
     "name": "sonoQui",
     "tenantFallback": "Azienda"
   },
+  "errorBoundary": {
+    "title": "Si è verificato un errore",
+    "body": "Questa sezione non si è caricata correttamente. Riprova; se il problema persiste, ricarica la pagina.",
+    "staleTitle": "Aggiornamento disponibile",
+    "staleBody": "L’app è stata aggiornata. Ricarica la pagina per continuare.",
+    "details": "Dettagli tecnici",
+    "reload": "Ricarica"
+  },
   "btn": {
     "save": "Salva",
     "cancel": "Annulla",

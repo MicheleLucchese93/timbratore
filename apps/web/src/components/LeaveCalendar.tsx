@@ -116,13 +116,13 @@ export function LeaveCalendar({
           <button type="button" className="btn btn-ghost px-2 py-1" onClick={() => step(1)} aria-label={t('nav.next')}>›</button>
           <span className="ml-2 text-sm font-semibold capitalize">{viewTitleLocal(view, anchor)}</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="cal-seg" role="group">
           {(['day', 'week', 'month', 'year'] as CalView[]).map((v) => (
             <button
               key={v}
               type="button"
-              className={`px-3 py-1 text-sm rounded border ${view === v ? 'font-semibold' : 'opacity-70'}`}
-              style={{ borderColor: view === v ? 'var(--color-primary, #2563eb)' : 'var(--color-border, #e5e7eb)' }}
+              className="cal-seg-btn"
+              aria-pressed={view === v}
               onClick={() => setView(v)}
             >
               {t(`view.${v}`)}
@@ -142,22 +142,12 @@ export function LeaveCalendar({
 }
 
 function EventChip({ e, faded, t }: { e: CalendarEvent; faded?: boolean; t: TFunction }) {
-  const color = leaveTypeColor(e.type);
   const pending = e.status === 'pending';
   return (
     <div
-      title={`${eventLabel(e, t)} — ${t(`common:leaveType.${e.type}`)}`}
-      style={{
-        background: pending ? 'transparent' : `${color}22`,
-        borderLeft: `3px solid ${color}`,
-        color: 'var(--color-on-surface, #111827)',
-        opacity: faded ? 0.5 : 1,
-        borderStyle: pending ? 'dashed' : 'solid',
-        borderWidth: pending ? 1 : 0,
-        borderLeftWidth: 3,
-        borderLeftStyle: 'solid',
-      }}
-      className="truncate rounded px-1.5 py-0.5 text-[11px] leading-tight"
+      title={`${eventLabel(e, t)} — ${t(`common:leaveType.${e.type}`)}${pending ? t('pending') : ''}`}
+      style={{ ['--cal-chip-color' as string]: leaveTypeColor(e.type), opacity: faded ? 0.5 : 1 }}
+      className={`cal-chip truncate ${pending ? 'cal-chip--pending' : 'cal-chip--solid'}`}
     >
       {eventLabel(e, t)}
     </div>
@@ -184,44 +174,34 @@ function MonthView({
   const today = toISODate(todayLocal());
   const weekdays = weekdayLabelsShort();
   return (
-    <div className="overflow-hidden rounded border" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>
-      <div className="grid grid-cols-7 text-center text-xs font-medium" style={{ background: 'var(--color-surface-variant, #f3f4f6)' }}>
-        {weekdays.map((w) => (
-          <div key={w} className="py-1.5">{w}</div>
+    <div className="overflow-hidden rounded-lg border" style={{ borderColor: 'var(--color-surface-variant)' }}>
+      <div className="grid grid-cols-7 text-center text-xs font-semibold" style={{ background: 'var(--color-surface-variant)' }}>
+        {weekdays.map((w, i) => (
+          <div key={w} className="py-2 capitalize" style={{ color: i >= 5 ? HOLIDAY_COLOR : 'var(--color-on-surface-variant)' }}>{w}</div>
         ))}
       </div>
-      <div className="grid grid-cols-7">
+      <div className="grid grid-cols-7 cal-grid">
         {weeks.flat().map((d) => {
           const iso = toISODate(d);
           const inMonth = d.getMonth() === anchor.getMonth();
           const dayEvents = eventsForDay(events, iso);
           const hol = holidays.get(iso);
+          const isToday = iso === today;
+          const cls = ['cal-day', 'min-h-[96px]', 'p-1.5', 'text-left', 'align-top'];
+          if (!inMonth) cls.push('cal-day--out');
+          else if (isWeekend(d)) cls.push('cal-day--weekend');
           return (
-            <button
-              key={iso}
-              type="button"
-              onClick={() => onPickDay(d)}
-              className="min-h-[88px] border-t border-l p-1 text-left align-top"
-              style={{
-                borderColor: 'var(--color-border, #e5e7eb)',
-                background: inMonth ? 'var(--color-surface, #fff)' : 'var(--color-surface-variant, #fafafa)',
-                opacity: inMonth ? 1 : 0.55,
-              }}
-            >
-              <div className="flex items-center justify-between">
+            <button key={iso} type="button" onClick={() => onPickDay(d)} className={cls.join(' ')}>
+              <div className="flex items-center justify-between" style={{ opacity: inMonth ? 1 : 0.5 }}>
                 <span
-                  className="text-xs"
-                  style={{
-                    fontWeight: iso === today ? 700 : 400,
-                    color: hol || isWeekend(d) ? HOLIDAY_COLOR : 'inherit',
-                  }}
+                  className={`text-xs ${isToday ? 'cal-today' : ''}`}
+                  style={isToday ? undefined : { color: hol || isWeekend(d) ? HOLIDAY_COLOR : 'inherit' }}
                 >
                   {d.getDate()}
                 </span>
-                {iso === today && <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-primary, #2563eb)' }} />}
               </div>
-              {hol && <div className="truncate text-[10px]" style={{ color: HOLIDAY_COLOR }}>{hol}</div>}
-              <div className="mt-0.5 space-y-0.5">
+              {hol && <div className="truncate text-[10px]" style={{ color: HOLIDAY_COLOR }} title={hol}>{hol}</div>}
+              <div className="mt-1 space-y-0.5" style={{ opacity: inMonth ? 1 : 0.6 }}>
                 {dayEvents.slice(0, 3).map((e) => (
                   <EventChip key={e.id} e={e} t={t} />
                 ))}
@@ -257,15 +237,26 @@ function WeekView({
         const iso = toISODate(d);
         const dayEvents = eventsForDay(events, iso);
         const hol = holidayName(iso);
+        const isToday = iso === today;
         return (
-          <div key={iso} className="rounded border p-2" style={{ borderColor: 'var(--color-border, #e5e7eb)', minHeight: 140 }}>
+          <div
+            key={iso}
+            className="rounded-lg border p-2"
+            style={{
+              borderColor: isToday ? 'var(--color-primary)' : 'var(--color-surface-variant)',
+              background: isWeekend(d) ? 'color-mix(in oklab, var(--color-surface-variant) 30%, var(--color-surface))' : 'var(--color-surface)',
+              minHeight: 140,
+            }}
+          >
             <button type="button" onClick={() => onPickDay(d)} className="mb-1 w-full text-left">
-              <div className="text-xs font-medium">{weekdays[(d.getDay() + 6) % 7]}</div>
-              <div className="text-sm" style={{ fontWeight: iso === today ? 700 : 400, color: hol || isWeekend(d) ? HOLIDAY_COLOR : 'inherit' }}>
-                {d.getDate()}
+              <div className="text-xs font-medium capitalize" style={{ color: 'var(--color-on-surface-variant)' }}>{weekdays[(d.getDay() + 6) % 7]}</div>
+              <div className="mt-0.5">
+                <span className={`text-sm ${isToday ? 'cal-today' : ''}`} style={isToday ? undefined : { color: hol || isWeekend(d) ? HOLIDAY_COLOR : 'inherit', fontWeight: 600 }}>
+                  {d.getDate()}
+                </span>
               </div>
             </button>
-            {hol && <div className="mb-1 truncate text-[10px]" style={{ color: HOLIDAY_COLOR }}>{hol}</div>}
+            {hol && <div className="mb-1 truncate text-[10px]" style={{ color: HOLIDAY_COLOR }} title={hol}>{hol}</div>}
             <div className="space-y-1">
               {dayEvents.map((e) => <EventChip key={e.id} e={e} t={t} />)}
             </div>

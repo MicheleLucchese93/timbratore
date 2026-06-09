@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api.ts';
 import {
@@ -22,8 +22,13 @@ export function NewLeaveModal({ onClose, onDone }: { onClose: () => void; onDone
   const { t } = useTranslation(['newLeaveModal', 'common']);
   const [type, setType] = useState<LeaveType>('ferie');
   const [allDay, setAllDay] = useState(true);
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  // Date is kept separate from time: an all-day request is a date range
+  // (fromDate → toDate); a timed request (a "permesso orario") is a single day
+  // with a start and end time. This split mirrors how Italian leave is filed.
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('13:00');
   const [note, setNote] = useState('');
   const [inps, setInps] = useState('');
   const [subtype, setSubtype] = useState(ASSENZA_SUBTYPES[0]!);
@@ -43,22 +48,40 @@ export function NewLeaveModal({ onClose, onDone }: { onClose: () => void; onDone
       .catch(() => setAssignment(null));
   }, []);
 
+  // Build the ISO [from, to] the request will claim from the split date/time
+  // fields, or null while the period is incomplete. A timed request is a single
+  // day (fromDate) clamped by start/end time; an all-day one spans fromDate
+  // 00:00 → toDate 23:59.
+  const buildRange = useCallback((): { fromTs: string; toTs: string } | null => {
+    if (!fromDate) return null;
+    if (timeMode) {
+      if (!startTime || !endTime) return null;
+      return {
+        fromTs: new Date(`${fromDate}T${startTime}:00`).toISOString(),
+        toTs: new Date(`${fromDate}T${endTime}:00`).toISOString(),
+      };
+    }
+    if (!toDate) return null;
+    return {
+      fromTs: new Date(`${fromDate}T00:00:00`).toISOString(),
+      toTs: new Date(`${toDate}T23:59:00`).toISOString(),
+    };
+  }, [timeMode, fromDate, toDate, startTime, endTime]);
+
   // Hours the request will claim — mirrors the backend's duration_hours. null
   // while the period is incomplete/invalid; 0 = covers no working hours.
   const estimatedHours = useMemo<number | null>(() => {
-    if (!from || !to) return null;
-    const tm = (type === 'ferie' || type === 'permessi') && !allDay;
-    const fromTs = tm ? new Date(from).toISOString() : new Date(`${from}T00:00:00`).toISOString();
-    const toTs = tm ? new Date(to).toISOString() : new Date(`${to}T23:59:00`).toISOString();
-    if (new Date(toTs).getTime() <= new Date(fromTs).getTime()) return null;
-    return estimateLeaveHours(type, fromTs, toTs, assignment);
-  }, [type, allDay, from, to, assignment]);
+    const r = buildRange();
+    if (!r) return null;
+    if (new Date(r.toTs).getTime() <= new Date(r.fromTs).getTime()) return null;
+    return estimateLeaveHours(type, r.fromTs, r.toTs, assignment);
+  }, [type, buildRange, assignment]);
 
   async function submit() {
     setErr(null);
-    if (!from || !to) return setErr(t('validation.datesRequired'));
-    const fromTs = timeMode ? new Date(from).toISOString() : new Date(`${from}T00:00:00`).toISOString();
-    const toTs = timeMode ? new Date(to).toISOString() : new Date(`${to}T23:59:00`).toISOString();
+    const r = buildRange();
+    if (!r) return setErr(t('validation.datesRequired'));
+    const { fromTs, toTs } = r;
     if (new Date(toTs).getTime() <= new Date(fromTs).getTime()) return setErr(t('validation.endBeforeStart'));
     if (type === 'malattia' && !inps.trim()) return setErr(t('validation.inpsRequired'));
     if (type === 'assenza' && !note.trim()) return setErr(t('validation.noteRequired'));
@@ -106,16 +129,35 @@ export function NewLeaveModal({ onClose, onDone }: { onClose: () => void; onDone
             <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} /> {t('field.allDay')}
           </label>
         )}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label">{t('field.from')}</label>
-            <input type={timeMode ? 'datetime-local' : 'date'} step={timeMode ? 900 : undefined} className="input" value={from} onChange={(e) => setFrom(e.target.value)} />
+        {timeMode ? (
+          <div className="space-y-3">
+            <div>
+              <label className="label">{t('field.day')}</label>
+              <input type="date" className="input" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">{t('field.startTime')}</label>
+                <input type="time" step={900} className="input" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+              </div>
+              <div>
+                <label className="label">{t('field.endTime')}</label>
+                <input type="time" step={900} className="input" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+              </div>
+            </div>
           </div>
-          <div>
-            <label className="label">{t('field.to')}</label>
-            <input type={timeMode ? 'datetime-local' : 'date'} step={timeMode ? 900 : undefined} className="input" value={to} onChange={(e) => setTo(e.target.value)} />
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">{t('field.from')}</label>
+              <input type="date" className="input" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="label">{t('field.to')}</label>
+              <input type="date" className="input" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+            </div>
           </div>
-        </div>
+        )}
         {type === 'malattia' && (
           <div>
             <label className="label">{t('field.inpsProtocol')}</label>

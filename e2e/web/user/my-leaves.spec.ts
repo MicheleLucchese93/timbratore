@@ -37,6 +37,30 @@ test.describe('web — Ferie & Permessi (employee)', () => {
       await page.getByRole('button', { name: 'Annulla', exact: true }).click();
     });
 
+    test('a timed Permesso splits date from time (Giorno + Dalle/Alle ore)', async ({ page }) => {
+      await page.getByRole('button', { name: /Nuova richiesta/i }).click();
+      await expect(page.getByRole('heading', { name: 'Nuova richiesta' })).toBeVisible({ timeout: 10_000 });
+
+      // Permesso, all-day OFF → the single day picker + separate start/end time
+      // fields appear (the "permesso orario" layout).
+      await page.locator('select.input').first().selectOption('permessi');
+      await page.getByRole('checkbox').first().uncheck();
+
+      await expect(page.getByText('Giorno', { exact: true })).toBeVisible();
+      await expect(page.getByText('Dalle ore', { exact: true })).toBeVisible();
+      await expect(page.getByText('Alle ore', { exact: true })).toBeVisible();
+      // One date input for the day + two time inputs for start/end.
+      await expect(page.locator('input[type="date"]')).toHaveCount(1);
+      await expect(page.locator('input[type="time"]')).toHaveCount(2);
+
+      // Toggling "all day" back collapses to a Dal/Al date range (two dates).
+      await page.getByRole('checkbox').first().check();
+      await expect(page.locator('input[type="date"]')).toHaveCount(2);
+      await expect(page.locator('input[type="time"]')).toHaveCount(0);
+
+      await page.getByRole('button', { name: 'Annulla', exact: true }).click();
+    });
+
     test('Calendario tab renders the view switcher', async ({ page }) => {
       await page.getByRole('button', { name: 'Calendario', exact: true }).click();
       await expect(page.getByRole('button', { name: 'Mese', exact: true })).toBeVisible({ timeout: 10_000 });

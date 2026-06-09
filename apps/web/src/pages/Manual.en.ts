@@ -604,6 +604,16 @@ export const MAIN_EN = `
       </div>
 
       <div class="feature">
+        <h3>Filling in a request</h3>
+        <p>In the <strong>+ New request</strong> form you first choose the <strong>Type</strong> (Holiday, Leave, Sick leave, Absence). For Holiday and Leave you set the period in two ways, with <strong>date and time on separate fields</strong>:</p>
+        <ul class="tidy">
+          <li><strong>All day</strong> (default) — you pick a date range <em>From</em> … <em>To</em>: the absence covers the whole working day for every day in the period.</li>
+          <li><strong>Hourly leave</strong> — untick <em>All day</em>: a <em>Day</em> field appears and, separately, the start time (<em>Start time</em>) and end time (<em>End time</em>), adjustable in 15-minute steps.</li>
+        </ul>
+        <p>Below the fields the <strong>Total requested</strong> in hours updates in real time, already capped at the assigned work schedule (a leave can never be worth more than the scheduled day).</p>
+      </div>
+
+      <div class="feature">
         <h3>Calendar tab</h3>
         <p>A calendar view of all the company's absences, with a <strong>Day / Week / Month / Year</strong> selector. Each event is coloured by type (Holiday, Leave, Sick leave, Absence, Closure) and the <strong>Italian national public holidays</strong> (New Year, Easter, 25 April, 15 August, Christmas…) are highlighted automatically.</p>
         <ul class="tidy">

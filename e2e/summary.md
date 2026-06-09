@@ -536,7 +536,7 @@ test('non-admin sees the employee dashboard', async ({ page }) => {
 | Role     | Visible nav items                                                                                  |
 | -------- | -------------------------------------------------------------------------------------------------- |
 | `admin`  | Dashboard, Timbrature, Correzioni, Utenti, Sedi, Orari, Anomalie, Ferie & Permessi, Esportazioni, Impostazioni |
-| `user`   | Dashboard, Le mie timbrature, Le mie richieste                                                     |
+| `user`   | Dashboard, Le mie timbrature, Correzioni                                                            |
 
 Footer role label: `Amministratore` for admins, `Dipendente` for employees.
 

@@ -16,7 +16,7 @@ test.describe('web — Le mie timbrature (employee)', () => {
   });
 });
 
-test.describe('web — Le mie richieste (employee)', () => {
+test.describe('web — Correzioni (employee)', () => {
   test('renders the corrections page in employee mode', async ({ page }) => {
     await page.goto('/me/corrections');
     await expect(page.getByRole('heading', { name: 'Correzioni' })).toBeVisible({ timeout: 10_000 });

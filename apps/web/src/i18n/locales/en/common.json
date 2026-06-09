@@ -3,6 +3,14 @@
     "name": "sonoQui",
     "tenantFallback": "Company"
   },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "body": "This section failed to load. Try again; if the problem persists, reload the page.",
+    "staleTitle": "Update available",
+    "staleBody": "The app has been updated. Reload the page to continue.",
+    "details": "Technical details",
+    "reload": "Reload"
+  },
   "btn": {
     "save": "Save",
     "cancel": "Cancel",

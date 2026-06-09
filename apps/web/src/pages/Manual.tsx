@@ -611,6 +611,16 @@ const MAIN_IT = `
       </div>
 
       <div class="feature">
+        <h3>Compilare una richiesta</h3>
+        <p>Nel modulo <strong>+ Nuova richiesta</strong> scegli prima il <strong>Tipo</strong> (Ferie, Permesso, Malattia, Assenza). Per Ferie e Permessi indichi il periodo in due modi, con <strong>data e orario su campi separati</strong>:</p>
+        <ul class="tidy">
+          <li><strong>Tutto il giorno</strong> (predefinito) — selezioni un intervallo di date <em>Dal</em> … <em>Al</em>: l'assenza copre l'intera giornata lavorativa di ogni giorno del periodo.</li>
+          <li><strong>Permesso a ore</strong> — togli la spunta da <em>Tutto il giorno</em>: compaiono il campo <em>Giorno</em> e, separati, l'ora di inizio (<em>Dalle ore</em>) e di fine (<em>Alle ore</em>), regolabili a passi di 15 minuti.</li>
+        </ul>
+        <p>Sotto i campi compare in tempo reale il <strong>Totale richiesto</strong> in ore, già limitato all'orario di lavoro assegnato (un permesso non può valere più della giornata prevista).</p>
+      </div>
+
+      <div class="feature">
         <h3>Tab Calendario</h3>
         <p>Una vista calendario di tutte le assenze aziendali, con selettore <strong>Giorno / Settimana / Mese / Anno</strong>. Ogni evento è colorato per tipo (Ferie, Permesso, Malattia, Assenza, Chiusura) e le <strong>festività nazionali italiane</strong> (Capodanno, Pasqua, 25 aprile, Ferragosto, Natale…) sono evidenziate automaticamente.</p>
         <ul class="tidy">
