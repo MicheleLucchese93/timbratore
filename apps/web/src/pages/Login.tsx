@@ -29,7 +29,10 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
       await refresh();
       onLoggedIn();
     } catch (err) {
-      setErr(err instanceof Error ? err.message : t('failed'));
+      // Map GoTrue's machine error code to a localized message; fall back to a
+      // generic localized string — never surface GoTrue's raw English text.
+      const code = (err as { code?: string } | null)?.code;
+      setErr(t(`errors.${code ?? 'default'}`, { defaultValue: t('errors.default') }));
     } finally {
       setBusy(false);
     }

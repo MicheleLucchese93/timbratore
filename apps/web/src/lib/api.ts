@@ -145,10 +145,13 @@ export async function loginWithPassword(email: string, password: string): Promis
     body: JSON.stringify({ email, password }),
   });
   if (!r.ok) {
-    let parsed: { error_description?: string; msg?: string } = {};
+    let parsed: { error_description?: string; msg?: string; error_code?: string; error?: string } = {};
     try { parsed = await r.json(); } catch { /* ignore */ }
     const err: ApiError = new Error(parsed.error_description ?? parsed.msg ?? 'Login failed');
     err.status = r.status;
+    // GoTrue machine code (e.g. 'invalid_credentials'); the UI maps it to a
+    // localized message instead of surfacing GoTrue's raw English `msg`.
+    err.code = parsed.error_code ?? parsed.error;
     throw err;
   }
   const body = (await r.json()) as PasswordLoginResult;

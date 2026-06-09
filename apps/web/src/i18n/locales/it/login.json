@@ -6,5 +6,13 @@
   "forgotPassword": "Password dimenticata?",
   "signIn": "Accedi",
   "signingIn": "Accesso in corso…",
-  "failed": "Accesso fallito"
+  "failed": "Accesso fallito",
+  "errors": {
+    "invalid_credentials": "Email o password non corretti.",
+    "email_not_confirmed": "Devi confermare la tua email prima di accedere.",
+    "user_not_found": "Nessun account trovato con questa email.",
+    "over_request_rate_limit": "Troppi tentativi. Riprova tra qualche minuto.",
+    "user_banned": "Account sospeso. Contatta l'assistenza.",
+    "default": "Accesso non riuscito. Riprova."
+  }
 }

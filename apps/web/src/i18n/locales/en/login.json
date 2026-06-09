@@ -6,5 +6,13 @@
   "forgotPassword": "Forgot password?",
   "signIn": "Sign in",
   "signingIn": "Signing in…",
-  "failed": "Sign-in failed"
+  "failed": "Sign-in failed",
+  "errors": {
+    "invalid_credentials": "Incorrect email or password.",
+    "email_not_confirmed": "Please confirm your email before signing in.",
+    "user_not_found": "No account found with this email.",
+    "over_request_rate_limit": "Too many attempts. Please try again in a few minutes.",
+    "user_banned": "Account suspended. Please contact support.",
+    "default": "Sign-in failed. Please try again."
+  }
 }
