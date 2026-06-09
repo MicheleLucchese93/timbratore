@@ -14,13 +14,13 @@
     "name": "Name",
     "address": "Address",
     "addressPlaceholder": "Search on Google Maps: e.g. Piazza Venezia, Rome",
-    "addressHint": "Type at least 3 characters and select a result to set the coordinates.",
+    "addressHint": "Type at least 3 characters and select a result, then click the map to adjust the point if needed.",
     "smartWorking": "Off-site - stamping without GPS",
     "enforceRadius": "Restrict stamping within a radius",
     "enforceRadiusHint": "If disabled: GPS is still recorded on the stamp, but without distance checking. The branch must be selected manually by the user (no auto-detect).",
     "radiusLabel": "Radius (50–1500 m): {{radius}}m",
     "preview": "Preview",
     "tolerance": "tolerance {{radius}}m",
-    "previewEmpty": "Select an address to view the branch on the map."
+    "previewEmpty": "Select an address or click the map to set the branch location."
   }
 }

@@ -164,6 +164,11 @@ function BranchForm({
     }
   }
 
+  function handleMapLocationSelect(point: { lat: number; lng: number }) {
+    setLat(point.lat);
+    setLng(point.lng);
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -275,6 +280,7 @@ function BranchForm({
                 lng={lng}
                 radiusM={radius}
                 showRadius={enforceRadius}
+                onLocationSelect={handleMapLocationSelect}
               />
               {lat !== null && lng !== null ? (
                 <p className="text-xs text-neutral-500 mt-2">

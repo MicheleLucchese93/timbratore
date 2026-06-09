@@ -20,6 +20,7 @@ interface Props {
   showRadius?: boolean;
   height?: number | string;
   interactive?: boolean;
+  onLocationSelect?: (point: { lat: number; lng: number }) => void;
 }
 
 export function BranchMapPreview({
@@ -29,6 +30,7 @@ export function BranchMapPreview({
   showRadius = true,
   height = 360,
   interactive = true,
+  onLocationSelect,
 }: Props) {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
   if (!apiKey) {
@@ -47,6 +49,7 @@ export function BranchMapPreview({
       showRadius={showRadius}
       height={height}
       interactive={interactive}
+      onLocationSelect={onLocationSelect}
     />
   );
 }
@@ -59,6 +62,7 @@ function MapInner({
   showRadius,
   height,
   interactive,
+  onLocationSelect,
 }: {
   apiKey: string;
   lat: number | null;
@@ -67,12 +71,14 @@ function MapInner({
   showRadius: boolean;
   height: number | string;
   interactive: boolean;
+  onLocationSelect?: (point: { lat: number; lng: number }) => void;
 }) {
   const containerStyle = {
     width: '100%',
     height: typeof height === 'number' ? `${height}px` : height,
     borderRadius: '8px',
     overflow: 'hidden',
+    cursor: onLocationSelect ? 'crosshair' : undefined,
   };
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
@@ -155,6 +161,10 @@ function MapInner({
       center={hasCoords ? { lat, lng } : FALLBACK_CENTER}
       zoom={hasCoords ? 15 : 5}
       options={options}
+      onClick={(e) => {
+        if (!onLocationSelect || !e.latLng) return;
+        onLocationSelect({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+      }}
       onLoad={(m) => {
         mapRef.current = m;
       }}
