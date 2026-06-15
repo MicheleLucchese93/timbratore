@@ -160,6 +160,7 @@
     "email": "Email",
     "firstName": "Nome",
     "lastName": "Cognome",
+    "codiceFiscale": "Codice fiscale",
     "role": "Ruolo",
     "state": "Stato",
     "branches": "Sedi",

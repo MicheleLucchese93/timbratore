@@ -818,7 +818,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Caricamento in massa</h3>
-        <p>Premi <strong>Carica documenti</strong> e seleziona <strong>uno o più PDF</strong> (max 15MB ciascuno; sono accettati solo PDF). Per ogni file il sistema prova ad <strong>abbinarlo automaticamente al dipendente</strong> cercando nel nome del file il suo <em>codice fiscale</em> o la sua <em>matricola</em> (compilati in <strong>Utenti</strong>).</p>
+        <p>Premi <strong>Carica documenti</strong> e seleziona <strong>uno o più PDF</strong> (max 15MB ciascuno; sono accettati solo PDF). Per ogni file il sistema prova ad <strong>abbinarlo automaticamente al dipendente</strong> cercando nel nome del file il suo <em>codice fiscale</em> (impostato in <strong>Utenti</strong>, colonna <em>Codice fiscale</em>).</p>
         <ol class="steps">
           <li>Seleziona i PDF da caricare.</li>
           <li>Controlla la tabella di abbinamento: per ogni file vedi il dipendente proposto (con indicazione del criterio di abbinamento), la categoria e il titolo modificabili.</li>

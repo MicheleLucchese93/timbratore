@@ -38,7 +38,7 @@
   },
   "upload": {
     "title": "Carica documenti (PDF)",
-    "subtitle": "Trascina o seleziona più PDF (max 15MB ciascuno). Proviamo ad abbinare ogni file al dipendente in base al codice fiscale o alla matricola contenuti nel nome del file. Controlla l'abbinamento e la categoria, poi conferma.",
+    "subtitle": "Trascina o seleziona più PDF (max 15MB ciascuno). Proviamo ad abbinare ogni file al dipendente in base al codice fiscale contenuto nel nome del file. Controlla l'abbinamento e la categoria, poi conferma.",
     "pickFiles": "Seleziona PDF…",
     "fileCount": "{{count}} file selezionati",
     "unmatchedHint": "Alcuni file non sono stati abbinati automaticamente: scegli il dipendente nel menù prima di caricare.",
@@ -49,8 +49,7 @@
     "colStatus": "Stato",
     "pickEmployee": "— scegli dipendente —",
     "matchedBy": {
-      "codice_fiscale": "abbinato per codice fiscale",
-      "matricola": "abbinato per matricola"
+      "codice_fiscale": "abbinato per codice fiscale"
     },
     "confirm": "Carica {{count}} documenti",
     "uploading": "Caricamento in corso…",

@@ -30,7 +30,7 @@ interface UploadRow {
   userId: string | null;
   category: DocumentCategory;
   title: string;
-  matchedBy: 'codice_fiscale' | 'matricola' | null;
+  matchedBy: 'codice_fiscale' | null;
   status: 'pending' | 'uploading' | 'done' | 'error';
   error?: string;
 }
@@ -326,19 +326,15 @@ function BulkUploadModal({
   const [err, setErr] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
-  // Auto-match a filename to a user: a non-empty codice_fiscale or matricola
-  // that appears (case-insensitively) as a substring of the filename wins.
-  // Codice fiscale is tried first as it is far less collision-prone than a
-  // 4-digit matricola.
+  // Auto-match a filename to a user by codice fiscale only: the user's
+  // (non-empty) codice fiscale appearing case-insensitively as a substring of
+  // the filename wins. Matricola is intentionally NOT used for matching — it is
+  // too short and collision-prone; set the codice fiscale per user in Utenti.
   function matchUser(filename: string): { userId: string | null; by: UploadRow['matchedBy'] } {
     const name = filename.toLowerCase();
     for (const u of users) {
       const cf = u.codice_fiscale?.trim().toLowerCase();
       if (cf && cf.length >= 4 && name.includes(cf)) return { userId: u.user_id, by: 'codice_fiscale' };
-    }
-    for (const u of users) {
-      const mat = u.matricola?.trim().toLowerCase();
-      if (mat && mat.length >= 1 && name.includes(mat)) return { userId: u.user_id, by: 'matricola' };
     }
     return { userId: null, by: null };
   }

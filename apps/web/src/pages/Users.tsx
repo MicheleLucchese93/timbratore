@@ -1806,6 +1806,19 @@ function UsersDataGrid({
           p.value || <span style={{ color: 'var(--color-on-surface-variant)' }}>—</span>,
       },
       {
+        field: 'codice_fiscale',
+        headerName: t('col.codiceFiscale'),
+        flex: 0.9,
+        minWidth: 150,
+        valueGetter: (_v, row) => row.codice_fiscale?.trim() ?? '',
+        renderCell: (p) =>
+          p.value ? (
+            <span className="num">{p.value}</span>
+          ) : (
+            <span style={{ color: 'var(--color-on-surface-variant)' }}>—</span>
+          ),
+      },
+      {
         field: 'role',
         headerName: t('col.role'),
         width: 130,

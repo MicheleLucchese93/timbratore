@@ -160,6 +160,7 @@
     "email": "Email",
     "firstName": "First name",
     "lastName": "Last name",
+    "codiceFiscale": "Tax code",
     "role": "Role",
     "state": "Status",
     "branches": "Branches",

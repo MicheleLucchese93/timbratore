@@ -806,7 +806,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>Bulk upload</h3>
-        <p>Press <strong>Upload documents</strong> and pick <strong>one or more PDFs</strong> (max 15MB each; PDFs only). For each file the system tries to <strong>match it to an employee automatically</strong> by looking in the filename for their <em>codice fiscale</em> or <em>matricola</em> (filled in under <strong>Users</strong>).</p>
+        <p>Press <strong>Upload documents</strong> and pick <strong>one or more PDFs</strong> (max 15MB each; PDFs only). For each file the system tries to <strong>match it to an employee automatically</strong> by looking in the filename for their <em>codice fiscale</em> (set under <strong>Users</strong>, the <em>Tax code</em> column).</p>
         <ol class="steps">
           <li>Select the PDFs to upload.</li>
           <li>Review the mapping table: for each file you see the proposed employee (with the matching criterion), the category and an editable title.</li>

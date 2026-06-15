@@ -38,7 +38,7 @@
   },
   "upload": {
     "title": "Upload documents (PDF)",
-    "subtitle": "Drop or pick multiple PDFs (max 15MB each). We try to match each file to an employee by the codice fiscale or matricola found in the filename. Review the match and category, then confirm.",
+    "subtitle": "Drop or pick multiple PDFs (max 15MB each). We try to match each file to an employee by the codice fiscale found in the filename. Review the match and category, then confirm.",
     "pickFiles": "Pick PDFs…",
     "fileCount": "{{count}} files selected",
     "unmatchedHint": "Some files were not matched automatically: choose the employee from the dropdown before uploading.",
@@ -49,8 +49,7 @@
     "colStatus": "Status",
     "pickEmployee": "— pick employee —",
     "matchedBy": {
-      "codice_fiscale": "matched by codice fiscale",
-      "matricola": "matched by matricola"
+      "codice_fiscale": "matched by codice fiscale"
     },
     "confirm": "Upload {{count}} documents",
     "uploading": "Uploading…",
