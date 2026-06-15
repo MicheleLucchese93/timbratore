@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: color.primaryContainer,
+    backgroundColor: '#ffe0c8',
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({

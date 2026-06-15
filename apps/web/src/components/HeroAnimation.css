@@ -4,9 +4,9 @@
   height: 100%;
   overflow: hidden;
   background:
-    radial-gradient(120% 80% at 0% 0%, color-mix(in oklab, var(--color-primary) 78%, white) 0%, transparent 60%),
-    radial-gradient(120% 80% at 100% 100%, color-mix(in oklab, var(--color-primary) 60%, black) 0%, transparent 60%),
-    linear-gradient(135deg, var(--color-primary) 0%, color-mix(in oklab, var(--color-primary) 78%, white) 50%, color-mix(in oklab, var(--color-primary) 60%, black) 100%);
+    radial-gradient(120% 80% at 0% 0%, #d97706 0%, transparent 60%),
+    radial-gradient(120% 80% at 100% 100%, #92400e 0%, transparent 60%),
+    linear-gradient(135deg, #b25500 0%, #d97706 50%, #92400e 100%);
   color: #fff;
   display: flex;
   align-items: center;
@@ -141,7 +141,7 @@
   margin-left: 0.25rem;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  color: var(--color-primary);
+  color: #b25500;
 }
 
 .hero-anim__pill--in    { top:  10px; left: 9rem; --dot: #1e7a3a; }
