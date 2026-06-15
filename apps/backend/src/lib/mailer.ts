@@ -515,6 +515,7 @@ export function buildDocumentUploadedMail(p: DocumentUploadedMailPayload): {
         `\nOpen sonoQui to view it.`;
   const html = renderTemplate('document-uploaded.html', {
     language,
+    brandColor: '#b25500',
     Title: p.title,
     CategoryLabel: categoryLabel,
     ActionUrl: documentsActionUrl(),

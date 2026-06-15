@@ -10,14 +10,18 @@ Single source of truth for product UI. Web (Tailwind v4 + Material-3 tokens) and
 
 ## 2. Color tokens
 
-All colors expressed as CSS custom properties under `:root` (web) and as constants exported from `packages/shared/src/design/colors.ts` (mobile). Both refer to the **same hex values** — single edit propagates.
+All colors live in `packages/shared/src/design/tokens.ts` — the **single source of truth**. Mobile imports the `color` constants directly; web + website consume a generated `tokens.css` (run `npm run tokens` after editing tokens.ts). One edit propagates everywhere.
 
 | Token | Hex | Use |
 |---|---|---|
-| `--color-primary` | `#b25500` | Primary CTAs, header background, branded accents |
+| `--color-primary` | `#15569e` | Primary CTAs, header background, branded accents (azure) |
 | `--color-on-primary` | `#ffffff` | Text on primary background |
-| `--color-primary-container` | `#ffe0c8` | Selected nav item, badge "branded" |
-| `--color-on-primary-container` | `#5a2a00` | Text on primary-container |
+| `--color-primary-container` | `#d6e3ff` | Selected nav item, badge "branded" |
+| `--color-on-primary-container` | `#001b3d` | Text on primary-container |
+| `--color-secondary` | `#00696e` | Secondary actions / accents (teal) |
+| `--color-on-secondary` | `#ffffff` | Text on secondary background |
+| `--color-secondary-container` | `#9cf0f3` | Secondary container fill |
+| `--color-on-secondary-container` | `#002022` | Text on secondary-container |
 | `--color-surface` | `#fffbf8` | App background |
 | `--color-on-surface` | `#1f1b16` | Default body text |
 | `--color-surface-variant` | `#f3ece5` | Card borders, secondary buttons, dividers |

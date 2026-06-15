@@ -1,18 +1,9 @@
 @import "tailwindcss";
+/* Brand palette is generated from packages/shared/src/design/tokens.ts.
+   Edit tokens.ts, then run `npm run tokens`. Do not hardcode colors here. */
+@import "../../../packages/shared/src/design/tokens.css";
 
 @theme {
-  --color-primary: #b25500;
-  --color-primary-container: #ffe0c8;
-  --color-on-primary: #ffffff;
-  --color-on-primary-container: #5a2a00;
-  --color-surface: #fffbf8;
-  --color-on-surface: #1f1b16;
-  --color-surface-variant: #f3ece5;
-  --color-on-surface-variant: #514440;
-  --color-outline: #847872;
-  --color-error: #ba1a1a;
-  --color-success: #1e7a3a;
-  --color-warning: #a67700;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -63,7 +54,7 @@ body { background: var(--color-surface); color: var(--color-on-surface); }
 }
 .input:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(178, 85, 0, 0.18);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 18%, transparent);
 }
 .input:disabled { background: var(--color-surface-variant); cursor: not-allowed; }
 select.input { background-color: white; }

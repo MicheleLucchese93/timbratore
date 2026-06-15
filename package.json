@@ -25,7 +25,8 @@
     "e2e:mobile:admin": "playwright test --project=mobile-setup --project=mobile",
     "e2e:mobile:user": "playwright test --project=mobile-user-setup --project=mobile-user",
     "e2e:ui": "playwright test --ui",
-    "e2e:report": "playwright show-report e2e/playwright-report"
+    "e2e:report": "playwright show-report e2e/playwright-report",
+    "tokens": "npm run -w packages/shared tokens"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",

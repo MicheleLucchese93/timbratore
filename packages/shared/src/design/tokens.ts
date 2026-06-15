@@ -1,11 +1,16 @@
-// Canonical design tokens — referenced by Specs/design.md.
-// Web mirrors these in apps/web/src/index.css :root block.
+// Canonical design tokens — the single source of truth for brand colors.
+// Mobile imports `color` directly. Web + website consume the generated
+// tokens.css — run `npm run tokens` after editing this file. See Specs/design.md.
 
 export const color = {
-  primary: '#b25500',
+  primary: '#15569e',
   onPrimary: '#ffffff',
-  primaryContainer: '#ffe0c8',
-  onPrimaryContainer: '#5a2a00',
+  primaryContainer: '#d6e3ff',
+  onPrimaryContainer: '#001b3d',
+  secondary: '#00696e',
+  onSecondary: '#ffffff',
+  secondaryContainer: '#9cf0f3',
+  onSecondaryContainer: '#002022',
   surface: '#fffbf8',
   onSurface: '#1f1b16',
   surfaceVariant: '#f3ece5',

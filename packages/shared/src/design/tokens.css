@@ -1,0 +1,24 @@
+/* AUTO-GENERATED from tokens.ts by `npm run tokens`. Do not edit by hand. */
+@theme {
+  --color-primary: #15569e;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #d6e3ff;
+  --color-on-primary-container: #001b3d;
+  --color-secondary: #00696e;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #9cf0f3;
+  --color-on-secondary-container: #002022;
+  --color-surface: #fffbf8;
+  --color-on-surface: #1f1b16;
+  --color-surface-variant: #f3ece5;
+  --color-on-surface-variant: #514440;
+  --color-outline: #847872;
+  --color-success: #1e7a3a;
+  --color-warning: #a67700;
+  --color-error: #ba1a1a;
+  --color-info: #0064a5;
+  --color-success-tint: #e8f3ec;
+  --color-warning-tint: #fff3d1;
+  --color-error-tint: #fde4e4;
+  --color-overlay: rgba(0,0,0,0.4);
+}

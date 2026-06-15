@@ -5,19 +5,18 @@
 @import "@fontsource/inter/700.css";
 @import "@fontsource/inter/800.css";
 
+/* Brand palette is generated from packages/shared/src/design/tokens.ts.
+   Edit tokens.ts, then run `npm run tokens`. Do not hardcode colors here. */
+@import "../../../../packages/shared/src/design/tokens.css";
+
+/* Website-local aliases: map this site's legacy class names onto the canonical
+   tokens so existing utilities keep working. Note `primary-container` here means
+   a *darker* primary (used for button/link hovers), which intentionally overrides
+   the canonical light container for this site. */
 @theme {
-  /* Matches the mobile app design tokens (packages/shared tokens.ts) */
-  --color-primary: #b25500;
-  --color-primary-container: #8a4200;
-  --color-primary-light: #ffe0c8;
-  --color-accent: #5a2a00;
-  --color-surface: #fffbf8;
-  --color-surface-dim: #f3ece5;
-  --color-on-surface: #1f1b16;
-  --color-on-surface-variant: #514440;
-  --color-success: #1e7a3a;
-  --color-success-light: #e8f3ec;
-  --color-danger: #ba1a1a;
+  --color-accent: var(--color-on-primary-container);
+  --color-danger: var(--color-error);
+  --color-primary-container: color-mix(in oklab, var(--color-primary) 70%, black);
 
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
 }

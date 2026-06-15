@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { color } from '@sonoqui/shared';
+
 const TEMPLATES_DIR = path.resolve(process.cwd(), 'public', 'templates');
 
 /**
@@ -23,8 +25,11 @@ export function renderTemplate(
     /\{\{\s*if\s+eq\s+\.language\s+"(\w+)"\s*\}\}([\s\S]*?)\{\{\s*else\s*\}\}([\s\S]*?)\{\{\s*end\s*\}\}/g,
     (_m, want, ifBlock, elseBlock) => (lang === want ? ifBlock : elseBlock)
   );
+  // Brand color comes from the shared design tokens so emails track the palette
+  // automatically; callers may still override it via `vars.brandColor`.
+  const merged: Record<string, string> = { brandColor: color.primary, ...vars };
   return resolved.replace(/\{\{\s*\.(\w+)\s*\}\}/g, (_m, key: string) => {
-    const v = vars[key];
+    const v = merged[key];
     return v ? escapeHtml(v) : '';
   });
 }
