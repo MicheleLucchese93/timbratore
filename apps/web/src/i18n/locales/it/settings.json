@@ -24,7 +24,8 @@
     "emailLeaveSubmissions": "Nuove richieste di ferie/permessi da approvare",
     "emailCorrectionDecisions": "Esiti delle mie correzioni timbratura",
     "emailCorrectionSubmissions": "Nuove correzioni timbratura da approvare",
-    "emailLeaveReminders": "Promemoria 24h prima di un'assenza"
+    "emailLeaveReminders": "Promemoria 24h prima di un'assenza",
+    "emailDocuments": "Nuovo documento disponibile (cedolini, CU, contratti, comunicazioni)"
   },
   "toggleOn": "Attiva — clicca per disattivare",
   "toggleOff": "Disattivata — clicca per attivare",

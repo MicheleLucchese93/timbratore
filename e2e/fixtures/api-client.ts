@@ -722,6 +722,121 @@ export async function assignShift(
   await apiPost(adminToken, '/api/v1/shifts/assignments', body);
 }
 
+/* ---------------- HR documents helpers ---------------- */
+
+export type DocumentCategory = 'cedolino' | 'cu' | 'contratto' | 'comunicazione' | 'altro';
+
+/** Mirrors the `documents` table row (packages/shared documents/index.ts). */
+export interface DocumentRecord {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  uploaded_by: string;
+  category: DocumentCategory;
+  title: string;
+  original_filename: string;
+  mime_type: string;
+  size_bytes: number;
+  r2_key: string;
+  retention_until: string;
+  created_at: string;
+  deleted_at: string | null;
+}
+
+/** Employee view: record + first-open timestamp (null until first download). */
+export interface DocumentListItem extends DocumentRecord {
+  viewed_at: string | null;
+}
+
+/** Admin view: adds view_count + target display name. */
+export interface DocumentAdminItem extends DocumentListItem {
+  view_count: number;
+  user_display_name?: string;
+}
+
+/**
+ * Smallest buffer the upload endpoint accepts: it only validates the leading
+ * `%PDF` magic bytes (and a <=15MB size cap), so a one-line PDF header is a
+ * valid in-memory fixture — no need to ship a real PDF file.
+ */
+export function minimalPdfBuffer(): Buffer {
+  return Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n', 'utf8');
+}
+
+/**
+ * Admin uploads one PDF for a target employee. The body is the raw binary;
+ * metadata travels in X-Doc-* headers (title/filename URI-encoded). Titles
+ * MUST stay 'e2e-'-prefixed so /api/v1/_internal/e2e/purge-fixtures sweeps them.
+ */
+export async function uploadDocument(
+  adminToken: string,
+  opts: {
+    userId: string;
+    category: DocumentCategory;
+    title: string;
+    filename: string;
+    pdfBuffer?: Buffer;
+  },
+): Promise<DocumentRecord> {
+  const buf = opts.pdfBuffer ?? minimalPdfBuffer();
+  const r = await fetch(`${API_BASE}/api/v1/documents`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${adminToken}`,
+      'Content-Type': 'application/pdf',
+      'X-Doc-User-Id': opts.userId,
+      'X-Doc-Category': opts.category,
+      'X-Doc-Title': encodeURIComponent(opts.title),
+      'X-Doc-Filename': encodeURIComponent(opts.filename),
+    },
+    // Uint8Array view keeps fetch's BodyInit type happy for a Node Buffer.
+    body: new Uint8Array(buf),
+  });
+  const text = await r.text();
+  let parsed: { ok?: boolean; data?: DocumentRecord; error?: { message?: string } } = {};
+  try {
+    parsed = JSON.parse(text) as typeof parsed;
+  } catch {
+    /* non-JSON */
+  }
+  if (!r.ok || parsed.ok === false || !parsed.data) {
+    throw new Error(`uploadDocument failed: ${r.status} ${parsed.error?.message ?? text.slice(0, 200)}`);
+  }
+  return parsed.data;
+}
+
+/** Admin document list, optionally filtered by target user. NEVER records a view. */
+export async function listDocumentsAdmin(
+  adminToken: string,
+  userId?: string,
+): Promise<DocumentAdminItem[]> {
+  const qs = userId ? `?user_id=${encodeURIComponent(userId)}` : '';
+  return apiGet<DocumentAdminItem[]>(adminToken, `/api/v1/documents${qs}`);
+}
+
+/** Employee's own documents (GET /documents/me). NEVER records a view. */
+export async function listMyDocuments(userToken: string): Promise<DocumentListItem[]> {
+  return apiGet<DocumentListItem[]>(userToken, '/api/v1/documents/me');
+}
+
+/**
+ * Fetch a presigned download URL. Side effect: when the caller is the OWNING
+ * employee, the backend records a view (ON CONFLICT DO NOTHING). Admin
+ * downloads MUST NOT record a view — that asymmetry is what the specs assert,
+ * so callers pass whichever handle's token they want to exercise.
+ */
+export async function downloadDocument(
+  token: string,
+  id: string,
+): Promise<{ url: string; expires_in: number }> {
+  return apiGet<{ url: string; expires_in: number }>(token, `/api/v1/documents/${id}/download`);
+}
+
+/** Admin soft-deletes a document (row deleted_at + R2 object removed). */
+export async function deleteDocument(adminToken: string, id: string): Promise<void> {
+  await apiDelete(adminToken, `/api/v1/documents/${id}`);
+}
+
 /* Approver-assignment helpers */
 
 export async function setLeaveApprovers(

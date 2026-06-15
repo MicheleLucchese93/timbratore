@@ -6,20 +6,24 @@ import { adminPool } from '../lib/admin-db.js';
 import { ok } from '../lib/api-response.js';
 import { ValidationError } from '../errors/index.js';
 
-// Keep in sync with migrations 021_push_notification_prefs.sql and
-// 030_leave_reminders_and_email_prefs.sql. Push keys default ON (opt-out),
-// email keys default OFF (opt-in).
+// Keep in sync with migrations 021_push_notification_prefs.sql,
+// 030_leave_reminders_and_email_prefs.sql and 041_documents.sql. Push keys
+// default ON (opt-out), email keys default OFF (opt-in) — EXCEPT email_documents
+// which defaults ON by product decision (a new HR document is important enough
+// to email unless the employee explicitly opts out).
 const NOTIF_PREF_DEFAULTS = {
   push_leave_decisions: true,
   push_correction_decisions: true,
   push_leave_submissions: true,
   push_correction_submissions: true,
   push_leave_reminders: true,
+  push_documents: true,
   email_leave_decisions: false,
   email_correction_decisions: false,
   email_leave_submissions: false,
   email_correction_submissions: false,
   email_leave_reminders: false,
+  email_documents: true,
 } as const;
 
 type NotifPrefKey = keyof typeof NOTIF_PREF_DEFAULTS;
@@ -141,11 +145,13 @@ const NotificationPrefsPatch = z
     push_leave_submissions: z.boolean().optional(),
     push_correction_submissions: z.boolean().optional(),
     push_leave_reminders: z.boolean().optional(),
+    push_documents: z.boolean().optional(),
     email_leave_decisions: z.boolean().optional(),
     email_correction_decisions: z.boolean().optional(),
     email_leave_submissions: z.boolean().optional(),
     email_correction_submissions: z.boolean().optional(),
     email_leave_reminders: z.boolean().optional(),
+    email_documents: z.boolean().optional(),
   })
   .strict();
 

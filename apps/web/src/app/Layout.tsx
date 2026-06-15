@@ -14,6 +14,7 @@ const adminNav: NavItem[] = [
   { to: '/shifts', key: 'shifts', icon: <IconClock /> },
   { to: '/leaves', key: 'leaves', icon: <IconCalendar /> },
   { to: '/exports', key: 'exports', icon: <IconDownload /> },
+  { to: '/documents', key: 'documents', icon: <IconFile /> },
   { to: '/users', key: 'users', icon: <IconUsers /> },
   { to: '/settings', key: 'settings', icon: <IconCog /> },
   { to: '/manual', key: 'manual', icon: <IconBook /> },
@@ -24,6 +25,7 @@ const userNav: NavItem[] = [
   { to: '/me/stamps', key: 'myStamps', icon: <IconStamp /> },
   { to: '/me/corrections', key: 'myCorrections', icon: <IconEdit /> },
   { to: '/me/leaves', key: 'leaves', icon: <IconCalendar /> },
+  { to: '/me/documents', key: 'myDocuments', icon: <IconFile /> },
   { to: '/manual', key: 'manual', icon: <IconBook /> },
 ];
 
@@ -399,6 +401,16 @@ function IconCalendar() {
       <line x1="16" y1="2" x2="16" y2="6" />
       <line x1="8" y1="2" x2="8" y2="6" />
       <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+function IconFile() {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+      <path d="M8 13h8" />
+      <path d="M8 17h8" />
     </svg>
   );
 }

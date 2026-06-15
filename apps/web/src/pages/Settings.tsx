@@ -55,6 +55,9 @@ const EMAIL_PREFS: Array<{ key: string; i18nKey: string }> = [
   { key: 'email_correction_decisions', i18nKey: 'emailCorrectionDecisions' },
   { key: 'email_correction_submissions', i18nKey: 'emailCorrectionSubmissions' },
   { key: 'email_leave_reminders', i18nKey: 'emailLeaveReminders' },
+  // New HR document available. Note: this key defaults ON server-side (the only
+  // email pref that does), so the toggle shows on for users who never touched it.
+  { key: 'email_documents', i18nKey: 'emailDocuments' },
 ];
 
 interface MeResponse {

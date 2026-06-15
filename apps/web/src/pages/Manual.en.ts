@@ -18,6 +18,7 @@ export const TOC_EN = `
       <a href="#web-admin-ferie" class="sub">Holiday &amp; Leave</a>
       <a href="#web-admin-residui" class="sub">Balances</a>
       <a href="#web-admin-esportazioni" class="sub">Exports</a>
+      <a href="#web-admin-documenti" class="sub">Documents</a>
       <a href="#web-admin-impostazioni" class="sub">Settings</a>
 
       <h3>Web · Employee</h3>
@@ -25,6 +26,7 @@ export const TOC_EN = `
       <a href="#web-user-dashboard" class="sub">My Dashboard</a>
       <a href="#web-user-stamps" class="sub">My stamps</a>
       <a href="#web-user-corr" class="sub">My requests</a>
+      <a href="#web-user-documenti" class="sub">My documents</a>
       <a href="#web-user-residui" class="sub">Balances</a>
 
       <h3>Mobile App · Employee</h3>
@@ -783,6 +785,50 @@ export const MAIN_EN = `
       </div>
     </section>
 
+    <section class="chapter" id="web-admin-documenti">
+      <h2><span class="chapter-num">15a</span>Documents <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
+      <p class="lead">Upload and manage employees' personal documents: payslips, CU, contracts, notices. Each document is a PDF tied to a single employee, who reads it from their <em>My documents</em> section (Web) or the <em>Documents</em> tab in the mobile app.</p>
+
+      <div class="feature">
+        <h3>The documents table</h3>
+        <p>The list shows every document uploaded for the company, with columns:</p>
+        <ul class="tidy">
+          <li><strong>Employee</strong> — the document's recipient.</li>
+          <li><strong>Category</strong> — Payslip, CU, Contract, Notice or Other.</li>
+          <li><strong>Title</strong> — the name given at upload time.</li>
+          <li><strong>Uploaded</strong> — upload date and time.</li>
+          <li><strong>Kept until</strong> — the date after which the document is deleted automatically (36 months from upload).</li>
+          <li><strong>Read receipt</strong> — <span class="pill pill-ok">Viewed</span> if the employee has opened it at least once, otherwise <span class="pill pill-warn">Not viewed</span>. <em>Admin opens never count as a view.</em></li>
+          <li><strong>Actions</strong> — download and delete.</li>
+        </ul>
+        <p>At the top you can <strong>filter by employee</strong> to see only their documents.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Bulk upload</h3>
+        <p>Press <strong>Upload documents</strong> and pick <strong>one or more PDFs</strong> (max 15MB each; PDFs only). For each file the system tries to <strong>match it to an employee automatically</strong> by looking in the filename for their <em>codice fiscale</em> or <em>matricola</em> (filled in under <strong>Users</strong>).</p>
+        <ol class="steps">
+          <li>Select the PDFs to upload.</li>
+          <li>Review the mapping table: for each file you see the proposed employee (with the matching criterion), the category and an editable title.</li>
+          <li>For <strong>unmatched</strong> files, pick the employee manually from the dropdown.</li>
+          <li>Set the <strong>category</strong> (defaults to <em>Payslip</em>) and, if you like, edit the <strong>title</strong>.</li>
+          <li>Press <strong>Upload</strong>: files are sent one by one and each shows its status (Ready, Uploading, Uploaded or Error).</li>
+        </ol>
+        <div class="callout callout-info">
+          When a document is uploaded the employee receives a <strong>notification</strong> (push and email, per their preferences; the email for documents is on by default).
+        </div>
+      </div>
+
+      <div class="feature">
+        <h3>Replace or delete</h3>
+        <p>There is no editing of an already-uploaded document: to fix one, <strong>delete</strong> the wrong file (trash icon, with confirmation) and <strong>re-upload</strong> the correct one. Deleting permanently removes the file and the employee can no longer see it.</p>
+      </div>
+
+      <div class="callout callout-info">
+        <strong>Retention (36 months):</strong> each document is kept for 36 months from its upload date, then deleted automatically by a daily job. The cut-off date is always visible in the <em>Kept until</em> column.
+      </div>
+    </section>
+
     <hr class="section-divider">
 
     <div class="platform-header">
@@ -899,6 +945,24 @@ export const MAIN_EN = `
           <li><strong>Details</strong> — provide the event type, time, branch (if you have more than one) and a reason (at least 5 characters), then <strong>Submit request</strong>.</li>
         </ol>
         <p>The request stays <span class="pill pill-warn">Pending</span> until an administrator approves or rejects it; you will receive a notification of the decision.</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="web-user-documenti">
+      <h2><span class="chapter-num">19a</span>My documents <span class="badge badge-user">user</span> <span class="badge badge-web">web</span></h2>
+      <p class="lead">The documents your company has uploaded for you: payslips, CU, contracts and notices. You only see your own.</p>
+
+      <div class="feature">
+        <h3>Viewing and downloading</h3>
+        <p>The table lists, for each document: <strong>Category</strong>, <strong>Title</strong>, <strong>Uploaded</strong>, <strong>Kept until</strong> and the <strong>read receipt</strong> status (<span class="pill pill-ok">Viewed</span> / <span class="pill pill-warn">Not viewed</span>).</p>
+        <p>Press <strong>Download</strong> to open the PDF in a new tab. The <strong>first time</strong> you open a document is recorded as <em>read</em>: from then on the badge turns <span class="pill pill-ok">Viewed</span> and the company knows you have seen it.</p>
+        <div class="callout callout-info">
+          You receive a <strong>notification</strong> (push and email) whenever the company uploads a new document for you. You can turn off the email from <strong>Settings → Email notifications</strong> and push from the mobile app (<em>Profile</em>).
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        In the <strong>mobile app</strong> the <strong>Documents</strong> section is protected: on open it asks to unlock with <strong>biometrics</strong> (Face ID / Touch ID / fingerprint) or, if unavailable, the device passcode — regardless of the global app lock. Documents are kept for 36 months, then removed automatically.
       </div>
     </section>
 

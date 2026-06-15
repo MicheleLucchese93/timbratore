@@ -8,6 +8,7 @@ import { autoClockout } from './jobs/auto-clockout.js';
 import { retentionEnforcement } from './jobs/retention-enforcement.js';
 import { leaveDailyAccrual } from './jobs/leave-daily-accrual.js';
 import { leaveReminder } from './jobs/leave-reminder.js';
+import { documentsRetention } from './jobs/documents-retention.js';
 
 const logger = createLogger('scheduler');
 
@@ -75,6 +76,15 @@ class SchedulerService {
       cron.schedule(
         '0 18 * * *',
         () => safeRun('leave_reminder', leaveReminder),
+        { timezone: 'Europe/Rome' }
+      )
+    );
+    // Daily at 03:15 Europe/Rome — hard-delete documents past their 36-month
+    // retention horizon (R2 object + DB row + cascaded view rows).
+    this.jobs.push(
+      cron.schedule(
+        '15 3 * * *',
+        () => safeRun('documents_retention', documentsRetention),
         { timezone: 'Europe/Rome' }
       )
     );

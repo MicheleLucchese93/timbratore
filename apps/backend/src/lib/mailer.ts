@@ -1,4 +1,5 @@
 import nodemailer, { type Transporter } from 'nodemailer';
+import type { DocumentCategory } from '@sonoqui/shared';
 import { env } from '../env.js';
 import { createLogger } from './logger.js';
 import { renderTemplate, escapeHtml, stripHeader } from './template-renderer.js';
@@ -463,4 +464,60 @@ export function buildBulkEventMail(p: BulkEventMailPayload): {
     text,
     html: inlineMail(language === 'it' ? 'Evento aziendale' : 'Company event', lines),
   };
+}
+
+/* ----- New-document email ----- */
+
+const DOCUMENT_CATEGORY_LABEL: Record<DocumentCategory, { it: string; en: string }> = {
+  cedolino: { it: 'Cedolino', en: 'Payslip' },
+  cu: { it: 'Certificazione Unica (CU)', en: 'Single Certification (CU)' },
+  contratto: { it: 'Contratto', en: 'Contract' },
+  comunicazione: { it: 'Comunicazione', en: 'Communication' },
+  altro: { it: 'Altro', en: 'Other' },
+};
+
+export function documentCategoryLabel(
+  category: DocumentCategory,
+  language: 'it' | 'en'
+): string {
+  return DOCUMENT_CATEGORY_LABEL[category]?.[language] ?? category;
+}
+
+export interface DocumentUploadedMailPayload {
+  title: string;
+  category: DocumentCategory;
+  language?: 'it' | 'en';
+}
+
+function documentsActionUrl(): string {
+  return env.WEB_PUBLIC_URL.replace(/\/$/, '') + '/documents';
+}
+
+/** Notice sent to an employee when an admin uploads a new document for them. */
+export function buildDocumentUploadedMail(p: DocumentUploadedMailPayload): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const language = p.language ?? 'it';
+  const categoryLabel = documentCategoryLabel(p.category, language);
+  const subject =
+    language === 'it'
+      ? `[sonoQui] Nuovo documento: ${p.title}`
+      : `[sonoQui] New document: ${p.title}`;
+  const text =
+    language === 'it'
+      ? `È disponibile un nuovo documento per te.\n` +
+        `Titolo: ${p.title}\nCategoria: ${categoryLabel}\n` +
+        `\nAccedi a sonoQui per visualizzarlo.`
+      : `A new document is available for you.\n` +
+        `Title: ${p.title}\nCategory: ${categoryLabel}\n` +
+        `\nOpen sonoQui to view it.`;
+  const html = renderTemplate('document-uploaded.html', {
+    language,
+    Title: p.title,
+    CategoryLabel: categoryLabel,
+    ActionUrl: documentsActionUrl(),
+  });
+  return { subject, text, html };
 }

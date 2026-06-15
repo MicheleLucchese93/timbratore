@@ -37,6 +37,8 @@ export interface Me {
       push_leave_submissions: boolean;
       push_correction_submissions: boolean;
       push_leave_reminders: boolean;
+      push_documents?: boolean;
+      email_documents?: boolean;
     };
   };
 }

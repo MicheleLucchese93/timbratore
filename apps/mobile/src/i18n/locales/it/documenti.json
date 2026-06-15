@@ -1,0 +1,29 @@
+{
+  "title": "Documenti",
+  "subtitle": "I tuoi documenti personali",
+  "empty": {
+    "title": "Nessun documento",
+    "sub": "Quando l'azienda caricherà un documento per te, lo troverai qui."
+  },
+  "category": {
+    "cedolino": "Cedolino",
+    "cu": "CU",
+    "contratto": "Contratto",
+    "comunicazione": "Comunicazione",
+    "altro": "Altro"
+  },
+  "uploadedAt": "Caricato il {{date}}",
+  "retentionUntil": "Disponibile fino al {{date}}",
+  "viewed": "Letto",
+  "notViewed": "Da leggere",
+  "openError": "Impossibile aprire il documento. Riprova.",
+  "lock": {
+    "subtitle": "Per proteggere i tuoi documenti, conferma la tua identità.",
+    "unlockWith": "Sblocca con {{label}}",
+    "unlock": "Sblocca",
+    "failed": "Verifica non riuscita. Riprova.",
+    "checking": "Verifica in corso…",
+    "unavailableTitle": "Sblocco non disponibile",
+    "unavailable": "Per consultare i documenti devi configurare un metodo di sblocco (biometria o codice) nelle impostazioni del dispositivo."
+  }
+}

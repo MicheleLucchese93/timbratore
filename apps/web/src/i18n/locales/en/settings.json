@@ -24,7 +24,8 @@
     "emailLeaveSubmissions": "New holiday/leave requests to approve",
     "emailCorrectionDecisions": "Outcomes of my stamp corrections",
     "emailCorrectionSubmissions": "New stamp corrections to approve",
-    "emailLeaveReminders": "Reminder 24h before an absence"
+    "emailLeaveReminders": "Reminder 24h before an absence",
+    "emailDocuments": "New document available (payslips, CU, contracts, notices)"
   },
   "toggleOn": "On — click to turn off",
   "toggleOff": "Off — click to turn on",

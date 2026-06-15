@@ -25,6 +25,7 @@ import { placesRouter } from './routes/places.js';
 import { shiftsRouter } from './routes/shifts.js';
 import { leavesRouter } from './routes/leaves.js';
 import { leaveQuotasRouter } from './routes/leave-quotas.js';
+import { documentsRouter } from './routes/documents.js';
 import { helpdeskRouter } from './routes/helpdesk.js';
 import { internalE2eRouter } from './routes/internal-e2e.js';
 import { internalProvisionRouter } from './routes/internal-provision.js';
@@ -115,6 +116,7 @@ export function createApp(): Express {
   app.use('/api/v1/shifts', shiftsRouter);
   app.use('/api/v1/leaves', leavesRouter);
   app.use('/api/v1/leave-quotas', leaveQuotasRouter);
+  app.use('/api/v1/documents', documentsRouter);
   app.use('/api/v1/helpdesk', helpdeskRouter);
   // The internal-e2e router runs destructive cross-table deletes. It mounts
   // ONLY when both the bearer secret AND the tenant pin are configured — so a

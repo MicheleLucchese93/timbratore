@@ -49,19 +49,26 @@ function getAvatarColor(name: string): string {
   return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
 }
 
-type PushPrefKey =
+// All notification_preferences keys we toggle from this screen. Push keys are
+// gated on push being enabled; email keys are not. `email_documents` is an
+// email *opt-out* (defaults ON), unlike the other email prefs.
+type NotifPrefKey =
   | 'push_leave_decisions'
   | 'push_correction_decisions'
   | 'push_leave_submissions'
   | 'push_correction_submissions'
-  | 'push_leave_reminders';
+  | 'push_leave_reminders'
+  | 'push_documents'
+  | 'email_documents';
 
-const PUSH_PREF_DEFAULTS: Record<PushPrefKey, boolean> = {
+const NOTIF_PREF_DEFAULTS: Record<NotifPrefKey, boolean> = {
   push_leave_decisions: true,
   push_correction_decisions: true,
   push_leave_submissions: true,
   push_correction_submissions: true,
   push_leave_reminders: true,
+  push_documents: true,
+  email_documents: true,
 };
 
 const SITE_BASE = 'https://sonoqui.xdevapp.it/it';
@@ -115,21 +122,21 @@ export function ProfiloScreen() {
   }
 
   const initialPushPrefs = {
-    ...PUSH_PREF_DEFAULTS,
+    ...NOTIF_PREF_DEFAULTS,
     ...(me?.preferences?.notification_preferences ?? {}),
   };
   const [pushPrefs, setPushPrefs] =
-    useState<Record<PushPrefKey, boolean>>(initialPushPrefs);
-  const [savingPushKey, setSavingPushKey] = useState<PushPrefKey | null>(null);
+    useState<Record<NotifPrefKey, boolean>>(initialPushPrefs);
+  const [savingPushKey, setSavingPushKey] = useState<NotifPrefKey | null>(null);
 
   useEffect(() => {
     setPushPrefs({
-      ...PUSH_PREF_DEFAULTS,
+      ...NOTIF_PREF_DEFAULTS,
       ...(me?.preferences?.notification_preferences ?? {}),
     });
   }, [me?.preferences?.notification_preferences]);
 
-  async function togglePushPref(key: PushPrefKey, next: boolean) {
+  async function togglePushPref(key: NotifPrefKey, next: boolean) {
     const prev = pushPrefs[key];
     setPushPrefs((p) => ({ ...p, [key]: next }));
     setSavingPushKey(key);
@@ -332,6 +339,23 @@ export function ProfiloScreen() {
             value={pushPrefs.push_leave_reminders}
             disabled={!pushEnabled || savingPushKey !== null}
             onChange={(v) => togglePushPref('push_leave_reminders', v)}
+          />
+          <View style={styles.divider} />
+          <PushToggleRow
+            label={tr('notifications.documentsPush')}
+            hint={tr('notifications.documentsPushHint')}
+            value={pushPrefs.push_documents}
+            disabled={!pushEnabled || savingPushKey !== null}
+            onChange={(v) => togglePushPref('push_documents', v)}
+          />
+          <View style={styles.divider} />
+          {/* Email toggle is independent of push permission. */}
+          <PushToggleRow
+            label={tr('notifications.documentsEmail')}
+            hint={tr('notifications.documentsEmailHint')}
+            value={pushPrefs.email_documents}
+            disabled={savingPushKey !== null}
+            onChange={(v) => togglePushPref('email_documents', v)}
           />
           {isAdmin && (
             <>

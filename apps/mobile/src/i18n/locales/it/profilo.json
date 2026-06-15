@@ -41,7 +41,11 @@
     "leaveSubmissions": "Nuove richieste ferie e permessi",
     "leaveSubmissionsHint": "Richieste da approvare e annullamenti",
     "correctionSubmissions": "Nuove correzioni da approvare",
-    "correctionSubmissionsHint": "Correzioni inviate dai dipendenti"
+    "correctionSubmissionsHint": "Correzioni inviate dai dipendenti",
+    "documentsPush": "Nuovi documenti (push)",
+    "documentsPushHint": "Avviso quando l'azienda carica un documento per te",
+    "documentsEmail": "Nuovi documenti (email)",
+    "documentsEmailHint": "Ricevi un'email quando l'azienda carica un documento per te"
   },
   "support": {
     "contact": "Contatta il supporto"

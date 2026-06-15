@@ -1,0 +1,69 @@
+{
+  "heading": "Documenti",
+  "myHeading": "I miei documenti",
+  "myIntro": "Qui trovi i documenti che la tua azienda ha caricato per te (cedolini, CU, contratti, comunicazioni). Aprili per scaricarli: la prima apertura viene registrata come presa visione.",
+  "errorGeneric": "Si è verificato un errore. Riprova.",
+  "filterByEmployee": "Dipendente",
+  "filterAll": "Tutti i dipendenti",
+  "deleted": "Documento eliminato.",
+  "viewed": "Visto",
+  "notViewed": "Non visto",
+  "col": {
+    "employee": "Dipendente",
+    "category": "Categoria",
+    "title": "Titolo",
+    "uploaded": "Caricato il",
+    "retentionUntil": "Conservato fino al",
+    "viewed": "Presa visione",
+    "actions": "Azioni"
+  },
+  "category": {
+    "cedolino": "Cedolino",
+    "cu": "CU",
+    "contratto": "Contratto",
+    "comunicazione": "Comunicazione",
+    "altro": "Altro"
+  },
+  "actions": {
+    "download": "Scarica",
+    "delete": "Elimina"
+  },
+  "toolbar": {
+    "upload": "Carica documenti"
+  },
+  "confirmDelete": {
+    "title": "Elimina documento",
+    "messagePre": "Stai per eliminare definitivamente",
+    "messagePost": "Il file verrà rimosso e il dipendente non potrà più consultarlo. Continuare?"
+  },
+  "upload": {
+    "title": "Carica documenti (PDF)",
+    "subtitle": "Trascina o seleziona più PDF (max 15MB ciascuno). Proviamo ad abbinare ogni file al dipendente in base al codice fiscale o alla matricola contenuti nel nome del file. Controlla l'abbinamento e la categoria, poi conferma.",
+    "pickFiles": "Seleziona PDF…",
+    "fileCount": "{{count}} file selezionati",
+    "unmatchedHint": "Alcuni file non sono stati abbinati automaticamente: scegli il dipendente nel menù prima di caricare.",
+    "colFile": "File",
+    "colEmployee": "Dipendente",
+    "colCategory": "Categoria",
+    "colTitle": "Titolo",
+    "colStatus": "Stato",
+    "pickEmployee": "— scegli dipendente —",
+    "matchedBy": {
+      "codice_fiscale": "abbinato per codice fiscale",
+      "matricola": "abbinato per matricola"
+    },
+    "confirm": "Carica {{count}} documenti",
+    "uploading": "Caricamento in corso…",
+    "done": "{{count}} documenti caricati.",
+    "partial": "Caricati {{ok}} di {{total}}. Controlla le righe in errore.",
+    "allFailed": "Caricamento non riuscito. Controlla le righe in errore.",
+    "notPdf": "Non è un PDF",
+    "tooBig": "Supera i 15MB",
+    "failed": "Caricamento non riuscito",
+    "statusReady": "Pronto",
+    "statusUnmatched": "Da abbinare",
+    "statusUploading": "Caricamento…",
+    "statusDone": "Caricato",
+    "statusError": "Errore"
+  }
+}

@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import ExcelJS from 'exceljs';
+import { putObject, getObject, deleteObject } from '../lib/storage.js';
 import { effectiveCentroPagheMap, centroPagheKeyForLeave } from '@sonoqui/shared';
 import { env } from '../env.js';
 import {
@@ -1523,8 +1524,7 @@ async function persist(key: string, body: Buffer): Promise<void> {
     await writeFile(full, body);
     return;
   }
-  // r2 driver wired in TASK-EXP-02 production path
-  throw new Error('R2 driver not implemented in this scaffold');
+  await putObject(key, body, 'text/plain; charset=ISO-8859-1');
 }
 
 export async function readExportFile(storageKey: string): Promise<Buffer> {
@@ -1532,7 +1532,7 @@ export async function readExportFile(storageKey: string): Promise<Buffer> {
     const fs = await import('node:fs/promises');
     return await fs.readFile(join(env.STORAGE_DISK_PATH, storageKey));
   }
-  throw new Error('R2 driver not implemented in this scaffold');
+  return await getObject(storageKey);
 }
 
 export async function deleteExportFile(storageKey: string): Promise<void> {
@@ -1541,5 +1541,5 @@ export async function deleteExportFile(storageKey: string): Promise<void> {
     await fs.rm(join(env.STORAGE_DISK_PATH, storageKey), { force: true });
     return;
   }
-  throw new Error('R2 driver not implemented in this scaffold');
+  await deleteObject(storageKey);
 }

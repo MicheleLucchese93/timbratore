@@ -1,0 +1,69 @@
+{
+  "heading": "Documents",
+  "myHeading": "My documents",
+  "myIntro": "Here you find the documents your company has uploaded for you (payslips, CU, contracts, notices). Open one to download it: the first time you open it is recorded as read.",
+  "errorGeneric": "Something went wrong. Please try again.",
+  "filterByEmployee": "Employee",
+  "filterAll": "All employees",
+  "deleted": "Document deleted.",
+  "viewed": "Viewed",
+  "notViewed": "Not viewed",
+  "col": {
+    "employee": "Employee",
+    "category": "Category",
+    "title": "Title",
+    "uploaded": "Uploaded",
+    "retentionUntil": "Kept until",
+    "viewed": "Read receipt",
+    "actions": "Actions"
+  },
+  "category": {
+    "cedolino": "Payslip",
+    "cu": "CU",
+    "contratto": "Contract",
+    "comunicazione": "Notice",
+    "altro": "Other"
+  },
+  "actions": {
+    "download": "Download",
+    "delete": "Delete"
+  },
+  "toolbar": {
+    "upload": "Upload documents"
+  },
+  "confirmDelete": {
+    "title": "Delete document",
+    "messagePre": "You are about to permanently delete",
+    "messagePost": "The file will be removed and the employee will no longer be able to see it. Continue?"
+  },
+  "upload": {
+    "title": "Upload documents (PDF)",
+    "subtitle": "Drop or pick multiple PDFs (max 15MB each). We try to match each file to an employee by the codice fiscale or matricola found in the filename. Review the match and category, then confirm.",
+    "pickFiles": "Pick PDFs…",
+    "fileCount": "{{count}} files selected",
+    "unmatchedHint": "Some files were not matched automatically: choose the employee from the dropdown before uploading.",
+    "colFile": "File",
+    "colEmployee": "Employee",
+    "colCategory": "Category",
+    "colTitle": "Title",
+    "colStatus": "Status",
+    "pickEmployee": "— pick employee —",
+    "matchedBy": {
+      "codice_fiscale": "matched by codice fiscale",
+      "matricola": "matched by matricola"
+    },
+    "confirm": "Upload {{count}} documents",
+    "uploading": "Uploading…",
+    "done": "{{count}} documents uploaded.",
+    "partial": "Uploaded {{ok}} of {{total}}. Check the failed rows.",
+    "allFailed": "Upload failed. Check the failed rows.",
+    "notPdf": "Not a PDF",
+    "tooBig": "Over 15MB",
+    "failed": "Upload failed",
+    "statusReady": "Ready",
+    "statusUnmatched": "Needs match",
+    "statusUploading": "Uploading…",
+    "statusDone": "Uploaded",
+    "statusError": "Error"
+  }
+}

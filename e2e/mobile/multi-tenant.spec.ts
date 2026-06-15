@@ -24,7 +24,7 @@ test.describe('mobile — tenant chooser (multi-company)', () => {
     },
   };
 
-  function meStub(tenantId) {
+  function meStub(tenantId: string) {
     return {
       ok: true,
       data: {

@@ -10,10 +10,12 @@ import {
   buildCorrectionDecidedMail,
   buildReminderMail,
   buildBulkEventMail,
+  buildDocumentUploadedMail,
   sendMail,
   type LeaveMailPayload,
   type CorrectionMailPayload,
 } from './mailer.js';
+import type { DocumentCategory } from '@sonoqui/shared';
 
 const logger = createLogger('notifications');
 
@@ -24,7 +26,8 @@ type PushPrefKey =
   | 'push_correction_decisions'
   | 'push_leave_submissions'
   | 'push_correction_submissions'
-  | 'push_leave_reminders';
+  | 'push_leave_reminders'
+  | 'push_documents';
 
 // Per-kind email opt-in keys (migration 030). Missing key falls back to the
 // legacy single master switch email_notifications_enabled.
@@ -33,7 +36,8 @@ type EmailPrefKey =
   | 'email_correction_decisions'
   | 'email_leave_submissions'
   | 'email_correction_submissions'
-  | 'email_leave_reminders';
+  | 'email_leave_reminders'
+  | 'email_documents';
 
 interface RecipientRow {
   user_id: string;
@@ -394,6 +398,48 @@ export async function notifyBulkEvent(
   }
 }
 
+/* ----- Document notifications ----- */
+
+interface DocumentContext {
+  documentId: string;
+  /** Target employee the document was uploaded for. */
+  userId: string;
+  category: DocumentCategory;
+  title: string;
+}
+
+/**
+ * Notice to a single employee that an admin uploaded a new HR document for
+ * them. Push + email BOTH default ON (opt-out) — email diverges from the usual
+ * opt-in default by product decision. adminPool-backed (via loadRecipients), so
+ * it runs fine fire-and-forget after the request transaction commits. The
+ * `client` arg is kept for signature parity with the other notify* helpers.
+ */
+export async function notifyDocumentUploaded(
+  client: PoolClient,
+  ctx: DocumentContext
+): Promise<void> {
+  const [recipient] = await loadRecipients([ctx.userId]);
+  if (!recipient) return;
+  const lang = asLang(recipient.language);
+  const mail = buildDocumentUploadedMail({
+    title: ctx.title,
+    category: ctx.category,
+    language: lang,
+  });
+  await deliver(
+    recipient,
+    {
+      title: PUSH.documents.title[lang],
+      body: ctx.title,
+      data: { kind: 'document', document_id: ctx.documentId },
+      prefKey: 'push_documents',
+    },
+    { ...mail, prefKey: 'email_documents' }
+  );
+  void client;
+}
+
 /* ----- Correction-request notifications ----- */
 
 interface CorrectionContext {
@@ -538,6 +584,9 @@ const PUSH = {
   },
   bulkEvent: {
     title: { it: 'Evento aziendale', en: 'Company event' },
+  },
+  documents: {
+    title: { it: 'Nuovo documento disponibile', en: 'New document available' },
   },
   correctionSubmitted: {
     title: { it: 'Nuova correzione', en: 'New correction' },

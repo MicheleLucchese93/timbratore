@@ -11,6 +11,7 @@ import itStorico from './locales/it/storico.json';
 import itCorrezioni from './locales/it/correzioni.json';
 import itRichieste from './locales/it/richieste.json';
 import itProfilo from './locales/it/profilo.json';
+import itDocumenti from './locales/it/documenti.json';
 import itChooseTenant from './locales/it/chooseTenant.json';
 import itComponents from './locales/it/components.json';
 
@@ -24,6 +25,7 @@ import enStorico from './locales/en/storico.json';
 import enCorrezioni from './locales/en/correzioni.json';
 import enRichieste from './locales/en/richieste.json';
 import enProfilo from './locales/en/profilo.json';
+import enDocumenti from './locales/en/documenti.json';
 import enChooseTenant from './locales/en/chooseTenant.json';
 import enComponents from './locales/en/components.json';
 
@@ -39,6 +41,7 @@ export const resources = {
     correzioni: itCorrezioni,
     richieste: itRichieste,
     profilo: itProfilo,
+    documenti: itDocumenti,
     chooseTenant: itChooseTenant,
     components: itComponents,
   },
@@ -53,6 +56,7 @@ export const resources = {
     correzioni: enCorrezioni,
     richieste: enRichieste,
     profilo: enProfilo,
+    documenti: enDocumenti,
     chooseTenant: enChooseTenant,
     components: enComponents,
   },

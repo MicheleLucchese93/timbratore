@@ -41,7 +41,11 @@
     "leaveSubmissions": "New holiday & leave requests",
     "leaveSubmissionsHint": "Requests to approve and cancellations",
     "correctionSubmissions": "New corrections to approve",
-    "correctionSubmissionsHint": "Corrections submitted by employees"
+    "correctionSubmissionsHint": "Corrections submitted by employees",
+    "documentsPush": "New documents (push)",
+    "documentsPushHint": "Alert when your company uploads a document for you",
+    "documentsEmail": "New documents (email)",
+    "documentsEmailHint": "Get an email when your company uploads a document for you"
   },
   "support": {
     "contact": "Contact support"

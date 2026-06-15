@@ -7,6 +7,7 @@ import { ok } from '../lib/api-response.js';
 import { createLogger } from '../lib/logger.js';
 import { asyncHandler } from '../lib/route-helpers.js';
 import { createUserWithPassword } from '../lib/gotrue-admin.js';
+import { storageDelete } from '../lib/storage.js';
 
 const logger = createLogger('internal-e2e');
 
@@ -198,7 +199,32 @@ internalE2eRouter.post(
             )`,
         [TEST_TENANT_ID]
       );
+      // Documents + their views (FK cascade). Scoped to the pinned test tenant.
+      // We delete fixture rows whose title starts with 'e2e-' so the R2 object
+      // store doesn't accumulate orphaned PDFs across runs. Capture the r2_keys
+      // BEFORE deleting the rows; the actual object deletes run after COMMIT (R2
+      // is not transactional).
+      const dq = await client.query(
+        `DELETE FROM documents
+          WHERE tenant_id = $1 AND title LIKE 'e2e-%'
+          RETURNING r2_key`,
+        [TEST_TENANT_ID]
+      );
+      const docKeys: string[] = dq.rows.map((row) => row.r2_key).filter(Boolean);
+
       await client.query('COMMIT');
+
+      // Best-effort R2 object cleanup for the purged fixture documents. A
+      // failure here must not fail the purge (the DB rows are already gone).
+      let docObjectsDeleted = 0;
+      for (const key of docKeys) {
+        try {
+          await storageDelete(key);
+          docObjectsDeleted += 1;
+        } catch (err) {
+          logger.error({ err, r2_key: key }, 'e2e document object delete failed');
+        }
+      }
       const totalLeave = (lr.rowCount ?? 0) + (lrm.rowCount ?? 0);
       const totalCorr = (cr.rowCount ?? 0) + (crm.rowCount ?? 0);
       logger.info(
@@ -220,6 +246,8 @@ internalE2eRouter.post(
           leave_requests_marker_sweep: lrm.rowCount,
           correction_requests_marker_sweep: crm.rowCount,
           anomaly_justifications_marker_sweep: ajm.rowCount,
+          documents: dq.rowCount,
+          document_objects_deleted: docObjectsDeleted,
         },
         'e2e fixtures purged'
       );
@@ -238,6 +266,8 @@ internalE2eRouter.post(
         memberships_deleted: m.rowCount,
         auth_users_deleted: a.rowCount,
         gotrue_users_deleted: g.rowCount,
+        documents_deleted: dq.rowCount,
+        document_objects_deleted: docObjectsDeleted,
       });
     } catch (err) {
       await client.query('ROLLBACK');

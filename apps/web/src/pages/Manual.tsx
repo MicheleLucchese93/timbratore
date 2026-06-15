@@ -24,6 +24,7 @@ const TOC_IT = `
       <a href="#web-admin-ferie" class="sub">Ferie &amp; Permessi</a>
       <a href="#web-admin-residui" class="sub">Residui</a>
       <a href="#web-admin-esportazioni" class="sub">Esportazioni</a>
+      <a href="#web-admin-documenti" class="sub">Documenti</a>
       <a href="#web-admin-impostazioni" class="sub">Impostazioni</a>
 
       <h3>Web · Dipendente</h3>
@@ -31,6 +32,7 @@ const TOC_IT = `
       <a href="#web-user-dashboard" class="sub">La mia Dashboard</a>
       <a href="#web-user-stamps" class="sub">Le mie timbrature</a>
       <a href="#web-user-corr" class="sub">Le mie richieste</a>
+      <a href="#web-user-documenti" class="sub">I miei documenti</a>
       <a href="#web-user-residui" class="sub">Residui</a>
 
       <h3>App Mobile · Dipendente</h3>
@@ -795,6 +797,50 @@ const MAIN_IT = `
       </div>
     </section>
 
+    <section class="chapter" id="web-admin-documenti">
+      <h2><span class="chapter-num">15a</span>Documenti <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
+      <p class="lead">Carica e gestisci i documenti personali dei dipendenti: cedolini, CU, contratti, comunicazioni. Ogni documento è un PDF associato a un singolo dipendente, che lo consulta dalla sua sezione <em>I miei documenti</em> (Web) o dal tab <em>Documenti</em> dell'app mobile.</p>
+
+      <div class="feature">
+        <h3>La tabella documenti</h3>
+        <p>L'elenco mostra tutti i documenti caricati per l'azienda, con le colonne:</p>
+        <ul class="tidy">
+          <li><strong>Dipendente</strong> — destinatario del documento.</li>
+          <li><strong>Categoria</strong> — Cedolino, CU, Contratto, Comunicazione o Altro.</li>
+          <li><strong>Titolo</strong> — il nome assegnato in fase di caricamento.</li>
+          <li><strong>Caricato il</strong> — data e ora di caricamento.</li>
+          <li><strong>Conservato fino al</strong> — la data oltre la quale il documento viene eliminato automaticamente (36 mesi dal caricamento).</li>
+          <li><strong>Presa visione</strong> — <span class="pill pill-ok">Visto</span> se il dipendente l'ha aperto almeno una volta, altrimenti <span class="pill pill-warn">Non visto</span>. <em>Le aperture dell'amministratore non contano mai come presa visione.</em></li>
+          <li><strong>Azioni</strong> — scarica ed elimina.</li>
+        </ul>
+        <p>In alto puoi <strong>filtrare per dipendente</strong> per vedere solo i suoi documenti.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Caricamento in massa</h3>
+        <p>Premi <strong>Carica documenti</strong> e seleziona <strong>uno o più PDF</strong> (max 15MB ciascuno; sono accettati solo PDF). Per ogni file il sistema prova ad <strong>abbinarlo automaticamente al dipendente</strong> cercando nel nome del file il suo <em>codice fiscale</em> o la sua <em>matricola</em> (compilati in <strong>Utenti</strong>).</p>
+        <ol class="steps">
+          <li>Seleziona i PDF da caricare.</li>
+          <li>Controlla la tabella di abbinamento: per ogni file vedi il dipendente proposto (con indicazione del criterio di abbinamento), la categoria e il titolo modificabili.</li>
+          <li>Per i file <strong>non abbinati</strong> scegli manualmente il dipendente dal menù a tendina.</li>
+          <li>Imposta la <strong>categoria</strong> (predefinita <em>Cedolino</em>) e, se vuoi, modifica il <strong>titolo</strong>.</li>
+          <li>Premi <strong>Carica</strong>: i file vengono inviati uno per uno e per ciascuno vedi lo stato (Pronto, Caricamento, Caricato o Errore).</li>
+        </ol>
+        <div class="callout callout-info">
+          Quando un documento viene caricato il dipendente riceve una <strong>notifica</strong> (push ed email, secondo le sue preferenze; l'email per i documenti è attiva di default).
+        </div>
+      </div>
+
+      <div class="feature">
+        <h3>Sostituire o eliminare</h3>
+        <p>Non esiste la modifica di un documento già caricato: per correggerlo, <strong>elimina</strong> quello errato (icona cestino, con conferma) e <strong>ricarica</strong> il file corretto. L'eliminazione rimuove definitivamente il file e il dipendente non potrà più consultarlo.</p>
+      </div>
+
+      <div class="callout callout-info">
+        <strong>Conservazione (36 mesi):</strong> ogni documento viene conservato per 36 mesi dalla data di caricamento, poi viene eliminato automaticamente da una procedura giornaliera. La data limite è sempre visibile nella colonna <em>Conservato fino al</em>.
+      </div>
+    </section>
+
     <hr class="section-divider">
 
     <div class="platform-header">
@@ -911,6 +957,24 @@ const MAIN_IT = `
           <li><strong>Dettagli</strong> — indica tipo evento, ora, sede (se ne hai più di una) e una motivazione (almeno 5 caratteri), poi <strong>Invia richiesta</strong>.</li>
         </ol>
         <p>La richiesta resta <span class="pill pill-warn">In attesa</span> finché un amministratore non la approva o rifiuta; riceverai una notifica della decisione.</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="web-user-documenti">
+      <h2><span class="chapter-num">19a</span>I miei documenti <span class="badge badge-user">user</span> <span class="badge badge-web">web</span></h2>
+      <p class="lead">I documenti che l'azienda ha caricato per te: cedolini, CU, contratti e comunicazioni. Vedi solo i tuoi.</p>
+
+      <div class="feature">
+        <h3>Consultare e scaricare</h3>
+        <p>La tabella elenca, per ogni documento: <strong>Categoria</strong>, <strong>Titolo</strong>, <strong>Caricato il</strong>, <strong>Conservato fino al</strong> e lo stato di <strong>presa visione</strong> (<span class="pill pill-ok">Visto</span> / <span class="pill pill-warn">Non visto</span>).</p>
+        <p>Premi <strong>Scarica</strong> per aprire il PDF in una nuova scheda. La <strong>prima apertura</strong> di un documento viene registrata come <em>presa visione</em>: da quel momento il badge diventa <span class="pill pill-ok">Visto</span> e l'azienda sa che l'hai consultato.</p>
+        <div class="callout callout-info">
+          Riceverai una <strong>notifica</strong> (push ed email) ogni volta che l'azienda carica un nuovo documento per te. Puoi disattivare l'email da <strong>Impostazioni → Notifiche email</strong> e la push dall'app mobile (<em>Profilo</em>).
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        Sull'<strong>app mobile</strong> la sezione <strong>Documenti</strong> è protetta: all'apertura viene richiesto lo sblocco con <strong>biometria</strong> (Face ID / Touch ID / impronta) o, in mancanza, il codice del dispositivo — indipendentemente dal blocco app generale. I documenti restano conservati 36 mesi, poi vengono rimossi automaticamente.
       </div>
     </section>
 

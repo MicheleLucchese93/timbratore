@@ -1,0 +1,29 @@
+{
+  "title": "Documents",
+  "subtitle": "Your personal documents",
+  "empty": {
+    "title": "No documents",
+    "sub": "When your company uploads a document for you, you'll find it here."
+  },
+  "category": {
+    "cedolino": "Payslip",
+    "cu": "CU",
+    "contratto": "Contract",
+    "comunicazione": "Notice",
+    "altro": "Other"
+  },
+  "uploadedAt": "Uploaded on {{date}}",
+  "retentionUntil": "Available until {{date}}",
+  "viewed": "Read",
+  "notViewed": "Unread",
+  "openError": "Could not open the document. Please try again.",
+  "lock": {
+    "subtitle": "To protect your documents, confirm your identity.",
+    "unlockWith": "Unlock with {{label}}",
+    "unlock": "Unlock",
+    "failed": "Verification failed. Try again.",
+    "checking": "Checking…",
+    "unavailableTitle": "Unlock unavailable",
+    "unavailable": "To view your documents you must set up an unlock method (biometrics or passcode) in your device settings."
+  }
+}
