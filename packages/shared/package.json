@@ -6,6 +6,7 @@
   "main": "./src/index.ts",
   "scripts": {
     "build": "echo 'no build (consumed as source)'",
-    "test": "echo 'no tests'"
+    "test": "echo 'no tests'",
+    "tokens": "node scripts/gen-tokens-css.mjs"
   }
 }

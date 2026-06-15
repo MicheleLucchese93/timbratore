@@ -47,7 +47,7 @@ function ClockCard() {
             y1={y1}
             x2={x2}
             y2={y2}
-            stroke="#b25500"
+            stroke="var(--color-primary)"
             strokeOpacity={i % 3 === 0 ? 0.9 : 0.35}
             strokeWidth={i % 3 === 0 ? 2.5 : 1.5}
             strokeLinecap="round"
@@ -55,12 +55,12 @@ function ClockCard() {
         );
       })}
       <g className="hero-anim__clock-hour">
-        <line x1="60" y1="60" x2="60" y2="28" stroke="#5a2a00" strokeWidth="3.5" strokeLinecap="round" />
+        <line x1="60" y1="60" x2="60" y2="28" stroke="var(--color-on-primary-container)" strokeWidth="3.5" strokeLinecap="round" />
       </g>
       <g className="hero-anim__clock-minute">
-        <line x1="60" y1="60" x2="60" y2="20" stroke="#b25500" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="60" y1="60" x2="60" y2="20" stroke="var(--color-primary)" strokeWidth="2.5" strokeLinecap="round" />
       </g>
-      <circle cx="60" cy="60" r="3.5" fill="#5a2a00" />
+      <circle cx="60" cy="60" r="3.5" fill="var(--color-on-primary-container)" />
     </svg>
   );
 }

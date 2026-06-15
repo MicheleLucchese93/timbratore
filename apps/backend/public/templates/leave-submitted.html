@@ -6,7 +6,7 @@
 </head>
 <body style="font-family:Helvetica,Arial,sans-serif;max-width:560px;margin:2rem auto;padding:0 1rem;line-height:1.55;color:#1f1b16">
 {{ if eq .language "it" }}
-<h2 style="color:#b25500;margin:0 0 12px">Nuova richiesta di {{ .TypeLabel }}</h2>
+<h2 style="color:{{ .brandColor }};margin:0 0 12px">Nuova richiesta di {{ .TypeLabel }}</h2>
 <p><strong>{{ .RequesterName }}</strong> ha inviato una richiesta che richiede la tua approvazione.</p>
 <table cellpadding="6" cellspacing="0" style="border-collapse:collapse;margin:12px 0">
   <tr><td style="color:#666">Tipo</td><td><strong>{{ .TypeLabel }}</strong></td></tr>
@@ -14,10 +14,10 @@
   <tr><td style="color:#666">Ore</td><td>{{ .DurationHours }}</td></tr>
   {{ if eq .HasNote "1" }}<tr><td style="color:#666">Note</td><td>{{ .Note }}</td></tr>{{ else }}{{ end }}
 </table>
-<p><a style="display:inline-block;background:#b25500;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px" href="{{ .ActionUrl }}">Apri sonoQui</a></p>
+<p><a style="display:inline-block;background:{{ .brandColor }};color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px" href="{{ .ActionUrl }}">Apri sonoQui</a></p>
 <p style="color:#666;font-size:12px">sonoQui — gestione presenze per PMI.</p>
 {{ else }}
-<h2 style="color:#b25500;margin:0 0 12px">New {{ .TypeLabel }} request</h2>
+<h2 style="color:{{ .brandColor }};margin:0 0 12px">New {{ .TypeLabel }} request</h2>
 <p><strong>{{ .RequesterName }}</strong> submitted a request that needs your approval.</p>
 <table cellpadding="6" cellspacing="0" style="border-collapse:collapse;margin:12px 0">
   <tr><td style="color:#666">Type</td><td><strong>{{ .TypeLabel }}</strong></td></tr>
@@ -25,7 +25,7 @@
   <tr><td style="color:#666">Hours</td><td>{{ .DurationHours }}</td></tr>
   {{ if eq .HasNote "1" }}<tr><td style="color:#666">Note</td><td>{{ .Note }}</td></tr>{{ else }}{{ end }}
 </table>
-<p><a style="display:inline-block;background:#b25500;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px" href="{{ .ActionUrl }}">Open sonoQui</a></p>
+<p><a style="display:inline-block;background:{{ .brandColor }};color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px" href="{{ .ActionUrl }}">Open sonoQui</a></p>
 <p style="color:#666;font-size:12px">sonoQui — simple attendance for small businesses.</p>
 {{ end }}
 </body>
