@@ -18,6 +18,12 @@ COPY apps/mobile/package.json ./apps/mobile/
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/website ./apps/website
 
+# The website's global.css imports the brand palette via a cross-package
+# relative path (apps/website/src/styles/global.css ->
+# ../../../../packages/shared/src/design/tokens.css). Copy that single file so
+# the @import resolves inside the build context — keeps tokens.ts the one source.
+COPY packages/shared/src/design/tokens.css ./packages/shared/src/design/tokens.css
+
 RUN npm ci --workspace=sonoqui-website --include-workspace-root
 RUN npm run build --workspace=sonoqui-website
 
