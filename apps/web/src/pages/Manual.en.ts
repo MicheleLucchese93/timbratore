@@ -401,6 +401,7 @@ export const MAIN_EN = `
           <li>Assign a <strong>work shift</strong> (template + validity start date).</li>
           <li>Configure the <strong>approvers</strong> for Corrections, Holiday, Leave, Sick leave.</li>
           <li>Edit first and last name.</li>
+          <li>Fill in the <strong>payroll data (Centro Paghe)</strong>: <em>tax code</em>, <em>payroll number</em> and, if needed, <em>INAIL</em> and <em>qualification</em>. Used by the Centro Paghe (LUL) export and must match the employee record in payroll.</li>
           <li><strong>Reset the password</strong> (key icon) — sends the user an email to choose a new password. Use it to give a freshly-created user their <strong>first access</strong>, or if they lost their credentials / forgot the password.</li>
           <li>Deactivate or permanently delete the user.</li>
         </ul>
@@ -757,6 +758,17 @@ export const MAIN_EN = `
         <ul class="tidy">
           <li><strong>Retention</strong> — years of data retention.</li>
           <li><strong>Mock location</strong> — behaviour if a fake GPS position is detected: <em>Allow</em> / <em>Flag</em> / <em>Block</em>.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h3>Centro Paghe (LUL export)</h3>
+        <p>Admin-only section to configure the <strong>Centro Paghe</strong> export (see the Exports chapter). Changes save automatically.</p>
+        <ul class="tidy">
+          <li><strong>Company code</strong> — 7 characters, must match the company code in Centro Paghe.</li>
+          <li><strong>Giustificativo code length</strong> — <em>4 characters</em> (full mnemonic) or <em>2 characters</em> (for companies printing on a single page / LUL).</li>
+          <li><strong>Blood-centre tax code</strong> — tax code/VAT of the collection centre, written on blood-donation rows.</li>
+          <li><strong>Giustificativo codes</strong> — for each item (holiday, leave, sickness, overtime, closure and the absence subtypes) pick the matching Centro Paghe code. Leave empty to skip that item. <em>Company closure</em> has no default: choose it per the applicable CCNL.</li>
         </ul>
       </div>
 

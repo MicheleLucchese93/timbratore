@@ -408,6 +408,7 @@ const MAIN_IT = `
           <li>Assegnare un <strong>orario di lavoro</strong> (template + data inizio validità).</li>
           <li>Configurare gli <strong>approvatori</strong> per Correzioni, Ferie, Permessi, Malattia.</li>
           <li>Modificare nome e cognome.</li>
+          <li>Compilare i <strong>dati paghe (Centro Paghe)</strong>: <em>codice fiscale</em>, <em>matricola</em> e, se servono, <em>INAIL</em> e <em>qualifica</em>. Servono per l'export Centro Paghe (LUL) e devono coincidere con l'anagrafica dipendente in paghe.</li>
           <li><strong>Reimpostare la password</strong> (icona a forma di chiave) — invia all'utente un'email per scegliere una nuova password. Serve a dare il <strong>primo accesso</strong> a un utente appena creato, o se ha smarrito le credenziali / dimenticato la password.</li>
           <li>Disattivare o eliminare definitivamente l'utente.</li>
         </ul>
@@ -764,6 +765,17 @@ const MAIN_IT = `
         <ul class="tidy">
           <li><strong>Retention</strong> — anni di conservazione dei dati.</li>
           <li><strong>Mock location</strong> — comportamento se viene rilevata una posizione GPS finta: <em>Consenti</em> / <em>Contrassegna</em> / <em>Blocca</em>.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h3>Centro Paghe (export LUL)</h3>
+        <p>Sezione visibile solo agli amministratori, per configurare l'export <strong>Centro Paghe</strong> (vedi cap. Esportazioni). Le modifiche si salvano automaticamente.</p>
+        <ul class="tidy">
+          <li><strong>Codice ditta</strong> — 7 caratteri, deve coincidere con il codice azienda in Centro Paghe.</li>
+          <li><strong>Lunghezza codici giustificativo</strong> — <em>4 caratteri</em> (mnemonico completo) oppure <em>2 caratteri</em> (per le ditte con stampa a pagina unica / LUL).</li>
+          <li><strong>CF centro trasfusionale</strong> — CF/P.IVA del centro raccolta, riportato nelle righe di donazione sangue.</li>
+          <li><strong>Codici giustificativo</strong> — per ogni voce (ferie, permessi, malattia, straordinario, chiusura e i sottotipi di assenza) scegli il codice Centro Paghe corrispondente. Lascia vuoto per non esportare quella voce. <em>Chiusura aziendale</em> non ha un default: va scelto in base al CCNL.</li>
         </ul>
       </div>
 
