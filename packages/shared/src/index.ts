@@ -10,3 +10,5 @@ export * from './leaves/holidays.js';
 export * from './leaves/display.js';
 export * from './leaves/calendar.js';
 export * from './leaves/estimate.js';
+export * from './payroll/centro-paghe-codes.js';
+export * from './payroll/centro-paghe-map.js';

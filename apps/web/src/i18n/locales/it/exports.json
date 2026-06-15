@@ -4,8 +4,11 @@
   "to": "Al",
   "format": "Formato",
   "formatXlsx": "XLSX (commercialista)",
+  "formatCentro": "Centro Paghe (LUL)",
+  "centroMonthHint": "Un file per azienda e per mese intero (dal primo all'ultimo giorno).",
   "sending": "Invio…",
   "downloadFailed": "Download fallito",
+  "createFailed": "Creazione export fallita",
   "deleteConfirm": {
     "title": "Eliminare questa esportazione?"
   },

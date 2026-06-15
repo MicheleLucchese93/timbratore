@@ -1,12 +1,20 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import ExcelJS from 'exceljs';
+import { effectiveCentroPagheMap, centroPagheKeyForLeave } from '@sonoqui/shared';
 import { env } from '../env.js';
+import {
+  buildCentroPagheFile,
+  type CentroPagheEmployee,
+  type CentroPagheDay,
+  type CentroPaghePunch,
+  type CentroPagheInpsEvent,
+} from './centro-paghe.js';
 
 export interface ExportJobRow {
   id: string;
   tenant_id: string;
-  format: 'xlsx' | 'json';
+  format: 'xlsx' | 'json' | 'centro';
   period_from: string;
   period_to: string;
   filters: Record<string, unknown>;
@@ -71,6 +79,9 @@ export async function generateExportFile(job: ExportJobRow): Promise<ExportResul
   const data = await aggregateForExport(job);
   if (job.format === 'json') {
     return await writeJson(job, data);
+  }
+  if (job.format === 'centro') {
+    return await writeCentroPaghe(job, data);
   }
   return await writeXlsx(job, data);
 }
@@ -1186,6 +1197,322 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
   const buf = (await wb.xlsx.writeBuffer()) as ArrayBuffer;
   const key = `tenants/${job.tenant_id}/exports/${job.id}.xlsx`;
   await persist(key, Buffer.from(buf));
+  return { storageKey: key, signedUrlExpiresAt: new Date(Date.now() + 15 * 60_000) };
+}
+
+/* ───────────────────── Centro Paghe (ORARIO / TRORAPRO) ───────────────────── */
+
+interface CentroPagheTenantConfig {
+  codiceDitta: string;
+  codeLen: 2 | 4;
+  donazioneCf: string;
+  map: Record<string, string>;
+}
+
+async function loadCentroPagheTenantConfig(job: ExportJobRow): Promise<CentroPagheTenantConfig> {
+  const r = await adminPool.query(
+    `SELECT codice_ditta, cp_code_len, cp_donazione_cf, cp_giustificativo_map
+       FROM tenants WHERE id = $1`,
+    [job.tenant_id]
+  );
+  const row = r.rows[0] ?? {};
+  return {
+    codiceDitta: row.codice_ditta ?? '',
+    codeLen: row.cp_code_len === 2 ? 2 : 4,
+    donazioneCf: row.cp_donazione_cf ?? '',
+    map: effectiveCentroPagheMap(row.cp_giustificativo_map ?? {}),
+  };
+}
+
+interface Anagrafica {
+  active: boolean;
+  inail: string | null;
+  qualifica: string | null;
+  qualifica2: string | null;
+  matricola: string | null;
+  codiceFiscale: string | null;
+}
+
+async function loadAnagrafica(job: ExportJobRow): Promise<Map<string, Anagrafica>> {
+  // All non-deleted members (incl. recently deactivated, so an employee who
+  // worked part of the month still exports). The writer filters out inactive
+  // members with no activity in the period.
+  const r = await adminPool.query(
+    `SELECT user_id, active, inail, qualifica, qualifica2, matricola, codice_fiscale
+       FROM memberships
+      WHERE tenant_id = $1 AND deleted_at IS NULL
+      ORDER BY matricola NULLS LAST`,
+    [job.tenant_id]
+  );
+  const map = new Map<string, Anagrafica>();
+  for (const row of r.rows) {
+    map.set(row.user_id, {
+      active: row.active,
+      inail: row.inail,
+      qualifica: row.qualifica,
+      qualifica2: row.qualifica2,
+      matricola: row.matricola,
+      codiceFiscale: row.codice_fiscale,
+    });
+  }
+  return map;
+}
+
+interface DetailedLeave {
+  type: string;
+  subtype: string | null;
+  minutes: number;
+}
+
+/** Per user → per day → list of (type, subtype, minutes). Unlike loadLeavesPerDay
+ *  (which buckets into ferie/permessi/malattia for the xlsx), this keeps the full
+ *  type + assenza subtype so each maps to its own giustificativo code. */
+async function loadLeavesPerDayDetailed(
+  job: ExportJobRow
+): Promise<Map<string, Map<string, DetailedLeave[]>>> {
+  const r = await adminPool.query(
+    `SELECT lr.user_id, lr.type, lr.assenza_subtype, lr.from_ts, lr.to_ts, lr.duration_hours
+       FROM leave_requests lr
+      WHERE lr.tenant_id = $1
+        AND lr.status IN ('approved','cancellation_pending')
+        AND lr.to_ts >  $2::date
+        AND lr.from_ts < ($3::date + INTERVAL '1 day')`,
+    [job.tenant_id, job.period_from, job.period_to]
+  );
+  const result = new Map<string, Map<string, DetailedLeave[]>>();
+  if (r.rowCount === 0) return result;
+
+  const periodFrom = new Date(job.period_from + 'T00:00:00Z');
+  const periodTo = new Date(job.period_to + 'T23:59:59Z');
+
+  for (const row of r.rows) {
+    const from = new Date(row.from_ts);
+    const to = new Date(row.to_ts);
+    const userMap = result.get(row.user_id) ?? new Map<string, DetailedLeave[]>();
+    const clipFrom = from < periodFrom ? periodFrom : from;
+    const clipTo = to > periodTo ? periodTo : to;
+
+    const push = (dayKey: string, minutes: number) => {
+      if (minutes <= 0) return;
+      const list = userMap.get(dayKey) ?? [];
+      list.push({ type: row.type, subtype: row.assenza_subtype ?? null, minutes });
+      userMap.set(dayKey, list);
+    };
+
+    if (row.type === 'permessi') {
+      const dayKey = clipFrom.toISOString().slice(0, 10);
+      push(dayKey, Math.max(0, Math.round((clipTo.getTime() - clipFrom.getTime()) / 60000)));
+    } else {
+      const days: string[] = [];
+      const cur = new Date(clipFrom);
+      cur.setUTCHours(12, 0, 0, 0);
+      const end = new Date(clipTo);
+      end.setUTCHours(12, 0, 0, 0);
+      while (cur.getTime() <= end.getTime()) {
+        days.push(cur.toISOString().slice(0, 10));
+        cur.setUTCDate(cur.getUTCDate() + 1);
+      }
+      if (days.length > 0) {
+        const perDayMin = Math.round((Number(row.duration_hours) * 60) / days.length);
+        for (const d of days) push(d, perDayMin);
+      }
+    }
+    result.set(row.user_id, userMap);
+  }
+  return result;
+}
+
+/** Malattia events with an INPS protocol → record type 3. */
+async function loadInpsEvents(job: ExportJobRow): Promise<Map<string, CentroPagheInpsEvent[]>> {
+  const r = await adminPool.query(
+    `SELECT user_id, from_ts, to_ts, inps_protocol
+       FROM leave_requests
+      WHERE tenant_id = $1
+        AND type = 'malattia'
+        AND status IN ('approved','cancellation_pending')
+        AND inps_protocol IS NOT NULL AND length(inps_protocol) > 0
+        AND to_ts >  $2::date
+        AND from_ts < ($3::date + INTERVAL '1 day')
+      ORDER BY user_id, from_ts`,
+    [job.tenant_id, job.period_from, job.period_to]
+  );
+  const map = new Map<string, CentroPagheInpsEvent[]>();
+  for (const row of r.rows) {
+    const list = map.get(row.user_id) ?? [];
+    list.push({
+      tipo: 'PR',
+      code: String(row.inps_protocol),
+      start: new Date(row.from_ts).toISOString().slice(0, 10),
+      end: new Date(row.to_ts).toISOString().slice(0, 10),
+    });
+    map.set(row.user_id, list);
+  }
+  return map;
+}
+
+/** Rome-local HH:MM for a stamp instant. */
+function hhmmRome(d: Date): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: ROME_TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(d);
+}
+
+/** Inclusive YYYY-MM-DD list from period_from..period_to. */
+function eachDateInclusive(from: string, to: string): string[] {
+  const out: string[] = [];
+  const cur = new Date(from + 'T00:00:00Z');
+  const end = new Date(to + 'T00:00:00Z');
+  while (cur.getTime() <= end.getTime()) {
+    out.push(cur.toISOString().slice(0, 10));
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return out;
+}
+
+/** Pair a day's raw stamps into presence intervals (≤4 in/out pairs). A
+ *  break/lunch shows as out (start) then in (end). */
+function pairPunches(stamps: Array<{ event: string; at: Date }>): CentroPaghePunch[] {
+  const pairs: CentroPaghePunch[] = [];
+  let openIn: string | null = null;
+  for (const s of stamps) {
+    const e = s.event;
+    if (e === 'clock_in' || e === 'break_end' || e === 'lunch_end') {
+      if (openIn === null) openIn = hhmmRome(s.at);
+    } else if (e === 'clock_out' || e === 'break_start' || e === 'lunch_start') {
+      if (openIn !== null) {
+        pairs.push({ in: openIn, out: hhmmRome(s.at) });
+        openIn = null;
+      }
+    }
+  }
+  if (openIn !== null) pairs.push({ in: openIn, out: null });
+  return pairs.slice(0, 4);
+}
+
+async function writeCentroPaghe(job: ExportJobRow, data: UserAgg[]): Promise<ExportResult> {
+  const cfg = await loadCentroPagheTenantConfig(job);
+  if (!cfg.codiceDitta || cfg.codiceDitta.trim().length === 0) {
+    throw new Error(
+      'Codice ditta mancante: impostalo in Impostazioni → Centro Paghe prima di esportare.'
+    );
+  }
+
+  const [anagrafica, shiftByUser, leavesDetailed, inpsByUser, stampsDetail] = await Promise.all([
+    loadAnagrafica(job),
+    loadShiftConfigs(job),
+    loadLeavesPerDayDetailed(job),
+    loadInpsEvents(job),
+    loadStampsDetail(job),
+  ]);
+
+  // Per-user DayAgg lookup (worked + overtime, already deducted/rounded).
+  const aggByUser = new Map<string, Map<string, DayAgg>>();
+  for (const u of data) {
+    const m = new Map<string, DayAgg>();
+    for (const d of u.days) m.set(d.day, d);
+    aggByUser.set(u.user_id, m);
+  }
+
+  // Per-user raw stamps grouped by UTC day (matches DayAgg day keys).
+  const stampsByUserDay = new Map<string, Map<string, Array<{ event: string; at: Date }>>>();
+  for (const s of stampsDetail) {
+    const at = new Date(s.occurred_at);
+    const dayKey = at.toISOString().slice(0, 10);
+    const byDay = stampsByUserDay.get(s.user_id) ?? new Map();
+    const list = byDay.get(dayKey) ?? [];
+    list.push({ event: s.event_type, at });
+    byDay.set(dayKey, list);
+    stampsByUserDay.set(s.user_id, byDay);
+  }
+
+  const periodoAAAAMM = job.period_from.slice(0, 4) + job.period_from.slice(5, 7);
+  const allDates = eachDateInclusive(job.period_from, job.period_to);
+
+  // Employee set = every active member (each gets a full month of type-1 rows).
+  const employees: CentroPagheEmployee[] = [];
+  for (const [userId, ana] of anagrafica) {
+    const agg = aggByUser.get(userId);
+    const userStamps = stampsByUserDay.get(userId);
+    const userLeaves = leavesDetailed.get(userId);
+    const shift = shiftByUser.get(userId);
+
+    // Skip long-gone employees: an inactive member with no activity this period.
+    const hadActivity = Boolean(agg) || Boolean(userStamps) || Boolean(userLeaves);
+    if (!ana.active && !hadActivity) continue;
+
+    const days: CentroPagheDay[] = allDates.map((date): CentroPagheDay => {
+      const day = agg?.get(date);
+      const worked = day?.worked_minutes ?? 0;
+      const overtime = day?.overtime_minutes ?? 0;
+      const oreLavorate = Math.max(0, worked - overtime);
+
+      // Theoretical + tipo-giorno from the shift calendar.
+      let theoreticalMin: number | null = null;
+      let contractMin: number | null = null;
+      let tipoGiorno: 'GL' | 'SA' | 'DO' | '' = '';
+      if (shift) {
+        const dow = isoDowUtc(date);
+        const slots = shift.slotsByDow.get(dow) ?? [];
+        const dur = slots.reduce(
+          (acc, sl) => acc + diffMin(combineDateTime(date, sl.start), combineDateTime(date, sl.end)),
+          0
+        );
+        const autoLunch = shift.lunchByDow.get(dow) ?? 0;
+        theoreticalMin = Math.max(0, dur - autoLunch);
+        contractMin = theoreticalMin;
+        tipoGiorno = dow === 7 ? 'DO' : dow === 6 ? 'SA' : dur > 0 ? 'GL' : 'DO';
+      }
+
+      // Giustificativi: leaves (mapped) + straordinario (overtime).
+      const giuByInp = new Map<string, number>();
+      for (const lv of userLeaves?.get(date) ?? []) {
+        const inp = cfg.map[centroPagheKeyForLeave(lv.type, lv.subtype)];
+        if (!inp) continue; // unmapped (e.g. chiusura with no code) → skip
+        giuByInp.set(inp, (giuByInp.get(inp) ?? 0) + lv.minutes);
+      }
+      if (overtime > 0) {
+        const inp = cfg.map['straordinario'];
+        if (inp) giuByInp.set(inp, (giuByInp.get(inp) ?? 0) + overtime);
+      }
+      const giustificativi = [...giuByInp.entries()]
+        .map(([inp, minutes]) => ({ inp, minutes }))
+        .filter((g) => g.minutes > 0)
+        .slice(0, 6);
+
+      return {
+        date,
+        punches: userStamps ? pairPunches(userStamps.get(date) ?? []) : [],
+        workedMin: oreLavorate,
+        theoreticalMin,
+        contractMin,
+        tipoGiorno,
+        giustificativi,
+      };
+    });
+
+    employees.push({
+      inail: ana.inail,
+      qualifica: ana.qualifica,
+      qualifica2: ana.qualifica2,
+      matricola: ana.matricola,
+      codiceFiscale: ana.codiceFiscale,
+      days,
+      inpsEvents: inpsByUser.get(userId) ?? [],
+    });
+  }
+
+  const body = buildCentroPagheFile({
+    codiceDitta: cfg.codiceDitta,
+    periodoAAAAMM,
+    codeLen: cfg.codeLen,
+    donazioneCf: cfg.donazioneCf,
+    employees,
+  });
+  const key = `tenants/${job.tenant_id}/exports/${job.id}.txt`;
+  await persist(key, body);
   return { storageKey: key, signedUrlExpiresAt: new Date(Date.now() + 15 * 60_000) };
 }
 

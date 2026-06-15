@@ -57,6 +57,7 @@ usersRouter.get(
     const r = await client.query(
       `SELECT m.id AS membership_id, m.user_id, m.role, m.active, m.created_at,
               m.stamp_modes,
+              m.codice_fiscale, m.matricola, m.inail, m.qualifica, m.qualifica2,
               COALESCE(au.email, m.user_id::text) AS email,
               au.first_name, au.last_name, au.display_name,
               (SELECT MAX(occurred_at) FROM stamps s
@@ -356,6 +357,15 @@ usersRouter.post(
   })
 );
 
+// Anagrafica field: trim, cap length, empty → null (so admins can clear it).
+const AnagraficaField = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .transform((v) => (v.length === 0 ? null : v))
+    .nullable();
+
 const PatchUser = z.object({
   role: z.enum(['admin', 'user']).optional(),
   // Allowed clock-in methods. Empty array = user cannot clock in.
@@ -363,7 +373,28 @@ const PatchUser = z.object({
   stamp_modes: z.array(z.enum(['gps', 'remote'])).max(2).optional(),
   first_name: NameField.optional(),
   last_name: NameField.optional(),
+  // Centro Paghe payroll anagrafica (stored on the membership).
+  codice_fiscale: AnagraficaField(16).optional(),
+  matricola: z
+    .string()
+    .trim()
+    .max(4)
+    .regex(/^\d*$/, 'matricola: solo cifre')
+    .transform((v) => (v.length === 0 ? null : v))
+    .nullable()
+    .optional(),
+  inail: AnagraficaField(1).optional(),
+  qualifica: AnagraficaField(1).optional(),
+  qualifica2: AnagraficaField(1).optional(),
 });
+
+const MEMBERSHIP_ANAGRAFICA = [
+  'codice_fiscale',
+  'matricola',
+  'inail',
+  'qualifica',
+  'qualifica2',
+] as const;
 
 usersRouter.patch(
   '/:id',
@@ -399,17 +430,29 @@ usersRouter.patch(
         }
       }
     }
+    const setClauses = [
+      'role = COALESCE($2, role)',
+      'stamp_modes = COALESCE($3::text[], stamp_modes)',
+    ];
+    const values: unknown[] = [
+      req.params.id,
+      parse.data.role ?? null,
+      parse.data.stamp_modes ?? null,
+    ];
+    let idx = 4;
+    for (const col of MEMBERSHIP_ANAGRAFICA) {
+      // undefined = leave unchanged; null/value = set (allows clearing).
+      if (parse.data[col] !== undefined) {
+        setClauses.push(`${col} = $${idx++}`);
+        values.push(parse.data[col]);
+      }
+    }
     const r = await client.query(
       `UPDATE memberships
-       SET role = COALESCE($2, role),
-           stamp_modes = COALESCE($3::text[], stamp_modes)
+       SET ${setClauses.join(', ')}
        WHERE user_id = $1 AND deleted_at IS NULL
        RETURNING *`,
-      [
-        req.params.id,
-        parse.data.role ?? null,
-        parse.data.stamp_modes ?? null,
-      ]
+      values
     );
     if (r.rowCount === 0) throw new NotFoundError('user');
 

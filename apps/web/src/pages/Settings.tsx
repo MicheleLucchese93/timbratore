@@ -1,5 +1,10 @@
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  CENTRO_PAGHE_CODES,
+  CENTRO_PAGHE_MAP_KEYS,
+  effectiveCentroPagheMap,
+} from '@sonoqui/shared';
 import { api } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
 import { LanguageSelect } from '../components/LanguageSwitcher.tsx';
@@ -13,6 +18,11 @@ interface TenantSettings {
   language: 'it' | 'en';
   retention_years: number;
   mock_location_action: 'allow' | 'flag' | 'block';
+  // Centro Paghe export config (migration 040).
+  codice_ditta: string | null;
+  cp_code_len: 2 | 4;
+  cp_donazione_cf: string | null;
+  cp_giustificativo_map: Record<string, string> | null;
 }
 
 type AutoSaveKey = 'timezone';
@@ -61,6 +71,7 @@ export function Settings() {
   const activeTenantId = useSession((st) => st.activeTenantId);
   const chooseTenant = useSession((st) => st.chooseTenant);
   const [switching, setSwitching] = useState(false);
+  const isAdmin = tenants.find((tn) => tn.tenant_id === activeTenantId)?.role === 'admin';
 
   async function onSwitchTenant(id: string) {
     if (id === activeTenantId || switching) return;
@@ -208,6 +219,13 @@ export function Settings() {
         </div>
       </SettingsRow>
 
+      {isAdmin && (
+        <>
+          <div className="hairline my-6" />
+          <CentroPagheSection s={s} onPatch={patchSettings} />
+        </>
+      )}
+
       {tenants.length > 1 && (
         <>
           <div className="hairline my-6" />
@@ -275,6 +293,111 @@ export function Settings() {
         </div>
       )}
     </form>
+  );
+}
+
+function CentroPagheSection({
+  s,
+  onPatch,
+}: {
+  s: TenantSettings;
+  onPatch: (patch: Partial<TenantSettings>) => Promise<boolean>;
+}) {
+  const { t } = useTranslation(['settings', 'common']);
+  const [codiceDitta, setCodiceDitta] = useState(s.codice_ditta ?? '');
+  const [donazioneCf, setDonazioneCf] = useState(s.cp_donazione_cf ?? '');
+  const [map, setMap] = useState<Record<string, string>>(() =>
+    effectiveCentroPagheMap(s.cp_giustificativo_map)
+  );
+
+  const codeOptions = useMemo(
+    () =>
+      CENTRO_PAGHE_CODES.map((c) => ({
+        value: c.inp,
+        label: `${c.inp} · ${c.out} — ${c.descr}`,
+      })),
+    []
+  );
+
+  function changeMap(key: string, inp: string) {
+    const next = { ...map, [key]: inp };
+    setMap(next);
+    void onPatch({ cp_giustificativo_map: next });
+  }
+
+  function saveText(field: 'codice_ditta' | 'cp_donazione_cf', value: string) {
+    const trimmed = value.trim();
+    const cur = (field === 'codice_ditta' ? s.codice_ditta : s.cp_donazione_cf) ?? '';
+    if (trimmed === cur) return;
+    void onPatch({ [field]: trimmed || null } as Partial<TenantSettings>);
+  }
+
+  return (
+    <SettingsRow icon={<IconBuilding />} title={t('section.centroPaghe')} description={t('section.centroPagheDesc')}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Field label={t('cp.codiceDitta')}>
+          <input
+            className="input num"
+            value={codiceDitta}
+            maxLength={7}
+            style={{ textTransform: 'uppercase' }}
+            onChange={(e) => setCodiceDitta(e.target.value.toUpperCase())}
+            onBlur={(e) => saveText('codice_ditta', e.target.value)}
+            placeholder="AA1A001"
+          />
+          <p className="field-hint">{t('cp.codiceDittaHint')}</p>
+        </Field>
+        <Field label={t('cp.codeLen')}>
+          <select
+            className="input"
+            value={s.cp_code_len}
+            onChange={(e) => void onPatch({ cp_code_len: Number(e.target.value) === 2 ? 2 : 4 })}
+          >
+            <option value={4}>{t('cp.codeLen4')}</option>
+            <option value={2}>{t('cp.codeLen2')}</option>
+          </select>
+          <p className="field-hint">{t('cp.codeLenHint')}</p>
+        </Field>
+        <Field label={t('cp.donazioneCf')}>
+          <input
+            className="input num"
+            value={donazioneCf}
+            maxLength={11}
+            onChange={(e) => setDonazioneCf(e.target.value)}
+            onBlur={(e) => saveText('cp_donazione_cf', e.target.value)}
+            placeholder="—"
+          />
+          <p className="field-hint">{t('cp.donazioneCfHint')}</p>
+        </Field>
+      </div>
+
+      <div className="mt-5">
+        <h4 className="label" style={{ marginBottom: 4 }}>{t('cp.mapTitle')}</h4>
+        <p className="field-hint" style={{ marginTop: 0 }}>{t('cp.mapDesc')}</p>
+        <div className="space-y-2 mt-3">
+          {CENTRO_PAGHE_MAP_KEYS.map(({ key, i18nKey }) => (
+            <div key={key} className="grid grid-cols-1 md:grid-cols-2 gap-2 items-center">
+              <label className="text-sm" htmlFor={`cpmap-${key}`}>
+                {t(`cp.mapKey.${i18nKey}`)}
+              </label>
+              <select
+                id={`cpmap-${key}`}
+                className="input"
+                value={map[key] ?? ''}
+                onChange={(e) => changeMap(key, e.target.value)}
+              >
+                <option value="">{t('cp.mapNone')}</option>
+                {codeOptions.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+      </div>
+    </SettingsRow>
   );
 }
 

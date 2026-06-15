@@ -107,7 +107,13 @@
     "title": "Edit user",
     "emailHint": "{{email}} — the email cannot be changed.",
     "firstName": "First name",
-    "lastName": "Last name"
+    "lastName": "Last name",
+    "anagraficaHint": "Payroll data (Centro Paghe). Must match the employee record in payroll.",
+    "codiceFiscale": "Tax code",
+    "matricola": "Payroll no.",
+    "inail": "INAIL",
+    "qualifica": "Qualification",
+    "qualifica2": "Qualification 2"
   },
   "bulk": {
     "addTitle": "Assign branches",

@@ -6,7 +6,9 @@
     "activeCompany": "Active company",
     "activeCompanyDesc": "Your account is linked to multiple companies. Switch the one you are working on: the page will reload with the new company's data.",
     "emailNotif": "Email notifications",
-    "emailNotifDesc": "Push notifications on the mobile app are always on (managed from the app). Here you choose, per category, which notifications to also receive by email. Off by default."
+    "emailNotifDesc": "Push notifications on the mobile app are always on (managed from the app). Here you choose, per category, which notifications to also receive by email. Off by default.",
+    "centroPaghe": "Centro Paghe (LUL export)",
+    "centroPagheDesc": "ORARIO tracciato configuration for importing attendance into Centro Paghe. The company code and giustificativo codes must match the payroll register."
   },
   "ragioneSociale": "Legal name",
   "partitaIva": "VAT number",
@@ -25,5 +27,36 @@
     "emailLeaveReminders": "Reminder 24h before an absence"
   },
   "toggleOn": "On — click to turn off",
-  "toggleOff": "Off — click to turn on"
+  "toggleOff": "Off — click to turn on",
+  "cp": {
+    "codiceDitta": "Company code",
+    "codiceDittaHint": "7 characters, must match the company code in Centro Paghe.",
+    "codeLen": "Giustificativo code length",
+    "codeLen4": "4 characters (full mnemonic)",
+    "codeLen2": "2 characters (single-page / LUL)",
+    "codeLenHint": "Use 2 characters for companies printing on a single page (payslip + timecard).",
+    "donazioneCf": "Blood-centre tax code",
+    "donazioneCfHint": "Tax code/VAT of the collection centre, written on blood-donation rows.",
+    "mapTitle": "Giustificativo codes",
+    "mapDesc": "Map each absence/item type to its Centro Paghe giustificativo code. Leave empty to skip exporting that item.",
+    "mapNone": "— do not export —",
+    "mapKey": {
+      "ferie": "Holiday",
+      "permessi": "Leave",
+      "malattia": "Sickness",
+      "straordinario": "Overtime",
+      "chiusura": "Company closure",
+      "donazione_sangue": "Blood donation",
+      "legge_104": "Law 104",
+      "lutto": "Bereavement",
+      "permesso_studio": "Study leave",
+      "permesso_elettorale": "Electoral leave",
+      "matrimonio": "Marriage",
+      "allattamento": "Nursing",
+      "congedo_parentale": "Parental leave",
+      "assemblea_sindacale": "Union assembly",
+      "visita_medica": "Medical visit",
+      "motivi_personali": "Personal reasons"
+    }
+  }
 }

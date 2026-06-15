@@ -6,9 +6,11 @@ import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { fmtDateTime } from '../i18n/format.ts';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
 
+type ExportFormat = 'xlsx' | 'json' | 'centro';
+
 interface ExportJob {
   id: string;
-  format: 'xlsx' | 'json';
+  format: ExportFormat;
   period_from: string;
   period_to: string;
   status: 'pending' | 'running' | 'ready' | 'failed';
@@ -22,9 +24,29 @@ export function Exports() {
   const [list, setList] = useState<ExportJob[]>([]);
   const [from, setFrom] = useState(() => firstOfPrevMonth());
   const [to, setTo] = useState(() => lastOfPrevMonth());
-  const [format, setFormat] = useState<'xlsx' | 'json'>('xlsx');
+  const [format, setFormat] = useState<ExportFormat>('xlsx');
   const [busy, setBusy] = useState(false);
   const confirm = useConfirm();
+
+  // Centro Paghe = one whole calendar month. Snap the range to month bounds when
+  // the format or the start date changes while it's selected.
+  function onFormatChange(next: ExportFormat) {
+    setFormat(next);
+    if (next === 'centro') {
+      const b = monthBounds(from);
+      setFrom(b.first);
+      setTo(b.last);
+    }
+  }
+  function onFromChange(value: string) {
+    if (format === 'centro') {
+      const b = monthBounds(value);
+      setFrom(b.first);
+      setTo(b.last);
+    } else {
+      setFrom(value);
+    }
+  }
 
   async function load() {
     setList(await api<ExportJob[]>('/api/v1/exports'));
@@ -41,6 +63,8 @@ export function Exports() {
     try {
       await api('/api/v1/exports', { method: 'POST', json: { format, period_from: from, period_to: to, filters: {} } });
       await load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : t('createFailed'));
     } finally {
       setBusy(false);
     }
@@ -55,7 +79,9 @@ export function Exports() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${j.id}.${j.format}`;
+    const cd = r.headers.get('content-disposition') ?? '';
+    const m = /filename="?([^";]+)"?/.exec(cd);
+    a.download = m ? m[1]! : `${j.id}.${j.format}`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -74,18 +100,27 @@ export function Exports() {
       <form onSubmit={enqueue} className="card grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
         <div>
           <label className="label">{t('from')}</label>
-          <input type="date" className="input" value={from} onChange={(e) => setFrom(e.target.value)} required />
+          <input type="date" className="input" value={from} onChange={(e) => onFromChange(e.target.value)} required />
         </div>
         <div>
           <label className="label">{t('to')}</label>
-          <input type="date" className="input" value={to} onChange={(e) => setTo(e.target.value)} required />
+          <input
+            type="date"
+            className="input"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            disabled={format === 'centro'}
+            required
+          />
         </div>
         <div>
           <label className="label">{t('format')}</label>
-          <select className="input" value={format} onChange={(e) => setFormat(e.target.value as 'xlsx' | 'json')}>
+          <select className="input" value={format} onChange={(e) => onFormatChange(e.target.value as ExportFormat)}>
             <option value="xlsx">{t('formatXlsx')}</option>
             <option value="json">JSON</option>
+            <option value="centro">{t('formatCentro')}</option>
           </select>
+          {format === 'centro' && <p className="field-hint">{t('centroMonthHint')}</p>}
         </div>
         <button className="btn btn-primary btn-block" disabled={busy}>{busy ? t('sending') : t('common:btn.generate')}</button>
       </form>
@@ -125,8 +160,9 @@ function ExportsDataGrid({
         valueOptions: [
           { value: 'xlsx', label: 'XLSX' },
           { value: 'json', label: 'JSON' },
+          { value: 'centro', label: 'Centro Paghe' },
         ],
-        renderCell: (p) => p.row.format.toUpperCase(),
+        renderCell: (p) => (p.row.format === 'centro' ? 'Centro Paghe' : p.row.format.toUpperCase()),
       },
       {
         field: 'status',
@@ -212,6 +248,16 @@ function StatusBadge({ status }: { status: ExportJob['status'] }) {
   if (status === 'failed') return <span className="badge badge-err">{t('badge.failed')}</span>;
   if (status === 'running') return <span className="badge badge-warn">{t('badge.running')}</span>;
   return <span className="badge badge-muted">{t('badge.pending')}</span>;
+}
+
+function monthBounds(dateStr: string): { first: string; last: string } {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  const y = d.getUTCFullYear();
+  const m = d.getUTCMonth();
+  return {
+    first: new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10),
+    last: new Date(Date.UTC(y, m + 1, 0)).toISOString().slice(0, 10),
+  };
 }
 
 function firstOfPrevMonth(): string {

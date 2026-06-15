@@ -4,8 +4,11 @@
   "to": "To",
   "format": "Format",
   "formatXlsx": "XLSX (accountant)",
+  "formatCentro": "Centro Paghe (LUL)",
+  "centroMonthHint": "One file per company per whole calendar month (first to last day).",
   "sending": "Sending…",
   "downloadFailed": "Download failed",
+  "createFailed": "Export creation failed",
   "deleteConfirm": {
     "title": "Delete this export?"
   },

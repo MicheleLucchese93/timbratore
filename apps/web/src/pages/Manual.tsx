@@ -105,7 +105,7 @@ const MAIN_IT = `
             <tr><td><strong>Quota</strong></td><td>Saldo di ore disponibili per ferie/permessi, con accantonamento periodico.</td></tr>
             <tr><td><strong>Approvatore</strong></td><td>Utente (di solito admin) designato a decidere richieste di un dipendente.</td></tr>
             <tr><td><strong>Geofence</strong></td><td>Area geografica intorno alla sede entro cui sono accettate le timbrature.</td></tr>
-            <tr><td><strong>Esportazione</strong></td><td>File XLSX o JSON con timbrature, ferie e anomalie del periodo, scaricabile dal commercialista.</td></tr>
+            <tr><td><strong>Esportazione</strong></td><td>File XLSX, JSON o tracciato Centro Paghe (LUL) con timbrature, ferie e anomalie del periodo, scaricabile dal commercialista.</td></tr>
           </tbody>
         </table>
       </div>
@@ -223,7 +223,7 @@ const MAIN_IT = `
           <div class="mini-card"><div class="mini-title">Orari</div><div class="mini-desc">Modelli settimanali di turni</div></div>
           <div class="mini-card"><div class="mini-title">Anomalie</div><div class="mini-desc">Deviazioni rispetto agli orari attesi</div></div>
           <div class="mini-card"><div class="mini-title">Ferie &amp; Permessi</div><div class="mini-desc">Richieste, quote, modelli e residui</div></div>
-          <div class="mini-card"><div class="mini-title">Esportazioni</div><div class="mini-desc">Export XLSX/JSON per il commercialista</div></div>
+          <div class="mini-card"><div class="mini-title">Esportazioni</div><div class="mini-desc">Export XLSX/JSON/Centro Paghe per il commercialista</div></div>
           <div class="mini-card"><div class="mini-title">Impostazioni</div><div class="mini-desc">Configurazione azienda</div></div>
         </div>
         <p>In basso nella sidebar trovi il tuo avatar con email, ruolo <em>Amministratore</em> e il pulsante <strong>Esci</strong>.</p>
@@ -696,10 +696,13 @@ const MAIN_IT = `
         <h3>Generare un'esportazione</h3>
         <ol class="steps">
           <li>Imposta <strong>Dal</strong> e <strong>Al</strong>.</li>
-          <li>Scegli il <strong>formato</strong>: <em>XLSX (commercialista)</em> oppure <em>JSON</em>.</li>
+          <li>Scegli il <strong>formato</strong>: <em>XLSX (commercialista)</em>, <em>JSON</em> oppure <em>Centro Paghe (LUL)</em>.</li>
           <li>Premi <strong>Genera</strong>.</li>
         </ol>
         <p>Il job entra in coda e si elabora in background.</p>
+        <div class="callout callout-tip">
+          Con il formato <strong>Centro Paghe</strong> il periodo è bloccato su un mese intero (dal primo all'ultimo giorno): il file è per singola azienda e singolo mese.
+        </div>
       </div>
 
       <div class="feature">
@@ -725,6 +728,20 @@ const MAIN_IT = `
           <li><strong>Metadati</strong>: periodo, data di generazione e conteggi.</li>
         </ul>
         <p>Il formato <strong>JSON</strong> contiene il riepilogo aggregato per dipendente, utile per integrazioni con altri software.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Formato Centro Paghe (LUL)</h3>
+        <p>Il formato <strong>Centro Paghe</strong> genera il tracciato a lunghezza fissa <em>ORARIO</em> (record da 200 byte) per l'import delle presenze e dei giustificativi nel LIBRO UNICO. Il file segue lo standard Centro Paghe: un record di tipo 1 per ogni giorno, i totali mensili (tipo 2) e gli eventi INPS di malattia (tipo 3). Il nome file è <code>ORARIO_&lt;codice ditta&gt;_&lt;MMAAAA&gt;.TXT</code>.</p>
+        <div class="callout callout-warn">
+          Prima del primo export configura in <strong>Impostazioni → Centro Paghe</strong>: il <strong>codice ditta</strong> (7 caratteri), la lunghezza dei codici (2 o 4 caratteri) e l'associazione dei <strong>codici giustificativo</strong> (ferie, malattia, straordinario, ecc.). Per ogni dipendente compila in <strong>Utenti</strong> i campi paghe: <em>codice fiscale</em>, <em>matricola</em> ed eventuali INAIL/qualifica. Questi dati devono coincidere con l'anagrafica in Centro Paghe.
+        </div>
+        <ul class="tidy">
+          <li><strong>Ore lavorate</strong> ordinarie e <strong>straordinario</strong> (codice separato) per giorno e in totale.</li>
+          <li><strong>Giustificativi</strong> (ferie, permessi, malattia, assenze e sottotipi) mappati sui codici Centro Paghe scelti in Impostazioni.</li>
+          <li><strong>Timbrature</strong> entrata/uscita (fino a 4 coppie al giorno) e ore teoriche dal turno assegnato.</li>
+          <li><strong>Eventi INPS</strong> di malattia con protocollo, quando presente.</li>
+        </ul>
       </div>
     </section>
 

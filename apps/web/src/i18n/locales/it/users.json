@@ -107,7 +107,13 @@
     "title": "Modifica utente",
     "emailHint": "{{email}} — l'email non è modificabile.",
     "firstName": "Nome",
-    "lastName": "Cognome"
+    "lastName": "Cognome",
+    "anagraficaHint": "Dati paghe (Centro Paghe). Devono coincidere con l'anagrafica dipendente in paghe.",
+    "codiceFiscale": "Codice fiscale",
+    "matricola": "Matricola",
+    "inail": "INAIL",
+    "qualifica": "Qualifica",
+    "qualifica2": "Qualifica 2"
   },
   "bulk": {
     "addTitle": "Assegna sedi",

@@ -98,7 +98,7 @@ export const MAIN_EN = `
             <tr><td><strong>Balance</strong></td><td>Balance of hours available for holiday/leave, with periodic accrual.</td></tr>
             <tr><td><strong>Approver</strong></td><td>User (usually an admin) designated to decide on an employee's requests.</td></tr>
             <tr><td><strong>Geofence</strong></td><td>Geographic area around the branch within which stamps are accepted.</td></tr>
-            <tr><td><strong>Export</strong></td><td>XLSX or JSON file with the stamps, holiday and anomalies of the period, downloadable by the accountant.</td></tr>
+            <tr><td><strong>Export</strong></td><td>XLSX, JSON or Centro Paghe (LUL) file with the stamps, holiday and anomalies of the period, downloadable by the accountant.</td></tr>
           </tbody>
         </table>
       </div>
@@ -216,7 +216,7 @@ export const MAIN_EN = `
           <div class="mini-card"><div class="mini-title">Shifts</div><div class="mini-desc">Weekly shift models</div></div>
           <div class="mini-card"><div class="mini-title">Anomalies</div><div class="mini-desc">Deviations from the expected shifts</div></div>
           <div class="mini-card"><div class="mini-title">Holiday &amp; Leave</div><div class="mini-desc">Requests, quotas, models and balances</div></div>
-          <div class="mini-card"><div class="mini-title">Exports</div><div class="mini-desc">XLSX/JSON export for the accountant</div></div>
+          <div class="mini-card"><div class="mini-title">Exports</div><div class="mini-desc">XLSX/JSON/Centro Paghe export for the accountant</div></div>
           <div class="mini-card"><div class="mini-title">Settings</div><div class="mini-desc">Company configuration</div></div>
         </div>
         <p>At the bottom of the sidebar you find your avatar with email, the <em>Administrator</em> role and the <strong>Log out</strong> button.</p>
@@ -689,10 +689,13 @@ export const MAIN_EN = `
         <h3>Generating an export</h3>
         <ol class="steps">
           <li>Set <strong>From</strong> and <strong>To</strong>.</li>
-          <li>Choose the <strong>format</strong>: <em>XLSX (accountant)</em> or <em>JSON</em>.</li>
+          <li>Choose the <strong>format</strong>: <em>XLSX (accountant)</em>, <em>JSON</em> or <em>Centro Paghe (LUL)</em>.</li>
           <li>Press <strong>Generate</strong>.</li>
         </ol>
         <p>The job enters the queue and is processed in the background.</p>
+        <div class="callout callout-tip">
+          With the <strong>Centro Paghe</strong> format the period is locked to a whole month (first to last day): the file is per single company and single month.
+        </div>
       </div>
 
       <div class="feature">
@@ -718,6 +721,20 @@ export const MAIN_EN = `
           <li><strong>Metadata</strong>: period, generation date and counts.</li>
         </ul>
         <p>The <strong>JSON</strong> format contains the aggregated summary per employee, useful for integrations with other software.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Centro Paghe (LUL) format</h3>
+        <p>The <strong>Centro Paghe</strong> format produces the fixed-width <em>ORARIO</em> tracciato (200-byte records) to import attendance and giustificativi into the LIBRO UNICO. The file follows the Centro Paghe standard: one type-1 record per day, the monthly totals (type 2) and INPS sickness events (type 3). The file name is <code>ORARIO_&lt;company code&gt;_&lt;MMYYYY&gt;.TXT</code>.</p>
+        <div class="callout callout-warn">
+          Before the first export, configure under <strong>Settings → Centro Paghe</strong>: the <strong>company code</strong> (7 chars), the code length (2 or 4 chars) and the mapping of the <strong>giustificativo codes</strong> (holiday, sickness, overtime, etc.). For each employee fill in, under <strong>Users</strong>, the payroll fields: <em>tax code</em>, <em>payroll number</em> and optional INAIL/qualification. These must match the employee record in Centro Paghe.
+        </div>
+        <ul class="tidy">
+          <li><strong>Ordinary worked hours</strong> and <strong>overtime</strong> (separate code) per day and as a total.</li>
+          <li><strong>Giustificativi</strong> (holiday, leave, sickness, absences and subtypes) mapped to the Centro Paghe codes chosen in Settings.</li>
+          <li><strong>Stamps</strong> in/out (up to 4 pairs per day) and theoretical hours from the assigned shift.</li>
+          <li><strong>INPS events</strong> for sickness with protocol, when present.</li>
+        </ul>
       </div>
     </section>
 

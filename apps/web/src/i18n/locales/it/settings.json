@@ -6,7 +6,9 @@
     "activeCompany": "Azienda attiva",
     "activeCompanyDesc": "Il tuo account è collegato a più aziende. Cambia quella su cui stai lavorando: la pagina si ricaricherà con i dati della nuova azienda.",
     "emailNotif": "Notifiche email",
-    "emailNotifDesc": "Le notifiche push sull'app mobile sono sempre attive (gestibili dall'app). Qui scegli, per categoria, quali notifiche ricevere anche via email. Disattivate di default."
+    "emailNotifDesc": "Le notifiche push sull'app mobile sono sempre attive (gestibili dall'app). Qui scegli, per categoria, quali notifiche ricevere anche via email. Disattivate di default.",
+    "centroPaghe": "Centro Paghe (export LUL)",
+    "centroPagheDesc": "Configurazione del tracciato ORARIO per l'import delle presenze in Centro Paghe. Il codice ditta e i codici giustificativo devono coincidere con l'anagrafica paghe."
   },
   "ragioneSociale": "Ragione sociale",
   "partitaIva": "Partita IVA",
@@ -25,5 +27,36 @@
     "emailLeaveReminders": "Promemoria 24h prima di un'assenza"
   },
   "toggleOn": "Attiva — clicca per disattivare",
-  "toggleOff": "Disattivata — clicca per attivare"
+  "toggleOff": "Disattivata — clicca per attivare",
+  "cp": {
+    "codiceDitta": "Codice ditta",
+    "codiceDittaHint": "7 caratteri, deve coincidere con il codice azienda in Centro Paghe.",
+    "codeLen": "Lunghezza codici giustificativo",
+    "codeLen4": "4 caratteri (mnemonico completo)",
+    "codeLen2": "2 caratteri (pagina unica / LUL)",
+    "codeLenHint": "Usa 2 caratteri per le ditte con stampa a pagina unica (cedolino + cartellino).",
+    "donazioneCf": "CF centro trasfusionale",
+    "donazioneCfHint": "CF/P.IVA del centro raccolta, riportato nelle righe di donazione sangue.",
+    "mapTitle": "Codici giustificativo",
+    "mapDesc": "Associa ogni tipo di assenza/voce al codice giustificativo Centro Paghe. Lascia vuoto per non esportare quella voce.",
+    "mapNone": "— non esportare —",
+    "mapKey": {
+      "ferie": "Ferie",
+      "permessi": "Permessi",
+      "malattia": "Malattia",
+      "straordinario": "Straordinario",
+      "chiusura": "Chiusura aziendale",
+      "donazione_sangue": "Donazione sangue",
+      "legge_104": "Legge 104",
+      "lutto": "Lutto",
+      "permesso_studio": "Permesso studio",
+      "permesso_elettorale": "Permesso elettorale",
+      "matrimonio": "Matrimonio",
+      "allattamento": "Allattamento",
+      "congedo_parentale": "Congedo parentale",
+      "assemblea_sindacale": "Assemblea sindacale",
+      "visita_medica": "Visita medica",
+      "motivi_personali": "Motivi personali"
+    }
+  }
 }

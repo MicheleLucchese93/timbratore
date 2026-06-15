@@ -15,6 +15,12 @@ const TenantSettings = z.object({
   timezone: z.string().optional(),
   language: z.enum(['it', 'en']).optional(),
   ccnl: z.string().nullable().optional(),
+  // Centro Paghe export configuration.
+  codice_ditta: z.string().trim().max(7).nullable().optional(),
+  cp_code_len: z.union([z.literal(2), z.literal(4)]).optional(),
+  cp_donazione_cf: z.string().trim().max(11).nullable().optional(),
+  // internal leave-kind key → Centro Paghe 2-char INP code (merged over defaults).
+  cp_giustificativo_map: z.record(z.string(), z.string()).optional(),
 });
 
 settingsRouter.get(

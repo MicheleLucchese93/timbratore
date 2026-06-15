@@ -20,6 +20,22 @@ interface UserRow {
   first_name: string | null;
   last_name: string | null;
   display_name: string | null;
+  // Centro Paghe payroll anagrafica (migration 040).
+  codice_fiscale: string | null;
+  matricola: string | null;
+  inail: string | null;
+  qualifica: string | null;
+  qualifica2: string | null;
+}
+
+interface UserPatch {
+  first_name?: string | null;
+  last_name?: string | null;
+  codice_fiscale?: string | null;
+  matricola?: string | null;
+  inail?: string | null;
+  qualifica?: string | null;
+  qualifica2?: string | null;
 }
 
 interface Usage {
@@ -274,7 +290,7 @@ export function Users() {
     }
   }
 
-  async function saveUser(u: UserRow, patch: { first_name?: string | null; last_name?: string | null }) {
+  async function saveUser(u: UserRow, patch: UserPatch) {
     try {
       await api(`/api/v1/users/${u.user_id}`, { method: 'PATCH', json: patch });
       await load();
@@ -965,11 +981,16 @@ function UserEditor({
 }: {
   user: UserRow;
   onClose: () => void;
-  onSave: (patch: { first_name: string | null; last_name: string | null }) => Promise<void> | void;
+  onSave: (patch: UserPatch) => Promise<void> | void;
 }) {
   const { t } = useTranslation(['users', 'common']);
   const [firstName, setFirstName] = useState(user.first_name ?? '');
   const [lastName, setLastName] = useState(user.last_name ?? '');
+  const [codiceFiscale, setCodiceFiscale] = useState(user.codice_fiscale ?? '');
+  const [matricola, setMatricola] = useState(user.matricola ?? '');
+  const [inail, setInail] = useState(user.inail ?? '');
+  const [qualifica, setQualifica] = useState(user.qualifica ?? '');
+  const [qualifica2, setQualifica2] = useState(user.qualifica2 ?? '');
   const [busy, setBusy] = useState(false);
 
   async function submit(e: FormEvent) {
@@ -979,6 +1000,11 @@ function UserEditor({
       await onSave({
         first_name: firstName.trim() || null,
         last_name: lastName.trim() || null,
+        codice_fiscale: codiceFiscale.trim().toUpperCase() || null,
+        matricola: matricola.trim() || null,
+        inail: inail.trim().toUpperCase() || null,
+        qualifica: qualifica.trim().toUpperCase() || null,
+        qualifica2: qualifica2.trim().toUpperCase() || null,
       });
     } finally {
       setBusy(false);
@@ -1017,6 +1043,67 @@ function UserEditor({
             />
           </div>
         </div>
+
+        <div className="hairline my-1" />
+        <p className="text-xs muted">{t('userEditor.anagraficaHint')}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="label">{t('userEditor.codiceFiscale')}</label>
+            <input
+              type="text"
+              className="input num"
+              value={codiceFiscale}
+              onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
+              maxLength={16}
+              style={{ textTransform: 'uppercase' }}
+            />
+          </div>
+          <div>
+            <label className="label">{t('userEditor.matricola')}</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              className="input num"
+              value={matricola}
+              onChange={(e) => setMatricola(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              maxLength={4}
+              placeholder="0000"
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className="label">{t('userEditor.inail')}</label>
+            <input
+              type="text"
+              className="input num"
+              value={inail}
+              onChange={(e) => setInail(e.target.value.toUpperCase().slice(0, 1))}
+              maxLength={1}
+            />
+          </div>
+          <div>
+            <label className="label">{t('userEditor.qualifica')}</label>
+            <input
+              type="text"
+              className="input num"
+              value={qualifica}
+              onChange={(e) => setQualifica(e.target.value.toUpperCase().slice(0, 1))}
+              maxLength={1}
+            />
+          </div>
+          <div>
+            <label className="label">{t('userEditor.qualifica2')}</label>
+            <input
+              type="text"
+              className="input num"
+              value={qualifica2}
+              onChange={(e) => setQualifica2(e.target.value.toUpperCase().slice(0, 1))}
+              maxLength={1}
+            />
+          </div>
+        </div>
+
         <div className="flex gap-2 justify-end pt-1">
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
             {t('common:btn.cancel')}

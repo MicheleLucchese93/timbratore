@@ -594,11 +594,39 @@ export async function pollRealtime(
 
 export async function createExportJob(
   adminToken: string,
-  body: { format: 'xlsx' | 'json'; period_from: string; period_to: string },
+  body: { format: 'xlsx' | 'json' | 'centro'; period_from: string; period_to: string },
 ): Promise<{ id: string; status: string }> {
   const r = await apiPost<{ id: string; status: string }>(adminToken, '/api/v1/exports', body);
   if (r.status !== 201 || !r.data) throw new Error(`createExportJob failed: ${r.status}`);
   return r.data;
+}
+
+/** Raw create — returns the HTTP status so callers can detect a pre-deploy 400
+ *  (e.g. the 'centro' format not yet rolled out to the API under test). */
+export async function createExportJobRaw(
+  adminToken: string,
+  body: { format: 'xlsx' | 'json' | 'centro'; period_from: string; period_to: string },
+): Promise<{ status: number; data: { id: string; status: string } | null; message?: string }> {
+  return apiPost<{ id: string; status: string }>(adminToken, '/api/v1/exports', body);
+}
+
+/** Download a text/fixed-width export (Centro Paghe). Returns body as latin1
+ *  text plus the headers needed to assert content-type + filename. */
+export async function downloadExportText(
+  adminToken: string,
+  id: string,
+): Promise<{ ok: boolean; status: number; contentType: string | null; disposition: string | null; text: string }> {
+  const r = await fetch(`${API_BASE}/api/v1/exports/${id}/download`, {
+    headers: { Authorization: `Bearer ${adminToken}` },
+  });
+  const text = r.ok ? Buffer.from(await r.arrayBuffer()).toString('latin1') : '';
+  return {
+    ok: r.ok,
+    status: r.status,
+    contentType: r.headers.get('content-type'),
+    disposition: r.headers.get('content-disposition'),
+    text,
+  };
 }
 
 export async function getExportJob(adminToken: string, id: string): Promise<{ id: string; status: string; r2_key?: string | null }> {
