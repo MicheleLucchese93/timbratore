@@ -10,7 +10,7 @@
   color: #fff;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .hero-anim__bg {
@@ -51,32 +51,40 @@
 .hero-anim__content {
   position: relative;
   z-index: 1;
-  padding: 4rem 3rem;
-  max-width: 540px;
+  padding: 4rem 3rem 4rem clamp(3rem, 7vw, 7rem);
+  max-width: 800px;
+}
+
+/* Below the lg breakpoint the login card centers over the full-page blue,
+   so hide the hero text/stage to avoid overlap — the gradient still shows. */
+@media (max-width: 1023px) {
+  .hero-anim { justify-content: center; }
+  .hero-anim__content { display: none; }
 }
 
 .hero-anim__brand {
-  font-size: 4rem;
+  font-size: 5.5rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1;
-  margin: 0 0 1rem;
+  margin: 0 0 1.25rem;
   text-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
 }
 
 .hero-anim__payoff {
-  font-size: 1.4rem;
+  font-size: 1.85rem;
   font-weight: 500;
   line-height: 1.35;
   opacity: 0.95;
-  margin: 0 0 3rem;
+  margin: 0 0 3.5rem;
   max-width: 24ch;
 }
 
 .hero-anim__stage {
   position: relative;
-  height: 280px;
-  margin-top: 2rem;
+  height: 380px;
+  margin-top: 2.5rem;
+  margin-left: 14rem;
 }
 
 /* Clock face — slight float */
@@ -84,8 +92,8 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 7.5rem;
-  height: 7.5rem;
+  width: 10rem;
+  height: 10rem;
   filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.25));
   animation: float-y 6s ease-in-out infinite;
 }
@@ -117,12 +125,12 @@
   position: absolute;
   display: inline-flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.7rem;
   background: rgba(255, 255, 255, 0.96);
   color: #1f1b16;
-  padding: 0.6rem 1rem 0.6rem 0.8rem;
+  padding: 0.75rem 1.3rem 0.75rem 1rem;
   border-radius: 999px;
-  font-size: 0.875rem;
+  font-size: 1.05rem;
   font-weight: 600;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(4px);
@@ -131,8 +139,8 @@
   will-change: transform, opacity;
 }
 .hero-anim__pill-dot {
-  width: 0.55rem;
-  height: 0.55rem;
+  width: 0.65rem;
+  height: 0.65rem;
   border-radius: 999px;
   background: var(--dot, #1e7a3a);
 }
@@ -144,9 +152,9 @@
   color: var(--color-primary);
 }
 
-.hero-anim__pill--in    { top:  10px; left: 9rem; --dot: #1e7a3a; }
-.hero-anim__pill--break { top:  85px; left: 11rem; --dot: #a67700; }
-.hero-anim__pill--out   { top: 165px; left: 7rem; --dot: #514440; }
+.hero-anim__pill--in    { top:  20px; left: 11.5rem; --dot: #1e7a3a; }
+.hero-anim__pill--break { top: 120px; left: 13.5rem; --dot: #a67700; }
+.hero-anim__pill--out   { top: 230px; left: 9rem; --dot: #514440; }
 
 @keyframes pill-in {
   0%   { opacity: 0; transform: translate(-12px, 8px) scale(0.94); }
@@ -160,9 +168,9 @@
 .hero-anim__gps {
   position: absolute;
   bottom: 0;
-  right: 1.5rem;
-  width: 4rem;
-  height: 4rem;
+  right: 3rem;
+  width: 5rem;
+  height: 5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -178,8 +186,8 @@
 .hero-anim__gps-ring--delay { animation-delay: 1.2s; }
 .hero-anim__gps-pin {
   position: relative;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.75rem;
+  height: 2.75rem;
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3));
 }
 @keyframes gps-pulse {

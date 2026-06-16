@@ -113,7 +113,14 @@
     "matricola": "Matricola",
     "inail": "INAIL",
     "qualifica": "Qualifica",
-    "qualifica2": "Qualifica 2"
+    "qualifica2": "Qualifica 2",
+    "tips": {
+      "codiceFiscale": "16 caratteri. Deve coincidere con il codice fiscale registrato in Centro Paghe. Usato anche per abbinare i documenti caricati.",
+      "matricola": "Numero di matricola del dipendente (max 4 cifre), come in Centro Paghe.",
+      "inail": "Codice posizione assicurativa territoriale INAIL (1 carattere).",
+      "qualifica": "Codice della qualifica contrattuale del dipendente (1 carattere), come in Centro Paghe.",
+      "qualifica2": "Secondo codice qualifica, da compilare solo se previsto dal contratto (1 carattere)."
+    }
   },
   "bulk": {
     "addTitle": "Assegna sedi",

@@ -5,6 +5,7 @@ import { api, apiUrl, getToken } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { useSession } from '../store/session.ts';
 import { IconButton } from '../components/IconButton.tsx';
+import { InfoTip } from '../components/InfoTip.tsx';
 import { fmtDateTime } from '../i18n/format.ts';
 
 interface UserRow {
@@ -1048,7 +1049,10 @@ function UserEditor({
         <p className="text-xs muted">{t('userEditor.anagraficaHint')}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="label">{t('userEditor.codiceFiscale')}</label>
+            <label className="label flex items-center gap-1">
+              {t('userEditor.codiceFiscale')}
+              <InfoTip text={t('userEditor.tips.codiceFiscale')} />
+            </label>
             <input
               type="text"
               className="input num"
@@ -1059,7 +1063,10 @@ function UserEditor({
             />
           </div>
           <div>
-            <label className="label">{t('userEditor.matricola')}</label>
+            <label className="label flex items-center gap-1">
+              {t('userEditor.matricola')}
+              <InfoTip text={t('userEditor.tips.matricola')} />
+            </label>
             <input
               type="text"
               inputMode="numeric"
@@ -1073,7 +1080,10 @@ function UserEditor({
         </div>
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="label">{t('userEditor.inail')}</label>
+            <label className="label flex items-center gap-1">
+              {t('userEditor.inail')}
+              <InfoTip text={t('userEditor.tips.inail')} />
+            </label>
             <input
               type="text"
               className="input num"
@@ -1083,7 +1093,10 @@ function UserEditor({
             />
           </div>
           <div>
-            <label className="label">{t('userEditor.qualifica')}</label>
+            <label className="label flex items-center gap-1">
+              {t('userEditor.qualifica')}
+              <InfoTip text={t('userEditor.tips.qualifica')} />
+            </label>
             <input
               type="text"
               className="input num"
@@ -1093,7 +1106,10 @@ function UserEditor({
             />
           </div>
           <div>
-            <label className="label">{t('userEditor.qualifica2')}</label>
+            <label className="label flex items-center gap-1">
+              {t('userEditor.qualifica2')}
+              <InfoTip text={t('userEditor.tips.qualifica2')} />
+            </label>
             <input
               type="text"
               className="input num"
@@ -1682,7 +1698,7 @@ function InviteForm({
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
-      <form onSubmit={submit} className="card w-full max-w-md space-y-3">
+      <form onSubmit={submit} className="card w-full max-w-xl max-h-[90vh] overflow-y-auto space-y-3">
         <h2 className="section-title">{t('invite.title')}</h2>
         <p className="text-xs muted">{t('invite.subtitle')}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1751,7 +1767,10 @@ function InviteForm({
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="label">{t('userEditor.codiceFiscale')}</label>
+            <label className="label flex items-center gap-1">
+              {t('userEditor.codiceFiscale')}
+              <InfoTip text={t('userEditor.tips.codiceFiscale')} />
+            </label>
             <input
               type="text"
               className="input num"
@@ -1762,7 +1781,10 @@ function InviteForm({
             />
           </div>
           <div>
-            <label className="label">{t('userEditor.matricola')}</label>
+            <label className="label flex items-center gap-1">
+              {t('userEditor.matricola')}
+              <InfoTip text={t('userEditor.tips.matricola')} />
+            </label>
             <input
               type="text"
               inputMode="numeric"
@@ -1776,7 +1798,10 @@ function InviteForm({
         </div>
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="label">{t('userEditor.inail')}</label>
+            <label className="label flex items-center gap-1">
+              {t('userEditor.inail')}
+              <InfoTip text={t('userEditor.tips.inail')} />
+            </label>
             <input
               type="text"
               className="input num"
@@ -1786,7 +1811,10 @@ function InviteForm({
             />
           </div>
           <div>
-            <label className="label">{t('userEditor.qualifica')}</label>
+            <label className="label flex items-center gap-1">
+              {t('userEditor.qualifica')}
+              <InfoTip text={t('userEditor.tips.qualifica')} />
+            </label>
             <input
               type="text"
               className="input num"
@@ -1796,7 +1824,10 @@ function InviteForm({
             />
           </div>
           <div>
-            <label className="label">{t('userEditor.qualifica2')}</label>
+            <label className="label flex items-center gap-1">
+              {t('userEditor.qualifica2')}
+              <InfoTip text={t('userEditor.tips.qualifica2')} />
+            </label>
             <input
               type="text"
               className="input num"

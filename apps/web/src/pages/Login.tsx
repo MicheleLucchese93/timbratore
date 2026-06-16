@@ -39,16 +39,21 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
   }
 
   return (
-    <main className="flex h-screen overflow-hidden bg-[color:var(--color-surface)]">
-      <div className="hidden md:flex md:w-1/2 xl:w-3/5">
+    <main className="relative h-screen overflow-hidden">
+      {/* Animated blue brand background fills the whole page. */}
+      <div className="absolute inset-0">
         <HeroAnimation />
       </div>
-      <div className="relative flex flex-1 items-center justify-center overflow-y-auto px-4 py-6 sm:px-8">
-        <div className="absolute right-4 top-4">
-          <LanguageToggle />
-        </div>
-        <div className="w-full max-w-md">
-          <form onSubmit={submit} className="card space-y-4">
+
+      <div className="absolute right-4 top-4 z-20">
+        <LanguageToggle />
+      </div>
+
+      {/* Login card floats over the blue: centered on small screens,
+          pinned to the right on large ones. */}
+      <div className="relative z-10 flex h-full items-center justify-center overflow-y-auto px-4 py-8 sm:px-8 lg:justify-end lg:px-16 xl:pr-32">
+        <div className="w-full max-w-lg">
+          <form onSubmit={submit} className="card space-y-6 p-8 shadow-2xl sm:p-10">
             <div className="text-center mb-2 flex flex-col items-center">
               {/* Logo on top, same surface background as the rest of the
                   card — mirrors the mobile login layout. */}
@@ -59,12 +64,12 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
                 src="/icon-192.png"
                 alt=""
                 aria-hidden="true"
-                className="mb-3 h-16 w-16"
+                className="mb-4 h-20 w-20"
               />
-              <div className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--color-primary)' }}>
+              <div className="text-4xl font-extrabold tracking-tight" style={{ color: 'var(--color-primary)' }}>
                 sono<span style={{ color: 'var(--color-on-primary-container)' }}>Qui</span>
               </div>
-              <p className="mt-1 text-sm text-neutral-600">
+              <p className="mt-2 text-base text-neutral-600">
                 {t('tagline')}
               </p>
             </div>
@@ -75,7 +80,7 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
                 id="email"
                 type="email"
                 autoComplete="email"
-                className="input"
+                className="input h-12 text-base"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -97,6 +102,7 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
+                className="h-12 text-base"
               />
             </div>
 
@@ -106,7 +112,7 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
               </div>
             )}
 
-            <button className="btn btn-primary w-full" disabled={busy} type="submit">
+            <button className="btn btn-primary w-full py-3 text-base" disabled={busy} type="submit">
               {busy ? t('signingIn') : t('signIn')}
             </button>
           </form>

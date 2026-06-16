@@ -113,7 +113,14 @@
     "matricola": "Payroll no.",
     "inail": "INAIL",
     "qualifica": "Qualification",
-    "qualifica2": "Qualification 2"
+    "qualifica2": "Qualification 2",
+    "tips": {
+      "codiceFiscale": "16 characters. Must match the tax code registered in Centro Paghe. Also used to match uploaded documents.",
+      "matricola": "Employee payroll number (max 4 digits), as in Centro Paghe.",
+      "inail": "INAIL territorial insurance position code (1 character).",
+      "qualifica": "Employee's contractual qualification code (1 character), as in Centro Paghe.",
+      "qualifica2": "Second qualification code, only if required by the contract (1 character)."
+    }
   },
   "bulk": {
     "addTitle": "Assign branches",
