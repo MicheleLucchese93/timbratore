@@ -29,7 +29,6 @@ export default function TabsLayout() {
       <Tabs.Screen name="dashboard" options={{ title: t('tab.dashboard') }} />
       <Tabs.Screen name="timbrature" options={{ title: t('tab.timbrature') }} />
       <Tabs.Screen name="storico" options={{ title: t('tab.storico') }} />
-      <Tabs.Screen name="correzioni" options={{ title: t('tab.correzioni') }} />
       <Tabs.Screen name="richieste" options={{ title: t('tab.richieste') }} />
       <Tabs.Screen name="documenti" options={{ title: t('tab.documenti') }} />
     </Tabs>

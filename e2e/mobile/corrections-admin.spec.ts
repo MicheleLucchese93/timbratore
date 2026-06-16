@@ -4,7 +4,9 @@ test.describe('mobile — Correzioni (admin)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('button', { name: 'Timbrature' })).toBeVisible({ timeout: 30_000 });
-    await page.getByRole('button', { name: 'Correzioni' }).click();
+    await page.getByRole('button', { name: 'Timbrature' }).click();
+    // Corrections moved inside Timbrature — open the "Correggi" sub-tab.
+    await page.getByText('Correggi').first().click();
   });
 
   test('shows the "Nuova richiesta" FAB (admins can request too)', async ({ page }) => {
@@ -13,9 +15,9 @@ test.describe('mobile — Correzioni (admin)', () => {
     await expect(page.getByLabel('Nuova richiesta').first()).toBeVisible({ timeout: 10_000 });
   });
 
-  test('shows the swipeable tabs (In attesa / Tutte)', async ({ page }) => {
-    await expect(page.getByText('In attesa').first()).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText('Tutte').first()).toBeVisible();
+  test('shows the swipeable tabs (Timbra / Correggi)', async ({ page }) => {
+    await expect(page.getByText('Timbra', { exact: true }).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Correggi').first()).toBeVisible();
   });
 });
 
@@ -25,7 +27,8 @@ test.describe('mobile — Correzioni create flow (admin, 3 steps)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('button', { name: 'Timbrature' })).toBeVisible({ timeout: 30_000 });
-    await page.getByRole('button', { name: 'Correzioni' }).click();
+    await page.getByRole('button', { name: 'Timbrature' }).click();
+    await page.getByText('Correggi').first().click();
     await page.getByLabel('Nuova richiesta').first().click();
     await expect(page.getByText('Quale giorno?')).toBeVisible({ timeout: 10_000 });
   });

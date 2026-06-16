@@ -287,6 +287,25 @@ const MAIN_IT = `
       <p class="lead">L'archivio storico di tutte le timbrature aziendali, per impostazione predefinita gli ultimi 90 giorni.</p>
 
       <div class="feature">
+        <h3>Due viste: Lista e Griglia mensile</h3>
+        <p>In alto trovi un selettore con due viste della stessa sezione:</p>
+        <ul class="tidy">
+          <li><strong>Lista</strong> — la tabella storica di tutte le timbrature (descritta qui sotto).</li>
+          <li><strong>Griglia mensile</strong> — una matrice <em>dipendenti × giorni del mese</em>: ogni cella mostra le timbrature di quel dipendente in quel giorno (es. <em>08:30–12:30</em>), pensata per lavorare velocemente su un intero mese.</li>
+        </ul>
+        <p>Nella Griglia mensile:</p>
+        <ul class="tidy">
+          <li>Naviga tra i mesi con le frecce <strong>‹ ›</strong> o torna al mese corrente con <strong>Oggi</strong>.</li>
+          <li>I dipendenti sono in <strong>colonna</strong> e i giorni in <strong>riga</strong>; il pulsante <strong>Inverti righe/colonne</strong> scambia gli assi.</li>
+          <li>I colori segnalano lo stato della cella: <em>weekend</em> e <em>festività</em> in grigio/azzurro, <em>turno aperto</em> (uscita mancante in un giorno passato) in ambra.</li>
+          <li>Filtra per <strong>dipendente</strong> (ricerca per nome o email) o per <strong>sede</strong>. I <strong>totali</strong> dipendono dall'orientamento: con i dipendenti in colonna, l'ultima colonna riporta il totale ore di <em>tutti</em> i dipendenti per ogni giorno e una riga finale <strong>Totale mese</strong> mostra il totale di ogni dipendente più il totale generale; invertendo gli assi, l'ultima colonna diventa il <strong>totale mese per dipendente</strong> e la riga finale i totali per giorno.</li>
+          <li>Ogni cella mostra le coppie <em>ingresso–uscita</em> (es. <em>08:30–12:30</em>); un turno aperto mostra un <strong>·</strong> rosso al posto dell'uscita. Un'icona <strong>☕</strong> segnala la presenza di pause/pranzo e sotto compare il totale ore lavorate del giorno. Le celle vuote mostrano un <strong>+</strong> e restano cliccabili per inserire timbrature.</li>
+          <li>La griglia carica fino a <strong>1000 timbrature</strong> per mese: se il limite viene raggiunto compare l'avviso «Troppe timbrature nel periodo: restringi con un filtro» — filtra per dipendente o sede per vedere il dato completo.</li>
+          <li><strong>Clicca una cella</strong> per aprire l'editor del giorno: aggiungi, modifica o elimina le singole timbrature (ingresso/uscita/pause). La <strong>motivazione</strong> è precompilata e modificabile; ogni intervento resta tracciato in audit log esattamente come nella vista Lista.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
         <h3>La tabella</h3>
         <p>Colonne disponibili:</p>
         <ul class="tidy">
@@ -403,7 +422,7 @@ const MAIN_IT = `
         <h3>Operazioni sulla tabella utenti</h3>
         <p>Per ogni riga della tabella puoi:</p>
         <ul class="tidy">
-          <li>Cambiare il <strong>ruolo</strong> (Admin / Utente) tramite select.</li>
+          <li>Cambiare il <strong>ruolo</strong> (Admin / Utente) tramite select. <em>Non puoi cambiare il ruolo del tuo account</em>: la select è disabilitata sulla tua riga, così un admin non può declassarsi a Utente e perdere l'accesso.</li>
           <li>Attivare o disattivare l'utente con il toggle <strong>Attivo</strong>.</li>
           <li>Scegliere i <strong>metodi di timbratura</strong> consentiti (colonna <em>Timbratura</em>): <strong>GPS</strong> (da app mobile, presso la sede) e/o <strong>Da remoto</strong> (da web, senza verifica della posizione). Nessun metodo selezionato = l'utente non può timbrare e l'app non mostra il menu di timbratura.</li>
           <li>Modificare le <strong>sedi</strong> assegnate (multi-select).</li>
@@ -990,23 +1009,25 @@ const MAIN_IT = `
 
     <section class="chapter" id="mob-user">
       <h2><span class="chapter-num">20</span>Panoramica App Mobile</h2>
-      <p class="lead">L'app mobile è disponibile per iOS e Android. La navigazione principale è una barra in basso con quattro tab.</p>
+      <p class="lead">L'app mobile è disponibile per iOS e Android. La navigazione principale è una barra in basso con le schede Timbrature, Storico, Richieste e Documenti (e Dashboard per gli admin).</p>
 
       <div class="feature">
-        <h3>Le quattro schede principali</h3>
+        <h3>Le schede principali</h3>
         <div class="grid-2">
           <div class="mini-card"><div class="mini-title">⏱ Timbrature</div><div class="mini-desc">Schermata principale per timbrare ingresso, uscita, pause</div></div>
           <div class="mini-card"><div class="mini-title">📅 Storico</div><div class="mini-desc">Storico delle tue timbrature per giorno</div></div>
-          <div class="mini-card"><div class="mini-title">📝 Correzioni</div><div class="mini-desc">Richieste di correzione di timbrature</div></div>
           <div class="mini-card"><div class="mini-title">💼 Richieste</div><div class="mini-desc">Ferie, permessi, malattia</div></div>
+          <div class="mini-card"><div class="mini-title">📄 Documenti</div><div class="mini-desc">I tuoi documenti personali condivisi dall'azienda</div></div>
         </div>
-        <p>In alto a sinistra di ogni schermata trovi il tuo <strong>avatar</strong> (apre il Profilo). In alto a destra c'è la <strong>campanella notifiche</strong> con badge di non lette. La campanella raccoglie gli aggiornamenti su <strong>richieste</strong> (ferie, permessi, assenze) e <strong>correzioni</strong>: le decisioni sulle tue richieste e — per chi approva — quelle in attesa della tua decisione. Toccando una notifica apri direttamente la scheda corrispondente (Richieste o Correzioni).</p>
+        <p>Le <strong>correzioni</strong> non sono più una scheda a sé: vivono ora dentro <strong>Timbrature</strong>, nella tab <strong>Correggi</strong>.</p>
+        <p>In alto a sinistra di ogni schermata trovi il tuo <strong>avatar</strong> (apre il Profilo). In alto a destra c'è la <strong>campanella notifiche</strong> con badge di non lette. La campanella raccoglie gli aggiornamenti su <strong>richieste</strong> (ferie, permessi, assenze) e <strong>correzioni</strong>: le decisioni sulle tue richieste e — per chi approva — quelle in attesa della tua decisione. Toccando una notifica apri direttamente la scheda corrispondente (Richieste o, per le correzioni, la tab Correggi dentro Timbrature).</p>
       </div>
     </section>
 
     <section class="chapter" id="mob-user-timbra">
       <h2><span class="chapter-num">21</span>Timbrature <span class="badge badge-user">user</span> <span class="badge badge-mobile">mobile</span></h2>
       <p class="lead">La home dell'app mobile. Da qui registri tutti gli eventi della tua giornata lavorativa.</p>
+      <p>La scheda Timbrature ha <strong>due tab</strong> in alto: <strong>Timbra</strong> (questa pagina) e <strong>Correggi</strong>. Le correzioni — prima in una scheda separata in fondo — vivono ora qui dentro: tocca le tab oppure <strong>scorri a destra/sinistra</strong> per cambiare vista (vedi il capitolo Correzioni).</p>
 
       <div class="feature">
         <h3>Card principale</h3>
@@ -1072,7 +1093,7 @@ const MAIN_IT = `
           <li>Se il turno resta aperto oltre <strong>15 ore</strong>, il sistema lo chiude da solo inserendo l'uscita a <strong>ingresso + 15 ore</strong> (può cadere il giorno successivo). La timbratura risulta di origine <em>automatica</em>.</li>
         </ul>
         <div class="callout callout-info">
-          Se l'orario reale di uscita era diverso da quello calcolato in automatico, invia una richiesta di <strong>correzione</strong> dalla scheda Correzioni: l'amministratore la sistemerà.
+          Se l'orario reale di uscita era diverso da quello calcolato in automatico, invia una richiesta di <strong>correzione</strong> dalla tab Correggi (dentro Timbrature): l'amministratore la sistemerà.
         </div>
       </div>
 
@@ -1121,11 +1142,11 @@ const MAIN_IT = `
 
     <section class="chapter" id="mob-user-correzioni">
       <h2><span class="chapter-num">23</span>Correzioni <span class="badge badge-user">user</span> <span class="badge badge-mobile">mobile</span></h2>
-      <p class="lead">Richiedi la correzione di una timbratura sbagliata o l'aggiunta di una dimenticata.</p>
+      <p class="lead">Richiedi la correzione di una timbratura sbagliata o l'aggiunta di una dimenticata. Le correzioni si trovano nella scheda <strong>Timbrature</strong>, nella tab <strong>Correggi</strong>.</p>
 
       <div class="feature">
         <h3>Le tue richieste</h3>
-        <p>Due tab: <strong>In attesa</strong> e <strong>Tutte</strong>. Il badge sulla tab "In attesa" mostra il numero di richieste ancora da decidere. Tocca le tab oppure <strong>scorri a destra/sinistra</strong> sull'elenco per passare da una vista all'altra.</p>
+        <p>Dentro Timbrature, la tab <strong>Correggi</strong> mostra un <strong>unico elenco</strong> con tutte le richieste: quelle <strong>in attesa</strong> sono sempre in cima, seguite da quelle già decise. Il badge sulla tab "Correggi" mostra il numero di richieste ancora da decidere.</p>
         <p>Ogni richiesta è una card con: tipo evento (Ingresso/Uscita/...), stato (<span class="pill pill-warn">In attesa</span> <span class="pill pill-ok">Approvata</span> <span class="pill pill-err">Rifiutata</span>), differenza prima/dopo, motivazione e nota dell'approvatore se decisa.</p>
       </div>
 
@@ -1137,7 +1158,7 @@ const MAIN_IT = `
           <li><strong>Quale timbratura?</strong> Tocca una timbratura del giorno per modificarla, oppure scegli <em>"Aggiungi una timbratura mancante"</em>.</li>
           <li><strong>Modifica</strong>:
             <ul class="tidy">
-              <li>Tipo evento (4 opzioni).</li>
+              <li>Tipo evento (Ingresso, Uscita, inizio/fine pausa, inizio/fine pausa pranzo).</li>
               <li>Orario corretto (selettore HH:MM, intervalli di 5 minuti).</li>
               <li>Sede (se ne hai più di una).</li>
               <li><strong>Motivazione</strong> (minimo 5 caratteri).</li>
@@ -1299,7 +1320,7 @@ const MAIN_IT = `
         <h3>Dashboard — il riepilogo della giornata</h3>
         <p>All'avvio l'amministratore vede la <strong>Dashboard</strong> (primo tab della barra in basso), pensata per capire a colpo d'occhio chi sta lavorando e chi è assente. Mostra:</p>
         <ul class="tidy">
-          <li><strong>Schede riepilogo</strong> — Presenti ora (sul totale dipendenti), In pausa, Assenti oggi, Da approvare, Anomalie ultimi 7 giorni e numero di Sedi.</li>
+          <li><strong>Schede riepilogo</strong> — Presenti ora (sul totale dipendenti), In pausa e Assenti oggi.</li>
           <li><strong>Assenti</strong> — chi è in ferie, permesso o malattia, con il tipo e le date. Un selettore <strong>Oggi · 7 gg · 14 gg</strong> allarga l'elenco a chi sarà assente nei prossimi 7 o 14 giorni.</li>
           <li><strong>Stato attuale</strong> — la lista dei dipendenti con il loro stato (<span class="pill pill-ok">Al lavoro</span>, <span class="pill pill-warn">In pausa</span> o <span class="pill">Fuori servizio</span>) e la sede; chi sta lavorando appare in cima. Con il selettore <strong>Elenco · Per sede</strong> puoi raggruppare i presenti per sede, come sul Web.</li>
         </ul>
@@ -1309,11 +1330,11 @@ const MAIN_IT = `
 
     <section class="chapter" id="mob-admin-correzioni">
       <h2><span class="chapter-num">27</span>Approvare correzioni <span class="badge badge-admin">admin</span> <span class="badge badge-mobile">mobile</span></h2>
-      <p class="lead">Dalla scheda <strong>Correzioni</strong>, oltre alla tab "Le mie", vedi anche le richieste da decidere.</p>
+      <p class="lead">Dalla scheda <strong>Timbrature</strong>, nella tab <strong>Correggi</strong>, vedi anche le richieste da decidere.</p>
 
       <div class="feature">
-        <h3>Tab "In attesa"</h3>
-        <p>Mostra tutte le richieste di correzione che spettano a te (in base alla configurazione approvatori). Passa a <strong>Tutte</strong> per lo storico — tocca la tab o <strong>scorri a destra/sinistra</strong>.</p>
+        <h3>Tab "Correggi"</h3>
+        <p>Mostra un unico elenco di tutte le richieste di correzione: quelle <strong>in attesa</strong> che spettano a te (in base alla configurazione approvatori) sono in cima, le altre già decise seguono come storico.</p>
         <p>Ogni card mostra il dipendente, la differenza prima/dopo e la motivazione, con i pulsanti:</p>
         <ul class="tidy">
           <li><span class="pill pill-ok">Approva</span> — chiede conferma e applica la correzione.</li>

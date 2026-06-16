@@ -33,8 +33,8 @@ test.describe('web — Impostazioni (admin)', () => {
     await expect(page.getByRole('heading', { name: /Notifiche email/i })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText(/Esiti delle mie richieste/i)).toBeVisible();
     await expect(page.getByText(/Promemoria 24h prima/i)).toBeVisible();
-    // Five category switches.
-    await expect(page.locator('label.switch')).toHaveCount(5);
+    // Six category switches.
+    await expect(page.locator('label.switch')).toHaveCount(6);
   });
 
   test('toggling an email category shows the saved toast', async ({ page }) => {

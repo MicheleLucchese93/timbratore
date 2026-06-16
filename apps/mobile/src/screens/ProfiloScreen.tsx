@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
   Alert,
-  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -19,7 +18,6 @@ import { useLock } from '../store/lock';
 import { color, space, type as t } from '@sonoqui/shared';
 import { userDisplayName } from '../lib/user-display';
 import { api } from '../lib/api';
-import i18n from '../i18n';
 import { LanguageRow } from '../components/LanguageRow';
 
 const AVATAR_PALETTE = [
@@ -70,25 +68,6 @@ const NOTIF_PREF_DEFAULTS: Record<NotifPrefKey, boolean> = {
   push_documents: true,
   email_documents: true,
 };
-
-const SITE_BASE = 'https://sonoqui.xdevapp.it/it';
-const CONTACT_FORM_URL = `${SITE_BASE}/#contact`;
-const LEGAL_LINKS = [
-  { icon: 'shield-checkmark-outline', labelKey: 'legal.privacy', url: `${SITE_BASE}/privacy-policy/` },
-  { icon: 'document-text-outline', labelKey: 'legal.terms', url: `${SITE_BASE}/termini-e-condizioni/` },
-  { icon: 'document-lock-outline', labelKey: 'legal.eula', url: `${SITE_BASE}/eula/` },
-  { icon: 'cafe-outline', labelKey: 'legal.cookie', url: `${SITE_BASE}/cookie-policy/` },
-] as const;
-
-async function openExternal(url: string) {
-  try {
-    await Linking.openURL(url);
-  } catch {
-    const msg = i18n.t('profilo:linkOpenError');
-    if (Platform.OS === 'web') window.alert(msg);
-    else Alert.alert(i18n.t('common:state.error'), msg);
-  }
-}
 
 export function ProfiloScreen() {
   const { t: tr } = useTranslation(['profilo', 'common']);
@@ -377,25 +356,6 @@ export function ProfiloScreen() {
               />
             </>
           )}
-        </View>
-
-        <Text style={styles.sectionLabel}>{tr('section.support')}</Text>
-        <View style={styles.card}>
-          <LinkRow
-            icon="chatbubble-ellipses-outline"
-            label={tr('support.contact')}
-            onPress={() => openExternal(CONTACT_FORM_URL)}
-          />
-          {LEGAL_LINKS.map((link) => (
-            <View key={link.url}>
-              <View style={styles.divider} />
-              <LinkRow
-                icon={link.icon}
-                label={tr(link.labelKey)}
-                onPress={() => openExternal(link.url)}
-              />
-            </View>
-          ))}
         </View>
 
         <TouchableOpacity

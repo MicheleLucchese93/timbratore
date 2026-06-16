@@ -17,7 +17,6 @@ const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   dashboard: 'grid-outline',
   timbrature: 'time-outline',
   storico: 'calendar-outline',
-  correzioni: 'create-outline',
   richieste: 'sunny-outline',
   documenti: 'document-text-outline',
 };

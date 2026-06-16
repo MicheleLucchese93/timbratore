@@ -31,5 +31,27 @@
   "action": {
     "edit": "Modifica timbratura",
     "delete": "Elimina timbratura"
+  },
+  "grid": {
+    "viewList": "Lista",
+    "viewGrid": "Griglia mensile",
+    "prevMonth": "Mese precedente",
+    "nextMonth": "Mese successivo",
+    "today": "Oggi",
+    "pivot": "Inverti righe/colonne",
+    "searchUser": "Cerca dipendente",
+    "allBranches": "Tutte le sedi",
+    "dayCol": "Giorno",
+    "userCol": "Dipendente",
+    "total": "Totale",
+    "monthTotal": "Totale mese",
+    "noUsers": "Nessun dipendente da mostrare.",
+    "tooMany": "Troppe timbrature nel periodo: restringi con un filtro.",
+    "open": "Turno aperto (uscita mancante)",
+    "weekend": "Weekend",
+    "reason": "Motivazione",
+    "reasonDefault": "Modifica da griglia presenze",
+    "noStamps": "Nessuna timbratura per questo giorno.",
+    "addEvent": "Aggiungi"
   }
 }

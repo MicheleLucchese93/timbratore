@@ -22,14 +22,9 @@ import { color, space } from '@sonoqui/shared';
 import { api } from '../lib/api';
 import { useSession } from '../store/session';
 import { useNotifications, type CorrectionRow } from '../lib/notifications';
-import { AppHeader } from '../components/AppHeader';
-import { WorkStateChip } from '../components/WorkStateChip';
-import { DateField } from '../components/DateField';
-import { SwipeableTabs } from '../components/SwipeableTabs';
+import { DateField } from './DateField';
 import i18n from '../i18n';
 import { fmtDate, fmtDateTime, fmtTime } from '../i18n/format';
-
-type CorrezioniTab = 'pending' | 'all';
 
 const EVENT_OPTIONS: Array<{ value: StampEventType; icon: keyof typeof Ionicons.glyphMap }> = [
   { value: 'clock_in', icon: 'log-in-outline' },
@@ -64,84 +59,113 @@ interface DayStamp {
   branch_id: string | null;
 }
 
-export function CorrezioniScreen() {
+// Corrections state + actions, lifted into a hook so the Timbrature screen can
+// host the single "Correggi" sub-tab alongside the stamp page. One list with
+// the still-actionable pending requests floated to the top.
+export function useCorrections() {
   const { t } = useTranslation(['correzioni', 'common']);
   const { me } = useSession();
   const isAdmin = me?.user.role === 'admin';
 
-  const [tab, setTab] = useState<CorrezioniTab>('pending');
-  const [pendingRows, setPendingRows] = useState<CorrectionRow[]>([]);
-  const [allRows, setAllRows] = useState<CorrectionRow[]>([]);
-  const [loadingPending, setLoadingPending] = useState(true);
-  const [loadingAll, setLoadingAll] = useState(true);
-  const [refreshingPending, setRefreshingPending] = useState(false);
-  const [refreshingAll, setRefreshingAll] = useState(false);
+  const [rows, setRows] = useState<CorrectionRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const refreshNotif = useNotifications((s) => s.refresh);
 
-  const loadPending = useCallback(async () => {
-    try {
-      const list = await api<CorrectionRow[]>('/api/v1/correction-requests?status=pending');
-      setPendingRows(list);
-    } catch {
-      /* ignore */
-    } finally {
-      setLoadingPending(false);
-      setRefreshingPending(false);
-    }
-  }, []);
-
-  const loadAll = useCallback(async () => {
+  const load = useCallback(async () => {
     try {
       const list = await api<CorrectionRow[]>('/api/v1/correction-requests');
-      setAllRows(list);
+      // Pending first (still actionable); the rest keep server order (newest
+      // first). Array.sort is stable, so equal-rank rows keep that order.
+      const rank = (s: CorrectionRow['status']) => (s === 'pending' ? 0 : 1);
+      setRows([...list].sort((a, b) => rank(a.status) - rank(b.status)));
     } catch {
       /* ignore */
     } finally {
-      setLoadingAll(false);
-      setRefreshingAll(false);
+      setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
-  const load = useCallback(async () => {
-    await Promise.all([loadPending(), loadAll()]);
-  }, [loadPending, loadAll]);
-
   useEffect(() => {
-    loadPending();
-    loadAll();
-  }, [loadPending, loadAll]);
+    load();
+  }, [load]);
 
-  async function approve(cr: CorrectionRow) {
-    confirmAction(t('confirm.approveTitle'), t('confirm.approveMsg'), async () => {
-      try {
-        await api(`/api/v1/correction-requests/${cr.id}/approve`, { method: 'POST', json: {} });
-        await load();
-        await refreshNotif();
-      } catch (e) {
-        showError(e);
-      }
-    });
-  }
+  const approve = useCallback(
+    (cr: CorrectionRow) => {
+      confirmAction(t('confirm.approveTitle'), t('confirm.approveMsg'), async () => {
+        try {
+          await api(`/api/v1/correction-requests/${cr.id}/approve`, { method: 'POST', json: {} });
+          await load();
+          await refreshNotif();
+        } catch (e) {
+          showError(e);
+        }
+      });
+    },
+    [t, load, refreshNotif]
+  );
 
-  async function reject(cr: CorrectionRow) {
-    promptNote(t('reject.promptTitle'), async (note) => {
-      try {
-        await api(`/api/v1/correction-requests/${cr.id}/reject`, {
-          method: 'POST',
-          json: { resolution_note: note ?? '' },
-        });
-        await load();
-        await refreshNotif();
-      } catch (e) {
-        showError(e);
-      }
-    });
-  }
+  const reject = useCallback(
+    (cr: CorrectionRow) => {
+      promptNote(t('reject.promptTitle'), async (note) => {
+        try {
+          await api(`/api/v1/correction-requests/${cr.id}/reject`, {
+            method: 'POST',
+            json: { resolution_note: note ?? '' },
+          });
+          await load();
+          await refreshNotif();
+        } catch (e) {
+          showError(e);
+        }
+      });
+    },
+    [t, load, refreshNotif]
+  );
 
-  const pendingCount = useMemo(() => pendingRows.length, [pendingRows]);
+  const pendingCount = useMemo(
+    () => rows.filter((r) => r.status === 'pending').length,
+    [rows]
+  );
 
-  const renderPage = (data: CorrectionRow[], isLoading: boolean, isRefreshing: boolean, onRefresh: () => void) => (
+  return {
+    isAdmin,
+    branches: me?.branches ?? [],
+    rows,
+    loading,
+    refreshing,
+    setRefreshing,
+    formOpen,
+    setFormOpen,
+    load,
+    approve,
+    reject,
+    pendingCount,
+  };
+}
+
+// One scrollable correction list — reused for both the "pending" and "all" tabs.
+export function CorrectionsListPage({
+  data,
+  isLoading,
+  isRefreshing,
+  onRefresh,
+  isAdmin,
+  onApprove,
+  onReject,
+}: {
+  data: CorrectionRow[];
+  isLoading: boolean;
+  isRefreshing: boolean;
+  onRefresh: () => void;
+  isAdmin: boolean;
+  onApprove: (r: CorrectionRow) => void;
+  onReject: (r: CorrectionRow) => void;
+}) {
+  const { t } = useTranslation(['correzioni', 'common']);
+  return (
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={styles.scrollContent}
@@ -154,9 +178,7 @@ export function CorrezioniScreen() {
       {!isLoading && data.length === 0 && (
         <View style={styles.emptyCard}>
           <Ionicons name="document-text-outline" size={32} color={color.onSurfaceVariant} />
-          <Text style={styles.empty}>
-            {isAdmin ? t('empty.admin') : t('empty.user')}
-          </Text>
+          <Text style={styles.empty}>{isAdmin ? t('empty.admin') : t('empty.user')}</Text>
         </View>
       )}
       {data.map((r) => (
@@ -164,56 +186,11 @@ export function CorrezioniScreen() {
           key={r.id}
           row={r}
           canDecide={isAdmin}
-          onApprove={() => approve(r)}
-          onReject={() => reject(r)}
+          onApprove={() => onApprove(r)}
+          onReject={() => onReject(r)}
         />
       ))}
     </ScrollView>
-  );
-
-  return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <AppHeader centerSlot={<WorkStateChip />} />
-
-      <SwipeableTabs
-        tabs={[
-          { id: 'pending', label: t('common:status.pending'), badge: pendingCount },
-          { id: 'all', label: t('common:state.all') },
-        ]}
-        activeId={tab}
-        onChange={setTab}>
-        {[
-          renderPage(pendingRows, loadingPending, refreshingPending, () => {
-            setRefreshingPending(true);
-            loadPending();
-          }),
-          renderPage(allRows, loadingAll, refreshingAll, () => {
-            setRefreshingAll(true);
-            loadAll();
-          }),
-        ]}
-      </SwipeableTabs>
-
-      {/* Anyone can file a correction for their own stamps — admins too, so
-          they get a request→approve audit trail instead of editing silently. */}
-      <TouchableOpacity
-        onPress={() => setFormOpen(true)}
-        activeOpacity={0.8}
-        style={styles.fab}
-        accessibilityLabel={t('newRequest')}>
-        <Ionicons name="add" size={28} color={color.onPrimary} />
-      </TouchableOpacity>
-
-      <NewRequestModal
-        visible={formOpen}
-        onClose={() => setFormOpen(false)}
-        onCreated={async () => {
-          setFormOpen(false);
-          await load();
-        }}
-        branches={me?.branches ?? []}
-      />
-    </SafeAreaView>
   );
 }
 
@@ -338,7 +315,7 @@ function DiffField({ label, value, changed }: { label: string; value: string; ch
 
 type ModalStep = 'date' | 'pickStamp' | 'edit';
 
-function NewRequestModal({
+export function NewCorrectionModal({
   visible,
   onClose,
   onCreated,
@@ -836,23 +813,6 @@ const styles = StyleSheet.create({
   actionReject: { backgroundColor: '#fde4e4' },
   actionApprove: { backgroundColor: color.primary },
   actionText: { fontSize: 14, fontWeight: '700' },
-
-  fab: {
-    position: 'absolute',
-    right: 16,
-    bottom: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: color.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: 'rgba(0,0,0,0.2)',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 6,
-  },
 
   modalHeader: {
     flexDirection: 'row',

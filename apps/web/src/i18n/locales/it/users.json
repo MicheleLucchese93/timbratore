@@ -181,6 +181,7 @@
   },
   "grid": {
     "adminLimitTitle": "Limite admin raggiunto ({{count}}/{{max}})",
+    "selfRoleTitle": "Non puoi modificare il ruolo del tuo account",
     "branchesTitle": "Modifica sedi assegnate",
     "branchesNone": "Nessuna · Assegna",
     "branchesCount_one": "{{count}} sede · Modifica",

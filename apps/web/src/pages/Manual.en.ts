@@ -280,6 +280,25 @@ export const MAIN_EN = `
       <p class="lead">The historical archive of all the company's stamps, by default the last 90 days.</p>
 
       <div class="feature">
+        <h3>Two views: List and Monthly grid</h3>
+        <p>At the top you'll find a switch with two views of the same section:</p>
+        <ul class="tidy">
+          <li><strong>List</strong> — the historical table of all stamps (described below).</li>
+          <li><strong>Monthly grid</strong> — an <em>employees × days-of-the-month</em> matrix: each cell shows that employee's stamps on that day (e.g. <em>08:30–12:30</em>), built to work quickly across a whole month.</li>
+        </ul>
+        <p>In the Monthly grid:</p>
+        <ul class="tidy">
+          <li>Move between months with the <strong>‹ ›</strong> arrows, or jump back to the current month with <strong>Today</strong>.</li>
+          <li>Employees are in <strong>columns</strong> and days in <strong>rows</strong>; the <strong>Swap rows/columns</strong> button flips the axes.</li>
+          <li>Colours flag the cell status: <em>weekend</em> and <em>public holidays</em> in grey/blue, <em>open shift</em> (missing clock-out on a past day) in amber.</li>
+          <li>Filter by <strong>employee</strong> (search by name or email) or by <strong>branch</strong>. The <strong>totals</strong> depend on the orientation: with employees in columns, the last column shows the total hours of <em>all</em> employees for each day and a final <strong>Month total</strong> row shows each employee's total plus a grand total; after swapping the axes, the last column becomes each employee's <strong>monthly total</strong> and the final row shows per-day totals.</li>
+          <li>Each cell shows the <em>clock-in–clock-out</em> pairs (e.g. <em>08:30–12:30</em>); an open shift shows a red <strong>·</strong> in place of the clock-out. A <strong>☕</strong> icon flags breaks/lunch and the day's worked total appears below. Empty cells show a <strong>+</strong> and stay clickable to add stamps.</li>
+          <li>The grid loads up to <strong>1000 stamps</strong> per month: if the limit is reached the warning "Too many stamps in this range: narrow it with a filter" appears — filter by employee or branch to see complete data.</li>
+          <li><strong>Click a cell</strong> to open the day editor: add, edit or delete the individual stamps (clock-in/out, breaks). The <strong>reason</strong> is pre-filled and editable; every action is recorded in the audit log exactly as in the List view.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
         <h3>The table</h3>
         <p>Available columns:</p>
         <ul class="tidy">
@@ -396,7 +415,7 @@ export const MAIN_EN = `
         <h3>Operations on the users table</h3>
         <p>For each row of the table you can:</p>
         <ul class="tidy">
-          <li>Change the <strong>role</strong> (Admin / User) via a select.</li>
+          <li>Change the <strong>role</strong> (Admin / User) via a select. <em>You can't change your own account's role</em>: the select is disabled on your own row, so an admin can't demote themselves to User and lose access.</li>
           <li>Activate or deactivate the user with the <strong>Active</strong> toggle.</li>
           <li>Choose the allowed <strong>stamping methods</strong> (the <em>Stamping</em> column): <strong>GPS</strong> (from the mobile app, at the branch) and/or <strong>Remote</strong> (from the web, without location verification). No method selected = the user cannot stamp and the app does not show the stamping menu.</li>
           <li>Edit the assigned <strong>branches</strong> (multi-select).</li>
@@ -978,23 +997,25 @@ export const MAIN_EN = `
 
     <section class="chapter" id="mob-user">
       <h2><span class="chapter-num">20</span>Mobile App Overview</h2>
-      <p class="lead">The mobile app is available for iOS and Android. The main navigation is a bottom bar with four tabs.</p>
+      <p class="lead">The mobile app is available for iOS and Android. The main navigation is a bottom bar with the Stamps, History, Requests and Documents tabs (plus Dashboard for admins).</p>
 
       <div class="feature">
-        <h3>The four main tabs</h3>
+        <h3>The main tabs</h3>
         <div class="grid-2">
           <div class="mini-card"><div class="mini-title">⏱ Stamps</div><div class="mini-desc">Main screen to clock in, clock out, take breaks</div></div>
           <div class="mini-card"><div class="mini-title">📅 History</div><div class="mini-desc">History of your stamps by day</div></div>
-          <div class="mini-card"><div class="mini-title">📝 Corrections</div><div class="mini-desc">Stamp correction requests</div></div>
           <div class="mini-card"><div class="mini-title">💼 Requests</div><div class="mini-desc">Holiday, leave, sick leave</div></div>
+          <div class="mini-card"><div class="mini-title">📄 Documents</div><div class="mini-desc">Your personal documents shared by the company</div></div>
         </div>
-        <p>At the top left of every screen you find your <strong>avatar</strong> (opens the Profile). At the top right there is the <strong>notification bell</strong> with an unread badge. The bell collects updates on <strong>requests</strong> (holiday, leave, absences) and <strong>corrections</strong>: the decisions on your requests and — for approvers — those awaiting your decision. Tapping a notification opens the corresponding tab directly (Requests or Corrections).</p>
+        <p><strong>Corrections</strong> are no longer a separate tab: they now live inside <strong>Stamps</strong>, in the <strong>Corrections</strong> tab.</p>
+        <p>At the top left of every screen you find your <strong>avatar</strong> (opens the Profile). At the top right there is the <strong>notification bell</strong> with an unread badge. The bell collects updates on <strong>requests</strong> (holiday, leave, absences) and <strong>corrections</strong>: the decisions on your requests and — for approvers — those awaiting your decision. Tapping a notification opens the corresponding tab directly (Requests, or for corrections the Corrections tab inside Stamps).</p>
       </div>
     </section>
 
     <section class="chapter" id="mob-user-timbra">
       <h2><span class="chapter-num">21</span>Stamps <span class="badge badge-user">user</span> <span class="badge badge-mobile">mobile</span></h2>
       <p class="lead">The home of the mobile app. From here you record all the events of your working day.</p>
+      <p>The Stamps screen has <strong>two tabs</strong> at the top: <strong>Stamp</strong> (this page) and <strong>Corrections</strong>. Corrections — previously a separate bottom tab — now live in here: tap the tabs or <strong>swipe right/left</strong> to change view (see the Corrections chapter).</p>
 
       <div class="feature">
         <h3>Main card</h3>
@@ -1109,11 +1130,11 @@ export const MAIN_EN = `
 
     <section class="chapter" id="mob-user-correzioni">
       <h2><span class="chapter-num">23</span>Corrections <span class="badge badge-user">user</span> <span class="badge badge-mobile">mobile</span></h2>
-      <p class="lead">Request the correction of a wrong stamp or the addition of a forgotten one.</p>
+      <p class="lead">Request the correction of a wrong stamp or the addition of a forgotten one. Corrections live in the <strong>Stamps</strong> screen, in the <strong>Corrections</strong> tab.</p>
 
       <div class="feature">
         <h3>Your requests</h3>
-        <p>Two tabs: <strong>Pending</strong> and <strong>All</strong>. The badge on the "Pending" tab shows the number of requests still to be decided. Tap the tabs or <strong>swipe right/left</strong> on the list to move from one view to the other.</p>
+        <p>Inside Stamps, the <strong>Corrections</strong> tab shows a <strong>single list</strong> of all requests: the <strong>pending</strong> ones are always on top, followed by the already-decided ones. The badge on the "Corrections" tab shows the number of requests still to be decided.</p>
         <p>Each request is a card with: event type (Clock-in/Clock-out/...), status (<span class="pill pill-warn">Pending</span> <span class="pill pill-ok">Approved</span> <span class="pill pill-err">Rejected</span>), before/after difference, the reason and the approver's note if decided.</p>
       </div>
 
@@ -1125,7 +1146,7 @@ export const MAIN_EN = `
           <li><strong>Which stamp?</strong> Tap a stamp of the day to edit it, or choose <em>"Add a missing stamp"</em>.</li>
           <li><strong>Edit</strong>:
             <ul class="tidy">
-              <li>Event type (4 options).</li>
+              <li>Event type (Clock-in, Clock-out, break start/end, lunch start/end).</li>
               <li>Correct time (HH:MM selector, 5-minute intervals).</li>
               <li>Branch (if you have more than one).</li>
               <li><strong>Reason</strong> (at least 5 characters).</li>
@@ -1283,7 +1304,7 @@ export const MAIN_EN = `
         <h3>Dashboard — the summary of the day</h3>
         <p>On launch the administrator sees the <strong>Dashboard</strong> (first tab of the bottom bar), designed to understand at a glance who is working and who is absent. It shows:</p>
         <ul class="tidy">
-          <li><strong>Summary cards</strong> — Present now (out of total employees), On break, Absent today, To approve, Anomalies in the last 7 days and number of Branches.</li>
+          <li><strong>Summary cards</strong> — Present now (out of total employees), On break and Absent today.</li>
           <li><strong>Absent</strong> — who is on holiday, leave or sick leave, with the type and the dates. A <strong>Today · 7 days · 14 days</strong> selector widens the list to those who will be absent in the next 7 or 14 days.</li>
           <li><strong>Current status</strong> — the list of employees with their status (<span class="pill pill-ok">At work</span>, <span class="pill pill-warn">On break</span> or <span class="pill">Off duty</span>) and the branch; those who are working appear at the top. With the <strong>List · By branch</strong> selector you can group those present by branch, as on the Web.</li>
         </ul>
@@ -1293,11 +1314,11 @@ export const MAIN_EN = `
 
     <section class="chapter" id="mob-admin-correzioni">
       <h2><span class="chapter-num">27</span>Approving corrections <span class="badge badge-admin">admin</span> <span class="badge badge-mobile">mobile</span></h2>
-      <p class="lead">From the <strong>Corrections</strong> tab, besides the "Mine" tab, you also see the requests to decide.</p>
+      <p class="lead">From the <strong>Stamps</strong> screen, in the <strong>Corrections</strong> tab, you also see the requests to decide.</p>
 
       <div class="feature">
-        <h3>"Pending" tab</h3>
-        <p>Shows all the correction requests that fall to you (based on the approver configuration). Switch to <strong>All</strong> for the history — tap the tab or <strong>swipe right/left</strong>.</p>
+        <h3>"Corrections" tab</h3>
+        <p>Shows a single list of all correction requests: the <strong>pending</strong> ones that fall to you (based on the approver configuration) are on top, the already-decided ones follow as history.</p>
         <p>Each card shows the employee, the before/after difference and the reason, with the buttons:</p>
         <ul class="tidy">
           <li><span class="pill pill-ok">Approve</span> — asks for confirmation and applies the correction.</li>

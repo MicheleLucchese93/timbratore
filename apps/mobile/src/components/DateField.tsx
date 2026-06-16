@@ -92,6 +92,13 @@ export function DateField({
   maximumDate,
   minuteInterval,
 }: DateFieldProps) {
+  // Hooks must run unconditionally on every render — call them before the
+  // web-only early return below (Platform.OS is constant, but the linter and
+  // the rules of hooks require the call order to be stable regardless).
+  const { t } = useTranslation(['components', 'common']);
+  const [open, setOpen] = useState(false);
+  const [tempDate, setTempDate] = useState<Date>(() => parse(value, mode));
+
   if (Platform.OS === 'web') {
     return (
       <View style={styles.fieldBox}>
@@ -113,10 +120,6 @@ export function DateField({
       </View>
     );
   }
-
-  const { t } = useTranslation(['components', 'common']);
-  const [open, setOpen] = useState(false);
-  const [tempDate, setTempDate] = useState<Date>(() => parse(value, mode));
 
   function openPicker() {
     setTempDate(parse(value, mode));

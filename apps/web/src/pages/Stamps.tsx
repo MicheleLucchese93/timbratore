@@ -4,22 +4,8 @@ import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { fmtDateTime } from '../i18n/format.ts';
-
-interface Stamp {
-  id: string;
-  user_id: string;
-  user_email: string;
-  event_type: 'clock_in' | 'clock_out' | 'break_start' | 'break_end' | 'lunch_start' | 'lunch_end';
-  occurred_at: string;
-  source: string;
-  branch_id: string | null;
-  notes: string | null;
-  suspicious_mock_location: boolean;
-  out_of_geofence?: boolean;
-}
-
-interface Branch { id: string; name: string }
-interface UserRow { user_id: string; email: string }
+import { StampMonthGrid } from '../components/StampMonthGrid.tsx';
+import { type Stamp, type Branch, type UserRow } from '../lib/stamp-types.ts';
 
 export function Stamps() {
   const { t } = useTranslation(['stamps', 'common']);
@@ -28,6 +14,7 @@ export function Stamps() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [editing, setEditing] = useState<Stamp | null>(null);
   const [creating, setCreating] = useState(false);
+  const [view, setView] = useState<'list' | 'grid'>('list');
 
   async function load() {
     const params = new URLSearchParams();
@@ -55,19 +42,45 @@ export function Stamps() {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-center justify-end gap-4 flex-wrap">
+      <header className="flex items-center justify-between gap-4 flex-wrap">
         <h1 className="sr-only">{t('heading')}</h1>
+        <div className="cal-seg" role="tablist" aria-label={t('heading')}>
+          <button
+            type="button"
+            role="tab"
+            className="cal-seg-btn"
+            aria-pressed={view === 'list'}
+            aria-selected={view === 'list'}
+            onClick={() => setView('list')}
+          >
+            {t('grid.viewList')}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            className="cal-seg-btn"
+            aria-pressed={view === 'grid'}
+            aria-selected={view === 'grid'}
+            onClick={() => setView('grid')}
+          >
+            {t('grid.viewGrid')}
+          </button>
+        </div>
         <button className="btn btn-primary" onClick={() => setCreating(true)}>{t('newStamp')}</button>
       </header>
 
-      <div className="card" style={{ padding: 0 }}>
-        <StampsDataGrid
-          list={list}
-          branches={branches}
-          onEdit={setEditing}
-          onDelete={remove}
-        />
-      </div>
+      {view === 'list' ? (
+        <div className="card" style={{ padding: 0 }}>
+          <StampsDataGrid
+            list={list}
+            branches={branches}
+            onEdit={setEditing}
+            onDelete={remove}
+          />
+        </div>
+      ) : (
+        <StampMonthGrid users={users} branches={branches} />
+      )}
 
       {creating && (
         <StampForm branches={branches} users={users} onClose={() => setCreating(false)} onSaved={async () => { setCreating(false); await load(); }} />

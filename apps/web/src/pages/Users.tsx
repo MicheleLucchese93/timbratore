@@ -1835,11 +1835,13 @@ function UsersDataGrid({
               style={{ minHeight: '1.875rem', padding: '0 0.5rem', fontSize: '0.75rem' }}
               value={u.role}
               onChange={(e) => onSetRole(u, e.target.value as 'admin' | 'user')}
-              disabled={u.user_id === me?.user.id && u.role === 'admin' && adminsCount === 1}
+              disabled={u.user_id === me?.user.id}
               title={
-                atAdminLimit && u.role !== 'admin'
-                  ? t('grid.adminLimitTitle', { count: adminsCount, max: maxAdmins })
-                  : undefined
+                u.user_id === me?.user.id
+                  ? t('grid.selfRoleTitle')
+                  : atAdminLimit && u.role !== 'admin'
+                    ? t('grid.adminLimitTitle', { count: adminsCount, max: maxAdmins })
+                    : undefined
               }
             >
               <option value="user">{t('role.userShort')}</option>

@@ -108,15 +108,6 @@ export function DashboardScreen() {
     }, [load])
   );
 
-  const pendingTotal = useMemo(() => {
-    if (!summary) return 0;
-    return (
-      Number(summary.pending.corrections) +
-      Number(summary.pending.leaves) +
-      Number(summary.pending.leave_cancellations)
-    );
-  }, [summary]);
-
   const onBreakTotal = summary
     ? Number(summary.presence.on_break) + Number(summary.presence.on_lunch)
     : 0;
@@ -198,23 +189,6 @@ export function DashboardScreen() {
                 value={String(summary?.absent_now.length ?? '–')}
                 icon="calendar-outline"
                 warn={!!summary && summary.absent_now.length > 0}
-              />
-              <StatCard
-                label={t('kpi.toApprove')}
-                value={String(pendingTotal)}
-                icon="file-tray-full-outline"
-                warn={pendingTotal > 0}
-              />
-              <StatCard
-                label={t('kpi.anomalies7d')}
-                value={String(summary?.anomalies_7d.total ?? '–')}
-                icon="warning-outline"
-                warn={!!summary && summary.anomalies_7d.total > 0}
-              />
-              <StatCard
-                label={t('kpi.branches')}
-                value={String(summary?.usage.branches_count ?? '–')}
-                icon="business-outline"
               />
             </View>
 

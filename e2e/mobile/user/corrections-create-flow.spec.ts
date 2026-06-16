@@ -8,7 +8,9 @@ test.describe('mobile — Correzioni create flow (employee, 3 steps)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('button', { name: 'Timbrature' })).toBeVisible({ timeout: 30_000 });
-    await page.getByRole('button', { name: 'Correzioni' }).click();
+    await page.getByRole('button', { name: 'Timbrature' }).click();
+    // Corrections moved inside Timbrature — open the "Correggi" sub-tab.
+    await page.getByText('Correggi').first().click();
     await page.getByLabel('Nuova richiesta').first().click();
     // Step 1 — "Quale giorno?"
     await expect(page.getByText('Quale giorno?')).toBeVisible({ timeout: 10_000 });

@@ -74,10 +74,17 @@ function decodeJwtExp(token: string): number | null {
     if (!part) return null;
     const b64 = part.replace(/-/g, '+').replace(/_/g, '/');
     const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+    // Hermes/web expose atob; fall back to a Node Buffer when present (tests,
+    // SSR) without pulling @types/node into the RN typecheck.
+    const nodeBuffer = (
+      globalThis as {
+        Buffer?: { from(data: string, encoding: string): { toString(encoding: string): string } };
+      }
+    ).Buffer;
     const json =
       typeof globalThis.atob === 'function'
         ? globalThis.atob(padded)
-        : Buffer.from(padded, 'base64').toString('utf8');
+        : (nodeBuffer?.from(padded, 'base64').toString('utf8') ?? '');
     const parsed = JSON.parse(json) as { exp?: number };
     return typeof parsed.exp === 'number' ? parsed.exp : null;
   } catch {

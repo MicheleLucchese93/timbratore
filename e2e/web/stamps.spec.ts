@@ -23,4 +23,20 @@ test.describe('web — Timbrature (admin stamps)', () => {
     await expect(page.locator('option', { hasText: /^Inizio pausa$/ })).toHaveCount(1);
     await expect(page.locator('option', { hasText: /^Inizio pausa pranzo$/ })).toHaveCount(1);
   });
+
+  test('switches to the monthly grid view and back', async ({ page }) => {
+    await expect(page.locator('.MuiDataGrid-root')).toBeVisible({ timeout: 15_000 });
+    // List/Grid segmented toggle.
+    await page.getByRole('tab', { name: 'Griglia mensile' }).click();
+    // The employees × days matrix renders; the list DataGrid is hidden.
+    await expect(page.getByTestId('stamp-grid')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('button', { name: 'Oggi' })).toBeVisible();
+    await expect(page.locator('.MuiDataGrid-root')).toHaveCount(0);
+    // Pivot flips the axes without losing the grid.
+    await page.getByRole('button', { name: /Inverti righe\/colonne/i }).click();
+    await expect(page.getByTestId('stamp-grid')).toBeVisible();
+    // Back to the list.
+    await page.getByRole('tab', { name: 'Lista' }).click();
+    await expect(page.locator('.MuiDataGrid-root')).toBeVisible();
+  });
 });

@@ -4,7 +4,9 @@ test.describe('mobile — Correzioni create flow (employee)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('button', { name: 'Timbrature' })).toBeVisible({ timeout: 30_000 });
-    await page.getByRole('button', { name: 'Correzioni' }).click();
+    await page.getByRole('button', { name: 'Timbrature' }).click();
+    // Corrections moved inside Timbrature — open the "Correggi" sub-tab.
+    await page.getByText('Correggi').first().click();
   });
 
   test('FAB is visible for the employee role', async ({ page }) => {
@@ -20,13 +22,13 @@ test.describe('mobile — Correzioni create flow (employee)', () => {
     await expect(page.getByText(/Scegli la data/i)).toBeVisible();
   });
 
-  test('swipeable tabs "In attesa" and "Tutte" are present', async ({ page }) => {
-    await expect(page.getByText('In attesa').first()).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText('Tutte').first()).toBeVisible();
+  test('swipeable tabs "Timbra" and "Correggi" are present', async ({ page }) => {
+    await expect(page.getByText('Timbra', { exact: true }).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Correggi').first()).toBeVisible();
   });
 
   // Employee empty-state copy ("Non hai richieste.") test removed: it is
   // mutually exclusive with seeded correction-create specs in the same
   // suite. The variant copy is verified by code inspection
-  // (CorrezioniScreen.tsx:148).
+  // (CorrectionsTab.tsx — CorrectionsListPage empty state).
 });

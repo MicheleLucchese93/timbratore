@@ -1,4 +1,8 @@
 {
+  "tabs": {
+    "stamp": "Stamp",
+    "correct": "Corrections"
+  },
   "hero": {
     "workedHours": "Hours worked",
     "countedHours": "Counted hours",

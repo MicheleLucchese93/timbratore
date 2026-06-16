@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -31,7 +32,17 @@ import {
 import { AppHeader } from '../components/AppHeader';
 import { WorkStateChip } from '../components/WorkStateChip';
 import { WeekScheduleModal } from '../components/WeekScheduleModal';
+import { SwipeableTabs } from '../components/SwipeableTabs';
+import {
+  useCorrections,
+  CorrectionsListPage,
+  NewCorrectionModal,
+} from '../components/CorrectionsTab';
 import { fmtTime } from '../i18n/format';
+
+// "Timbra" is the stamping page; "correct" hosts the merged corrections list
+// (formerly the standalone Correzioni tab), pending requests on top.
+type TimbraTab = 'timbra' | 'correct';
 
 interface CurrentState {
   state: 'nothing' | 'clocked_in' | 'on_break' | 'on_lunch';
@@ -56,8 +67,16 @@ function alertCross(title: string, msg: string): void {
 }
 
 export function TimbratureScreen() {
-  const { t } = useTranslation(['timbrature', 'common']);
+  const { t } = useTranslation(['timbrature', 'correzioni', 'common']);
   const { me } = useSession();
+  const corr = useCorrections();
+  const [tab, setTab] = useState<TimbraTab>('timbra');
+  // A correction notification deep-links to /timbrature?corr=1 — land on the
+  // Correggi tab in that case.
+  const params = useLocalSearchParams<{ corr?: string }>();
+  useEffect(() => {
+    if (params.corr) setTab('correct');
+  }, [params.corr]);
   const [state, setState] = useState<CurrentState | null>(null);
   const [todayStamps, setTodayStamps] = useState<DayStamp[]>([]);
   const [assignment, setAssignment] = useState<ActiveAssignment | null>(null);
@@ -115,6 +134,17 @@ export function TimbratureScreen() {
     const id = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(id);
   }, []);
+
+  // When a shift is open the branch is locked to the one clocked into — keep the
+  // selection pinned to it. Declared here (not after the `!me` early return) so
+  // the hook order stays stable; derives lock state from state/todayStamps.
+  useEffect(() => {
+    const cs = state?.state ?? stateFromLastEvent(null);
+    const lockedId = cs !== 'nothing' ? openShiftBranchId(todayStamps) : null;
+    if (lockedId && selectedBranchId !== lockedId) {
+      setSelectedBranchId(lockedId);
+    }
+  }, [state, todayStamps, selectedBranchId]);
 
   async function onRefresh() {
     setRefreshing(true);
@@ -201,7 +231,6 @@ export function TimbratureScreen() {
 
   const currentState = state?.state ?? stateFromLastEvent(null);
   const branchLocked = currentState !== 'nothing';
-  const lockedBranchId = branchLocked ? openShiftBranchId(todayStamps) : null;
   const totals = computeCountedDay(todayStamps, assignment, now, leaves);
 
   // Today's assigned shift: the slots scheduled for this weekday + their total,
@@ -217,11 +246,6 @@ export function TimbratureScreen() {
     (d) => d.day_of_week === todayDow && d.lunch_min > 0
   );
 
-  useEffect(() => {
-    if (branchLocked && lockedBranchId && selectedBranchId !== lockedBranchId) {
-      setSelectedBranchId(lockedBranchId);
-    }
-  }, [branchLocked, lockedBranchId, selectedBranchId]);
   const buttons: Array<{ event: StampEventType; label: string; icon: keyof typeof Ionicons.glyphMap; variant: 'primary' | 'secondary' }> = [];
   if (currentState === 'nothing') {
     buttons.push({ event: 'clock_in', label: t('action.clockIn'), icon: 'log-in-outline', variant: 'primary' });
@@ -239,13 +263,11 @@ export function TimbratureScreen() {
   const undoVisible =
     lastUndoId && lastSubmittedAt && Date.now() - lastSubmittedAt.getTime() < 60_000;
 
-  return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <AppHeader centerSlot={<WorkStateChip state={currentState} />} />
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+  const stampPage = (
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         <View style={styles.heroCard}>
           <View style={styles.heroTopRow}>
             <View style={styles.heroTopCol}>
@@ -416,7 +438,60 @@ export function TimbratureScreen() {
             </Text>
           </View>
         )}
-      </ScrollView>
+    </ScrollView>
+  );
+
+  const correctPage = (
+    <CorrectionsListPage
+      data={corr.rows}
+      isLoading={corr.loading}
+      isRefreshing={corr.refreshing}
+      onRefresh={() => {
+        corr.setRefreshing(true);
+        corr.load();
+      }}
+      isAdmin={corr.isAdmin}
+      onApprove={corr.approve}
+      onReject={corr.reject}
+    />
+  );
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <AppHeader centerSlot={<WorkStateChip state={currentState} />} />
+      <SwipeableTabs
+        tabs={[
+          { id: 'timbra', label: t('tabs.stamp') },
+          { id: 'correct', label: t('tabs.correct'), badge: corr.pendingCount },
+        ]}
+        activeId={tab}
+        onChange={setTab}>
+        {[stampPage, correctPage]}
+      </SwipeableTabs>
+
+      {/* Anyone can file a correction for their own stamps — admins too, so
+          they get a request→approve audit trail. FAB only on the Correggi
+          tab, not on the stamp page. */}
+      {tab === 'correct' && (
+        <TouchableOpacity
+          onPress={() => corr.setFormOpen(true)}
+          activeOpacity={0.8}
+          style={styles.fab}
+          accessibilityLabel={t('correzioni:newRequest')}>
+          <Ionicons name="add" size={28} color={color.onPrimary} />
+        </TouchableOpacity>
+      )}
+
+      <NewCorrectionModal
+        visible={corr.formOpen}
+        onClose={() => corr.setFormOpen(false)}
+        onCreated={async () => {
+          corr.setFormOpen(false);
+          await corr.load();
+        }}
+        branches={corr.branches}
+      />
+
       {assignment && (
         <WeekScheduleModal
           visible={weekScheduleOpen}
@@ -727,4 +802,21 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   disabledNoticeText: { flex: 1, fontSize: 13, color: color.onSurfaceVariant },
+
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: color.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: 'rgba(0,0,0,0.2)',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 6,
+  },
 });

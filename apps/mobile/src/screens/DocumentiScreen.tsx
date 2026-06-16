@@ -212,9 +212,6 @@ export function DocumentiScreen() {
             }}
           />
         }>
-        <Text style={styles.pageTitle}>{t('title')}</Text>
-        <Text style={styles.pageSubtitle}>{t('subtitle')}</Text>
-
         {loading && (
           <View style={styles.centered}>
             <ActivityIndicator />

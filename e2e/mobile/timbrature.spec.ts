@@ -26,8 +26,14 @@ test.describe('mobile — Timbrature tab', () => {
     await expect(page.getByRole('button', { name: 'Dashboard' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Timbrature' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Storico' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Correzioni' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Richieste' })).toBeVisible();
+    // Correzioni is no longer a bottom tab — it lives inside Timbrature now.
+    await expect(page.getByRole('button', { name: 'Correzioni' })).toHaveCount(0);
+  });
+
+  test('exposes Timbra / Correggi sub-tabs', async ({ page }) => {
+    await expect(page.getByText('Timbra', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Correggi').first()).toBeVisible();
   });
 
   test('shows at least one stamp action button matching current state', async ({ page }) => {

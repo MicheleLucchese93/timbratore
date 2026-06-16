@@ -94,7 +94,9 @@ export function NotificationsModal({ visible, onClose }: Props) {
     (n: AppNotification) => {
       if (!n.is_read) markAsRead(n.id);
       onClose();
-      router.push(n.route === 'richieste' ? '/richieste' : '/correzioni');
+      // Corrections were merged into the Timbrature tab — deep-link there and
+      // land on the pending-corrections sub-tab via the `corr` param.
+      router.push(n.route === 'richieste' ? '/richieste' : '/timbrature?corr=1');
     },
     [markAsRead, onClose, router]
   );

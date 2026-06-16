@@ -6,7 +6,7 @@ import type { PoolClient } from 'pg';
 import { authenticate, requireAdmin, invalidateMembershipCache } from '../middleware/auth.js';
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
-import { ConflictError, NotFoundError, ValidationError } from '../errors/index.js';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
 import { createUserSilently, triggerRecovery } from '../lib/gotrue-admin.js';
 import { env } from '../env.js';
 import { createLogger } from '../lib/logger.js';
@@ -402,17 +402,11 @@ usersRouter.patch(
   tenantHandler(async (req, res, client) => {
     const parse = PatchUser.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    // An admin must not be able to demote their own account: doing so would
+    // strip their admin access with no way back in. Block self role changes
+    // outright (stricter than the previous last-admin-only guard).
     if (parse.data.role === 'user' && req.params.id === req.user!.id) {
-      const stillAdmin = await client.query(
-        `SELECT COUNT(*) AS n FROM memberships
-         WHERE role='admin' AND active AND deleted_at IS NULL
-           AND tenant_id = current_setting('app.current_tenant_id')::uuid
-           AND user_id != $1`,
-        [req.user!.id]
-      );
-      if (Number(stillAdmin.rows[0].n) === 0) {
-        throw new ConflictError('Cannot demote last admin', 'LAST_ADMIN');
-      }
+      throw new ForbiddenError('Admins cannot change their own role', 'SELF_ROLE_CHANGE');
     }
     if (parse.data.role === 'admin') {
       const cur = await client.query(

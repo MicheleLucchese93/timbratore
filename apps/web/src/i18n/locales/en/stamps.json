@@ -31,5 +31,27 @@
   "action": {
     "edit": "Edit stamp",
     "delete": "Delete stamp"
+  },
+  "grid": {
+    "viewList": "List",
+    "viewGrid": "Monthly grid",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "today": "Today",
+    "pivot": "Swap rows/columns",
+    "searchUser": "Search employee",
+    "allBranches": "All branches",
+    "dayCol": "Day",
+    "userCol": "Employee",
+    "total": "Total",
+    "monthTotal": "Month total",
+    "noUsers": "No employees to show.",
+    "tooMany": "Too many stamps in this range: narrow it with a filter.",
+    "open": "Open shift (missing clock-out)",
+    "weekend": "Weekend",
+    "reason": "Reason",
+    "reasonDefault": "Edited from attendance grid",
+    "noStamps": "No stamps for this day.",
+    "addEvent": "Add"
   }
 }

@@ -52,13 +52,17 @@ export async function acquireLocation(): Promise<AcquiredLocation> {
       watcher = sub;
     });
   });
-  if (!best) throw new Error('ACQUISITION_TIMEOUT');
+  // `best` is only ever assigned inside the watch callback, which TS control
+  // flow can't track — it narrows `best` to `null` here. Re-annotate through a
+  // cast so the non-null guard below restores the real LocationObject type.
+  const acquired = best as Location.LocationObject | null;
+  if (!acquired) throw new Error('ACQUISITION_TIMEOUT');
   return {
-    latitude: best.coords.latitude,
-    longitude: best.coords.longitude,
-    accuracyM: best.coords.accuracy ?? 99999,
-    isMockLocation: (best as { mocked?: boolean }).mocked === true,
-    acquiredAt: new Date(best.timestamp).toISOString(),
+    latitude: acquired.coords.latitude,
+    longitude: acquired.coords.longitude,
+    accuracyM: acquired.coords.accuracy ?? 99999,
+    isMockLocation: (acquired as { mocked?: boolean }).mocked === true,
+    acquiredAt: new Date(acquired.timestamp).toISOString(),
   };
 }
 

@@ -1,4 +1,8 @@
 {
+  "tabs": {
+    "stamp": "Timbra",
+    "correct": "Correggi"
+  },
   "hero": {
     "workedHours": "Ore lavorate",
     "countedHours": "Ore conteggiate",

@@ -11,7 +11,7 @@ let nativeDb: ReturnType<typeof openNativeDb> | null = null;
 
 function openNativeDb() {
   // Lazy-require so web bundle doesn't pull SQLite.
-  const SQLite = require('expo-sqlite');
+  const SQLite = require('expo-sqlite') as typeof import('expo-sqlite');
   const db = SQLite.openDatabaseSync('sonoqui.db');
   db.execSync(`CREATE TABLE IF NOT EXISTS pending_stamps (
     idempotency_key TEXT PRIMARY KEY,

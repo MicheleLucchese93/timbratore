@@ -181,6 +181,7 @@
   },
   "grid": {
     "adminLimitTitle": "Admin limit reached ({{count}}/{{max}})",
+    "selfRoleTitle": "You can't change your own account's role",
     "branchesTitle": "Edit assigned branches",
     "branchesNone": "None · Assign",
     "branchesCount_one": "{{count}} branch · Edit",

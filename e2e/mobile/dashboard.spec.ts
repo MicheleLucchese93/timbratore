@@ -13,14 +13,16 @@ test.describe('mobile — Dashboard (admin)', () => {
     await expect(page.getByRole('button', { name: 'Dashboard' })).toBeVisible({ timeout: 30_000 });
   });
 
-  test('shows the six recap stat cards', async ({ page }) => {
+  test('shows the three recap stat cards', async ({ page }) => {
+    // Recap was trimmed to three cards (DashboardScreen.tsx statGrid):
+    // Presenti ora / In pausa / Assenti oggi. The former "Da approvare",
+    // "Anomalie 7 gg" and "Sedi" cards were removed.
     await page.goto('/');
     await expect(page.getByText('Presenti ora').first()).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText('In pausa').first()).toBeVisible();
     await expect(page.getByText('Assenti oggi').first()).toBeVisible();
-    await expect(page.getByText('Da approvare').first()).toBeVisible();
-    await expect(page.getByText('Anomalie 7 gg').first()).toBeVisible();
-    await expect(page.getByText('Sedi').first()).toBeVisible();
+    await expect(page.getByText('Da approvare')).toHaveCount(0);
+    await expect(page.getByText('Anomalie 7 gg')).toHaveCount(0);
   });
 
   test('lists employee presence under "Stato attuale"', async ({ page }) => {

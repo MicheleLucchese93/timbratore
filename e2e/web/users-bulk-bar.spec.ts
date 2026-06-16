@@ -1,9 +1,27 @@
 import { test, expect } from '@playwright/test';
+import { CREDS } from '../fixtures/test-data';
 
 test.describe('web — Utenti bulk bar (admin)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/users');
     await expect(page.getByRole('heading', { name: /Utenti/i })).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("the admin's own role select is disabled (no self-demotion)", async ({ page }) => {
+    // An admin must not be able to change their own role: demoting self to
+    // Utente would strip admin access with no way back. The role select on the
+    // logged-in admin's own row is therefore disabled (backend also rejects it
+    // with 403 SELF_ROLE_CHANGE). test1 is the admin from web-setup.
+    const grid = page.locator('.MuiDataGrid-root');
+    await expect(grid).toBeVisible({ timeout: 15_000 });
+    const selfRow = grid.locator('.MuiDataGrid-row', { hasText: CREDS.admin.email });
+    await expect(selfRow).toBeVisible({ timeout: 10_000 });
+    await expect(selfRow.locator('select').first()).toBeDisabled();
+    // A different user's row keeps an enabled role select (test3 is a non-admin).
+    const otherRow = grid.locator('.MuiDataGrid-row', { hasText: CREDS.user.email });
+    if (await otherRow.count()) {
+      await expect(otherRow.locator('select').first()).toBeEnabled();
+    }
   });
 
   test('single-row select reveals the bulk action bar', async ({ page }) => {
