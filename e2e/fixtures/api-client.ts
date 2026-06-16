@@ -508,6 +508,7 @@ export async function inviteUser(
   body: {
     email: string;
     role?: 'admin' | 'user';
+    language?: 'it' | 'en';
     first_name?: string;
     last_name?: string;
     branch_ids?: string[];

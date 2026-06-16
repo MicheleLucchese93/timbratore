@@ -126,6 +126,9 @@ const Invite = z.object({
   first_name: NameField.optional(),
   last_name: NameField.optional(),
   role: z.enum(['admin', 'user']).default('user'),
+  // Language for the member's emails (reset password etc.). Omitted → tenant
+  // locale (resolved in ensureAuthUser).
+  language: z.enum(['it', 'en']).optional(),
   branch_ids: z.array(z.string().uuid()).optional(),
   ...anagraficaShape,
 });
@@ -133,6 +136,7 @@ const Invite = z.object({
 interface InviteInput {
   email: string;
   role: 'admin' | 'user';
+  language?: 'it' | 'en';
   first_name?: string | null;
   last_name?: string | null;
   branch_ids?: string[];
@@ -156,7 +160,8 @@ async function ensureAuthUser(
   client: PoolClient,
   email: string,
   first_name?: string | null,
-  last_name?: string | null
+  last_name?: string | null,
+  language?: 'it' | 'en'
 ): Promise<{ userId: string; created: boolean }> {
   const existing = await client.query(
     `SELECT id, first_name, last_name FROM auth_users WHERE email = $1`,
@@ -187,13 +192,17 @@ async function ensureAuthUser(
     try {
       // Create silently — no invite/welcome email. An admin sends the initial
       // access mail later via the reset-password (recovery) flow. Seed the
-      // member's language from the tenant locale so that recovery mail renders
-      // in the right language (GoTrue reads it from user_metadata.language).
-      const tenantLang = await client.query(
-        `SELECT language FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid`
-      );
-      const language: 'it' | 'en' = tenantLang.rows[0]?.language === 'en' ? 'en' : 'it';
-      const created = await createUserSilently(email, language);
+      // member's language so that recovery mail renders in the right language
+      // (GoTrue reads it from user_metadata.language): use the explicit choice
+      // from the invite form, else fall back to the tenant locale.
+      let lang: 'it' | 'en' = language ?? 'it';
+      if (!language) {
+        const tenantLang = await client.query(
+          `SELECT language FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid`
+        );
+        lang = tenantLang.rows[0]?.language === 'en' ? 'en' : 'it';
+      }
+      const created = await createUserSilently(email, lang);
       userId = created.id;
     } catch (err) {
       logger.warn(
@@ -223,7 +232,8 @@ async function performInvite(client: PoolClient, inv: InviteInput): Promise<Invi
     client,
     inv.email,
     inv.first_name,
-    inv.last_name
+    inv.last_name,
+    inv.language
   );
   const existing = await client.query(
     `SELECT id, active, deleted_at FROM memberships

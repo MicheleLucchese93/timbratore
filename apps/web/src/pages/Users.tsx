@@ -1645,11 +1645,15 @@ function InviteForm({
   onClose: () => void;
   onInvited: () => void;
 }) {
-  const { t } = useTranslation(['users', 'common']);
+  const { t, i18n } = useTranslation(['users', 'common']);
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [role, setRole] = useState<'user' | 'admin'>('user');
+  // Drives the language of the member's emails (reset password etc.). Default
+  // to the admin's current UI language; the backend falls back to the tenant
+  // locale if omitted.
+  const [language, setLanguage] = useState<'it' | 'en'>(i18n.language === 'en' ? 'en' : 'it');
   const [branchIds, setBranchIds] = useState<Set<string>>(new Set());
   const [codiceFiscale, setCodiceFiscale] = useState('');
   const [matricola, setMatricola] = useState('');
@@ -1678,6 +1682,7 @@ function InviteForm({
         json: {
           email,
           role,
+          language,
           first_name: firstName.trim() || undefined,
           last_name: lastName.trim() || undefined,
           branch_ids: Array.from(branchIds),
@@ -1735,6 +1740,18 @@ function InviteForm({
             <option value="user">{t('invite.roleUser')}</option>
             <option value="admin">{t('common:role.admin')}</option>
           </select>
+        </div>
+        <div>
+          <label className="label">{t('invite.language')}</label>
+          <select
+            className="input"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value as 'it' | 'en')}
+          >
+            <option value="it">{t('invite.langItalian')}</option>
+            <option value="en">{t('invite.langEnglish')}</option>
+          </select>
+          <p className="text-xs muted mt-1">{t('invite.languageHint')}</p>
         </div>
         <div>
           <label className="label">{t('invite.branches')}</label>

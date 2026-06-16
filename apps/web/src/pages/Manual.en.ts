@@ -405,6 +405,7 @@ export const MAIN_EN = `
           <li>Press <strong>Invite user</strong>.</li>
           <li>Enter email (required), first and last name (optional).</li>
           <li>Choose the role: <em>User</em> or <em>Admin</em>.</li>
+          <li>Choose the <strong>language</strong> (Italian or English): it sets the language of the emails they receive (password reset, notifications). Defaults to the interface language.</li>
           <li>Select one or more <strong>branches</strong> to assign.</li>
           <li>Optional: fill in the <strong>payroll data (Centro Paghe)</strong> — <em>tax code</em>, <em>employee number</em> and, if needed, INAIL/qualification. You can always add or change them later from the users table.</li>
           <li>Press <strong>Invite</strong>.</li>

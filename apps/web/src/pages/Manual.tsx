@@ -412,6 +412,7 @@ const MAIN_IT = `
           <li>Premi <strong>Invita utente</strong>.</li>
           <li>Inserisci email (obbligatorio), nome e cognome (opzionali).</li>
           <li>Scegli il ruolo: <em>Utente</em> o <em>Admin</em>.</li>
+          <li>Scegli la <strong>lingua</strong> (Italiano o English): determina la lingua delle email che riceverà (reset password, notifiche). Preimpostata sulla lingua dell'interfaccia.</li>
           <li>Seleziona una o più <strong>sedi</strong> di assegnazione.</li>
           <li>Facoltativo: compila i <strong>dati paghe (Centro Paghe)</strong> — <em>codice fiscale</em>, <em>matricola</em> ed eventuali INAIL/qualifica. Puoi sempre aggiungerli o modificarli dopo dalla tabella utenti.</li>
           <li>Premi <strong>Invita</strong>.</li>
