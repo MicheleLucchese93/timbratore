@@ -65,6 +65,17 @@ const rows = [
       "Abiliti la timbratura web per singolo utente",
     ],
   },
+  {
+    file: "documents",
+    eyebrow: "Documenti",
+    label: "Cedolini e documenti, condivisi",
+    desc: "Carica cedolini, CU, contratti e comunicazioni in PDF e assegnali a ogni dipendente. Li consulta dal web o dall'app, e tu sai quando li ha visti.",
+    points: [
+      "Un documento, un dipendente: ognuno vede solo i suoi",
+      "Presa visione tracciata: sai chi ha aperto cosa",
+      "Archiviazione automatica per 36 mesi",
+    ],
+  },
 ];
 
 // Everything else, shown compactly so the breadth resta visibile.
@@ -111,7 +122,6 @@ const src = (file: string) => `/screenshots-web/${file}.png`;
                 <span class="h-2.5 w-2.5 rounded-full bg-red-400"></span>
                 <span class="h-2.5 w-2.5 rounded-full bg-yellow-400"></span>
                 <span class="h-2.5 w-2.5 rounded-full bg-green-400"></span>
-                <span class="ml-3 truncate rounded-md bg-white px-3 py-1 text-xs text-on-surface-variant">app-sonoqui.xdevapp.it</span>
               </div>
               <div class="relative">
                 <img src={src(row.file)} alt={row.label} class="block w-full" loading="lazy" />

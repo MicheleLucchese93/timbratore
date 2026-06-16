@@ -4,7 +4,6 @@ export const SITE_URL = 'https://sonoqui.xdevapp.it';
 export const APP_STORE_URL = 'https://apps.apple.com/it/app/sonoqui/id000000000';
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=app.sonoqui.mobile';
 export const WEB_APP_URL = 'https://app-sonoqui.xdevapp.it/login';
-export const LINKEDIN_URL = 'https://www.linkedin.com/in/michele-lucchese/';
 export const DEFAULT_IMAGE = '/icon.png';
 
 export const homeMeta: Record<Lang, { title: string; description: string }> = {
@@ -33,6 +32,16 @@ export const homeFaq: Record<Lang, FaqItem[]> = {
       question: "Posso esportare i dati per il commercialista?",
       answer:
         "Sì. La dashboard amministratori genera export XLSX mensili nel formato richiesto dalle paghe italiane. Anomalie evidenziate, totali per dipendente, sede e tipologia.",
+    },
+    {
+      question: "Posso condividere cedolini e documenti con i dipendenti?",
+      answer:
+        "Sì. Carichi i PDF (cedolini, CU, contratti, comunicazioni) e li assegni a ogni dipendente, che li trova nella sezione «I miei documenti» sul web e nel tab «Documenti» dell'app. Ogni documento registra la presa visione e viene archiviato per 36 mesi; sull'app la sezione è protetta da sblocco biometrico.",
+    },
+    {
+      question: "Cosa succede se il dipendente non ha campo o internet?",
+      answer:
+        "La timbratura non va persa: viene messa in coda e inviata automaticamente appena il telefono torna online, anche dopo aver chiuso l'app. Un sistema anti-doppioni evita timbrature duplicate. Utile per cantieri, trasferte e zone senza copertura.",
     },
     {
       question: "Che succede se un dipendente si dimentica di timbrare?",
