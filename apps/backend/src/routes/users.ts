@@ -85,12 +85,49 @@ const NameField = z
   .transform((v) => (v.length === 0 ? null : v))
   .nullable();
 
+// Anagrafica field: trim, cap length, empty → null (so admins can clear it).
+const AnagraficaField = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .transform((v) => (v.length === 0 ? null : v))
+    .nullable();
+
+// Matricola: up to 4 digits, empty → null.
+const MatricolaField = z
+  .string()
+  .trim()
+  .max(4)
+  .regex(/^\d*$/, 'matricola: solo cifre')
+  .transform((v) => (v.length === 0 ? null : v))
+  .nullable();
+
+// Centro Paghe payroll anagrafica columns stored on the membership row.
+const MEMBERSHIP_ANAGRAFICA = [
+  'codice_fiscale',
+  'matricola',
+  'inail',
+  'qualifica',
+  'qualifica2',
+] as const;
+
+// Shared anagrafica shape — settable at invite and patchable later.
+const anagraficaShape = {
+  codice_fiscale: AnagraficaField(16).optional(),
+  matricola: MatricolaField.optional(),
+  inail: AnagraficaField(1).optional(),
+  qualifica: AnagraficaField(1).optional(),
+  qualifica2: AnagraficaField(1).optional(),
+};
+
 const Invite = z.object({
   email: z.string().email(),
   first_name: NameField.optional(),
   last_name: NameField.optional(),
   role: z.enum(['admin', 'user']).default('user'),
   branch_ids: z.array(z.string().uuid()).optional(),
+  ...anagraficaShape,
 });
 
 interface InviteInput {
@@ -99,6 +136,11 @@ interface InviteInput {
   first_name?: string | null;
   last_name?: string | null;
   branch_ids?: string[];
+  codice_fiscale?: string | null;
+  matricola?: string | null;
+  inail?: string | null;
+  qualifica?: string | null;
+  qualifica2?: string | null;
 }
 
 interface InviteOutcome {
@@ -196,21 +238,44 @@ async function performInvite(client: PoolClient, inv: InviteInput): Promise<Invi
       addedMember = false;
       wasActiveAlready = true;
     } else {
+      // Reactivating a former member: only overwrite anagrafica the admin
+      // re-supplied (COALESCE) — don't wipe what was there before.
       const upd = await client.query(
         `UPDATE memberships
-         SET role = $1, active = TRUE, deleted_at = NULL
+         SET role = $1, active = TRUE, deleted_at = NULL,
+             codice_fiscale = COALESCE($3, codice_fiscale),
+             matricola = COALESCE($4, matricola),
+             inail = COALESCE($5, inail),
+             qualifica = COALESCE($6, qualifica),
+             qualifica2 = COALESCE($7, qualifica2)
          WHERE id = $2 RETURNING *`,
-        [inv.role, ex.id]
+        [
+          inv.role,
+          ex.id,
+          inv.codice_fiscale ?? null,
+          inv.matricola ?? null,
+          inv.inail ?? null,
+          inv.qualifica ?? null,
+          inv.qualifica2 ?? null,
+        ]
       );
       membership = upd.rows[0];
       addedMember = true;
     }
   } else {
     const ins = await client.query(
-      `INSERT INTO memberships(tenant_id, user_id, role)
-       VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2)
+      `INSERT INTO memberships(tenant_id, user_id, role, codice_fiscale, matricola, inail, qualifica, qualifica2)
+       VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [userId, inv.role]
+      [
+        userId,
+        inv.role,
+        inv.codice_fiscale ?? null,
+        inv.matricola ?? null,
+        inv.inail ?? null,
+        inv.qualifica ?? null,
+        inv.qualifica2 ?? null,
+      ]
     );
     membership = ins.rows[0];
     addedMember = true;
@@ -357,15 +422,6 @@ usersRouter.post(
   })
 );
 
-// Anagrafica field: trim, cap length, empty → null (so admins can clear it).
-const AnagraficaField = (max: number) =>
-  z
-    .string()
-    .trim()
-    .max(max)
-    .transform((v) => (v.length === 0 ? null : v))
-    .nullable();
-
 const PatchUser = z.object({
   role: z.enum(['admin', 'user']).optional(),
   // Allowed clock-in methods. Empty array = user cannot clock in.
@@ -374,27 +430,8 @@ const PatchUser = z.object({
   first_name: NameField.optional(),
   last_name: NameField.optional(),
   // Centro Paghe payroll anagrafica (stored on the membership).
-  codice_fiscale: AnagraficaField(16).optional(),
-  matricola: z
-    .string()
-    .trim()
-    .max(4)
-    .regex(/^\d*$/, 'matricola: solo cifre')
-    .transform((v) => (v.length === 0 ? null : v))
-    .nullable()
-    .optional(),
-  inail: AnagraficaField(1).optional(),
-  qualifica: AnagraficaField(1).optional(),
-  qualifica2: AnagraficaField(1).optional(),
+  ...anagraficaShape,
 });
-
-const MEMBERSHIP_ANAGRAFICA = [
-  'codice_fiscale',
-  'matricola',
-  'inail',
-  'qualifica',
-  'qualifica2',
-] as const;
 
 usersRouter.patch(
   '/:id',

@@ -413,6 +413,7 @@ const MAIN_IT = `
           <li>Inserisci email (obbligatorio), nome e cognome (opzionali).</li>
           <li>Scegli il ruolo: <em>Utente</em> o <em>Admin</em>.</li>
           <li>Seleziona una o più <strong>sedi</strong> di assegnazione.</li>
+          <li>Facoltativo: compila i <strong>dati paghe (Centro Paghe)</strong> — <em>codice fiscale</em>, <em>matricola</em> ed eventuali INAIL/qualifica. Puoi sempre aggiungerli o modificarli dopo dalla tabella utenti.</li>
           <li>Premi <strong>Invita</strong>.</li>
         </ol>
         <p>L'utente viene creato ma <strong>non riceve alcuna email automatica</strong>. Per dargli accesso, premi l'icona <strong>reimposta password</strong> (a forma di chiave) sulla sua riga — oppure selezionalo e usa l'operazione in massa <strong>Invia reset password</strong>: riceverà così l'email per impostare la password.</p>
@@ -774,7 +775,7 @@ const MAIN_IT = `
       <div class="feature">
         <h3>Anagrafica e localizzazione</h3>
         <ul class="tidy">
-          <li><strong>Ragione sociale</strong> e <strong>Partita IVA</strong> — sola lettura (modificabili dal provider).</li>
+          <li><strong>Ragione sociale</strong> — sola lettura (modificabile dal provider). <strong>Partita IVA</strong> — modificabile dall'amministratore (11 cifre).</li>
           <li><strong>Timezone</strong> — fuso orario aziendale (Europe/Rome di default).</li>
           <li><strong>Lingua</strong> — Italiano o English. All'inizio l'app usa la lingua del browser (le lingue diverse da italiano e inglese ripiegano su <em>English</em>); resta una preferenza <em>personale</em> che vale solo per il tuo account e la cambi qui (su mobile da <em>Profilo → Lingua</em>).</li>
           <li><strong>Paese</strong> — opzionale, sola lettura.</li>

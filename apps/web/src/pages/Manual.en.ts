@@ -406,6 +406,7 @@ export const MAIN_EN = `
           <li>Enter email (required), first and last name (optional).</li>
           <li>Choose the role: <em>User</em> or <em>Admin</em>.</li>
           <li>Select one or more <strong>branches</strong> to assign.</li>
+          <li>Optional: fill in the <strong>payroll data (Centro Paghe)</strong> — <em>tax code</em>, <em>employee number</em> and, if needed, INAIL/qualification. You can always add or change them later from the users table.</li>
           <li>Press <strong>Invite</strong>.</li>
         </ol>
         <p>The user is created but <strong>receives no automatic email</strong>. To give them access, press the <strong>reset password</strong> icon (key-shaped) on their row — or select them and use the <strong>Send password reset</strong> bulk action: that sends the email to set their password.</p>
@@ -767,7 +768,7 @@ export const MAIN_EN = `
       <div class="feature">
         <h3>Company details and localization</h3>
         <ul class="tidy">
-          <li><strong>Company name</strong> and <strong>VAT number</strong> — read-only (editable by the provider).</li>
+          <li><strong>Company name</strong> — read-only (editable by the provider). <strong>VAT number</strong> — editable by an admin (11 digits).</li>
           <li><strong>Timezone</strong> — company time zone (Europe/Rome by default).</li>
           <li><strong>Language</strong> — Italian or English. The app initially picks your browser's language (anything other than Italian or English falls back to <em>English</em>); it stays a <em>personal</em> preference that applies only to your account and you change it here (on mobile from <em>Profile &rarr; Language</em>).</li>
           <li><strong>Country</strong> — optional, read-only.</li>

@@ -505,7 +505,18 @@ export async function deleteBranch(adminToken: string, id: string): Promise<void
 
 export async function inviteUser(
   adminToken: string,
-  body: { email: string; role?: 'admin' | 'user'; first_name?: string; last_name?: string; branch_ids?: string[] },
+  body: {
+    email: string;
+    role?: 'admin' | 'user';
+    first_name?: string;
+    last_name?: string;
+    branch_ids?: string[];
+    codice_fiscale?: string;
+    matricola?: string;
+    inail?: string;
+    qualifica?: string;
+    qualifica2?: string;
+  },
 ): Promise<{ user_id: string; email: string }> {
   const r = await apiPost<{ user_id: string; email: string }>(adminToken, '/api/v1/users/invite', body);
   if (r.status !== 201 || !r.data) throw new Error(`inviteUser failed: ${r.status} ${r.code ?? ''}`);

@@ -1635,6 +1635,11 @@ function InviteForm({
   const [lastName, setLastName] = useState('');
   const [role, setRole] = useState<'user' | 'admin'>('user');
   const [branchIds, setBranchIds] = useState<Set<string>>(new Set());
+  const [codiceFiscale, setCodiceFiscale] = useState('');
+  const [matricola, setMatricola] = useState('');
+  const [inail, setInail] = useState('');
+  const [qualifica, setQualifica] = useState('');
+  const [qualifica2, setQualifica2] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -1660,6 +1665,11 @@ function InviteForm({
           first_name: firstName.trim() || undefined,
           last_name: lastName.trim() || undefined,
           branch_ids: Array.from(branchIds),
+          codice_fiscale: codiceFiscale.trim().toUpperCase() || undefined,
+          matricola: matricola.trim() || undefined,
+          inail: inail.trim().toUpperCase() || undefined,
+          qualifica: qualifica.trim().toUpperCase() || undefined,
+          qualifica2: qualifica2.trim().toUpperCase() || undefined,
         },
       });
       onInvited();
@@ -1734,6 +1744,69 @@ function InviteForm({
           )}
           <p className="text-xs muted mt-1">{t('invite.branchesHint')}</p>
         </div>
+
+        <div className="hairline my-1" />
+        <p className="text-xs muted">
+          {t('userEditor.anagraficaHint')} <span className="muted">{t('invite.optional')}</span>
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="label">{t('userEditor.codiceFiscale')}</label>
+            <input
+              type="text"
+              className="input num"
+              value={codiceFiscale}
+              onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
+              maxLength={16}
+              style={{ textTransform: 'uppercase' }}
+            />
+          </div>
+          <div>
+            <label className="label">{t('userEditor.matricola')}</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              className="input num"
+              value={matricola}
+              onChange={(e) => setMatricola(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              maxLength={4}
+              placeholder="0000"
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className="label">{t('userEditor.inail')}</label>
+            <input
+              type="text"
+              className="input num"
+              value={inail}
+              onChange={(e) => setInail(e.target.value.toUpperCase().slice(0, 1))}
+              maxLength={1}
+            />
+          </div>
+          <div>
+            <label className="label">{t('userEditor.qualifica')}</label>
+            <input
+              type="text"
+              className="input num"
+              value={qualifica}
+              onChange={(e) => setQualifica(e.target.value.toUpperCase().slice(0, 1))}
+              maxLength={1}
+            />
+          </div>
+          <div>
+            <label className="label">{t('userEditor.qualifica2')}</label>
+            <input
+              type="text"
+              className="input num"
+              value={qualifica2}
+              onChange={(e) => setQualifica2(e.target.value.toUpperCase().slice(0, 1))}
+              maxLength={1}
+            />
+          </div>
+        </div>
+
         {err && <div className="rounded-md px-3 py-2 text-sm" style={{ background: '#fde4e4', color: 'var(--color-error)' }}>{err}</div>}
         <div className="flex gap-2 justify-end">
           <button type="button" className="btn btn-secondary" onClick={onClose}>{t('common:btn.cancel')}</button>
