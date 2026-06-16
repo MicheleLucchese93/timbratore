@@ -4,7 +4,7 @@ import LegalLayout from "../../layouts/LegalLayout.astro";
 
 <LegalLayout
   title="Informativa sulla Privacy"
-  lastUpdated="28 maggio 2026"
+  lastUpdated="16 giugno 2026 · v1.1"
   alternatePaths={{ it: "/it/privacy-policy/" }}
 >
   <h2>1. Titolare del trattamento</h2>
@@ -16,7 +16,7 @@ import LegalLayout from "../../layouts/LegalLayout.astro";
   <p>sonoQui non ha designato un Responsabile della Protezione dei Dati (DPO) poiché il trattamento non rientra nelle soglie dell'art. 37 GDPR. Per qualsiasi richiesta in materia di protezione dei dati, contatta l'indirizzo sopra indicato.</p>
 
   <h2>2. Introduzione</h2>
-  <p>sonoQui ("noi" o "nostro") è un servizio di rilevazione presenze rivolto alle PMI italiane (≤20 dipendenti). Questa Informativa spiega come raccogliamo, utilizziamo, conserviamo e proteggiamo le informazioni personali quando utilizzi l'applicazione mobile sonoQui e i servizi correlati, nel rispetto del Regolamento (UE) 2016/679 ("GDPR"), del D.Lgs. 196/2003 come modificato e dell'art. 4 della Legge 300/1970 (Statuto dei Lavoratori).</p>
+  <p>sonoQui ("noi" o "nostro") è un servizio di rilevazione presenze rivolto principalmente alle piccole imprese italiane. Questa Informativa spiega come raccogliamo, utilizziamo, conserviamo e proteggiamo le informazioni personali quando utilizzi l'applicazione mobile sonoQui e i servizi correlati, nel rispetto del Regolamento (UE) 2016/679 ("GDPR"), del D.Lgs. 196/2003 come modificato e dell'art. 4 della Legge 300/1970 (Statuto dei Lavoratori).</p>
 
   <h2>3. Modello di responsabilità: Titolare vs Responsabile</h2>
   <div class="highlight-box">
@@ -82,11 +82,11 @@ import LegalLayout from "../../layouts/LegalLayout.astro";
   <h2>7. Categorie di destinatari</h2>
   <p>Ci avvaliamo di responsabili del trattamento terzi (art. 28 GDPR) vincolati da specifico Data Processing Agreement (DPA):</p>
   <ul>
-    <li><strong>Infrastruttura di hosting e database</strong> — server OVH, con sede nell'Unione Europea (Francia)</li>
-    <li><strong>Object storage</strong> — Cloudflare R2 per allegati richieste, operante a livello globale con SCC</li>
-    <li><strong>Servizio di autenticazione</strong> — GoTrue self-hosted sulla nostra infrastruttura UE</li>
+    <li><strong>Infrastruttura di hosting e database</strong> — fornitore di infrastruttura cloud con sede nell'Unione Europea</li>
+    <li><strong>Object storage</strong> — servizio di archiviazione oggetti per gli allegati delle richieste, con Clausole Contrattuali Standard (SCC)</li>
+    <li><strong>Servizio di autenticazione</strong> — gestione delle credenziali ospitata sulla nostra infrastruttura nell'Unione Europea</li>
     <li><strong>Servizi di consegna delle notifiche push</strong> — gestiti dai fornitori dei sistemi operativi mobili (iOS Apple Inc., Android Google LLC)</li>
-    <li><strong>Reverse proxy e DNS</strong> — Cloudflare</li>
+    <li><strong>Reverse proxy e DNS</strong> — fornitore di servizi di rete (reverse proxy e DNS)</li>
   </ul>
   <p>L'elenco completo e aggiornato dei sub-responsabili nominativi è disponibile su richiesta tramite il <a href="#contact">modulo di contatto</a> sul sito.</p>
   <p>Non vendiamo le tue informazioni personali. I dati di un dipendente sono visibili solo al proprio datore di lavoro e agli amministratori da questi designati.</p>
@@ -121,13 +121,15 @@ import LegalLayout from "../../layouts/LegalLayout.astro";
   </ul>
 
   <h2>10. Archiviazione e sicurezza</h2>
+  <p>Adottiamo misure tecniche e organizzative adeguate per proteggere i dati personali da accessi non autorizzati, perdita, alterazione o divulgazione, tra cui:</p>
   <ul>
-    <li><strong>Database:</strong> PostgreSQL su server UE con <strong>Row Level Security (RLS)</strong> che garantisce l'isolamento dei dati per azienda cliente</li>
-    <li><strong>Crittografia:</strong> dati cifrati in transito (TLS 1.2+) e a riposo (LUKS / AES-256)</li>
-    <li><strong>Autenticazione:</strong> token sicuri (JWT), password con hashing bcrypt, sessione persistente cifrata</li>
-    <li><strong>Backup:</strong> backup cifrati conservati nell'UE</li>
-    <li><strong>Audit log:</strong> ogni modifica amministrativa (correzioni, approvazioni, cambio sede) tracciata con timestamp e identità decisore</li>
+    <li>Crittografia dei dati in transito e a riposo</li>
+    <li>Isolamento logico dei dati tra le diverse aziende clienti</li>
+    <li>Controlli di accesso e autenticazione basati sui ruoli</li>
+    <li>Backup periodici conservati nell'Unione Europea</li>
+    <li>Registrazione delle modifiche amministrative (audit log)</li>
   </ul>
+  <p>I dati sono ospitati su infrastrutture situate nell'Unione Europea. Nessun sistema può garantire una sicurezza assoluta; ci impegniamo a mantenere le nostre misure aggiornate secondo le migliori pratiche del settore.</p>
 
   <h2>11. I tuoi diritti (artt. 15-22 GDPR)</h2>
   <p>Ai sensi del GDPR hai i seguenti diritti:</p>

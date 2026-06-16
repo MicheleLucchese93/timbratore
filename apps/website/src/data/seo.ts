@@ -1,7 +1,8 @@
 import type { Lang } from '../i18n/ui';
 
 export const SITE_URL = 'https://sonoqui.xdevapp.it';
-export const APP_STORE_URL = 'https://apps.apple.com/it/app/sonoqui/id000000000';
+// TODO: set the real numeric App Store ID once the iOS listing is live (currently pre-launch / Beta).
+// export const APP_STORE_URL = 'https://apps.apple.com/it/app/sonoqui/idXXXXXXXXX';
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=app.sonoqui.mobile';
 export const WEB_APP_URL = 'https://app-sonoqui.xdevapp.it/login';
 export const DEFAULT_IMAGE = '/icon.png';
@@ -10,7 +11,7 @@ export const homeMeta: Record<Lang, { title: string; description: string }> = {
   it: {
     title: 'sonoQui | Rilevazione presenze con GPS per PMI italiane',
     description:
-      "sonoQui è l'app di rilevazione presenze per PMI italiane: timbratura GPS al tap, ferie e correzioni in app, export per il commercialista. Conforme art. 4 Statuto dei Lavoratori.",
+      "sonoQui è l'app di rilevazione presenze per PMI italiane: timbratura GPS al tap, ferie e correzioni in app, export per il commercialista. Pensata per l'art. 4 dello Statuto dei Lavoratori.",
   },
 };
 
@@ -26,7 +27,7 @@ export const homeFaq: Record<Lang, FaqItem[]> = {
     {
       question: "sonoQui è conforme all'art. 4 dello Statuto dei Lavoratori?",
       answer:
-        "Sì. sonoQui rileva la posizione solo al momento della timbratura, mai in continuo. Non utilizza riconoscimento facciale né dati biometrici. I dati GPS vengono mascherati dopo 90 giorni: rimane solo la sede di riferimento.",
+        "sonoQui è progettata nel rispetto dell'art. 4: rileva la posizione solo al momento della timbratura, mai in continuo, e non utilizza riconoscimento facciale né dati biometrici. I dati GPS vengono mascherati dopo 90 giorni: rimane solo la sede di riferimento. L'attivazione resta comunque subordinata agli obblighi dell'art. 4 a carico del datore di lavoro (accordo sindacale aziendale o autorizzazione dell'Ispettorato Territoriale del Lavoro).",
     },
     {
       question: "Posso esportare i dati per il commercialista?",
@@ -76,7 +77,7 @@ export const homeFaq: Record<Lang, FaqItem[]> = {
     {
       question: "Come iniziamo a usare sonoQui?",
       answer:
-        "Non c'è registrazione pubblica: attiviamo noi l'azienda e creiamo il primo account amministratore. Da lì inviti i dipendenti, configuri sedi e orari e sei operativo. Compila il modulo di contatto qui sotto e ti rispondiamo entro 24 ore lavorative.",
+        "Non c'è registrazione pubblica: attiviamo noi l'azienda e creiamo il primo account amministratore. Da lì inviti i dipendenti, configuri sedi e orari e sei operativo. Compila il modulo di contatto qui sotto e ti rispondiamo al più presto, in genere entro 1-2 giorni lavorativi.",
     },
   ],
 };
