@@ -41,7 +41,10 @@ export async function inviteUser(email: string, language: 'it' | 'en' = 'it'): P
 // confirmation mail goes out. The user has no usable password until an admin
 // sends them a recovery (reset-password) email — that is now the only way the
 // initial access mail reaches a newly-created member.
-export async function createUserSilently(email: string): Promise<GoTrueUser> {
+export async function createUserSilently(
+  email: string,
+  language: 'it' | 'en' = 'it'
+): Promise<GoTrueUser> {
   const jwt = await serviceRoleJwt();
   const r = await fetch(`${env.GOTRUE_URL}/admin/users`, {
     method: 'POST',
@@ -49,7 +52,16 @@ export async function createUserSilently(email: string): Promise<GoTrueUser> {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${jwt}`,
     },
-    body: JSON.stringify({ email, password: randomUUID(), email_confirm: true }),
+    // user_metadata is what GoTrue exposes as `.Data` in email templates, so
+    // recovery/confirmation mail renders in the member's language (see
+    // gotrue-templates/recovery.html). Without it the templates fall back to
+    // English for every admin-created member.
+    body: JSON.stringify({
+      email,
+      password: randomUUID(),
+      email_confirm: true,
+      user_metadata: { language },
+    }),
   });
   if (!r.ok) {
     const text = await r.text();

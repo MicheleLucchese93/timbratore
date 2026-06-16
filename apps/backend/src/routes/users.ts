@@ -186,8 +186,14 @@ async function ensureAuthUser(
   if (env.NODE_ENV === 'production' || env.GOTRUE_URL.startsWith('http')) {
     try {
       // Create silently — no invite/welcome email. An admin sends the initial
-      // access mail later via the reset-password (recovery) flow.
-      const created = await createUserSilently(email);
+      // access mail later via the reset-password (recovery) flow. Seed the
+      // member's language from the tenant locale so that recovery mail renders
+      // in the right language (GoTrue reads it from user_metadata.language).
+      const tenantLang = await client.query(
+        `SELECT language FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid`
+      );
+      const language: 'it' | 'en' = tenantLang.rows[0]?.language === 'en' ? 'en' : 'it';
+      const created = await createUserSilently(email, language);
       userId = created.id;
     } catch (err) {
       logger.warn(
