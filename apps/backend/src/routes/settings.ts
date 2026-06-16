@@ -9,11 +9,19 @@ export const settingsRouter = Router();
 settingsRouter.use(authenticate);
 settingsRouter.use(requireAdmin);
 
-// ragione_sociale, partita_iva, retention_years and mock_location_action are
-// provisioned at tenant creation and are not editable from the app.
+// ragione_sociale, retention_years and mock_location_action are provisioned at
+// tenant creation and are not editable from the app. partita_iva is admin-editable
+// (the whole router is requireAdmin).
 const TenantSettings = z.object({
   timezone: z.string().optional(),
   language: z.enum(['it', 'en']).optional(),
+  // Italian VAT: 11 digits. Allow clearing to null.
+  partita_iva: z
+    .string()
+    .trim()
+    .regex(/^\d{11}$/, 'partita_iva must be 11 digits')
+    .nullable()
+    .optional(),
   ccnl: z.string().nullable().optional(),
   // Centro Paghe export configuration.
   codice_ditta: z.string().trim().max(7).nullable().optional(),

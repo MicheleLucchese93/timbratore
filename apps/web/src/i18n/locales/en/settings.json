@@ -2,7 +2,7 @@
   "title": "Settings",
   "section": {
     "profile": "Company details & localization",
-    "profileDesc": "Basic company data and system language. The legal name and VAT number are set when the tenant is provisioned.",
+    "profileDesc": "Basic company data and system language. The legal name is set when the tenant is provisioned; the VAT number can be edited by an admin.",
     "activeCompany": "Active company",
     "activeCompanyDesc": "Your account is linked to multiple companies. Switch the one you are working on: the page will reload with the new company's data.",
     "emailNotif": "Email notifications",
@@ -12,6 +12,7 @@
   },
   "ragioneSociale": "Legal name",
   "partitaIva": "VAT number",
+  "partitaIvaHint": "Italian VAT number: 11 digits.",
   "readOnlyHint": "Read-only. Editable by the provider.",
   "timezone": "Timezone",
   "timezoneHint": "Affects time zones in reports.",

@@ -6,10 +6,12 @@ test.describe('web — Impostazioni (admin)', () => {
     await expect(page.getByRole('heading', { name: /Impostazioni/i })).toBeVisible({ timeout: 15_000 });
   });
 
-  test('Anagrafica section renders read-only Ragione sociale + P.IVA', async ({ page }) => {
+  test('Anagrafica: Ragione sociale read-only, Partita IVA editable by admin', async ({ page }) => {
     const ragione = page.locator('input').filter({ hasNot: page.locator('[type="checkbox"], [type="date"], [type="number"]') }).first();
     // The first text-like input is the Ragione sociale field; it's disabled.
     await expect(ragione).toBeDisabled();
+    // P.IVA is now admin-editable (whole settings router is requireAdmin).
+    await expect(page.getByLabel('Partita IVA')).toBeEditable();
   });
 
   test('Timezone select has Europe/Rome + Europe/London + UTC options', async ({ page }) => {

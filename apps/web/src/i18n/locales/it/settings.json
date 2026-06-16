@@ -2,7 +2,7 @@
   "title": "Impostazioni",
   "section": {
     "profile": "Anagrafica e localizzazione",
-    "profileDesc": "Dati base dell'azienda e lingua di sistema. La ragione sociale e la partita IVA sono impostate al provisioning del tenant.",
+    "profileDesc": "Dati base dell'azienda e lingua di sistema. La ragione sociale è impostata al provisioning del tenant; la partita IVA è modificabile dall'amministratore.",
     "activeCompany": "Azienda attiva",
     "activeCompanyDesc": "Il tuo account è collegato a più aziende. Cambia quella su cui stai lavorando: la pagina si ricaricherà con i dati della nuova azienda.",
     "emailNotif": "Notifiche email",
@@ -12,6 +12,7 @@
   },
   "ragioneSociale": "Ragione sociale",
   "partitaIva": "Partita IVA",
+  "partitaIvaHint": "Partita IVA italiana: 11 cifre.",
   "readOnlyHint": "Solo lettura. Modificabile dal provider.",
   "timezone": "Timezone",
   "timezoneHint": "Influenza i fusi nei report.",

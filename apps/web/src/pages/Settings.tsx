@@ -67,6 +67,7 @@ interface MeResponse {
 export function Settings() {
   const { t } = useTranslation(['settings', 'common']);
   const [s, setS] = useState<TenantSettings | null>(null);
+  const [piva, setPiva] = useState('');
   const [prefs, setPrefs] = useState<MePrefs | null>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<Toast>(null);
@@ -97,11 +98,20 @@ export function Settings() {
       api<MeResponse>('/api/v1/me'),
     ]);
     setS(data);
+    setPiva(data.partita_iva ?? '');
     setPrefs(me.preferences ?? null);
   }
   useEffect(() => {
     load().catch((e) => setToast({ kind: 'err', text: e.message }));
   }, []);
+
+  async function savePiva() {
+    if (!s) return;
+    const next = piva.trim();
+    if (next === (s.partita_iva ?? '')) return;
+    const okSave = await patchSettings({ partita_iva: next || null });
+    if (!okSave) setPiva(s.partita_iva ?? '');
+  }
 
   async function saveNotifPref(key: string, next: boolean) {
     if (!prefs) return;
@@ -188,14 +198,33 @@ export function Settings() {
             <p className="field-hint">{t('readOnlyHint')}</p>
           </Field>
           <Field label={t('partitaIva')}>
-            <input
-              className="input"
-              value={s.partita_iva ?? ''}
-              readOnly
-              disabled
-              placeholder="—"
-            />
-            <p className="field-hint">{t('readOnlyHint')}</p>
+            {isAdmin ? (
+              <>
+                <input
+                  className="input num"
+                  aria-label={t('partitaIva')}
+                  value={piva}
+                  maxLength={11}
+                  inputMode="numeric"
+                  disabled={busy}
+                  onChange={(e) => setPiva(e.target.value.replace(/\D/g, ''))}
+                  onBlur={() => void savePiva()}
+                  placeholder="—"
+                />
+                <p className="field-hint">{t('partitaIvaHint')}</p>
+              </>
+            ) : (
+              <>
+                <input
+                  className="input"
+                  value={s.partita_iva ?? ''}
+                  readOnly
+                  disabled
+                  placeholder="—"
+                />
+                <p className="field-hint">{t('readOnlyHint')}</p>
+              </>
+            )}
           </Field>
           <Field label={t('timezone')}>
             <select
