@@ -146,7 +146,7 @@ export const MAIN_EN = `
 
     <section class="chapter" id="accesso">
       <h2><span class="chapter-num">04</span>Access and password</h2>
-      <p class="lead">Same credentials for Web and Mobile. The initial invitation comes from the administrator by email.</p>
+      <p class="lead">Same credentials for Web and Mobile. The administrator creates your account and sends you an email to set your password and sign in.</p>
 
       <div class="feature">
         <h3>Logging in</h3>

@@ -153,7 +153,7 @@ const MAIN_IT = `
 
     <section class="chapter" id="accesso">
       <h2><span class="chapter-num">04</span>Accesso e password</h2>
-      <p class="lead">Stesse credenziali per Web e Mobile. L'invito iniziale arriva dall'amministratore via email.</p>
+      <p class="lead">Stesse credenziali per Web e Mobile. L'amministratore crea il tuo account e ti invia l'email per impostare la password e accedere.</p>
 
       <div class="feature">
         <h3>Effettuare l'accesso</h3>
