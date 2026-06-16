@@ -122,7 +122,12 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
   for (const userId of leavesByUserDay.keys()) {
     if (!byUser.has(userId)) {
       const meta = await adminPool.query(
-        `SELECT COALESCE(au.email, $1::text) AS email FROM auth_users au WHERE au.id = $1`,
+        // $1::uuid pins the param type. The old `COALESCE(au.email, $1::text)`
+        // forced $1 to text, so `au.id = $1` became uuid=text and threw
+        // "operator does not exist: uuid = text" for any user with approved
+        // leave but no stamps in the period. The `?? userId` below is the
+        // email fallback the COALESCE used to provide.
+        `SELECT email FROM auth_users WHERE id = $1::uuid`,
         [userId]
       );
       byUser.set(userId, { email: meta.rows[0]?.email ?? userId, stamps: [] });
