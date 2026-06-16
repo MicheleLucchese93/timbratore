@@ -1,4 +1,24 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page, type Locator } from '@playwright/test';
+
+// MUI DataGrid virtualises columns horizontally: cells outside the rendered
+// window are not in the DOM at all. The approver columns ("Approvatori ferie",
+// "Approvatori correzioni") sit to the right of the anagrafica columns
+// (Nome/Cognome/Codice fiscale), so at the 1280px viewport they start off the
+// right edge and their "Modifica" buttons never mount. Scroll the grid right in
+// steps and stop as soon as the target button mounts — robust to column order,
+// widths and viewport changes (a fixed scrollTo(9999) can over-shoot and leave
+// the wanted column just off the *left* edge).
+async function revealApproverButton(page: Page, titleSubstr: string): Promise<Locator> {
+  const grid = page.locator('.MuiDataGrid-virtualScroller').first();
+  const btn = page.locator(`button[title*="${titleSubstr}" i]`).first();
+  for (let left = 0; left <= 6000; left += 300) {
+    if (await btn.count()) break;
+    await grid.evaluate((el, l) => el.scrollTo({ left: l }), left);
+    // Let the grid mount the newly-revealed columns before re-checking.
+    await page.waitForTimeout(80);
+  }
+  return btn;
+}
 
 // Real Italian SME workflow scenarios:
 // - No approvers configured → fallback to all tenant admins.
@@ -26,10 +46,10 @@ test.describe('web — Approver workflow (Utenti page)', () => {
     // Each user row exposes a "Modifica" button in the "Approvatori ferie"
     // column. Clicking it opens ApproverEditor with the canonical IT copy
     // that documents the fallback + multi-approver policy.
-    // The leave-approver "Modifica" lives in the "Approvatori ferie" column.
-    // Other columns (sedi, timbratura/stamp-modes) also render "… · Modifica"
-    // buttons before it, so target this one by its title rather than .first().
-    const leaveBtn = page.locator('button[title*="approvare ferie" i]').first();
+    // The leave-approver "Modifica" lives in the "Approvatori ferie" column,
+    // which the DataGrid virtualises off-screen-right — scroll it into view
+    // first. Target by title (other columns also render "… · Modifica").
+    const leaveBtn = await revealApproverButton(page, 'approvare ferie');
     await expect(leaveBtn).toBeVisible({ timeout: 10_000 });
     await leaveBtn.click();
     await expect(page.getByRole('heading', { name: /Approvatori ferie\/permessi/ })).toBeVisible({ timeout: 10_000 });
@@ -43,11 +63,8 @@ test.describe('web — Approver workflow (Utenti page)', () => {
   test('correction-approver editor uses the correzioni explainer', async ({ page }) => {
     // MUI DataGrid virtualises columns out of the viewport. The "Approvatori
     // correzioni" column lives further right — scroll the grid horizontally
-    // until its "Modifica" button (with title containing "correzione")
-    // appears, then click it.
-    const grid = page.locator('.MuiDataGrid-virtualScroller').first();
-    await grid.evaluate((el) => el.scrollTo({ left: 9999 }));
-    const correctionBtn = page.locator('button[title*="correzione" i]').first();
+    // until its "Modifica" button (title containing "correzione") mounts.
+    const correctionBtn = await revealApproverButton(page, 'correzione');
     await expect(correctionBtn).toBeVisible({ timeout: 10_000 });
     await correctionBtn.click();
     await expect(page.getByRole('heading', { name: /Approvatori correzioni/ })).toBeVisible({ timeout: 10_000 });
@@ -63,7 +80,8 @@ test.describe('web — Approver workflow (Utenti page)', () => {
     // approvers for test3, the candidate list must show at least the two
     // admins (test1, test2) — verifies the admin-fallback is *configurable*,
     // not just a hidden default.
-    await page.locator('button[title*="approvare ferie" i]').first().click();
+    const leaveBtn = await revealApproverButton(page, 'approvare ferie');
+    await leaveBtn.click();
     await expect(page.getByRole('heading', { name: /Approvatori/ })).toBeVisible();
     // The candidate list is a <ul> with <li><label><input type=checkbox>… per
     // user. Wait for at least one checkbox to render (loading state shows
