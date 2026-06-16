@@ -8,6 +8,8 @@ import {
 } from '../components/PlaceSearchInput.tsx';
 import { BranchMapPreview } from '../components/BranchMapPreview.tsx';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
+import { PageHeader } from '../components/PageHeader.tsx';
+import { IconButton } from '../components/IconButton.tsx';
 
 interface Branch {
   id: string;
@@ -57,26 +59,28 @@ export function Branches() {
   }
 
   return (
-    <div className="space-y-5">
-      <header className="flex items-center justify-end gap-4 flex-wrap">
-        <h1 className="sr-only">{t('title')}</h1>
-        <button
-          className="btn btn-primary"
-          disabled={atLimit}
-          title={atLimit ? t('limitReachedTitle') : ''}
-          onClick={() => setShowCreate(true)}
-        >
-          {t('new')}
-        </button>
-      </header>
-      {usage && (
-        <div className="card flex gap-6 text-sm flex-wrap">
-          <div>
-            <span className="muted">{t('count')}</span>
-            <strong className="num">{branchesCount}</strong> / {usage.max_branches}
-          </div>
-        </div>
-      )}
+    <div className="space-y-4">
+      <PageHeader
+        title={t('title')}
+        subtitle={
+          usage ? (
+            <>
+              <span className="muted">{t('count')}</span>
+              <strong className="num">{branchesCount}</strong> / {usage.max_branches}
+            </>
+          ) : undefined
+        }
+        actions={
+          <button
+            className="btn btn-primary"
+            disabled={atLimit}
+            title={atLimit ? t('limitReachedTitle') : ''}
+            onClick={() => setShowCreate(true)}
+          >
+            {t('new')}
+          </button>
+        }
+      />
       {err && <div className="card text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
       <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {list.map((b) => (
@@ -84,8 +88,8 @@ export function Branches() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="font-medium truncate">{b.name}</div>
-                <div className="text-xs text-neutral-600 truncate">{b.address ?? '—'}</div>
-                <div className="text-xs text-neutral-500 mt-1">
+                <div className="text-xs muted truncate">{b.address ?? '—'}</div>
+                <div className="text-xs muted mt-1">
                   {b.smart_working ? (
                     <span className="badge badge-muted">{t('offSite')}</span>
                   ) : (
@@ -96,9 +100,9 @@ export function Branches() {
                   )}
                 </div>
               </div>
-              <div className="flex gap-2 shrink-0">
-                <button className="btn btn-secondary btn-sm" onClick={() => setEditing(b)}>{t('common:btn.edit')}</button>
-                <button className="btn btn-danger btn-sm" onClick={() => remove(b.id)}>{t('common:btn.delete')}</button>
+              <div className="flex gap-1 items-center shrink-0">
+                <IconButton kind="edit" onClick={() => setEditing(b)} title={t('common:btn.edit')} />
+                <IconButton kind="delete" onClick={() => remove(b.id)} title={t('common:btn.delete')} />
               </div>
             </div>
             {!b.smart_working && b.latitude !== null && b.longitude !== null && (
@@ -254,13 +258,13 @@ function BranchForm({
                 busy={geocoding}
               />
               {geocoding ? (
-                <p className="text-xs text-neutral-500 mt-1">{t('form.geocoding')}</p>
+                <p className="text-xs muted mt-1">{t('form.geocoding')}</p>
               ) : geoError ? (
                 <p className="text-xs text-[color:var(--color-error)] mt-1">
                   {t('form.geocodeError')}
                 </p>
               ) : (
-                <p className="text-xs text-neutral-500 mt-1">{t('form.addressHint')}</p>
+                <p className="text-xs muted mt-1">{t('form.addressHint')}</p>
               )}
             </div>
             <div className="flex items-center gap-2">
@@ -287,7 +291,7 @@ function BranchForm({
                     {t('form.enforceRadius')}
                   </label>
                 </div>
-                <p className="text-xs text-neutral-500 -mt-2">
+                <p className="text-xs muted -mt-2">
                   {t('form.enforceRadiusHint')}
                 </p>
                 {enforceRadius && (
@@ -319,12 +323,12 @@ function BranchForm({
                 onLocationSelect={handleMapLocationSelect}
               />
               {lat !== null && lng !== null ? (
-                <p className="text-xs text-neutral-500 mt-2">
+                <p className="text-xs muted mt-2">
                   {lat.toFixed(5)}, {lng.toFixed(5)}
                   {enforceRadius ? ` · ${t('form.tolerance', { radius })}` : ` · ${t('noRadius')}`}
                 </p>
               ) : (
-                <p className="text-xs text-neutral-500 mt-2">
+                <p className="text-xs muted mt-2">
                   {t('form.previewEmpty')}
                 </p>
               )}

@@ -72,7 +72,7 @@ export function WeekScheduleModal({
                 style={{
                   borderColor: isToday ? 'var(--color-primary)' : 'transparent',
                   background: isToday
-                    ? 'var(--color-primary-container, #e6eefb)'
+                    ? 'var(--color-primary-container)'
                     : 'var(--color-surface-variant)',
                 }}
               >
@@ -88,7 +88,7 @@ export function WeekScheduleModal({
                       <span
                         key={i}
                         className="text-xs font-semibold num rounded-full px-2.5 py-1"
-                        style={{ background: 'white', color: 'var(--color-primary)' }}
+                        style={{ background: 'var(--color-surface)', color: 'var(--color-primary)' }}
                       >
                         {s.start_time}–{s.end_time}
                       </span>

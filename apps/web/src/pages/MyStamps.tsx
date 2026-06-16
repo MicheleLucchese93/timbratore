@@ -4,6 +4,7 @@ import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { fmtDateTime } from '../i18n/format.ts';
+import { PageHeader } from '../components/PageHeader.tsx';
 
 interface Stamp {
   id: string;
@@ -81,8 +82,8 @@ export function MyStamps() {
   );
 
   return (
-    <div className="space-y-5">
-      <h1 className="sr-only">{t('heading')}</h1>
+    <div className="space-y-4">
+      <PageHeader title={t('heading')} />
 
       <div className="card" style={{ padding: 0 }}>
         <DataGrid<Stamp>

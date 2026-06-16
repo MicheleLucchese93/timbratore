@@ -6,6 +6,7 @@ import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { useSession } from '../store/session.ts';
 import { IconButton } from '../components/IconButton.tsx';
 import { InfoTip } from '../components/InfoTip.tsx';
+import { PageHeader } from '../components/PageHeader.tsx';
 import { fmtDateTime } from '../i18n/format.ts';
 
 interface UserRow {
@@ -406,43 +407,45 @@ export function Users() {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-center justify-end gap-4 flex-wrap">
-        <h1 className="sr-only">{t('heading')}</h1>
-        <div className="flex items-center gap-2 flex-wrap">
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            className="hidden"
-            onChange={onImportFile}
-          />
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={exportXlsx}
-            title={t('toolbar.exportXlsxTitle')}
-          >
-            {t('toolbar.exportXlsx')}
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => fileRef.current?.click()}
-            disabled={importing}
-            title={t('toolbar.importXlsxTitle')}
-          >
-            {importing ? t('toolbar.importing') : t('toolbar.importXlsx')}
-          </button>
-          <button
-            className="btn btn-primary"
-            disabled={atUserLimit}
-            title={atUserLimit ? t('toolbar.limitReachedTitle') : ''}
-            onClick={() => setShowInvite(true)}
-          >
-            {t('toolbar.invite')}
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        title={t('heading')}
+        actions={
+          <>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              className="hidden"
+              onChange={onImportFile}
+            />
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={exportXlsx}
+              title={t('toolbar.exportXlsxTitle')}
+            >
+              {t('toolbar.exportXlsx')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => fileRef.current?.click()}
+              disabled={importing}
+              title={t('toolbar.importXlsxTitle')}
+            >
+              {importing ? t('toolbar.importing') : t('toolbar.importXlsx')}
+            </button>
+            <button
+              className="btn btn-primary"
+              disabled={atUserLimit}
+              title={atUserLimit ? t('toolbar.limitReachedTitle') : ''}
+              onClick={() => setShowInvite(true)}
+            >
+              {t('toolbar.invite')}
+            </button>
+          </>
+        }
+      />
 
       {usage && (
         <div className="card flex gap-6 text-sm flex-wrap">
@@ -466,7 +469,7 @@ export function Users() {
         </div>
       )}
       {info && (
-        <div className="card text-sm" style={{ color: 'var(--color-success, #166534)' }}>
+        <div className="card text-sm" style={{ color: 'var(--color-success)' }}>
           {info}
         </div>
       )}
@@ -920,7 +923,7 @@ function ShiftAssignEditor({
         onClick={(e) => e.stopPropagation()}
         className="card w-full max-w-md space-y-4"
       >
-        <h2 className="text-lg font-semibold">{t('shift.title', { name: user.display_name || user.email })}</h2>
+        <h2 className="section-title">{t('shift.title', { name: user.display_name || user.email })}</h2>
 
         <div>
           <label className="label">{t('shift.label')}</label>
@@ -937,7 +940,7 @@ function ShiftAssignEditor({
             ))}
           </select>
           {templates.length === 0 && (
-            <p className="text-xs text-neutral-500 mt-1">
+            <p className="text-xs muted mt-1">
               {t('shift.emptyHintPre')} <strong>{t('shift.emptyHintLink')}</strong> {t('shift.emptyHintPost')}
             </p>
           )}
@@ -951,7 +954,7 @@ function ShiftAssignEditor({
             value={validFrom}
             onChange={(e) => setValidFrom(e.target.value)}
           />
-          <p className="text-xs text-neutral-500 mt-1">
+          <p className="text-xs muted mt-1">
             {t('shift.validFromHint')}
           </p>
         </div>
@@ -1296,7 +1299,7 @@ function BulkShiftDialog({
             value={validFrom}
             onChange={(e) => setValidFrom(e.target.value)}
           />
-          <p className="text-xs text-neutral-500 mt-1">{t('shift.validFromHint')}</p>
+          <p className="text-xs muted mt-1">{t('shift.validFromHint')}</p>
         </div>
         <div className="flex gap-2 justify-end">
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
@@ -1855,7 +1858,7 @@ function InviteForm({
           </div>
         </div>
 
-        {err && <div className="rounded-md px-3 py-2 text-sm" style={{ background: '#fde4e4', color: 'var(--color-error)' }}>{err}</div>}
+        {err && <div className="rounded-md px-3 py-2 text-sm" style={{ background: 'var(--color-error-tint)', color: 'var(--color-error)' }}>{err}</div>}
         <div className="flex gap-2 justify-end">
           <button type="button" className="btn btn-secondary" onClick={onClose}>{t('common:btn.cancel')}</button>
           <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? t('invite.sending') : t('invite.submit')}</button>

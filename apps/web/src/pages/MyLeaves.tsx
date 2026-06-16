@@ -5,6 +5,8 @@ import { LeaveCalendar, type CalendarEvent } from '../components/LeaveCalendar.t
 import { NewLeaveModal } from '../components/NewLeaveModal.tsx';
 import { MyResidui } from './Residui.tsx';
 import { localeTag } from '../i18n/format.ts';
+import { PageHeader } from '../components/PageHeader.tsx';
+import { IconButton } from '../components/IconButton.tsx';
 
 type LeaveType = 'ferie' | 'permessi' | 'malattia' | 'assenza';
 
@@ -129,8 +131,8 @@ export function MyLeaves() {
   }
 
   return (
-    <div className="space-y-5">
-      <h1 className="sr-only">{t('heading')}</h1>
+    <div className="space-y-4">
+      <PageHeader title={t('heading')} />
 
       <div className="card p-0">
         <div className="flex border-b" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>
@@ -199,21 +201,19 @@ export function MyLeaves() {
                           {r.rejection_reason ? ` · ${r.rejection_reason}` : ''}
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1 items-center">
                         {r.status === 'pending' && (
-                          <button type="button" className="btn btn-secondary btn-sm" onClick={() => act(`/api/v1/leaves/${r.id}/cancel`)}>{t('common:btn.cancel')}</button>
+                          <IconButton kind="cancel" onClick={() => act(`/api/v1/leaves/${r.id}/cancel`)} />
                         )}
                         {r.status === 'approved' && r.type !== 'malattia' && r.type !== 'chiusura' && (
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
+                          <IconButton
+                            kind="revoke"
+                            title={t('action.requestCancellation')}
                             onClick={() => {
                               const reason = window.prompt(t('prompt.cancellationReason'));
                               if (reason && reason.trim()) act(`/api/v1/leaves/${r.id}/request-cancellation`, { cancellation_reason: reason.trim() });
                             }}
-                          >
-                            {t('action.requestCancellation')}
-                          </button>
+                          />
                         )}
                       </div>
                     </div>
@@ -238,25 +238,22 @@ export function MyLeaves() {
                       </div>
                       <div className="text-xs opacity-70">{fmtRange(r.from_ts, r.to_ts, r.type)} · {r.duration_hours}{t('common:unit.hoursShort')}</div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 items-center">
                       {r.status === 'pending' ? (
                         <>
-                          <button type="button" className="btn btn-primary btn-sm" onClick={() => act(`/api/v1/leaves/${r.id}/approve`)}>{t('common:btn.approve')}</button>
-                          <button
-                            type="button"
-                            className="btn btn-danger btn-sm"
+                          <IconButton kind="approve" onClick={() => act(`/api/v1/leaves/${r.id}/approve`)} />
+                          <IconButton
+                            kind="reject"
                             onClick={() => {
                               const reason = window.prompt(t('prompt.rejectReason'));
                               if (reason && reason.trim()) act(`/api/v1/leaves/${r.id}/reject`, { rejection_reason: reason.trim() });
                             }}
-                          >
-                            {t('common:btn.reject')}
-                          </button>
+                          />
                         </>
                       ) : (
                         <>
-                          <button type="button" className="btn btn-primary btn-sm" onClick={() => act(`/api/v1/leaves/${r.id}/decide-cancellation`, { approve: true })}>{t('action.acceptCancellation')}</button>
-                          <button type="button" className="btn btn-secondary btn-sm" onClick={() => act(`/api/v1/leaves/${r.id}/decide-cancellation`, { approve: false })}>{t('action.rejectCancellation')}</button>
+                          <IconButton kind="approve" title={t('action.acceptCancellation')} onClick={() => act(`/api/v1/leaves/${r.id}/decide-cancellation`, { approve: true })} />
+                          <IconButton kind="reject" title={t('action.rejectCancellation')} onClick={() => act(`/api/v1/leaves/${r.id}/decide-cancellation`, { approve: false })} />
                         </>
                       )}
                     </div>
@@ -285,7 +282,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       type="button"
       className={`px-4 py-2 text-sm border-b-2 ${active ? 'font-semibold' : 'opacity-70'}`}
-      style={{ borderColor: active ? 'var(--color-primary, #2563eb)' : 'transparent' }}
+      style={{ borderColor: active ? 'var(--color-primary)' : 'transparent' }}
       onClick={onClick}
     >
       {children}

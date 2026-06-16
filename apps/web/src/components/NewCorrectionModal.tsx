@@ -204,7 +204,7 @@ export function NewCorrectionModal({
                   <button
                     type="button"
                     className="w-full flex items-center justify-between gap-3 rounded border p-2.5 text-left"
-                    style={{ borderColor: 'var(--color-border, #e5e7eb)' }}
+                    style={{ borderColor: 'var(--color-border)' }}
                     onClick={() => chooseExisting(s)}
                   >
                     <span className="text-sm font-medium">{t(`common:stampEvent.${s.event_type}`)}</span>
@@ -221,7 +221,7 @@ export function NewCorrectionModal({
                 <button
                   type="button"
                   className="w-full rounded border border-dashed p-2.5 text-sm font-medium"
-                  style={{ borderColor: 'var(--color-primary, #2563eb)', color: 'var(--color-primary, #2563eb)' }}
+                  style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                   onClick={chooseMissing}
                 >
                   {t('pickStamp.addMissing')}

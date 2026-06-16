@@ -9,6 +9,7 @@ import {
 import { api, apiUrl, getToken, getTenantId } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { IconButton } from '../components/IconButton.tsx';
+import { PageHeader } from '../components/PageHeader.tsx';
 import { fmtDate, fmtDateTime } from '../i18n/format.ts';
 
 // The subset of the Users API a document needs to auto-match a filename to its
@@ -104,34 +105,37 @@ export function Documents() {
   }
 
   return (
-    <div className="space-y-5">
-      <header className="flex items-center justify-between gap-4 flex-wrap">
-        <h1 className="sr-only">{t('heading')}</h1>
-        <div className="flex items-center gap-2 flex-wrap">
-          <label className="label" htmlFor="doc-filter-user" style={{ margin: 0 }}>
-            {t('filterByEmployee')}
-          </label>
-          <select
-            id="doc-filter-user"
-            className="input"
-            style={{ minWidth: 220 }}
-            value={filterUserId}
-            onChange={(e) => setFilterUserId(e.target.value)}
-          >
-            <option value="">{t('filterAll')}</option>
-            {users
-              .filter((u) => u.active)
-              .map((u) => (
-                <option key={u.user_id} value={u.user_id}>
-                  {userLabel(u)}
-                </option>
-              ))}
-          </select>
-        </div>
-        <button className="btn btn-primary" onClick={() => setShowUpload(true)}>
-          {t('toolbar.upload')}
-        </button>
-      </header>
+    <div className="space-y-4">
+      <PageHeader
+        title={t('heading')}
+        actions={
+          <button className="btn btn-primary" onClick={() => setShowUpload(true)}>
+            {t('toolbar.upload')}
+          </button>
+        }
+      />
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <label className="label" htmlFor="doc-filter-user" style={{ margin: 0 }}>
+          {t('filterByEmployee')}
+        </label>
+        <select
+          id="doc-filter-user"
+          className="input"
+          style={{ minWidth: 220 }}
+          value={filterUserId}
+          onChange={(e) => setFilterUserId(e.target.value)}
+        >
+          <option value="">{t('filterAll')}</option>
+          {users
+            .filter((u) => u.active)
+            .map((u) => (
+              <option key={u.user_id} value={u.user_id}>
+                {userLabel(u)}
+              </option>
+            ))}
+        </select>
+      </div>
 
       {err && (
         <div className="card text-sm" style={{ color: 'var(--color-error)', whiteSpace: 'pre-wrap' }}>
@@ -139,7 +143,7 @@ export function Documents() {
         </div>
       )}
       {info && (
-        <div className="card text-sm" style={{ color: 'var(--color-success, #166534)' }}>
+        <div className="card text-sm" style={{ color: 'var(--color-success)' }}>
           {info}
         </div>
       )}
@@ -489,7 +493,7 @@ function BulkUploadModal({
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} style={{ borderTop: '1px solid var(--color-outline-variant, #ddd)' }}>
+                  <tr key={r.id} style={{ borderTop: '1px solid var(--color-outline-variant)' }}>
                     <td style={{ padding: '4px 6px', maxWidth: 180, wordBreak: 'break-all' }}>
                       <span className="text-xs">{r.file.name}</span>
                     </td>

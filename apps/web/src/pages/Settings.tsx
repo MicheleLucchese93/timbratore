@@ -8,6 +8,7 @@ import {
 import { api } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
 import { LanguageSelect } from '../components/LanguageSwitcher.tsx';
+import { PageHeader } from '../components/PageHeader.tsx';
 
 interface TenantSettings {
   id: string;
@@ -180,7 +181,7 @@ export function Settings() {
 
   return (
     <form onSubmit={onFormSubmit} className="max-w-5xl">
-      <h1 className="sr-only">{t('title')}</h1>
+      <PageHeader title={t('title')} />
 
       <SettingsRow
         icon={<IconBuilding />}
@@ -252,21 +253,16 @@ export function Settings() {
       </SettingsRow>
 
       {isAdmin && (
-        <>
-          <div className="hairline my-6" />
-          <CentroPagheSection s={s} onPatch={patchSettings} />
-        </>
+        <CentroPagheSection s={s} onPatch={patchSettings} />
       )}
 
       {tenants.length > 1 && (
-        <>
-          <div className="hairline my-6" />
-          <SettingsRow
+        <SettingsRow
             icon={<IconBuilding />}
             title={t('section.activeCompany')}
             description={t('section.activeCompanyDesc')}
           >
-            <Field label={t('company')} className="md:max-w-md">
+            <Field label={t('company')}>
               <select
                 className="input"
                 value={activeTenantId ?? ''}
@@ -285,10 +281,7 @@ export function Settings() {
               </p>
             </Field>
           </SettingsRow>
-        </>
       )}
-
-      <div className="hairline my-6" />
 
       <SettingsRow
         icon={<IconBell />}
@@ -300,7 +293,7 @@ export function Settings() {
             const on = prefs?.notification_preferences?.[p.key] ?? false;
             return (
               <div key={p.key} className="flex items-center justify-between gap-4">
-                <div className="text-sm" style={{ flex: 1 }}>{t(`emailPref.${p.i18nKey}`)}</div>
+                <div className="text-sm flex-1">{t(`emailPref.${p.i18nKey}`)}</div>
                 <label className="switch" title={on ? t('toggleOn') : t('toggleOff')}>
                   <input
                     type="checkbox"

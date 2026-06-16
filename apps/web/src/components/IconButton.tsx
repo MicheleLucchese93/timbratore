@@ -11,9 +11,11 @@ export type IconButtonKind =
   | 'revoke'
   | 'adjust'
   | 'history'
-  | 'reset-password';
+  | 'reset-password'
+  | 'download'
+  | 'cancel';
 
-const TONE: Record<IconButtonKind, '' | 'danger' | 'success'> = {
+const TONE: Record<IconButtonKind, '' | 'danger' | 'success' | 'primary'> = {
   edit: '',
   duplicate: '',
   deactivate: '',
@@ -25,6 +27,8 @@ const TONE: Record<IconButtonKind, '' | 'danger' | 'success'> = {
   adjust: '',
   history: '',
   'reset-password': '',
+  download: 'primary',
+  cancel: '',
 };
 
 // Default i18n key per kind, used when no explicit `title` prop is given.
@@ -42,6 +46,8 @@ const DEFAULT_TITLE_KEY: Record<IconButtonKind, string> = {
   adjust: 'components:iconButton.adjust',
   history: 'components:iconButton.history',
   'reset-password': 'components:iconButton.resetPassword',
+  download: 'common:btn.download',
+  cancel: 'common:btn.cancel',
 };
 
 interface IconButtonProps {
@@ -167,6 +173,24 @@ function renderIcon(kind: IconButtonKind) {
           <circle cx="7.5" cy="15.5" r="5.5" />
           <path d="m21 2-9.6 9.6" />
           <path d="m15.5 7.5 3 3" />
+        </svg>
+      );
+    case 'download':
+      // Tray with a down arrow — download the generated file.
+      return (
+        <svg {...common}>
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+      );
+    case 'cancel':
+      // X inside a circle — cancel/withdraw a row (distinct from the trash delete).
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" />
+          <line x1="15" y1="9" x2="9" y2="15" />
+          <line x1="9" y1="9" x2="15" y2="15" />
         </svg>
       );
   }

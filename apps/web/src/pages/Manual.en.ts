@@ -725,7 +725,7 @@ export const MAIN_EN = `
       <div class="feature">
         <h3>Export history</h3>
         <p>The table shows period, format, status (<span class="pill">Queued</span> <span class="pill pill-warn">Processing</span> <span class="pill pill-ok">Ready</span> <span class="pill pill-err">Error</span>) and creation date.</p>
-        <p>For ready jobs the <strong>Download</strong> button starts the download. The red trash icon removes the entry from the history (after confirmation) and is available for any status: useful to clean up jobs in error or queued.</p>
+        <p>For ready jobs the <strong>Download</strong> icon (downward arrow) starts the download. The red trash icon removes the entry from the history (after confirmation) and is available for any status: useful to clean up jobs in error or queued.</p>
         <div class="callout callout-tip">
           The table refreshes automatically every 2 seconds as long as there are queued or processing jobs.
         </div>
@@ -976,7 +976,7 @@ export const MAIN_EN = `
       <div class="feature">
         <h3>Viewing and downloading</h3>
         <p>The table lists, for each document: <strong>Category</strong>, <strong>Title</strong>, <strong>Uploaded</strong>, <strong>Kept until</strong> and the <strong>read receipt</strong> status (<span class="pill pill-ok">Viewed</span> / <span class="pill pill-warn">Not viewed</span>).</p>
-        <p>Press <strong>Download</strong> to open the PDF in a new tab. The <strong>first time</strong> you open a document is recorded as <em>read</em>: from then on the badge turns <span class="pill pill-ok">Viewed</span> and the company knows you have seen it.</p>
+        <p>Press the <strong>Download</strong> icon to open the PDF in a new tab. The <strong>first time</strong> you open a document is recorded as <em>read</em>: from then on the badge turns <span class="pill pill-ok">Viewed</span> and the company knows you have seen it.</p>
         <div class="callout callout-info">
           You receive a <strong>notification</strong> (push and email) whenever the company uploads a new document for you. You can turn off the email from <strong>Settings → Email notifications</strong> and push from the mobile app (<em>Profile</em>).
         </div>

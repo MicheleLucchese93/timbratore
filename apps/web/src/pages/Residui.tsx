@@ -78,7 +78,7 @@ export function AdminResidui({ embedded = false }: { embedded?: boolean } = {}) 
         width: 130,
         valueGetter: (_v: unknown, row: AssignmentRow) => row.initial_balance,
         renderCell: (p: GridRenderCellParams<AssignmentRow>) =>
-          p.row.type ? fmtH(p.row.initial_balance) : '—',
+          p.row.type ? fmtH(p.row.initial_balance) : <span className="muted">—</span>,
       },
       {
         field: 'accrued_total',
@@ -86,7 +86,7 @@ export function AdminResidui({ embedded = false }: { embedded?: boolean } = {}) 
         width: 120,
         valueGetter: (_v: unknown, row: AssignmentRow) => row.accrued_total,
         renderCell: (p: GridRenderCellParams<AssignmentRow>) =>
-          p.row.type ? fmtH(p.row.accrued_total) : '—',
+          p.row.type ? fmtH(p.row.accrued_total) : <span className="muted">—</span>,
       },
       {
         field: 'used_approved',
@@ -94,7 +94,7 @@ export function AdminResidui({ embedded = false }: { embedded?: boolean } = {}) 
         width: 120,
         valueGetter: (_v: unknown, row: AssignmentRow) => row.used_approved,
         renderCell: (p: GridRenderCellParams<AssignmentRow>) =>
-          p.row.type ? fmtH(p.row.used_approved) : '—',
+          p.row.type ? fmtH(p.row.used_approved) : <span className="muted">—</span>,
       },
       {
         field: 'used_pending',
@@ -102,7 +102,7 @@ export function AdminResidui({ embedded = false }: { embedded?: boolean } = {}) 
         width: 120,
         valueGetter: (_v: unknown, row: AssignmentRow) => row.used_pending,
         renderCell: (p: GridRenderCellParams<AssignmentRow>) =>
-          p.row.type ? fmtH(p.row.used_pending) : '—',
+          p.row.type ? fmtH(p.row.used_pending) : <span className="muted">—</span>,
       },
       {
         field: 'residual',
@@ -110,7 +110,7 @@ export function AdminResidui({ embedded = false }: { embedded?: boolean } = {}) 
         width: 130,
         valueGetter: (_v: unknown, row: AssignmentRow) => residualStrict(row),
         renderCell: (p: GridRenderCellParams<AssignmentRow>) => {
-          if (!p.row.type) return '—';
+          if (!p.row.type) return <span className="muted">—</span>;
           const v = residualStrict(p.row);
           return (
             <span style={{ fontWeight: 600, color: v < 0 ? 'var(--color-error)' : undefined }}>{fmtH(v)}</span>
@@ -123,7 +123,7 @@ export function AdminResidui({ embedded = false }: { embedded?: boolean } = {}) 
         width: 180,
         valueGetter: (_v: unknown, row: AssignmentRow) => residualStrict(row) - row.used_pending,
         renderCell: (p: GridRenderCellParams<AssignmentRow>) => {
-          if (!p.row.type) return '—';
+          if (!p.row.type) return <span className="muted">—</span>;
           const v = residualStrict(p.row) - p.row.used_pending;
           return <span style={{ color: v < 0 ? 'var(--color-error)' : undefined }}>{fmtH(v)}</span>;
         },
@@ -207,7 +207,7 @@ function ResidualCard({ q }: { q: QuotaSummary }) {
         {q.template_name && <span className="text-xs muted">{q.template_name}</span>}
       </div>
       <div>
-        <div className="text-3xl font-bold" style={{ color: neg ? 'var(--color-error)' : 'var(--color-primary)' }}>
+        <div className="text-2xl font-bold" style={{ color: neg ? 'var(--color-error)' : 'var(--color-primary)' }}>
           {fmtH(q.residual_strict)}
         </div>
         <div className="text-xs muted">

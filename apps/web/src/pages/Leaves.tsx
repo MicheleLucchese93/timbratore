@@ -12,6 +12,7 @@ import { fmtDate, fmtTime, localeTag } from '../i18n/format.ts';
 import { IconButton } from '../components/IconButton.tsx';
 import { LeaveCalendar, type CalendarEvent } from '../components/LeaveCalendar.tsx';
 import { NewLeaveModal } from '../components/NewLeaveModal.tsx';
+import { PageHeader } from '../components/PageHeader.tsx';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
 import { AdminResidui } from './Residui.tsx';
 
@@ -187,7 +188,7 @@ export function Leaves() {
   );
   return (
     <div className="space-y-5">
-      <h1 className="sr-only">{t('heading')}</h1>
+      <PageHeader title={t('heading')} />
       <div className="card p-0">
         <div className="flex border-b" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>
           <TabButton active={tab === 'requests'} onClick={() => setTab('requests')}>
@@ -232,7 +233,7 @@ function TabButton({
       type="button"
       className={`px-4 py-2 text-sm border-b-2 ${active ? 'font-semibold' : 'opacity-70'}`}
       style={{
-        borderColor: active ? 'var(--color-primary, #2563eb)' : 'transparent',
+        borderColor: active ? 'var(--color-primary)' : 'transparent',
       }}
       onClick={onClick}
     >
@@ -1367,7 +1368,7 @@ function TemplatesTab() {
       <div className="flex justify-end">
         <button
           type="button"
-          className="btn btn-primary btn-sm"
+          className="btn btn-primary"
           onClick={() =>
             setEditor({
               name: '',

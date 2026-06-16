@@ -6,6 +6,7 @@
   "forgotPassword": "Forgot password?",
   "signIn": "Sign in",
   "signingIn": "Signing in…",
+  "discoverSite": "Discover sonoQui",
   "failed": "Sign-in failed",
   "errors": {
     "invalid_credentials": "Incorrect email or password.",

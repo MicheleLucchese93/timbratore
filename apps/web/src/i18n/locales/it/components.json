@@ -17,5 +17,10 @@
     "stampIn": "Ingresso",
     "stampBreak": "Inizio pausa",
     "stampOut": "Uscita"
+  },
+  "branchMap": {
+    "unavailable": "Anteprima mappa non disponibile",
+    "loadError": "Errore nel caricamento della mappa.",
+    "loading": "Caricamento mappa…"
   }
 }

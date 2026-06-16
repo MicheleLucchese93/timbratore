@@ -272,7 +272,7 @@ function DayView({ anchor, events, t }: { anchor: Date; events: CalendarEvent[];
   const dayEvents = eventsForDay(events, iso);
   const hol = holidayName(iso);
   return (
-    <div className="rounded border p-4" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>
+    <div className="rounded border p-4" style={{ borderColor: 'var(--color-border)' }}>
       {hol && <div className="mb-2 text-sm font-medium" style={{ color: HOLIDAY_COLOR }}>🎉 {hol}</div>}
       {dayEvents.length === 0 ? (
         <div className="text-sm opacity-60">{t('noEvents')}</div>
@@ -316,7 +316,7 @@ function MiniMonth({ month, events, label, onClick }: { month: Date; events: Cal
   const holidays = holidayMapForRange(toISODate(weeks[0]![0]!), toISODate(weeks[5]![6]!));
   const today = toISODate(todayLocal());
   return (
-    <button type="button" onClick={onClick} className="rounded border p-2 text-left hover:shadow-sm" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>
+    <button type="button" onClick={onClick} className="rounded border p-2 text-left hover:shadow-sm" style={{ borderColor: 'var(--color-border)' }}>
       <div className="mb-1 text-xs font-semibold">{label}</div>
       <div className="grid grid-cols-7 gap-px">
         {weeks.flat().map((d) => {
@@ -327,7 +327,7 @@ function MiniMonth({ month, events, label, onClick }: { month: Date; events: Cal
           const dot = dayEvents[0];
           return (
             <div key={iso} className="relative flex h-5 items-center justify-center text-[9px]" style={{ opacity: inMonth ? 1 : 0.3 }}>
-              <span style={{ color: hol ? HOLIDAY_COLOR : iso === today ? 'var(--color-primary,#2563eb)' : 'inherit', fontWeight: iso === today ? 700 : 400 }}>
+              <span style={{ color: hol ? HOLIDAY_COLOR : iso === today ? 'var(--color-primary)' : 'inherit', fontWeight: iso === today ? 700 : 400 }}>
                 {d.getDate()}
               </span>
               {dot && (

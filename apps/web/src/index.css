@@ -70,9 +70,11 @@ select.input { background-color: white; }
   background: white;
   border: 1px solid rgba(0, 0, 0, 0.04);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  padding: 1.25rem;
+  padding: 1rem;
 }
 .card-tight { padding: 0.75rem 1rem; }
+/* Opt-in roomier card for the rare surface that needs breathing room. */
+.card-lg { padding: 1.25rem; }
 
 /* Badges ---------------------------------------------------------------- */
 .badge {
@@ -246,14 +248,17 @@ select.input { background-color: white; }
   grid-template-columns: 1fr;
   gap: 1rem;
   padding: 1.5rem 0;
-  border-top: 1px solid var(--color-surface-variant);
 }
-.settings-row:first-of-type { border-top: 0; padding-top: 0; }
+/* Draw a divider only BETWEEN two adjacent rows. Robust against conditional
+   sections (admin-only Centro Paghe, multi-tenant company picker) — no stray
+   leading line and no double hairline from a manual separator. */
+.settings-row:first-of-type { padding-top: 0; }
+.settings-row + .settings-row { border-top: 1px solid var(--color-surface-variant); }
 @media (min-width: 768px) {
   .settings-row {
-    grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
-    gap: 3rem;
-    padding: 2rem 0;
+    grid-template-columns: minmax(0, 16rem) minmax(0, 1fr);
+    gap: 2rem;
+    padding: 1.5rem 0;
   }
 }
 .settings-row-head h3 {
@@ -396,6 +401,11 @@ select.input { background-color: white; }
 :root {
   --sidebar-w: 240px;
   --sidebar-w-collapsed: 68px;
+  /* Single source of truth for the content frame. The .page-header negative
+     margins mirror these so the sticky bar always bleeds to the content edge —
+     change density here, the header bleed follows automatically. */
+  --content-pad-x: 1.5rem;
+  --content-pad-y: 1.25rem;
 }
 .app-shell {
   display: flex;
@@ -742,7 +752,7 @@ select.input { background-color: white; }
 
 .app-content {
   flex: 1;
-  padding: 1.5rem 2rem 2.5rem;
+  padding: var(--content-pad-y) var(--content-pad-x) 1.75rem;
   width: 100%;
   margin: 0;
   min-width: 0;
@@ -756,8 +766,8 @@ select.input { background-color: white; }
   position: sticky;
   top: 0;
   z-index: 15;
-  margin: -1.5rem -2rem 1.25rem;
-  padding: 1rem 2rem;
+  margin: calc(-1 * var(--content-pad-y)) calc(-1 * var(--content-pad-x)) 1rem;
+  padding: 0.75rem var(--content-pad-x);
   background: color-mix(in oklab, var(--color-surface) 88%, transparent);
   backdrop-filter: saturate(140%) blur(8px);
   -webkit-backdrop-filter: saturate(140%) blur(8px);
@@ -794,12 +804,12 @@ select.input { background-color: white; }
   display: flex;
   align-items: center;
   gap: 0.875rem;
-  padding: 1rem 1.125rem;
+  padding: 0.75rem 1rem;
   background: white;
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 0.75rem;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-  min-height: 84px;
+  min-height: 72px;
 }
 .stat-card-icon {
   flex-shrink: 0;
@@ -991,12 +1001,12 @@ select.input { background-color: white; }
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  padding: 0.875rem 1rem;
+  padding: 0.75rem 0.875rem;
   background: white;
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 0.625rem;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-  min-height: 88px;
+  min-height: 76px;
   transition: border-color 120ms ease, transform 120ms ease;
 }
 .status-card:hover { border-color: var(--color-outline); }
@@ -1042,7 +1052,7 @@ select.input { background-color: white; }
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 1.75rem 1.25rem;
+  padding: 1.25rem 1rem;
   background: white;
   border: 1px dashed var(--color-surface-variant);
   border-radius: 0.75rem;

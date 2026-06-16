@@ -8,6 +8,8 @@ import {
 import { api } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { fmtDate, fmtDateTime } from '../i18n/format.ts';
+import { PageHeader } from '../components/PageHeader.tsx';
+import { IconButton } from '../components/IconButton.tsx';
 
 export function MyDocuments() {
   const { t } = useTranslation(['documents', 'common']);
@@ -93,13 +95,11 @@ export function MyDocuments() {
         sortable: false,
         filterable: false,
         renderCell: (p) => (
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
+          <IconButton
+            kind="download"
             onClick={() => download(p.row)}
-          >
-            {t('actions.download')}
-          </button>
+            title={t('actions.download')}
+          />
         ),
       },
     ],
@@ -107,9 +107,8 @@ export function MyDocuments() {
   );
 
   return (
-    <div className="space-y-5">
-      <h1 className="sr-only">{t('myHeading')}</h1>
-      <p className="text-sm muted">{t('myIntro')}</p>
+    <div className="space-y-4">
+      <PageHeader title={t('myHeading')} subtitle={t('myIntro')} />
 
       {err && (
         <div className="card text-sm" style={{ color: 'var(--color-error)' }}>

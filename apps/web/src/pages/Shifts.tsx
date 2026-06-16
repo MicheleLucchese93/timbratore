@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { api, type ApiError } from '../lib/api.ts';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
 import { IconButton } from '../components/IconButton.tsx';
+import { PageHeader } from '../components/PageHeader.tsx';
 import { localeTag } from '../i18n/format.ts';
 
 interface Slot {
@@ -147,12 +148,14 @@ export function Shifts() {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-center justify-end gap-4 flex-wrap">
-        <h1 className="sr-only">{t('heading')}</h1>
-        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
-          {t('new')}
-        </button>
-      </header>
+      <PageHeader
+        title={t('heading')}
+        actions={
+          <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
+            {t('new')}
+          </button>
+        }
+      />
 
       {notDeployed && (
         <div className="card text-sm" style={{ color: 'var(--color-on-tertiary-container, #92400e)', background: 'var(--color-tertiary-container, #fef3c7)' }}>
@@ -172,9 +175,9 @@ export function Shifts() {
               <div className="min-w-0">
                 <div className="font-medium">{tpl.name}</div>
                 {tpl.description && (
-                  <div className="text-xs text-neutral-600">{tpl.description}</div>
+                  <div className="text-xs muted">{tpl.description}</div>
                 )}
-                <div className="text-xs text-neutral-500 mt-1">
+                <div className="text-xs muted mt-1">
                   {t('summary', {
                     toleranceIn: tpl.tolerance_in_min,
                     toleranceOut: tpl.tolerance_out_min,
@@ -184,25 +187,21 @@ export function Shifts() {
                     lunchMax: tpl.expected_lunch_max_min,
                   })}
                 </div>
-                <div className="text-xs text-neutral-500 mt-0.5">
+                <div className="text-xs muted mt-0.5">
                   {t('weeklyTotal', { total: formatWeeklyTotal(tpl.slots) })}
                 </div>
               </div>
               <div className="flex gap-2 shrink-0 items-center">
                 <IconButton kind="duplicate" title={t('duplicate')} onClick={() => duplicate(tpl)} />
-                <button className="btn btn-secondary btn-sm" onClick={() => setEditing(tpl)}>
-                  {t('edit')}
-                </button>
-                <button className="btn btn-danger btn-sm" onClick={() => remove(tpl)}>
-                  {t('common:btn.delete')}
-                </button>
+                <IconButton kind="edit" title={t('edit')} onClick={() => setEditing(tpl)} />
+                <IconButton kind="delete" title={t('common:btn.delete')} onClick={() => remove(tpl)} />
               </div>
             </div>
             <WeeklyPreview slots={tpl.slots} />
           </li>
         ))}
         {list.length === 0 && (
-          <li className="card text-sm text-neutral-500">
+          <li className="card text-sm muted">
             {t('empty')}
           </li>
         )}
@@ -581,7 +580,7 @@ function ShiftForm({
 
           <fieldset className="border border-neutral-200 rounded p-3 space-y-2">
             <legend className="text-sm font-medium px-1">{t('form.penalties')}</legend>
-            <p className="text-xs text-neutral-500 mb-2">
+            <p className="text-xs muted mb-2">
               {t('form.penaltiesHint')}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -648,7 +647,7 @@ function ShiftForm({
             </label>
             {state.flexible_enabled && (
               <>
-                <p className="text-xs text-neutral-500">{t('form.flexibleHint')}</p>
+                <p className="text-xs muted">{t('form.flexibleHint')}</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-2">
                   <FlexNum
                     label={t('form.flexInBefore')}
@@ -714,7 +713,7 @@ function ShiftForm({
                   <option value={30}>{t('form.minutesValue', { count: 30 })}</option>
                   <option value={60}>{t('form.minutesValue', { count: 60 })}</option>
                 </select>
-                <p className="text-xs text-neutral-500 mt-1">
+                <p className="text-xs muted mt-1">
                   {t('form.extraordinaryHint')}
                 </p>
               </label>
@@ -723,7 +722,7 @@ function ShiftForm({
 
           <fieldset className="border border-neutral-200 rounded p-3">
             <legend className="text-sm font-medium px-1">{t('form.week')}</legend>
-            <p className="text-xs text-neutral-500 mb-2">
+            <p className="text-xs muted mb-2">
               {t('form.weekHint')}
             </p>
             <div className="divide-y divide-neutral-100">
@@ -782,7 +781,7 @@ function ShiftForm({
                       </button>
                       {daySlots.length === 1 && (
                         <label
-                          className="flex items-center gap-1 text-xs text-neutral-500"
+                          className="flex items-center gap-1 text-xs muted"
                           title={t('form.autoLunchHint')}
                         >
                           <span>{t('form.autoLunch')}</span>
@@ -798,7 +797,7 @@ function ShiftForm({
                         </label>
                       )}
                       {dayMin > 0 && (
-                        <span className="text-xs text-neutral-500 ml-auto tabular-nums">
+                        <span className="text-xs muted ml-auto tabular-nums">
                           {formatMinutes(dayMin)}
                         </span>
                       )}

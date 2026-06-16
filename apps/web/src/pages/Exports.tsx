@@ -5,6 +5,8 @@ import { api, getToken, apiUrl } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { fmtDateTime } from '../i18n/format.ts';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
+import { PageHeader } from '../components/PageHeader.tsx';
+import { IconButton } from '../components/IconButton.tsx';
 
 type ExportFormat = 'xlsx' | 'json' | 'centro';
 
@@ -94,8 +96,8 @@ export function Exports() {
   }
 
   return (
-    <div className="space-y-5">
-      <h1 className="sr-only">{t('title')}</h1>
+    <div className="space-y-4">
+      <PageHeader title={t('title')} />
 
       <form onSubmit={enqueue} className="card grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
         <div>
@@ -122,7 +124,7 @@ export function Exports() {
           </select>
           {format === 'centro' && <p className="field-hint">{t('centroMonthHint')}</p>}
         </div>
-        <button className="btn btn-primary btn-block" disabled={busy}>{busy ? t('sending') : t('common:btn.generate')}</button>
+        <button className="btn btn-primary" disabled={busy}>{busy ? t('sending') : t('common:btn.generate')}</button>
       </form>
 
       <div className="card" style={{ padding: 0 }}>
@@ -195,35 +197,16 @@ function ExportsDataGrid({
         sortable: false,
         filterable: false,
         renderCell: (p) => (
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-1 items-center">
             {p.row.status === 'ready' && (
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => onDownload(p.row)}
-              >
-                {t('common:btn.download')}
-              </button>
+              <IconButton kind="download" onClick={() => onDownload(p.row)} />
             )}
             {p.row.status === 'failed' && p.row.error && (
               <span className="text-xs" style={{ color: 'var(--color-error)' }}>
                 {p.row.error}
               </span>
             )}
-            <button
-              type="button"
-              className="icon-btn icon-btn-danger"
-              onClick={() => onRemove(p.row)}
-              aria-label={t('deleteAriaLabel')}
-              title={t('common:btn.delete')}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                <path d="M10 11v6" />
-                <path d="M14 11v6" />
-                <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-              </svg>
-            </button>
+            <IconButton kind="delete" onClick={() => onRemove(p.row)} title={t('deleteAriaLabel')} />
           </div>
         ),
       },

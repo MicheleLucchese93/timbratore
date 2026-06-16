@@ -732,7 +732,7 @@ const MAIN_IT = `
       <div class="feature">
         <h3>Storico esportazioni</h3>
         <p>La tabella mostra periodo, formato, stato (<span class="pill">In coda</span> <span class="pill pill-warn">In elaborazione</span> <span class="pill pill-ok">Pronta</span> <span class="pill pill-err">Errore</span>) e data di creazione.</p>
-        <p>Per i job pronti il pulsante <strong>Scarica</strong> avvia lo scaricamento. L'icona rossa del cestino rimuove la voce dallo storico (dopo conferma) ed è disponibile per qualsiasi stato: utile per ripulire i job in errore o in coda.</p>
+        <p>Per i job pronti l'icona <strong>Scarica</strong> (freccia verso il basso) avvia lo scaricamento. L'icona rossa del cestino rimuove la voce dallo storico (dopo conferma) ed è disponibile per qualsiasi stato: utile per ripulire i job in errore o in coda.</p>
         <div class="callout callout-tip">
           La tabella si aggiorna automaticamente ogni 2 secondi finché ci sono job in coda o in elaborazione.
         </div>
@@ -830,7 +830,7 @@ const MAIN_IT = `
           <li><strong>Categoria</strong> — Cedolino, CU, Contratto, Comunicazione o Altro.</li>
           <li><strong>Titolo</strong> — il nome assegnato in fase di caricamento.</li>
           <li><strong>Caricato il</strong> — data e ora di caricamento.</li>
-          <li><strong>Conservato fino al</strong> — la data oltre la quale il documento viene eliminato automaticamente (36 mesi dal caricamento).</li>
+          <li><strong>Archiviato fino al</strong> — la data oltre la quale il documento viene eliminato automaticamente (36 mesi dal caricamento).</li>
           <li><strong>Presa visione</strong> — <span class="pill pill-ok">Visto</span> se il dipendente l'ha aperto almeno una volta, altrimenti <span class="pill pill-warn">Non visto</span>. <em>Le aperture dell'amministratore non contano mai come presa visione.</em></li>
           <li><strong>Azioni</strong> — scarica ed elimina.</li>
         </ul>
@@ -858,7 +858,7 @@ const MAIN_IT = `
       </div>
 
       <div class="callout callout-info">
-        <strong>Conservazione (36 mesi):</strong> ogni documento viene conservato per 36 mesi dalla data di caricamento, poi viene eliminato automaticamente da una procedura giornaliera. La data limite è sempre visibile nella colonna <em>Conservato fino al</em>.
+        <strong>Archiviazione (36 mesi):</strong> ogni documento viene archiviato per 36 mesi dalla data di caricamento, poi viene eliminato automaticamente da una procedura giornaliera. La data limite è sempre visibile nella colonna <em>Archiviato fino al</em>.
       </div>
     </section>
 
@@ -987,15 +987,15 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Consultare e scaricare</h3>
-        <p>La tabella elenca, per ogni documento: <strong>Categoria</strong>, <strong>Titolo</strong>, <strong>Caricato il</strong>, <strong>Conservato fino al</strong> e lo stato di <strong>presa visione</strong> (<span class="pill pill-ok">Visto</span> / <span class="pill pill-warn">Non visto</span>).</p>
-        <p>Premi <strong>Scarica</strong> per aprire il PDF in una nuova scheda. La <strong>prima apertura</strong> di un documento viene registrata come <em>presa visione</em>: da quel momento il badge diventa <span class="pill pill-ok">Visto</span> e l'azienda sa che l'hai consultato.</p>
+        <p>La tabella elenca, per ogni documento: <strong>Categoria</strong>, <strong>Titolo</strong>, <strong>Caricato il</strong>, <strong>Archiviato fino al</strong> e lo stato di <strong>presa visione</strong> (<span class="pill pill-ok">Visto</span> / <span class="pill pill-warn">Non visto</span>).</p>
+        <p>Premi l'icona <strong>Scarica</strong> per aprire il PDF in una nuova scheda. La <strong>prima apertura</strong> di un documento viene registrata come <em>presa visione</em>: da quel momento il badge diventa <span class="pill pill-ok">Visto</span> e l'azienda sa che l'hai consultato.</p>
         <div class="callout callout-info">
           Riceverai una <strong>notifica</strong> (push ed email) ogni volta che l'azienda carica un nuovo documento per te. Puoi disattivare l'email da <strong>Impostazioni → Notifiche email</strong> e la push dall'app mobile (<em>Profilo</em>).
         </div>
       </div>
 
       <div class="callout callout-info">
-        Sull'<strong>app mobile</strong> la sezione <strong>Documenti</strong> è protetta: all'apertura viene richiesto lo sblocco con <strong>biometria</strong> (Face ID / Touch ID / impronta) o, in mancanza, il codice del dispositivo — indipendentemente dal blocco app generale. I documenti restano conservati 36 mesi, poi vengono rimossi automaticamente.
+        Sull'<strong>app mobile</strong> la sezione <strong>Documenti</strong> è protetta: all'apertura viene richiesto lo sblocco con <strong>biometria</strong> (Face ID / Touch ID / impronta) o, in mancanza, il codice del dispositivo — indipendentemente dal blocco app generale. I documenti restano archiviati 36 mesi, poi vengono rimossi automaticamente.
       </div>
     </section>
 

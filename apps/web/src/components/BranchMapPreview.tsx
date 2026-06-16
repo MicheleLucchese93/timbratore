@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
+import { useTranslation } from 'react-i18next';
+import { color } from '@sonoqui/shared';
 
 const FALLBACK_CENTER = { lat: 41.9028, lng: 12.4964 };
 
@@ -32,11 +34,12 @@ export function BranchMapPreview({
   interactive = true,
   onLocationSelect,
 }: Props) {
+  const { t } = useTranslation('components');
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
   if (!apiKey) {
     return (
       <div className="rounded-md border border-dashed border-neutral-300 bg-neutral-50 p-3 text-xs text-neutral-500">
-        Anteprima mappa non disponibile — <code>VITE_GOOGLE_MAPS_API_KEY</code> non configurata.
+        {t('branchMap.unavailable')} — <code>VITE_GOOGLE_MAPS_API_KEY</code> non configurata.
       </div>
     );
   }
@@ -73,6 +76,7 @@ function MapInner({
   interactive: boolean;
   onLocationSelect?: (point: { lat: number; lng: number }) => void;
 }) {
+  const { t } = useTranslation('components');
   const containerStyle = {
     width: '100%',
     height: typeof height === 'number' ? `${height}px` : height,
@@ -116,10 +120,10 @@ function MapInner({
         // Let map clicks fall through to onClick (so you can drop the pin
         // inside the radius) and keep the map's crosshair cursor over the circle.
         clickable: false,
-        strokeColor: '#0b416e',
+        strokeColor: color.primary,
         strokeOpacity: 0.7,
         strokeWeight: 1,
-        fillColor: '#0b416e',
+        fillColor: color.primary,
         fillOpacity: 0.12,
       });
     } else {
@@ -133,7 +137,7 @@ function MapInner({
   if (loadError) {
     return (
       <div className="rounded-md border border-[color:var(--color-error)] bg-red-50 p-3 text-xs text-[color:var(--color-error)]">
-        Errore nel caricamento della mappa.
+        {t('branchMap.loadError')}
       </div>
     );
   }
@@ -143,7 +147,7 @@ function MapInner({
         className="rounded-md bg-neutral-100 p-3 text-xs text-neutral-500"
         style={containerStyle}
       >
-        Caricamento mappa…
+        {t('branchMap.loading')}
       </div>
     );
   }

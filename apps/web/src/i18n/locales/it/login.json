@@ -6,6 +6,7 @@
   "forgotPassword": "Password dimenticata?",
   "signIn": "Accedi",
   "signingIn": "Accesso in corso…",
+  "discoverSite": "Scopri sonoQui",
   "failed": "Accesso fallito",
   "errors": {
     "invalid_credentials": "Email o password non corretti.",

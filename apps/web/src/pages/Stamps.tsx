@@ -5,6 +5,7 @@ import { api } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { fmtDateTime } from '../i18n/format.ts';
 import { StampMonthGrid } from '../components/StampMonthGrid.tsx';
+import { PageHeader } from '../components/PageHeader.tsx';
 import { type Stamp, type Branch, type UserRow } from '../lib/stamp-types.ts';
 
 export function Stamps() {
@@ -42,32 +43,36 @@ export function Stamps() {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-center justify-between gap-4 flex-wrap">
-        <h1 className="sr-only">{t('heading')}</h1>
-        <div className="cal-seg" role="tablist" aria-label={t('heading')}>
-          <button
-            type="button"
-            role="tab"
-            className="cal-seg-btn"
-            aria-pressed={view === 'list'}
-            aria-selected={view === 'list'}
-            onClick={() => setView('list')}
-          >
-            {t('grid.viewList')}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            className="cal-seg-btn"
-            aria-pressed={view === 'grid'}
-            aria-selected={view === 'grid'}
-            onClick={() => setView('grid')}
-          >
-            {t('grid.viewGrid')}
-          </button>
-        </div>
-        <button className="btn btn-primary" onClick={() => setCreating(true)}>{t('newStamp')}</button>
-      </header>
+      <PageHeader
+        title={t('heading')}
+        actions={
+          <>
+            <div className="cal-seg" role="tablist" aria-label={t('heading')}>
+              <button
+                type="button"
+                role="tab"
+                className="cal-seg-btn"
+                aria-pressed={view === 'list'}
+                aria-selected={view === 'list'}
+                onClick={() => setView('list')}
+              >
+                {t('grid.viewList')}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                className="cal-seg-btn"
+                aria-pressed={view === 'grid'}
+                aria-selected={view === 'grid'}
+                onClick={() => setView('grid')}
+              >
+                {t('grid.viewGrid')}
+              </button>
+            </div>
+            <button className="btn btn-primary" onClick={() => setCreating(true)}>{t('newStamp')}</button>
+          </>
+        }
+      />
 
       {view === 'list' ? (
         <div className="card" style={{ padding: 0 }}>
@@ -253,7 +258,7 @@ function StampForm({
           <label className="label">{t('form.justification')}</label>
           <input className="input" value={justification} onChange={(e) => setJustification(e.target.value)} placeholder={t('form.justificationPlaceholder')} />
         </div>
-        {err && <div className="rounded-md px-3 py-2 text-sm" style={{ background: '#fde4e4', color: 'var(--color-error)' }}>{err}</div>}
+        {err && <div className="rounded-md px-3 py-2 text-sm" style={{ background: 'var(--color-error-tint)', color: 'var(--color-error)' }}>{err}</div>}
         <div className="flex gap-2 justify-end pt-1">
           <button type="button" className="btn btn-secondary" onClick={onClose}>{t('common:btn.cancel')}</button>
           <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? t('common:state.saving') : t('common:btn.save')}</button>

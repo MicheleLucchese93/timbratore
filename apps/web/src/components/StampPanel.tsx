@@ -191,7 +191,7 @@ export function StampPanel({ onStamped }: { onStamped?: () => void }) {
   return (
     <section className="space-y-4">
       {/* Hero: worked / counted + first-in / breaks / last-out */}
-      <div className="card" style={{ background: 'var(--color-primary)', color: 'white' }}>
+      <div className="card" style={{ background: 'var(--color-primary)', color: 'var(--color-on-primary)' }}>
         <div className="flex items-center justify-between gap-3">
           <span className={`badge ${stateTone}`}>{stateLabel}</span>
         </div>
@@ -252,7 +252,7 @@ export function StampPanel({ onStamped }: { onStamped?: () => void }) {
                 <span
                   key={i}
                   className="text-sm font-semibold num rounded-full px-3 py-1.5"
-                  style={{ background: 'var(--color-primary-container, #e6eefb)', color: 'var(--color-primary)' }}
+                  style={{ background: 'var(--color-primary-container)', color: 'var(--color-primary)' }}
                 >
                   {s.start_time}–{s.end_time}
                 </span>

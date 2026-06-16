@@ -537,7 +537,7 @@ function DayStampEditor({
         />
 
         {err && (
-          <div className="rounded-md px-3 py-2 text-sm" style={{ background: '#fde4e4', color: 'var(--color-error)' }}>
+          <div className="rounded-md px-3 py-2 text-sm" style={{ background: 'var(--color-error-tint)', color: 'var(--color-error)' }}>
             {err}
           </div>
         )}
@@ -640,7 +640,7 @@ function AddRow({
   }
 
   return (
-    <form data-testid="add-stamp-form" className="flex items-center gap-2 flex-wrap pt-2" style={{ borderTop: '1px solid var(--color-outline-variant, #e5e7eb)' }} onSubmit={add}>
+    <form data-testid="add-stamp-form" className="flex items-center gap-2 flex-wrap pt-2" style={{ borderTop: '1px solid var(--color-outline-variant)' }} onSubmit={add}>
       <EventSelect value={eventType} onChange={setEventType} />
       <input type="time" className="input" style={{ width: 110 }} value={time} onChange={(e) => setTime(e.target.value)} required />
       <BranchSelect value={branchId} onChange={setBranchId} branches={branches} />
@@ -653,7 +653,7 @@ function AddRow({
 
 /* ---------------- cell styles ---------------- */
 const headBg = 'color-mix(in oklab, var(--color-surface-variant) 55%, white)';
-const borderColor = 'var(--color-outline-variant, #e5e7eb)';
+const borderColor = 'var(--color-outline-variant)';
 
 const headCellStyle: CSSProperties = {
   position: 'sticky',

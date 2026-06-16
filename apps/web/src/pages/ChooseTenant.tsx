@@ -29,7 +29,7 @@ export function ChooseTenant() {
           <div className="text-center flex flex-col items-center">
             <img src="/icon-192.png" alt="" aria-hidden="true" className="mb-3 h-14 w-14" />
             <h1 className="text-xl font-bold">{t('title')}</h1>
-            <p className="mt-1 text-sm text-neutral-600">
+            <p className="muted mt-1 text-sm">
               {t('subtitle')}
             </p>
           </div>
@@ -42,12 +42,12 @@ export function ChooseTenant() {
                   disabled={!!busy}
                   onClick={() => void pick(tn.tenant_id)}
                   className="flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition-colors hover:bg-[color:var(--color-surface-variant)] disabled:opacity-60"
-                  style={{ borderColor: 'var(--color-outline, #d4d4d8)' }}
+                  style={{ borderColor: 'var(--color-outline)' }}
                 >
                   <span className="font-medium">{tn.ragione_sociale}</span>
                   <span
                     className="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold"
-                    style={{ background: 'var(--color-surface-variant, #f1f1f4)', color: 'var(--color-on-surface, #3a3a3a)' }}
+                    style={{ background: 'var(--color-surface-variant)', color: 'var(--color-on-surface)' }}
                   >
                     {busy === tn.tenant_id
                       ? t('entering')
@@ -63,7 +63,7 @@ export function ChooseTenant() {
           <button
             type="button"
             onClick={() => void logout()}
-            className="w-full text-center text-sm text-neutral-600 hover:underline"
+            className="muted w-full text-center text-sm hover:underline"
           >
             {t('common:btn.logout')}
           </button>

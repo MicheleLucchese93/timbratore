@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { api, type ApiError } from '../lib/api.ts';
 import { fmtDate as fmtDateI18n, fmtTime as fmtTimeI18n } from '../i18n/format.ts';
+import { PageHeader } from '../components/PageHeader.tsx';
 
 interface Anomaly {
   date: string;
@@ -140,8 +141,8 @@ export function Anomalies() {
   }, [rows]);
 
   return (
-    <div className="space-y-5">
-      <h1 className="sr-only">{t('heading')}</h1>
+    <div className="space-y-4">
+      <PageHeader title={t('heading')} />
 
       <div className="card flex flex-wrap items-end gap-3">
         <div>
@@ -200,7 +201,7 @@ export function Anomalies() {
       )}
 
       {!loading && rows.length === 0 && (
-        <div className="card text-sm text-neutral-500">
+        <div className="card text-sm muted">
           {t('empty')}
         </div>
       )}
@@ -410,18 +411,18 @@ function AnomalyItem({ a, onDone }: { a: Anomaly; onDone: () => void }) {
         </span>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium">{a.user_display_name || a.user_email}</div>
-          <div className="text-xs text-neutral-500">
+          <div className="text-xs muted">
             {t('row.scheduleLabel')} {a.shift_template_name ?? '—'} · {t('row.expected')}{' '}
             {fmtTime(a.expected_start_at)}–{fmtTime(a.expected_end_at)} · {t('row.actual')}{' '}
             {fmtTime(a.actual_start_at)}–{fmtTime(a.actual_end_at)}
             {a.delta_minutes !== null && ` · ${t('row.deltaShort', { minutes: a.delta_minutes })}`}
             {a.break_total_min !== null && ` · ${t('row.breakShort', { minutes: a.break_total_min })}`}
           </div>
-          {a.details && <div className="text-xs text-neutral-600 mt-0.5">{a.details}</div>}
+          {a.details && <div className="text-xs muted mt-0.5">{a.details}</div>}
           {a.justification_note && (
             <div
               className="text-xs mt-1 rounded-md px-2 py-1"
-              style={{ background: '#e8f3ec', color: '#166534' }}
+              style={{ background: 'var(--color-success-tint)', color: 'var(--color-success)' }}
             >
               {t('row.justified', { note: a.justification_note })}
             </div>
@@ -463,7 +464,7 @@ function AnomalyItem({ a, onDone }: { a: Anomaly; onDone: () => void }) {
                 {t('recap.title')}
               </div>
               {toAdd.length === 0 ? (
-                <div className="text-neutral-600">{t('recap.noMissingStamp')}</div>
+                <div className="muted">{t('recap.noMissingStamp')}</div>
               ) : (
                 <ul className="space-y-0.5">
                   {toAdd.map((ev) => (

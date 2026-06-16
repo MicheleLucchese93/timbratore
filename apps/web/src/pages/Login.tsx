@@ -107,7 +107,7 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
             </div>
 
             {err && (
-              <div className="rounded-md px-3 py-2 text-sm" style={{ background: '#fde4e4', color: 'var(--color-error)' }}>
+              <div className="rounded-md px-3 py-2 text-sm" style={{ background: 'var(--color-error-tint)', color: 'var(--color-error)' }}>
                 {err}
               </div>
             )}
@@ -115,6 +115,18 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
             <button className="btn btn-primary w-full py-3 text-base" disabled={busy} type="submit">
               {busy ? t('signingIn') : t('signIn')}
             </button>
+
+            <p className="text-center text-sm">
+              <a
+                href="https://sonoqui.xdevapp.it"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium underline-offset-4 hover:underline"
+                style={{ color: 'var(--color-primary)' }}
+              >
+                {t('discoverSite')} →
+              </a>
+            </p>
           </form>
         </div>
       </div>

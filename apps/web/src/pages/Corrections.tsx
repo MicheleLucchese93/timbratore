@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
 import { NewCorrectionModal } from '../components/NewCorrectionModal.tsx';
+import { PageHeader } from '../components/PageHeader.tsx';
+import { IconButton } from '../components/IconButton.tsx';
 import { fmtDateTime } from '../i18n/format.ts';
 
 interface CorrectionRequest {
@@ -72,23 +74,25 @@ export function Corrections() {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-center justify-between gap-4 flex-wrap">
-        <h1 className="sr-only">{t('heading')}</h1>
-        <button type="button" className="btn btn-primary" onClick={() => setShowNew(true)}>
-          {t('newRequest')}
-        </button>
-        <select
-          className="input max-w-xs"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value as 'pending' | 'all')}
-        >
-          <option value="pending">{t('filter.pendingOnly')}</option>
-          <option value="all">{t('common:state.all')}</option>
-        </select>
-      </header>
+      <PageHeader
+        title={t('heading')}
+        actions={
+          <button type="button" className="btn btn-primary" onClick={() => setShowNew(true)}>
+            {t('newRequest')}
+          </button>
+        }
+      />
+      <select
+        className="input max-w-xs"
+        value={filter}
+        onChange={(e) => setFilter(e.target.value as 'pending' | 'all')}
+      >
+        <option value="pending">{t('filter.pendingOnly')}</option>
+        <option value="all">{t('common:state.all')}</option>
+      </select>
       {err && <div className="card text-sm text-[color:var(--color-error)]">{err}</div>}
       {list.length === 0 ? (
-        <div className="card text-sm text-neutral-600">{t('empty')}</div>
+        <div className="card text-sm muted">{t('empty')}</div>
       ) : (
         <ul className="space-y-3">
           {list.map((cr) => (
@@ -101,13 +105,9 @@ export function Corrections() {
                   </div>
                 </div>
                 {canDecide(cr) ? (
-                  <div className="flex gap-2 shrink-0">
-                    <button className="btn btn-primary btn-sm" onClick={() => approve(cr)}>
-                      {t('common:btn.approve')}
-                    </button>
-                    <button className="btn btn-danger btn-sm" onClick={() => reject(cr)}>
-                      {t('common:btn.reject')}
-                    </button>
+                  <div className="flex gap-1 items-center shrink-0">
+                    <IconButton kind="approve" onClick={() => approve(cr)} />
+                    <IconButton kind="reject" onClick={() => reject(cr)} />
                   </div>
                 ) : (
                   <span
@@ -137,7 +137,10 @@ export function Corrections() {
                 <div
                   className="rounded-md p-2 text-sm"
                   style={{
-                    background: cr.status === 'rejected' ? '#fde4e4' : '#e8f3ec',
+                    background:
+                      cr.status === 'rejected'
+                        ? 'var(--color-error-tint)'
+                        : 'var(--color-success-tint)',
                   }}
                 >
                   <div className="text-xs muted font-semibold uppercase tracking-wide">
@@ -187,7 +190,7 @@ function DiffBlock({ cr }: { cr: CorrectionRequest }) {
   }
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-      <div className="rounded-md p-2 text-sm" style={{ background: '#fde4e4' }}>
+      <div className="rounded-md p-2 text-sm" style={{ background: 'var(--color-error-tint)' }}>
         <div className="text-xs muted font-semibold uppercase tracking-wide">
           {t('currentValues')}
         </div>
@@ -204,7 +207,7 @@ function DiffBlock({ cr }: { cr: CorrectionRequest }) {
           <Field label={t('field.branch')} value={cr.original_branch_name ?? '—'} />
         </div>
       </div>
-      <div className="rounded-md p-2 text-sm" style={{ background: '#e8f3ec' }}>
+      <div className="rounded-md p-2 text-sm" style={{ background: 'var(--color-success-tint)' }}>
         <div className="text-xs muted font-semibold uppercase tracking-wide">
           {t('requestedValues')}
         </div>

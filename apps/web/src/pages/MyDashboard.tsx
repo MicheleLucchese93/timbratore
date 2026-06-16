@@ -5,6 +5,7 @@ import { api } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
 import { fmtDateTime } from '../i18n/format.ts';
 import { StampPanel } from '../components/StampPanel.tsx';
+import { PageHeader } from '../components/PageHeader.tsx';
 
 interface Stamp {
   id: string;
@@ -28,8 +29,8 @@ export function MyDashboard() {
   if (!me) return null;
 
   return (
-    <div className="space-y-5">
-      <h1 className="sr-only">{t('greeting', { name: me.user.email.split('@')[0] })}</h1>
+    <div className="space-y-4">
+      <PageHeader title={t('greeting', { name: me.user.email.split('@')[0] })} />
 
       <StampPanel onStamped={() => loadRecent().catch(() => {})} />
 

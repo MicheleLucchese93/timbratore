@@ -5,6 +5,7 @@ import { api } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
 import { useRealtimePolling } from '../hooks/useRealtimePolling.ts';
 import { IconButton } from '../components/IconButton.tsx';
+import { PageHeader } from '../components/PageHeader.tsx';
 import { fmtDate, fmtDateTime, fmtTime, fmtNumber, localeTag } from '../i18n/format.ts';
 
 interface Usage {
@@ -205,15 +206,15 @@ export function Dashboard() {
     pendingCorrections.length + pendingLeaves.length + cancellationLeaves.length;
 
   return (
-    <div className="space-y-6">
-      <header className="page-header">
-        <h1 className="sr-only">{t('title')}</h1>
-        <div className="page-header-actions ml-auto">
+    <div className="space-y-5">
+      <PageHeader
+        title={t('title')}
+        actions={
           <button className="btn btn-secondary" onClick={load}>
             <IconRefresh /> {t('common:btn.refresh')}
           </button>
-        </div>
-      </header>
+        }
+      />
 
       {err && (
         <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>
@@ -263,7 +264,7 @@ export function Dashboard() {
           <div className="text-xs muted">{t('inbox.total', { n: pendingTotal })}</div>
         </div>
         <div className="card p-0">
-          <div className="flex border-b" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>
+          <div className="flex border-b" style={{ borderColor: 'var(--color-border)' }}>
             <InboxTabButton
               active={inboxTab === 'corrections'}
               onClick={() => setInboxTab('corrections')}
@@ -712,7 +713,7 @@ function ViewToggle({
               borderRadius: '0.375rem',
               fontSize: '0.75rem',
               fontWeight: 600,
-              background: active ? 'white' : 'transparent',
+              background: active ? 'var(--color-surface)' : 'transparent',
               color: active ? 'var(--color-on-surface)' : 'var(--color-on-surface-variant)',
               border: 0,
               cursor: 'pointer',
@@ -743,7 +744,7 @@ function InboxTabButton({
       type="button"
       className={`px-4 py-2 text-sm border-b-2 flex items-center gap-2 ${active ? 'font-semibold' : 'opacity-70'}`}
       style={{
-        borderColor: active ? 'var(--color-primary, #2563eb)' : 'transparent',
+        borderColor: active ? 'var(--color-primary)' : 'transparent',
       }}
       onClick={onClick}
     >

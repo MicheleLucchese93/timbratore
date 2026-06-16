@@ -171,7 +171,7 @@ export const PlaceSearchInput = forwardRef<PlaceSearchHandle, Props>(function Pl
         required={required}
       />
       {(loading || busy) && (
-        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-neutral-500">…</span>
+        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs muted">…</span>
       )}
       {open && suggestions.length > 0 && (
         <ul
@@ -195,7 +195,7 @@ export const PlaceSearchInput = forwardRef<PlaceSearchHandle, Props>(function Pl
             >
               <div className="font-medium">{s.structured_formatting.main_text}</div>
               {s.structured_formatting.secondary_text && (
-                <div className="text-xs text-neutral-500">
+                <div className="text-xs muted">
                   {s.structured_formatting.secondary_text}
                 </div>
               )}

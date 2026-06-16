@@ -44,7 +44,7 @@ export function ForgotPassword() {
             </div>
 
             {done ? (
-              <div className="rounded-md px-3 py-3 text-sm" style={{ background: '#e8f3ec', color: 'var(--color-success)' }}>
+              <div className="rounded-md px-3 py-3 text-sm" style={{ background: 'var(--color-success-tint)', color: 'var(--color-success)' }}>
                 {t('sent')}
               </div>
             ) : (
