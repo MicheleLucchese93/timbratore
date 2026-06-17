@@ -408,9 +408,10 @@ export const MAIN_EN = `
           <li>Choose the <strong>language</strong> (Italian or English): it sets the language of the emails they receive (password reset, notifications). Defaults to the interface language.</li>
           <li>Select one or more <strong>branches</strong> to assign.</li>
           <li>Optional: fill in the <strong>payroll data (Centro Paghe)</strong> — <em>tax code</em>, <em>employee number</em> and, if needed, INAIL/qualification. You can always add or change them later from the users table.</li>
+          <li>Leave <strong>Send the password-setup email now</strong> ticked (the default) to give immediate access: the user receives the email and can sign in with no extra steps. Untick it if you'd rather create them now and send the email later.</li>
           <li>Press <strong>Invite</strong>.</li>
         </ol>
-        <p>The user is created but <strong>receives no automatic email</strong>. To give them access, press the <strong>reset password</strong> icon (key-shaped) on their row — or select them and use the <strong>Send password reset</strong> bulk action: that sends the email to set their password.</p>
+        <p>With the box ticked the user <strong>receives the email right away</strong> to set their password and sign in. If you unticked it, the user is created without an email: to give them access, press the <strong>reset password</strong> icon (key-shaped) on their row — or select them and use the <strong>Send password reset</strong> bulk action.</p>
       </div>
 
       <div class="feature">

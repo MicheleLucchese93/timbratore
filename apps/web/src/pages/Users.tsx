@@ -566,9 +566,9 @@ export function Users() {
         <InviteForm
           branches={branches}
           onClose={() => setShowInvite(false)}
-          onInvited={async () => {
+          onInvited={async (emailSent: boolean) => {
             setShowInvite(false);
-            setInfo(t('invite.createdNoEmail'));
+            setInfo(emailSent ? t('invite.createdEmailSent') : t('invite.createdNoEmail'));
             await load();
           }}
         />
@@ -1646,7 +1646,7 @@ function InviteForm({
 }: {
   branches: BranchOption[];
   onClose: () => void;
-  onInvited: () => void;
+  onInvited: (emailSent: boolean) => void;
 }) {
   const { t, i18n } = useTranslation(['users', 'common']);
   const [email, setEmail] = useState('');
@@ -1657,6 +1657,9 @@ function InviteForm({
   // to the admin's current UI language; the backend falls back to the tenant
   // locale if omitted.
   const [language, setLanguage] = useState<'it' | 'en'>(i18n.language === 'en' ? 'en' : 'it');
+  // Send the "set your password" email right away (default on). Unchecking
+  // creates the user silently — the admin sends access later via the key icon.
+  const [sendResetEmail, setSendResetEmail] = useState(true);
   const [branchIds, setBranchIds] = useState<Set<string>>(new Set());
   const [codiceFiscale, setCodiceFiscale] = useState('');
   const [matricola, setMatricola] = useState('');
@@ -1680,12 +1683,13 @@ function InviteForm({
     setBusy(true);
     setErr(null);
     try {
-      await api('/api/v1/users/invite', {
+      const out = await api<{ email_sent?: boolean }>('/api/v1/users/invite', {
         method: 'POST',
         json: {
           email,
           role,
           language,
+          send_reset_email: sendResetEmail,
           first_name: firstName.trim() || undefined,
           last_name: lastName.trim() || undefined,
           branch_ids: Array.from(branchIds),
@@ -1696,7 +1700,7 @@ function InviteForm({
           qualifica2: qualifica2.trim().toUpperCase() || undefined,
         },
       });
-      onInvited();
+      onInvited(out?.email_sent ?? sendResetEmail);
     } catch (e) {
       setErr(e instanceof Error ? e.message : t('errorGeneric'));
     } finally {
@@ -1779,6 +1783,19 @@ function InviteForm({
             </ul>
           )}
           <p className="text-xs muted mt-1">{t('invite.branchesHint')}</p>
+        </div>
+
+        <div>
+          <label className="flex items-start gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={sendResetEmail}
+              onChange={(e) => setSendResetEmail(e.target.checked)}
+            />
+            <span>{t('invite.sendResetEmail')}</span>
+          </label>
+          <p className="text-xs muted mt-1">{t('invite.sendResetEmailHint')}</p>
         </div>
 
         <div className="hairline my-1" />

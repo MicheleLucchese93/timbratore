@@ -149,8 +149,11 @@
   },
   "invite": {
     "title": "Invite user",
-    "subtitle": "The user is created without sending any email. To give them access, send the password reset email afterwards (key icon or bulk action).",
+    "subtitle": "By default the user immediately receives the email to set their password and sign in. Uncheck to create them without an email and send it later (key icon or bulk action).",
     "createdNoEmail": "User created. No email sent: use \"Send password reset\" (key icon) to give them their first access.",
+    "createdEmailSent": "User created. Password-setup email sent: they can sign in right away.",
+    "sendResetEmail": "Send the password-setup email now",
+    "sendResetEmailHint": "Recommended: the user gets the email and can sign in with no extra steps. If you uncheck it, send it later from the table (key icon).",
     "firstName": "First name",
     "lastName": "Last name",
     "optional": "(optional)",

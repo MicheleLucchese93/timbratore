@@ -130,6 +130,9 @@ const Invite = z.object({
   // locale (resolved in ensureAuthUser).
   language: z.enum(['it', 'en']).optional(),
   branch_ids: z.array(z.string().uuid()).optional(),
+  // Send the GoTrue recovery ("set your password") email right after creating
+  // the user, so the admin doesn't have to trigger it separately. Default on.
+  send_reset_email: z.boolean().default(true),
   ...anagraficaShape,
 });
 
@@ -358,10 +361,27 @@ usersRouter.post(
       email: inv.email,
       role: inv.role,
     });
+    // Optionally give the new member their first access immediately by sending
+    // the GoTrue recovery ("set your password") email. triggerRecovery swallows
+    // its own network errors, so email_sent reflects the attempt — consistent
+    // with the standalone reset-password endpoint.
+    let emailSent = false;
+    if (inv.send_reset_email) {
+      await triggerRecovery(inv.email);
+      await emitAudit(client, 'user.reset_password', outcome.user_id, null, {
+        email: inv.email,
+      });
+      emailSent = true;
+    }
     invalidateMembershipCache(outcome.user_id);
     ok(
       res,
-      { user_id: outcome.user_id, email: inv.email, membership: outcome.membership },
+      {
+        user_id: outcome.user_id,
+        email: inv.email,
+        membership: outcome.membership,
+        email_sent: emailSent,
+      },
       201
     );
   })

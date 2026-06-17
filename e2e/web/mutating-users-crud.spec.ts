@@ -54,6 +54,32 @@ test.describe('web — Utenti CRUD (mutating)', () => {
     await expect(page.getByText(email).first()).toBeVisible({ timeout: 15_000 });
   });
 
+  test('invite with send_reset_email=false does not report a sent email', async () => {
+    // The beforeEach invite omits the flag, so the helper default (false) applies.
+    const u = await inviteUser(admin.token, {
+      email: `e2e-nomail-${Date.now()}@e2e.local`,
+      role: 'user',
+    });
+    try {
+      expect(u.email_sent).toBe(false);
+    } finally {
+      await deleteUser(admin.token, u.user_id).catch(() => {});
+    }
+  });
+
+  test('invite with send_reset_email=true reports the email was sent', async () => {
+    const u = await inviteUser(admin.token, {
+      email: `e2e-mail-${Date.now()}@e2e.local`,
+      role: 'user',
+      send_reset_email: true,
+    });
+    try {
+      expect(u.email_sent).toBe(true);
+    } finally {
+      await deleteUser(admin.token, u.user_id).catch(() => {});
+    }
+  });
+
   test('reset-password endpoint returns 200 for a tenant member', async () => {
     const r = await apiPost(admin.token, `/api/v1/users/${createdUserId}/reset-password`, {});
     expect(r.status).toBe(200);

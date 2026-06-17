@@ -415,9 +415,10 @@ const MAIN_IT = `
           <li>Scegli la <strong>lingua</strong> (Italiano o English): determina la lingua delle email che riceverà (reset password, notifiche). Preimpostata sulla lingua dell'interfaccia.</li>
           <li>Seleziona una o più <strong>sedi</strong> di assegnazione.</li>
           <li>Facoltativo: compila i <strong>dati paghe (Centro Paghe)</strong> — <em>codice fiscale</em>, <em>matricola</em> ed eventuali INAIL/qualifica. Puoi sempre aggiungerli o modificarli dopo dalla tabella utenti.</li>
+          <li>Lascia spuntata <strong>Invia subito l'email per impostare la password</strong> (preimpostata) per dare accesso immediato: l'utente riceverà l'email e potrà accedere senza altri passaggi. Togli la spunta se preferisci crearlo ora e inviargli l'email più tardi.</li>
           <li>Premi <strong>Invita</strong>.</li>
         </ol>
-        <p>L'utente viene creato ma <strong>non riceve alcuna email automatica</strong>. Per dargli accesso, premi l'icona <strong>reimposta password</strong> (a forma di chiave) sulla sua riga — oppure selezionalo e usa l'operazione in massa <strong>Invia reset password</strong>: riceverà così l'email per impostare la password.</p>
+        <p>Con la spunta attiva l'utente <strong>riceve subito l'email</strong> per impostare la password ed entrare. Se l'hai tolta, l'utente viene creato senza email: per dargli accesso premi poi l'icona <strong>reimposta password</strong> (a forma di chiave) sulla sua riga — oppure selezionalo e usa l'operazione in massa <strong>Invia reset password</strong>.</p>
       </div>
 
       <div class="feature">

@@ -517,9 +517,18 @@ export async function inviteUser(
     inail?: string;
     qualifica?: string;
     qualifica2?: string;
+    // The /invite endpoint defaults this to true (sends a GoTrue recovery
+    // email). e2e seeds throw-away @e2e.local users in bulk, so default it OFF
+    // here to avoid firing real recovery emails for every fixture — tests that
+    // want to exercise the email path pass send_reset_email: true explicitly.
+    send_reset_email?: boolean;
   },
-): Promise<{ user_id: string; email: string }> {
-  const r = await apiPost<{ user_id: string; email: string }>(adminToken, '/api/v1/users/invite', body);
+): Promise<{ user_id: string; email: string; email_sent?: boolean }> {
+  const r = await apiPost<{ user_id: string; email: string; email_sent?: boolean }>(
+    adminToken,
+    '/api/v1/users/invite',
+    { send_reset_email: false, ...body },
+  );
   if (r.status !== 201 || !r.data) throw new Error(`inviteUser failed: ${r.status} ${r.code ?? ''}`);
   return r.data;
 }

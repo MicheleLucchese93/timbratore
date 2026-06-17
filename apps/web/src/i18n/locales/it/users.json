@@ -149,8 +149,11 @@
   },
   "invite": {
     "title": "Invita utente",
-    "subtitle": "L'utente viene creato senza inviare alcuna email. Per dargli accesso, invia poi l'email di reset password (icona chiave o operazione in massa).",
+    "subtitle": "Per impostazione predefinita l'utente riceve subito l'email per impostare la password e accedere. Togli la spunta per crearlo senza email e inviargliela più tardi (icona chiave o operazione in massa).",
     "createdNoEmail": "Utente creato. Nessuna email inviata: usa «Invia reset password» (icona chiave) per dargli il primo accesso.",
+    "createdEmailSent": "Utente creato. Email per impostare la password inviata: potrà accedere subito.",
+    "sendResetEmail": "Invia subito l'email per impostare la password",
+    "sendResetEmailHint": "Consigliato: l'utente riceve l'email e può accedere senza altri passaggi. Se la togli, glielo invii dopo dalla tabella (icona chiave).",
     "firstName": "Nome",
     "lastName": "Cognome",
     "optional": "(facoltativo)",
