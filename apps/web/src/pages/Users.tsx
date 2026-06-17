@@ -1017,7 +1017,7 @@ function UserEditor({
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
-      <form onSubmit={submit} className="card w-full max-w-md space-y-3">
+      <form onSubmit={submit} className="card w-full max-w-4xl max-h-[90vh] overflow-y-auto space-y-3">
         <h2 className="section-title">{t('userEditor.title')}</h2>
         <p className="text-xs muted">
           {t('userEditor.emailHint', { email: user.email })}
@@ -1710,7 +1710,7 @@ function InviteForm({
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
-      <form onSubmit={submit} className="card w-full max-w-xl max-h-[90vh] overflow-y-auto space-y-3">
+      <form onSubmit={submit} className="card w-full max-w-4xl max-h-[90vh] overflow-y-auto space-y-3">
         <h2 className="section-title">{t('invite.title')}</h2>
         <p className="text-xs muted">{t('invite.subtitle')}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

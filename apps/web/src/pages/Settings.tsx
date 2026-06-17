@@ -180,7 +180,7 @@ export function Settings() {
   }
 
   return (
-    <form onSubmit={onFormSubmit} className="max-w-5xl">
+    <form onSubmit={onFormSubmit} className="max-w-7xl">
       <PageHeader title={t('title')} />
 
       <SettingsRow
