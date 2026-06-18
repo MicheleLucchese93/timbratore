@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 
 export interface ConfirmOptions {
   /** Heading of the dialog. */
@@ -58,16 +59,13 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     p?.resolve(ok);
   }, []);
 
-  // Focus the confirm button when the dialog opens, and wire Escape to cancel.
+  // Escape cancels (topmost-only, so a confirm over a modal closes just itself).
+  useEscapeKey(() => close(false), !!pending);
+
+  // Focus the confirm button when the dialog opens.
   useEffect(() => {
-    if (!pending) return;
-    confirmBtnRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [pending, close]);
+    if (pending) confirmBtnRef.current?.focus();
+  }, [pending]);
 
   return (
     <ConfirmContext.Provider value={confirm}>

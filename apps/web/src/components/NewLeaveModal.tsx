@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { api } from '../lib/api.ts';
 import {
   ASSENZA_SUBTYPE_LABEL,
@@ -20,6 +21,7 @@ const ASSENZA_SUBTYPES = Object.keys(ASSENZA_SUBTYPE_LABEL);
  */
 export function NewLeaveModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const { t } = useTranslation(['newLeaveModal', 'common']);
+  useEscapeKey(onClose);
   const [type, setType] = useState<LeaveType>('ferie');
   const [allDay, setAllDay] = useState(true);
   // Date is kept separate from time: an all-day request is a date range

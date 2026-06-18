@@ -229,6 +229,9 @@ const MAIN_IT = `
           <div class="mini-card"><div class="mini-title">Impostazioni</div><div class="mini-desc">Configurazione azienda</div></div>
         </div>
         <p>In basso nella sidebar trovi il tuo avatar con email, ruolo <em>Amministratore</em> e il pulsante <strong>Esci</strong>.</p>
+        <div class="callout callout-tip">
+          <strong>Scorciatoia:</strong> qualunque finestra di dialogo (creazione, modifica, conferma) si chiude premendo il tasto <strong>Esc</strong> sulla tastiera, oltre che con il pulsante <strong>Annulla</strong>.
+        </div>
       </div>
     </section>
 

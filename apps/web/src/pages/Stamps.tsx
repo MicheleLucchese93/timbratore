@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
+import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { fmtDateTime } from '../i18n/format.ts';
 import { StampMonthGrid } from '../components/StampMonthGrid.tsx';
@@ -180,6 +181,7 @@ function StampForm({
   onSaved: () => void;
 }) {
   const { t } = useTranslation(['stamps', 'common']);
+  useEscapeKey(onClose);
   const [userId, setUserId] = useState(stamp?.user_id ?? users[0]?.user_id ?? '');
   const [eventType, setEventType] = useState<Stamp['event_type']>(stamp?.event_type ?? 'clock_in');
   const [occurredAt, setOccurredAt] = useState(() => {

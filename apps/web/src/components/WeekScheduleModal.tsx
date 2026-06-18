@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { localeTag } from '../i18n/format.ts';
 import { formatDuration } from '@sonoqui/shared';
 import type { ActiveAssignment } from '@sonoqui/shared';
@@ -31,6 +32,7 @@ export function WeekScheduleModal({
   onClose: () => void;
 }) {
   const { t } = useTranslation(['timbrature', 'common']);
+  useEscapeKey(onClose);
   return (
     <div
       className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50"

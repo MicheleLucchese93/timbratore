@@ -7,6 +7,7 @@ import {
   type DocumentCategory,
 } from '@sonoqui/shared';
 import { api, apiUrl, getToken, getTenantId } from '../lib/api.ts';
+import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { IconButton } from '../components/IconButton.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
@@ -51,6 +52,7 @@ export function Documents() {
   const [info, setInfo] = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<DocumentAdminItem | null>(null);
+  useEscapeKey(() => setConfirmDelete(null), confirmDelete != null);
 
   async function loadUsers() {
     const u = await api<UserOption[]>('/api/v1/users');
@@ -325,6 +327,7 @@ function BulkUploadModal({
   onUploaded: (count: number) => void;
 }) {
   const { t } = useTranslation(['documents', 'common']);
+  useEscapeKey(onClose);
   const [rows, setRows] = useState<UploadRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);

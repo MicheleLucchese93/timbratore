@@ -7,6 +7,7 @@
 import { type CSSProperties, type FormEvent, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { computeDayTotals, formatDuration, italianHolidays, type DayStamp } from '@sonoqui/shared';
+import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { api } from '../lib/api.ts';
 import { fmtDate } from '../i18n/format.ts';
 import { type Stamp, type Branch, type UserRow, userLabel, EVENT_TYPES } from '../lib/stamp-types.ts';
@@ -467,6 +468,7 @@ function DayStampEditor({
   onClose: () => void;
 }) {
   const { t } = useTranslation(['stamps', 'common']);
+  useEscapeKey(onClose);
   const [reason, setReason] = useState(t('grid.reasonDefault'));
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

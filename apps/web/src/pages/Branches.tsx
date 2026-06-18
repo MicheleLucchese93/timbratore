@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api.ts';
+import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import {
   PlaceSearchInput,
   type PlaceDetail,
@@ -146,6 +147,7 @@ function BranchForm({
   onSaved: () => void;
 }) {
   const { t } = useTranslation(['branches', 'common']);
+  useEscapeKey(onClose);
   const [name, setName] = useState(initial?.name ?? '');
   const [address, setAddress] = useState(initial?.address ?? '');
   const [lat, setLat] = useState<number | null>(initial?.latitude ?? null);

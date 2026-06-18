@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, type ApiError } from '../lib/api.ts';
+import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
 import { IconButton } from '../components/IconButton.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
@@ -352,6 +353,7 @@ function ShiftForm({
   onSaved: () => Promise<void> | void;
 }) {
   const { t } = useTranslation(['shifts', 'common']);
+  useEscapeKey(onClose);
   const [state, setState] = useState<FormState>({
     name: initial?.name ?? '',
     description: initial?.description ?? '',

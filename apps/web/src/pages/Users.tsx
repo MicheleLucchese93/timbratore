@@ -7,6 +7,7 @@ import { useSession } from '../store/session.ts';
 import { IconButton } from '../components/IconButton.tsx';
 import { InfoTip } from '../components/InfoTip.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { fmtDateTime } from '../i18n/format.ts';
 
 interface UserRow {
@@ -88,6 +89,8 @@ export function Users() {
   const [showInvite, setShowInvite] = useState(false);
   const [confirmDeactivate, setConfirmDeactivate] = useState<UserRow | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<UserRow | null>(null);
+  useEscapeKey(() => setConfirmDeactivate(null), confirmDeactivate != null);
+  useEscapeKey(() => setConfirmDelete(null), confirmDelete != null);
   const [branchEditor, setBranchEditor] = useState<UserRow | null>(null);
   const [userEditor, setUserEditor] = useState<UserRow | null>(null);
   const [modesEditor, setModesEditor] = useState<UserRow | null>(null);
@@ -779,6 +782,7 @@ function ApproverEditor({
   onSaved: () => void;
 }) {
   const { t } = useTranslation(['users', 'common']);
+  useEscapeKey(onClose);
   const meta = APPROVER_KIND_META[kind];
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -893,6 +897,7 @@ function ShiftAssignEditor({
   onSave: (templateId: string | null, validFrom: string) => Promise<void> | void;
 }) {
   const { t } = useTranslation(['users', 'common']);
+  useEscapeKey(onClose);
   const [templateId, setTemplateId] = useState<string>(current?.shift_template_id ?? '');
   const [validFrom, setValidFrom] = useState<string>(
     new Date().toISOString().slice(0, 10)
@@ -988,6 +993,7 @@ function UserEditor({
   onSave: (patch: UserPatch) => Promise<void> | void;
 }) {
   const { t } = useTranslation(['users', 'common']);
+  useEscapeKey(onClose);
   const [firstName, setFirstName] = useState(user.first_name ?? '');
   const [lastName, setLastName] = useState(user.last_name ?? '');
   const [codiceFiscale, setCodiceFiscale] = useState(user.codice_fiscale ?? '');
@@ -1150,6 +1156,7 @@ function BulkBranchesDialog({
   onConfirm: (ids: string[]) => Promise<void> | void;
 }) {
   const { t } = useTranslation(['users', 'common']);
+  useEscapeKey(onClose);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const title = mode === 'add' ? t('bulk.addTitle') : t('bulk.removeTitle');
@@ -1225,6 +1232,7 @@ function BulkResetDialog({
   onConfirm: () => Promise<void> | void;
 }) {
   const { t } = useTranslation(['users', 'common']);
+  useEscapeKey(onClose);
   const [busy, setBusy] = useState(false);
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
@@ -1268,6 +1276,7 @@ function BulkShiftDialog({
   onConfirm: (templateId: string | null, validFrom: string) => Promise<void> | void;
 }) {
   const { t } = useTranslation(['users', 'common']);
+  useEscapeKey(onClose);
   const [templateId, setTemplateId] = useState('');
   const [validFrom, setValidFrom] = useState(new Date().toISOString().slice(0, 10));
   const [busy, setBusy] = useState(false);
@@ -1336,6 +1345,7 @@ function BulkModesDialog({
   onConfirm: (modes: Array<'gps' | 'remote'>) => Promise<void> | void;
 }) {
   const { t } = useTranslation(['users', 'common']);
+  useEscapeKey(onClose);
   const [gps, setGps] = useState(false);
   const [remote, setRemote] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -1414,6 +1424,7 @@ function BulkApproversDialog({
   onConfirm: (ids: string[]) => Promise<void> | void;
 }) {
   const { t } = useTranslation(['users', 'common']);
+  useEscapeKey(onClose);
   const meta = APPROVER_KIND_META[kind];
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
@@ -1493,6 +1504,7 @@ function ModesEditor({
   onSave: (modes: Array<'gps' | 'remote'>) => Promise<void> | void;
 }) {
   const { t } = useTranslation(['users', 'common']);
+  useEscapeKey(onClose);
   const [gps, setGps] = useState(user.stamp_modes?.includes('gps') ?? false);
   const [remote, setRemote] = useState(user.stamp_modes?.includes('remote') ?? false);
   const [busy, setBusy] = useState(false);
@@ -1575,6 +1587,7 @@ function BranchEditor({
   onSave: (ids: string[]) => Promise<void> | void;
 }) {
   const { t } = useTranslation(['users', 'common']);
+  useEscapeKey(onClose);
   const [selected, setSelected] = useState<Set<string>>(new Set(user.branch_ids ?? []));
   const [busy, setBusy] = useState(false);
 
@@ -1649,6 +1662,7 @@ function InviteForm({
   onInvited: (emailSent: boolean) => void;
 }) {
   const { t, i18n } = useTranslation(['users', 'common']);
+  useEscapeKey(onClose);
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');

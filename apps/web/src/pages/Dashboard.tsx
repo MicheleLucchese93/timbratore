@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
 import { useRealtimePolling } from '../hooks/useRealtimePolling.ts';
+import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { IconButton } from '../components/IconButton.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
 import { fmtDate, fmtDateTime, fmtTime, fmtNumber, localeTag } from '../i18n/format.ts';
@@ -637,6 +638,7 @@ function ReasonDialog({
   onSubmit: (reason: string) => Promise<void> | void;
 }) {
   const { t } = useTranslation(['dashboard', 'common']);
+  useEscapeKey(onClose);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   async function submit(e: FormEvent) {

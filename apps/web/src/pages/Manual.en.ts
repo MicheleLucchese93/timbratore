@@ -222,6 +222,9 @@ export const MAIN_EN = `
           <div class="mini-card"><div class="mini-title">Settings</div><div class="mini-desc">Company configuration</div></div>
         </div>
         <p>At the bottom of the sidebar you find your avatar with email, the <em>Administrator</em> role and the <strong>Log out</strong> button.</p>
+        <div class="callout callout-tip">
+          <strong>Shortcut:</strong> any dialog window (create, edit, confirm) closes by pressing the <strong>Esc</strong> key on the keyboard, in addition to the <strong>Cancel</strong> button.
+        </div>
       </div>
     </section>
 

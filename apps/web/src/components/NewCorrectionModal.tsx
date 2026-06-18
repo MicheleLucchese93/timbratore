@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StampEventType } from '@sonoqui/shared';
+import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { api } from '../lib/api.ts';
 import { fmtDate, fmtTime } from '../i18n/format.ts';
 
@@ -45,6 +46,7 @@ export function NewCorrectionModal({
   branches: Array<{ id: string; name: string }>;
 }) {
   const { t } = useTranslation(['newCorrectionModal', 'common']);
+  useEscapeKey(onClose);
   const [step, setStep] = useState<Step>('date');
   const [targetDate, setTargetDate] = useState(() => isoLocalDate(new Date()));
   const [dayStamps, setDayStamps] = useState<DayStamp[] | null>(null);

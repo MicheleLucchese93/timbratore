@@ -14,6 +14,7 @@ import { LeaveCalendar, type CalendarEvent } from '../components/LeaveCalendar.t
 import { NewLeaveModal } from '../components/NewLeaveModal.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
+import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { AdminResidui } from './Residui.tsx';
 
 type LeaveType = 'ferie' | 'permessi' | 'malattia' | 'assenza';
@@ -486,6 +487,7 @@ function BulkEventModal({
   onDone: () => void;
 }) {
   const { t } = useTranslation(['leaves', 'common']);
+  useEscapeKey(onClose);
   const [title, setTitle] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -612,6 +614,7 @@ function ReasonDialog({
   onSubmit: (reason: string) => Promise<void> | void;
 }) {
   const { t } = useTranslation(['leaves', 'common']);
+  useEscapeKey(onClose);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   async function submit(e: FormEvent) {
@@ -821,6 +824,7 @@ function BulkAssignQuotaModal({
   onSaved: () => void;
 }) {
   const { t } = useTranslation(['leaves', 'common']);
+  useEscapeKey(onClose);
   const [type, setType] = useState<'ferie' | 'permessi'>('ferie');
   const byType = useMemo(() => templates.filter((tpl) => tpl.type === type), [templates, type]);
   const [templateId, setTemplateId] = useState<string>('');
@@ -963,6 +967,7 @@ function AssignmentEditor({
   onSaved: () => void;
 }) {
   const { t } = useTranslation(['leaves', 'common']);
+  useEscapeKey(onClose);
   const confirm = useConfirm();
   const [templateId, setTemplateId] = useState<string>(
     existing?.template_id ?? templates[0]?.id ?? ''
@@ -1116,6 +1121,7 @@ function ManualAdjustModal({
   onSaved: () => void;
 }) {
   const { t } = useTranslation(['leaves', 'common']);
+  useEscapeKey(onClose);
   const available = useMemo(
     () =>
       (['ferie', 'permessi'] as const).filter(
@@ -1276,6 +1282,7 @@ function fmtSignedHours(h: number): string {
 
 function AuditLogModal({ user, onClose }: { user: UserRow; onClose: () => void }) {
   const { t } = useTranslation(['leaves', 'common']);
+  useEscapeKey(onClose);
   const [rows, setRows] = useState<Accrual[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -1425,6 +1432,7 @@ function TemplateEditor({
   onSaved: () => void;
 }) {
   const { t } = useTranslation(['leaves', 'common']);
+  useEscapeKey(onClose);
   const [name, setName] = useState(initial.name ?? '');
   const [type, setType] = useState<'ferie' | 'permessi'>(initial.type ?? 'ferie');
   const [hoursDefault, setHoursDefault] = useState(initial.hours_default ?? 176);
