@@ -1,8 +1,7 @@
 import type { Lang } from '../i18n/ui';
 
 export const SITE_URL = 'https://sonoqui.xdevapp.it';
-// TODO: set the real numeric App Store ID once the iOS listing is live (currently pre-launch / Beta).
-// export const APP_STORE_URL = 'https://apps.apple.com/it/app/sonoqui/idXXXXXXXXX';
+export const APP_STORE_URL = 'https://apps.apple.com/it/app/sonoqui/id6772960002';
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=app.sonoqui.mobile';
 export const WEB_APP_URL = 'https://app-sonoqui.xdevapp.it/login';
 export const DEFAULT_IMAGE = '/icon.png';
