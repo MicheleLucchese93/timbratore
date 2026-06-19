@@ -300,7 +300,7 @@ export function ProfiloScreen() {
             label={tr('notifications.leaveDecisions')}
             hint={tr('notifications.leaveDecisionsHint')}
             value={pushPrefs.push_leave_decisions}
-            disabled={!pushEnabled || savingPushKey !== null}
+            disabled={!pushEnabled || savingPushKey === 'push_leave_decisions'}
             onChange={(v) => togglePushPref('push_leave_decisions', v)}
           />
           <View style={styles.divider} />
@@ -308,7 +308,7 @@ export function ProfiloScreen() {
             label={tr('notifications.correctionDecisions')}
             hint={tr('notifications.correctionDecisionsHint')}
             value={pushPrefs.push_correction_decisions}
-            disabled={!pushEnabled || savingPushKey !== null}
+            disabled={!pushEnabled || savingPushKey === 'push_correction_decisions'}
             onChange={(v) => togglePushPref('push_correction_decisions', v)}
           />
           <View style={styles.divider} />
@@ -316,7 +316,7 @@ export function ProfiloScreen() {
             label={tr('notifications.leaveReminders')}
             hint={tr('notifications.leaveRemindersHint')}
             value={pushPrefs.push_leave_reminders}
-            disabled={!pushEnabled || savingPushKey !== null}
+            disabled={!pushEnabled || savingPushKey === 'push_leave_reminders'}
             onChange={(v) => togglePushPref('push_leave_reminders', v)}
           />
           <View style={styles.divider} />
@@ -324,7 +324,7 @@ export function ProfiloScreen() {
             label={tr('notifications.documentsPush')}
             hint={tr('notifications.documentsPushHint')}
             value={pushPrefs.push_documents}
-            disabled={!pushEnabled || savingPushKey !== null}
+            disabled={!pushEnabled || savingPushKey === 'push_documents'}
             onChange={(v) => togglePushPref('push_documents', v)}
           />
           <View style={styles.divider} />
@@ -333,7 +333,7 @@ export function ProfiloScreen() {
             label={tr('notifications.documentsEmail')}
             hint={tr('notifications.documentsEmailHint')}
             value={pushPrefs.email_documents}
-            disabled={savingPushKey !== null}
+            disabled={savingPushKey === 'email_documents'}
             onChange={(v) => togglePushPref('email_documents', v)}
           />
           {isAdmin && (
@@ -343,7 +343,7 @@ export function ProfiloScreen() {
                 label={tr('notifications.leaveSubmissions')}
                 hint={tr('notifications.leaveSubmissionsHint')}
                 value={pushPrefs.push_leave_submissions}
-                disabled={!pushEnabled || savingPushKey !== null}
+                disabled={!pushEnabled || savingPushKey === 'push_leave_submissions'}
                 onChange={(v) => togglePushPref('push_leave_submissions', v)}
               />
               <View style={styles.divider} />
@@ -351,7 +351,7 @@ export function ProfiloScreen() {
                 label={tr('notifications.correctionSubmissions')}
                 hint={tr('notifications.correctionSubmissionsHint')}
                 value={pushPrefs.push_correction_submissions}
-                disabled={!pushEnabled || savingPushKey !== null}
+                disabled={!pushEnabled || savingPushKey === 'push_correction_submissions'}
                 onChange={(v) => togglePushPref('push_correction_submissions', v)}
               />
             </>
