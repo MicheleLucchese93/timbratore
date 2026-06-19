@@ -100,3 +100,15 @@ if (env.NODE_ENV === 'production') {
     console.warn('Warning: GOTRUE_JWT_AUDIENCE not pinned in production');
   }
 }
+
+// Fail fast if R2 storage is selected without its credentials — otherwise
+// uploads would silently fall back to ephemeral container disk and /download
+// would hand back local /raw URLs (documents lost on redeploy).
+if (env.STORAGE_DRIVER === 'r2') {
+  const missing = (['R2_ACCOUNT_ID', 'R2_BUCKET', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'] as const).filter(
+    (k) => !env[k]
+  );
+  if (missing.length) {
+    throw new Error(`STORAGE_DRIVER=r2 requires these env vars: ${missing.join(', ')}`);
+  }
+}

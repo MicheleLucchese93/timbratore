@@ -839,7 +839,7 @@ const MAIN_IT = `
           <li>Una verifica riuscita sblocca consultazione e download per circa <strong>10 minuti</strong>; trascorso questo tempo il codice viene richiesto di nuovo.</li>
           <li>Il <strong>caricamento</strong> di un documento <em>non</em> richiede il codice: solo la consultazione e il download dei documenti esistenti lo richiedono.</li>
           <li>Il codice è valido circa 10 minuti ed esiste un limite ai tentativi errati.</li>
-          <li>Ogni <strong>consultazione</strong> e <strong>download</strong> effettuati dal Documentale vengono registrati in un <strong>log degli accessi</strong> (traccia di audit).</li>
+          <li>Ogni <strong>consultazione</strong>, <strong>download</strong> ed <strong>eliminazione</strong> effettuati dal Documentale vengono registrati in un <strong>log degli accessi</strong> (traccia di audit).</li>
         </ul>
       </div>
 
@@ -1013,7 +1013,7 @@ const MAIN_IT = `
       <div class="feature">
         <h3>Consultare e scaricare</h3>
         <p>La tabella elenca, per ogni documento: <strong>Categoria</strong>, <strong>Titolo</strong>, <strong>Caricato il</strong>, <strong>Archiviato fino al</strong> e la <strong>presa visione</strong> (la <strong>data e ora</strong> della prima apertura, oppure <span class="pill pill-warn">Non visto</span>).</p>
-        <p>Premi l'icona <strong>Scarica</strong> per aprire il PDF in una nuova scheda. La <strong>prima apertura</strong> di un documento viene registrata come <em>presa visione</em>: da quel momento la colonna mostra la <strong>data e ora</strong> della tua presa visione e l'azienda sa che l'hai consultato. La presa visione viene registrata <strong>solo quando lo apri tu</strong> (il destinatario): le aperture del Documentale non la attivano.</p>
+        <p>Premi l'icona <strong>Scarica</strong> per aprire il PDF in una nuova scheda. La <strong>prima apertura</strong> di un documento viene registrata come <em>presa visione</em>: da quel momento la colonna mostra la <strong>data e ora</strong> della tua presa visione e l'azienda sa che l'hai consultato. La presa visione viene registrata <strong>solo quando lo apri tu</strong> (il destinatario): le aperture del Documentale non la attivano. Vale anche per un amministratore che è destinatario di un proprio documento: aprendolo da qui registra la propria presa visione.</p>
         <div class="callout callout-info">
           Riceverai una <strong>notifica</strong> (push ed email) ogni volta che l'azienda carica un nuovo documento per te. Puoi disattivare l'email da <strong>Impostazioni → Notifiche email</strong> e la push dall'app mobile (<em>Profilo</em>).
         </div>

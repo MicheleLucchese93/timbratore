@@ -827,7 +827,7 @@ export const MAIN_EN = `
           <li>A successful verification unlocks viewing and downloads for about <strong>10 minutes</strong>; after that the code is requested again.</li>
           <li><strong>Uploading</strong> a document does <em>not</em> require the code: only viewing and downloading existing documents do.</li>
           <li>The code is valid for about 10 minutes and there is a limit on wrong attempts.</li>
-          <li>Every <strong>view</strong> and <strong>download</strong> performed by the document manager is recorded in an <strong>access log</strong> (audit trail).</li>
+          <li>Every <strong>view</strong>, <strong>download</strong> and <strong>deletion</strong> performed by the document manager is recorded in an <strong>access log</strong> (audit trail).</li>
         </ul>
       </div>
 
@@ -1001,7 +1001,7 @@ export const MAIN_EN = `
       <div class="feature">
         <h3>Viewing and downloading</h3>
         <p>The table lists, for each document: <strong>Category</strong>, <strong>Title</strong>, <strong>Uploaded</strong>, <strong>Kept until</strong> and the <strong>read receipt</strong> (the <strong>date and time</strong> of the first open, or <span class="pill pill-warn">Not viewed</span>).</p>
-        <p>Press the <strong>Download</strong> icon to open the PDF in a new tab. The <strong>first time</strong> you open a document is recorded as <em>read</em>: from then on the column shows the <strong>date and time</strong> of your read and the company knows you have seen it. The read receipt is recorded <strong>only when you</strong> (the recipient) open it: opens by the document manager do not trigger it.</p>
+        <p>Press the <strong>Download</strong> icon to open the PDF in a new tab. The <strong>first time</strong> you open a document is recorded as <em>read</em>: from then on the column shows the <strong>date and time</strong> of your read and the company knows you have seen it. The read receipt is recorded <strong>only when you</strong> (the recipient) open it: opens by the document manager do not trigger it. This also applies to an administrator who is the recipient of his own document: opening it here records his own read receipt.</p>
         <div class="callout callout-info">
           You receive a <strong>notification</strong> (push and email) whenever the company uploads a new document for you. You can turn off the email from <strong>Settings → Email notifications</strong> and push from the mobile app (<em>Profile</em>).
         </div>

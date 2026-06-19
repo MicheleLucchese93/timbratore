@@ -37,7 +37,9 @@ export interface DocumentRecord {
   original_filename: string;
   mime_type: string;
   size_bytes: number;
-  r2_key: string;
+  /** Internal R2 object path. Server-only — stripped from API responses to the
+   *  client (downloads go through the presigned-URL endpoint). */
+  r2_key?: string;
   /** created_at + 36 months; the retention cron hard-deletes past this. */
   retention_until: string;
   created_at: string;

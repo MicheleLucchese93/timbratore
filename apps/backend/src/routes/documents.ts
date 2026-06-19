@@ -72,6 +72,15 @@ function sanitizeFilename(name: string): string {
   return safe.toLowerCase().endsWith('.pdf') ? safe : `${safe}.pdf`;
 }
 
+// The internal R2 object path is never needed by clients (downloads go through
+// the presigned-URL endpoint) — strip it from every row returned to the browser
+// so the storage layout isn't disclosed.
+function withoutR2Key<T extends Record<string, unknown>>(row: T): Omit<T, 'r2_key'> {
+  const { r2_key: _omit, ...rest } = row;
+  void _omit;
+  return rest;
+}
+
 function presignFor(doc: { id: string; r2_key: string }): Promise<string> {
   const localFallback =
     env.BACKEND_URL.replace(/\/+$/, '') + `/api/v1/documents/${doc.id}/raw`;
@@ -367,7 +376,7 @@ documentsRouter.post(
       title: finalDoc.title,
     }).catch((err) => logger.error({ err, document_id: finalDoc.id }, 'notify document failed'));
 
-    ok(res, finalDoc, 201);
+    ok(res, withoutR2Key(finalDoc), 201);
   })
 );
 
@@ -413,7 +422,7 @@ documentsRouter.get(
       params
     );
     await logDocumentAccess({ tenantId: req.user!.tenantId, actorId: req.user!.id, action: 'list' });
-    ok(res, r.rows);
+    ok(res, r.rows.map(withoutR2Key));
   })
 );
 
@@ -458,7 +467,7 @@ documentsRouter.get(
         LIMIT 1000`,
       [req.user!.id]
     );
-    ok(res, r.rows);
+    ok(res, r.rows.map(withoutR2Key));
   })
 );
 
