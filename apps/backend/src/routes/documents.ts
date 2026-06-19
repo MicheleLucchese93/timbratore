@@ -477,18 +477,19 @@ documentsRouter.get(
     );
     if (own.rowCount && own.rows[0].user_id === req.user!.id) {
       const doc = own.rows[0];
-      // Record the FIRST view only for the OWNING employee (role='user' AND own
-      // doc). A Documentale never reaches this branch, so the read-receipt can
-      // only ever be flipped by the destination user.
-      if (req.user!.role === 'user') {
-        await client.query(
-          `INSERT INTO document_views(tenant_id, document_id, user_id)
-           VALUES (current_setting('app.current_tenant_id')::uuid, $1,
-                   current_setting('app.current_user_id')::uuid)
-           ON CONFLICT (document_id, user_id) DO NOTHING`,
-          [doc.id]
-        );
-      }
+      // Owner viewing their OWN document — record the first view as the read-
+      // receipt, regardless of role. An admin can be a document recipient too
+      // (and in the hardened model admins only ever see their own docs here), so
+      // gating on role='user' wrongly skipped an admin-owner's receipt. The
+      // Documentale all-docs path is the separate branch below and NEVER records
+      // a view, so the receipt is still only ever set by the destination user.
+      await client.query(
+        `INSERT INTO document_views(tenant_id, document_id, user_id)
+         VALUES (current_setting('app.current_tenant_id')::uuid, $1,
+                 current_setting('app.current_user_id')::uuid)
+         ON CONFLICT (document_id, user_id) DO NOTHING`,
+        [doc.id]
+      );
       const url = await presignFor(doc);
       ok(res, { url, expires_in: PRESIGN_TTL_SECONDS });
       return;

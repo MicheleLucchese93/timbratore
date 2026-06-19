@@ -164,4 +164,30 @@ test.describe('web — Documenti: Documentale capability + OTP + access hardenin
     expect(row?.viewed_at, 'owner view flips the receipt').not.toBeNull();
     expect(row?.view_count).toBeGreaterThanOrEqual(1);
   });
+
+  test('an ADMIN who owns a document flips their own read-receipt', async () => {
+    test.skip(!OTP_ENABLED, 'set E2E_FIXED_OTP (and deploy it) to enable OTP tests');
+    // Regression: an admin can be a document recipient. Opening their OWN doc
+    // must record the receipt even though their role is 'admin' (own-doc path,
+    // not the Documentale all-docs path).
+    await setDocumentale(admin.token, admin.userId, true);
+    await ensureDocumentOtp(admin.token, FIXED_OTP);
+    const marker = `e2e-doc-adminowner-${Date.now()}`;
+    const doc = await uploadDocument(admin.token, {
+      userId: admin.userId,
+      category: 'cedolino',
+      title: marker,
+      filename: `${marker}.pdf`,
+    });
+    created.push(doc);
+
+    let row = (await listDocumentsAdmin(admin.token, admin.userId)).find((d) => d.id === doc.id);
+    expect(row?.viewed_at).toBeNull();
+
+    // Admin (owner) downloads their own doc — owner path, no OTP needed.
+    await downloadDocument(admin.token, doc.id);
+    row = (await listDocumentsAdmin(admin.token, admin.userId)).find((d) => d.id === doc.id);
+    expect(row?.viewed_at, "admin-owner's own-doc view must flip the receipt").not.toBeNull();
+    expect(row?.view_count).toBeGreaterThanOrEqual(1);
+  });
 });
