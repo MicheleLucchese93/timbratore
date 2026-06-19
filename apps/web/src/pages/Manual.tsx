@@ -406,7 +406,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Utilizzo licenze</h3>
-        <p>In testa alla pagina due contatori indicano <strong>Utenti</strong> attivi / massimo previsti dal piano e <strong>Amministratori</strong> attivi / massimo. Se raggiungi il limite il pulsante <em>Invita utente</em> viene disabilitato.</p>
+        <p>In testa alla pagina dei contatori indicano <strong>Utenti</strong> attivi / massimo previsti dal piano, <strong>Amministratori</strong> attivi / massimo e <strong>Documentali</strong> attivi / massimo. Se raggiungi il limite il pulsante <em>Invita utente</em> viene disabilitato.</p>
       </div>
 
       <div class="feature">
@@ -415,6 +415,7 @@ const MAIN_IT = `
           <li>Premi <strong>Invita utente</strong>.</li>
           <li>Inserisci email (obbligatorio), nome e cognome (opzionali).</li>
           <li>Scegli il ruolo: <em>Utente</em> o <em>Admin</em>.</li>
+          <li>Facoltativo: spunta <strong>Documentale</strong> per attribuire all'utente la capacità di caricare e consultare i documenti di <em>tutti</em> i dipendenti (vedi capitolo <em>Documenti</em>). È una capacità aggiuntiva, indipendente dal ruolo, assegnabile sia a un Admin sia a un dipendente. È limitata a <strong>1 Documentale per azienda</strong> (configurabile): se il tetto è già raggiunto la casella appare disabilitata.</li>
           <li>Scegli la <strong>lingua</strong> (Italiano o English): determina la lingua delle email che riceverà (reset password, notifiche). Preimpostata sulla lingua dell'interfaccia.</li>
           <li>Seleziona una o più <strong>sedi</strong> di assegnazione.</li>
           <li>Facoltativo: compila i <strong>dati paghe (Centro Paghe)</strong> — <em>codice fiscale</em>, <em>matricola</em> ed eventuali INAIL/qualifica. Puoi sempre aggiungerli o modificarli dopo dalla tabella utenti.</li>
@@ -429,6 +430,7 @@ const MAIN_IT = `
         <p>Per ogni riga della tabella puoi:</p>
         <ul class="tidy">
           <li>Cambiare il <strong>ruolo</strong> (Admin / Utente) tramite select. <em>Non puoi cambiare il ruolo del tuo account</em>: la select è disabilitata sulla tua riga, così un admin non può declassarsi a Utente e perdere l'accesso.</li>
+          <li>Attribuire o revocare la capacità <strong>Documentale</strong> con l'apposita spunta. È indipendente dal ruolo (può averla un Admin o un dipendente) e abilita l'utente a caricare e consultare i documenti di tutti i dipendenti (vedi capitolo <em>Documenti</em>). Vale il tetto di <strong>1 Documentale per azienda</strong> (configurabile): se è già occupato, la spunta è disabilitata sugli altri utenti.</li>
           <li>Attivare o disattivare l'utente con il toggle <strong>Attivo</strong>.</li>
           <li>Scegliere i <strong>metodi di timbratura</strong> consentiti (colonna <em>Timbratura</em>): <strong>GPS</strong> (da app mobile, presso la sede) e/o <strong>Da remoto</strong> (da web, senza verifica della posizione). Nessun metodo selezionato = l'utente non può timbrare e l'app non mostra il menu di timbratura.</li>
           <li>Modificare le <strong>sedi</strong> assegnate (multi-select).</li>
@@ -823,8 +825,23 @@ const MAIN_IT = `
     </section>
 
     <section class="chapter" id="web-admin-documenti">
-      <h2><span class="chapter-num">15a</span>Documenti <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
+      <h2><span class="chapter-num">15a</span>Documenti <span class="badge badge-both">documentale</span> <span class="badge badge-web">web</span></h2>
       <p class="lead">Carica e gestisci i documenti personali dei dipendenti: cedolini, CU, contratti, comunicazioni. Ogni documento è un PDF associato a un singolo dipendente, che lo consulta dalla sua sezione <em>I miei documenti</em> (Web) o dal tab <em>Documenti</em> dell'app mobile.</p>
+
+      <div class="callout callout-warn">
+        <strong>Richiede la capacità Documentale.</strong> Questa pagina è riservata agli utenti con la capacità <strong>Documentale</strong> — può essere un amministratore o un dipendente (vedi capitolo <em>Utenti</em>). Solo un Documentale può caricare documenti e consultare i documenti di <em>tutti</em> i dipendenti. Un amministratore <em>senza</em> questa capacità <strong>non vede</strong> i documenti degli altri: chi deve gestirli assegna la capacità Documentale al proprio account o a un dipendente di fiducia.
+      </div>
+
+      <div class="feature">
+        <h3>Sblocco con codice di verifica (OTP)</h3>
+        <p>Per proteggere dati sensibili, all'apertura della pagina <strong>Documenti</strong>, <em>prima</em> che venga mostrato l'elenco dei documenti, il sistema invia un <strong>codice di verifica a 6 cifre</strong> (codice usa-e-getta, OTP) all'indirizzo email del Documentale stesso. Inserisci il codice per sbloccare la consultazione.</p>
+        <ul class="tidy">
+          <li>Una verifica riuscita sblocca consultazione e download per circa <strong>10 minuti</strong>; trascorso questo tempo il codice viene richiesto di nuovo.</li>
+          <li>Il <strong>caricamento</strong> di un documento <em>non</em> richiede il codice: solo la consultazione e il download dei documenti esistenti lo richiedono.</li>
+          <li>Il codice è valido circa 10 minuti ed esiste un limite ai tentativi errati.</li>
+          <li>Ogni <strong>consultazione</strong> e <strong>download</strong> effettuati dal Documentale vengono registrati in un <strong>log degli accessi</strong> (traccia di audit).</li>
+        </ul>
+      </div>
 
       <div class="feature">
         <h3>La tabella documenti</h3>
@@ -835,7 +852,7 @@ const MAIN_IT = `
           <li><strong>Titolo</strong> — il nome assegnato in fase di caricamento.</li>
           <li><strong>Caricato il</strong> — data e ora di caricamento.</li>
           <li><strong>Archiviato fino al</strong> — la data oltre la quale il documento viene eliminato automaticamente (36 mesi dal caricamento).</li>
-          <li><strong>Presa visione</strong> — <span class="pill pill-ok">Visto</span> se il dipendente l'ha aperto almeno una volta, altrimenti <span class="pill pill-warn">Non visto</span>. <em>Le aperture dell'amministratore non contano mai come presa visione.</em></li>
+          <li><strong>Presa visione</strong> — <span class="pill pill-ok">Visto</span> se il dipendente (destinatario) l'ha aperto almeno una volta, altrimenti <span class="pill pill-warn">Non visto</span>. <em>Le aperture e i download effettuati dal Documentale non contano mai come presa visione: il documento resta <span class="pill pill-warn">Non visto</span> finché non lo apre il dipendente stesso.</em></li>
           <li><strong>Azioni</strong> — scarica ed elimina.</li>
         </ul>
         <p>In alto puoi <strong>filtrare per dipendente</strong> per vedere solo i suoi documenti.</p>
@@ -989,10 +1006,14 @@ const MAIN_IT = `
       <h2><span class="chapter-num">19a</span>I miei documenti <span class="badge badge-user">user</span> <span class="badge badge-web">web</span></h2>
       <p class="lead">I documenti che l'azienda ha caricato per te: cedolini, CU, contratti e comunicazioni. Vedi solo i tuoi.</p>
 
+      <div class="callout callout-info">
+        Qui <strong>ognuno vede esclusivamente i propri documenti</strong>, <strong>amministratori compresi</strong>. Un amministratore <em>non</em> vede da qui i documenti degli altri dipendenti: il caricamento e la consultazione dei documenti di tutti avvengono solo tramite la capacità <strong>Documentale</strong> (vedi capitolo <em>Documenti</em>).
+      </div>
+
       <div class="feature">
         <h3>Consultare e scaricare</h3>
         <p>La tabella elenca, per ogni documento: <strong>Categoria</strong>, <strong>Titolo</strong>, <strong>Caricato il</strong>, <strong>Archiviato fino al</strong> e lo stato di <strong>presa visione</strong> (<span class="pill pill-ok">Visto</span> / <span class="pill pill-warn">Non visto</span>).</p>
-        <p>Premi l'icona <strong>Scarica</strong> per aprire il PDF in una nuova scheda. La <strong>prima apertura</strong> di un documento viene registrata come <em>presa visione</em>: da quel momento il badge diventa <span class="pill pill-ok">Visto</span> e l'azienda sa che l'hai consultato.</p>
+        <p>Premi l'icona <strong>Scarica</strong> per aprire il PDF in una nuova scheda. La <strong>prima apertura</strong> di un documento viene registrata come <em>presa visione</em>: da quel momento il badge diventa <span class="pill pill-ok">Visto</span> e l'azienda sa che l'hai consultato. La presa visione viene registrata <strong>solo quando lo apri tu</strong> (il destinatario): le aperture del Documentale non la attivano.</p>
         <div class="callout callout-info">
           Riceverai una <strong>notifica</strong> (push ed email) ogni volta che l'azienda carica un nuovo documento per te. Puoi disattivare l'email da <strong>Impostazioni → Notifiche email</strong> e la push dall'app mobile (<em>Profilo</em>).
         </div>

@@ -76,13 +76,13 @@ meRouter.get(
     const tenant = await client.query(
       `SELECT id, ragione_sociale, country, timezone, language,
               mock_location_action,
-              max_admins, max_users, max_branches
+              max_admins, max_users, max_branches, max_documentali
        FROM tenants
        WHERE id = $1`,
       [req.user!.tenantId]
     );
     const membership = await client.query(
-      `SELECT stamp_modes
+      `SELECT stamp_modes, is_documentale
        FROM memberships
        WHERE id = $1`,
       [req.user!.membershipId]
@@ -118,6 +118,7 @@ meRouter.get(
         id: req.user!.id,
         email: req.user!.email,
         role: req.user!.role,
+        is_documentale: membership.rows[0]?.is_documentale === true,
         first_name: p.first_name ?? null,
         last_name: p.last_name ?? null,
         display_name: p.display_name ?? null,

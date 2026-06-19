@@ -5,6 +5,10 @@ import { useSession } from '../store/session.ts';
 
 interface NavItem { to: string; key: string; icon: ReactNode }
 
+// Document content is now own-only for everyone: every user (admin included)
+// sees only their OWN documents via "I miei documenti". Managing + viewing all
+// employees' documents is gated behind the additive Documentale capability,
+// which injects the "/documents" management entry below (see buildNav).
 const adminNav: NavItem[] = [
   { to: '/', key: 'dashboard', icon: <IconHome /> },
   { to: '/stamps', key: 'stamps', icon: <IconStamp /> },
@@ -14,7 +18,7 @@ const adminNav: NavItem[] = [
   { to: '/shifts', key: 'shifts', icon: <IconClock /> },
   { to: '/leaves', key: 'leaves', icon: <IconCalendar /> },
   { to: '/exports', key: 'exports', icon: <IconDownload /> },
-  { to: '/documents', key: 'documents', icon: <IconFile /> },
+  { to: '/me/documents', key: 'myDocuments', icon: <IconFile /> },
   { to: '/users', key: 'users', icon: <IconUsers /> },
   { to: '/settings', key: 'settings', icon: <IconCog /> },
   { to: '/manual', key: 'manual', icon: <IconBook /> },
@@ -29,12 +33,23 @@ const userNav: NavItem[] = [
   { to: '/manual', key: 'manual', icon: <IconBook /> },
 ];
 
+// Inject the all-documents management entry right before "Manuale" for any user
+// (admin OR base) who holds the Documentale capability.
+function buildNav(role: 'admin' | 'user', isDocumentale: boolean): NavItem[] {
+  const items = role === 'admin' ? [...adminNav] : [...userNav];
+  if (isDocumentale) {
+    const at = Math.max(0, items.findIndex((n) => n.key === 'manual'));
+    items.splice(at, 0, { to: '/documents', key: 'documents', icon: <IconFolder /> });
+  }
+  return items;
+}
+
 const COLLAPSED_KEY = 'sonoqui.sidebar.collapsed';
 
 export function Layout({ children }: { children: ReactNode }) {
   const { me, logout } = useSession();
   const { t } = useTranslation(['nav', 'common']);
-  const navItems = me?.user.role === 'admin' ? adminNav : userNav;
+  const navItems = buildNav(me?.user.role ?? 'user', me?.user.is_documentale === true);
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try {
@@ -411,6 +426,13 @@ function IconFile() {
       <path d="M14 2v6h6" />
       <path d="M8 13h8" />
       <path d="M8 17h8" />
+    </svg>
+  );
+}
+function IconFolder() {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
     </svg>
   );
 }

@@ -43,6 +43,10 @@ function userLabel(u: UserOption): string {
   return u.display_name?.trim() || u.email;
 }
 
+function isOtpRequired(e: unknown): boolean {
+  return typeof e === 'object' && e != null && (e as { code?: string }).code === 'OTP_REQUIRED';
+}
+
 export function Documents() {
   const { t } = useTranslation(['documents', 'common']);
   const [list, setList] = useState<DocumentAdminItem[]>([]);
@@ -52,10 +56,15 @@ export function Documents() {
   const [info, setInfo] = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<DocumentAdminItem | null>(null);
+  // null = still checking the OTP session; false = must enter a code before the
+  // uploaded-documents list/downloads unlock; true = a live session.
+  const [otpReady, setOtpReady] = useState<boolean | null>(null);
   useEscapeKey(() => setConfirmDelete(null), confirmDelete != null);
 
   async function loadUsers() {
-    const u = await api<UserOption[]>('/api/v1/users');
+    // Scoped recipient list (works for a base-user Documentale too — /api/v1/users
+    // is admin-only). NOT OTP-gated: it powers the upload form.
+    const u = await api<UserOption[]>('/api/v1/documents/recipients');
     setUsers(u);
   }
 
@@ -66,13 +75,21 @@ export function Documents() {
 
   useEffect(() => {
     loadUsers().catch((e) => setErr(e instanceof Error ? e.message : t('errorGeneric')));
+    api<{ verified: boolean }>('/api/v1/documents/otp/status')
+      .then((s) => setOtpReady(s.verified))
+      .catch(() => setOtpReady(false));
   }, []);
 
   useEffect(() => {
-    loadDocs(filterUserId || undefined).catch((e) =>
-      setErr(e instanceof Error ? e.message : t('errorGeneric'))
-    );
-  }, [filterUserId]);
+    if (otpReady !== true) return;
+    loadDocs(filterUserId || undefined).catch((e) => {
+      if (isOtpRequired(e)) {
+        setOtpReady(false);
+        return;
+      }
+      setErr(e instanceof Error ? e.message : t('errorGeneric'));
+    });
+  }, [filterUserId, otpReady]);
 
   // Display-name lookup so the grid can label the target employee even though
   // the admin list carries only an optional display name.
@@ -90,6 +107,11 @@ export function Documents() {
       );
       window.open(url, '_blank', 'noopener');
     } catch (e) {
+      if (isOtpRequired(e)) {
+        // Session lapsed mid-use — drop back to the gate.
+        setOtpReady(false);
+        return;
+      }
       setErr(e instanceof Error ? e.message : t('errorGeneric'));
     }
   }
@@ -102,6 +124,10 @@ export function Documents() {
       setInfo(t('deleted'));
       await loadDocs(filterUserId || undefined);
     } catch (e) {
+      if (isOtpRequired(e)) {
+        setOtpReady(false);
+        return;
+      }
       setErr(e instanceof Error ? e.message : t('errorGeneric'));
     }
   }
@@ -117,27 +143,29 @@ export function Documents() {
         }
       />
 
-      <div className="flex items-center gap-2 flex-wrap">
-        <label className="label" htmlFor="doc-filter-user" style={{ margin: 0 }}>
-          {t('filterByEmployee')}
-        </label>
-        <select
-          id="doc-filter-user"
-          className="input"
-          style={{ minWidth: 220 }}
-          value={filterUserId}
-          onChange={(e) => setFilterUserId(e.target.value)}
-        >
-          <option value="">{t('filterAll')}</option>
-          {users
-            .filter((u) => u.active)
-            .map((u) => (
-              <option key={u.user_id} value={u.user_id}>
-                {userLabel(u)}
-              </option>
-            ))}
-        </select>
-      </div>
+      {otpReady === true && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <label className="label" htmlFor="doc-filter-user" style={{ margin: 0 }}>
+            {t('filterByEmployee')}
+          </label>
+          <select
+            id="doc-filter-user"
+            className="input"
+            style={{ minWidth: 220 }}
+            value={filterUserId}
+            onChange={(e) => setFilterUserId(e.target.value)}
+          >
+            <option value="">{t('filterAll')}</option>
+            {users
+              .filter((u) => u.active)
+              .map((u) => (
+                <option key={u.user_id} value={u.user_id}>
+                  {userLabel(u)}
+                </option>
+              ))}
+          </select>
+        </div>
+      )}
 
       {err && (
         <div className="card text-sm" style={{ color: 'var(--color-error)', whiteSpace: 'pre-wrap' }}>
@@ -150,14 +178,18 @@ export function Documents() {
         </div>
       )}
 
-      <div className="card" style={{ padding: 0 }}>
-        <DocumentsDataGrid
-          list={list}
-          userById={userById}
-          onDownload={download}
-          onDelete={setConfirmDelete}
-        />
-      </div>
+      {otpReady === true ? (
+        <div className="card" style={{ padding: 0 }}>
+          <DocumentsDataGrid
+            list={list}
+            userById={userById}
+            onDownload={download}
+            onDelete={setConfirmDelete}
+          />
+        </div>
+      ) : (
+        <OtpGate checking={otpReady === null} onVerified={() => setOtpReady(true)} />
+      )}
 
       {showUpload && (
         <BulkUploadModal
@@ -202,6 +234,91 @@ export function Documents() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// OTP gate shown before the uploaded-documents list/downloads unlock. The
+// Documentale requests a 6-digit code (emailed to their own address), enters it,
+// and a verified session keeps the list open for ~10 minutes.
+function OtpGate({ checking, onVerified }: { checking: boolean; onVerified: () => void }) {
+  const { t } = useTranslation(['documents', 'common']);
+  const [sent, setSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function requestCode() {
+    setErr(null);
+    setBusy(true);
+    try {
+      await api('/api/v1/documents/otp/request', { method: 'POST' });
+      setSent(true);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : t('errorGeneric'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verify() {
+    setErr(null);
+    setBusy(true);
+    try {
+      await api('/api/v1/documents/otp/verify', { method: 'POST', json: { code: code.trim() } });
+      onVerified();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : t('otp.invalid'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (checking) {
+    return <div className="card text-sm muted">{t('common:loading')}</div>;
+  }
+
+  return (
+    <div className="card space-y-3" style={{ maxWidth: 460 }}>
+      <h2 className="section-title">{t('otp.title')}</h2>
+      <p className="text-sm muted">{t('otp.intro')}</p>
+      {!sent ? (
+        <button type="button" className="btn btn-primary" disabled={busy} onClick={requestCode}>
+          {busy ? t('otp.sending') : t('otp.send')}
+        </button>
+      ) : (
+        <>
+          <p className="text-sm" style={{ color: 'var(--color-success)' }}>{t('otp.sent')}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              className="input"
+              style={{ width: 140, letterSpacing: 4, fontSize: '1.1rem' }}
+              maxLength={6}
+              value={code}
+              placeholder="••••••"
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && code.trim().length === 6) void verify();
+              }}
+            />
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={busy || code.trim().length !== 6}
+              onClick={verify}
+            >
+              {busy ? t('otp.verifying') : t('otp.verify')}
+            </button>
+            <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={requestCode}>
+              {t('otp.resend')}
+            </button>
+          </div>
+        </>
+      )}
+      {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
     </div>
   );
 }

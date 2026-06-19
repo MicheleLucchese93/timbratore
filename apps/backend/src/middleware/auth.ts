@@ -10,6 +10,9 @@ declare module 'express-serve-static-core' {
       email: string | null;
       tenantId: string;
       role: 'admin' | 'user';
+      // Additive capability (independent of role): may manage + OTP-view every
+      // employee's documents. A member can be admin OR user AND a documentale.
+      isDocumentale: boolean;
       membershipId: string;
     };
   }
@@ -18,6 +21,7 @@ declare module 'express-serve-static-core' {
 export interface ResolvedMembership {
   tenantId: string;
   role: 'admin' | 'user';
+  isDocumentale: boolean;
   membershipId: string;
 }
 
@@ -44,7 +48,7 @@ export async function fetchMembership(
     tenantFilter = 'AND m.tenant_id = $2';
   }
   const r = await adminPool.query(
-    `SELECT m.id, m.tenant_id, m.role
+    `SELECT m.id, m.tenant_id, m.role, m.is_documentale
      FROM memberships m
      JOIN tenants t ON t.id = m.tenant_id
      WHERE m.user_id = $1
@@ -58,7 +62,12 @@ export async function fetchMembership(
   );
   if (r.rowCount === 0) return null;
   const row = r.rows[0];
-  return { membershipId: row.id, tenantId: row.tenant_id, role: row.role };
+  return {
+    membershipId: row.id,
+    tenantId: row.tenant_id,
+    role: row.role,
+    isDocumentale: row.is_documentale === true,
+  };
 }
 
 interface MembershipCache extends ResolvedMembership {
@@ -141,6 +150,7 @@ export async function authenticate(
       email: payload.email ?? null,
       tenantId: membership.tenantId,
       role: membership.role,
+      isDocumentale: membership.isDocumentale,
       membershipId: membership.membershipId,
     };
     next();
@@ -152,5 +162,14 @@ export async function authenticate(
 export function requireAdmin(req: Request, _res: Response, next: NextFunction): void {
   if (!req.user) return next(new UnauthorizedError());
   if (req.user.role !== 'admin') return next(new ForbiddenError());
+  next();
+}
+
+// Gate for the document-management surface (upload / list-all / delete / OTP).
+// This is the ONLY way to reach another employee's documents — a plain admin
+// without the capability is rejected, same as a base user.
+export function requireDocumentale(req: Request, _res: Response, next: NextFunction): void {
+  if (!req.user) return next(new UnauthorizedError());
+  if (!req.user.isDocumentale) return next(new ForbiddenError('Documentale role required', 'DOCUMENTALE_REQUIRED'));
   next();
 }

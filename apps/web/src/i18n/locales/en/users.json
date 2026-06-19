@@ -11,7 +11,11 @@
   },
   "usage": {
     "users": "Users: ",
-    "admins": "Administrators: "
+    "admins": "Administrators: ",
+    "documentali": "Document managers: "
+  },
+  "limits": {
+    "documentaleLimitTitle": "Documentale limit reached ({{count}}/{{max}})"
   },
   "export": {
     "failed": "Export failed",
@@ -108,6 +112,7 @@
     "emailHint": "{{email}} — the email cannot be changed.",
     "firstName": "First name",
     "lastName": "Last name",
+    "isDocumentale": "Documentale",
     "anagraficaHint": "Payroll data (Centro Paghe). Must match the employee record in payroll.",
     "codiceFiscale": "Tax code",
     "matricola": "Payroll no.",
@@ -160,6 +165,8 @@
     "email": "Email",
     "role": "Role",
     "roleUser": "User",
+    "isDocumentale": "Documentale",
+    "isDocumentaleHint": "Can upload documents and view all employees' documents (with code verification). Max {{max}} per company.",
     "language": "Language",
     "langItalian": "Italian",
     "langEnglish": "English",

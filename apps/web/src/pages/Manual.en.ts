@@ -399,7 +399,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>License usage</h3>
-        <p>At the top of the page two counters show <strong>Users</strong> active / maximum allowed by the plan and <strong>Administrators</strong> active / maximum. If you reach the limit the <em>Invite user</em> button is disabled.</p>
+        <p>At the top of the page counters show <strong>Users</strong> active / maximum allowed by the plan, <strong>Administrators</strong> active / maximum and <strong>Document managers</strong> active / maximum. If you reach the limit the <em>Invite user</em> button is disabled.</p>
       </div>
 
       <div class="feature">
@@ -408,6 +408,7 @@ export const MAIN_EN = `
           <li>Press <strong>Invite user</strong>.</li>
           <li>Enter email (required), first and last name (optional).</li>
           <li>Choose the role: <em>User</em> or <em>Admin</em>.</li>
+          <li>Optional: tick <strong>Document manager</strong> (<em>Documentale</em>) to grant the user the ability to upload and view <em>every</em> employee's documents (see the <em>Documents</em> chapter). It is an additive capability, independent of the role, assignable to either an Admin or an employee. It is capped at <strong>1 document manager per company</strong> (configurable): if the cap is already reached the box appears disabled.</li>
           <li>Choose the <strong>language</strong> (Italian or English): it sets the language of the emails they receive (password reset, notifications). Defaults to the interface language.</li>
           <li>Select one or more <strong>branches</strong> to assign.</li>
           <li>Optional: fill in the <strong>payroll data (Centro Paghe)</strong> — <em>tax code</em>, <em>employee number</em> and, if needed, INAIL/qualification. You can always add or change them later from the users table.</li>
@@ -422,6 +423,7 @@ export const MAIN_EN = `
         <p>For each row of the table you can:</p>
         <ul class="tidy">
           <li>Change the <strong>role</strong> (Admin / User) via a select. <em>You can't change your own account's role</em>: the select is disabled on your own row, so an admin can't demote themselves to User and lose access.</li>
+          <li>Grant or revoke the <strong>Document manager</strong> (<em>Documentale</em>) capability with its checkbox. It is independent of the role (an Admin or an employee can hold it) and lets the user upload and view every employee's documents (see the <em>Documents</em> chapter). The cap of <strong>1 document manager per company</strong> applies (configurable): if it is already taken, the checkbox is disabled on the other users.</li>
           <li>Activate or deactivate the user with the <strong>Active</strong> toggle.</li>
           <li>Choose the allowed <strong>stamping methods</strong> (the <em>Stamping</em> column): <strong>GPS</strong> (from the mobile app, at the branch) and/or <strong>Remote</strong> (from the web, without location verification). No method selected = the user cannot stamp and the app does not show the stamping menu.</li>
           <li>Edit the assigned <strong>branches</strong> (multi-select).</li>
@@ -811,8 +813,23 @@ export const MAIN_EN = `
     </section>
 
     <section class="chapter" id="web-admin-documenti">
-      <h2><span class="chapter-num">15a</span>Documents <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
+      <h2><span class="chapter-num">15a</span>Documents <span class="badge badge-both">document manager</span> <span class="badge badge-web">web</span></h2>
       <p class="lead">Upload and manage employees' personal documents: payslips, CU, contracts, notices. Each document is a PDF tied to a single employee, who reads it from their <em>My documents</em> section (Web) or the <em>Documents</em> tab in the mobile app.</p>
+
+      <div class="callout callout-warn">
+        <strong>Requires the Document manager capability.</strong> This page is reserved for users with the <strong>Document manager</strong> (<em>Documentale</em>) capability — it can be an administrator or an employee (see the <em>Users</em> chapter). Only a document manager can upload documents and view <em>every</em> employee's documents. An administrator <em>without</em> this capability <strong>cannot see</strong> other people's documents: whoever needs to manage them assigns the Document manager capability to their own account or to a trusted employee.
+      </div>
+
+      <div class="feature">
+        <h3>Unlock with a verification code (OTP)</h3>
+        <p>To protect sensitive data, when the <strong>Documents</strong> page opens, <em>before</em> the list of documents is shown, the system emails a <strong>6-digit verification code</strong> (a one-time code, OTP) to the document manager's own email address. Enter the code to unlock viewing.</p>
+        <ul class="tidy">
+          <li>A successful verification unlocks viewing and downloads for about <strong>10 minutes</strong>; after that the code is requested again.</li>
+          <li><strong>Uploading</strong> a document does <em>not</em> require the code: only viewing and downloading existing documents do.</li>
+          <li>The code is valid for about 10 minutes and there is a limit on wrong attempts.</li>
+          <li>Every <strong>view</strong> and <strong>download</strong> performed by the document manager is recorded in an <strong>access log</strong> (audit trail).</li>
+        </ul>
+      </div>
 
       <div class="feature">
         <h3>The documents table</h3>
@@ -823,7 +840,7 @@ export const MAIN_EN = `
           <li><strong>Title</strong> — the name given at upload time.</li>
           <li><strong>Uploaded</strong> — upload date and time.</li>
           <li><strong>Kept until</strong> — the date after which the document is deleted automatically (36 months from upload).</li>
-          <li><strong>Read receipt</strong> — <span class="pill pill-ok">Viewed</span> if the employee has opened it at least once, otherwise <span class="pill pill-warn">Not viewed</span>. <em>Admin opens never count as a view.</em></li>
+          <li><strong>Read receipt</strong> — <span class="pill pill-ok">Viewed</span> if the employee (the recipient) has opened it at least once, otherwise <span class="pill pill-warn">Not viewed</span>. <em>Views and downloads by the document manager never count as a read: the document stays <span class="pill pill-warn">Not viewed</span> until the employee themselves opens it.</em></li>
           <li><strong>Actions</strong> — download and delete.</li>
         </ul>
         <p>At the top you can <strong>filter by employee</strong> to see only their documents.</p>
@@ -977,10 +994,14 @@ export const MAIN_EN = `
       <h2><span class="chapter-num">19a</span>My documents <span class="badge badge-user">user</span> <span class="badge badge-web">web</span></h2>
       <p class="lead">The documents your company has uploaded for you: payslips, CU, contracts and notices. You only see your own.</p>
 
+      <div class="callout callout-info">
+        Here <strong>everyone sees only their own documents</strong>, <strong>administrators included</strong>. An administrator does <em>not</em> see other employees' documents from here: uploading and viewing everyone's documents happens only through the <strong>Document manager</strong> capability (see the <em>Documents</em> chapter).
+      </div>
+
       <div class="feature">
         <h3>Viewing and downloading</h3>
         <p>The table lists, for each document: <strong>Category</strong>, <strong>Title</strong>, <strong>Uploaded</strong>, <strong>Kept until</strong> and the <strong>read receipt</strong> status (<span class="pill pill-ok">Viewed</span> / <span class="pill pill-warn">Not viewed</span>).</p>
-        <p>Press the <strong>Download</strong> icon to open the PDF in a new tab. The <strong>first time</strong> you open a document is recorded as <em>read</em>: from then on the badge turns <span class="pill pill-ok">Viewed</span> and the company knows you have seen it.</p>
+        <p>Press the <strong>Download</strong> icon to open the PDF in a new tab. The <strong>first time</strong> you open a document is recorded as <em>read</em>: from then on the badge turns <span class="pill pill-ok">Viewed</span> and the company knows you have seen it. The read receipt is recorded <strong>only when you</strong> (the recipient) open it: opens by the document manager do not trigger it.</p>
         <div class="callout callout-info">
           You receive a <strong>notification</strong> (push and email) whenever the company uploads a new document for you. You can turn off the email from <strong>Settings → Email notifications</strong> and push from the mobile app (<em>Profile</em>).
         </div>

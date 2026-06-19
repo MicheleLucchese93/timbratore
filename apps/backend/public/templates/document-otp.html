@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="{{ if eq .language "it" }}it{{ else }}en{{ end }}">
+<head>
+<meta charset="utf-8">
+<title>{{ if eq .language "it" }}Codice di verifica — sonoQui{{ else }}Verification code — sonoQui{{ end }}</title>
+</head>
+<body style="font-family:Helvetica,Arial,sans-serif;max-width:560px;margin:2rem auto;padding:0 1rem;line-height:1.55;color:#1f1b16">
+{{ if eq .language "it" }}
+<h2 style="color:{{ .brandColor }};margin:0 0 12px">Codice di verifica per i documenti</h2>
+<p style="margin:8px 0">Usa questo codice per consultare i documenti in sonoQui:</p>
+<p style="font-size:32px;font-weight:700;letter-spacing:6px;color:{{ .brandColor }};margin:16px 0">{{ .Code }}</p>
+<p style="color:#666;font-size:13px">Il codice è valido per {{ .TtlMinutes }} minuti. Non condividerlo con nessuno.</p>
+<p style="color:#666;font-size:12px">Se non hai richiesto questo codice, ignora questa email.</p>
+<p style="color:#666;font-size:12px">sonoQui — gestione presenze per PMI.</p>
+{{ else }}
+<h2 style="color:{{ .brandColor }};margin:0 0 12px">Documents verification code</h2>
+<p style="margin:8px 0">Use this code to view documents in sonoQui:</p>
+<p style="font-size:32px;font-weight:700;letter-spacing:6px;color:{{ .brandColor }};margin:16px 0">{{ .Code }}</p>
+<p style="color:#666;font-size:13px">The code is valid for {{ .TtlMinutes }} minutes. Do not share it with anyone.</p>
+<p style="color:#666;font-size:12px">If you did not request this code, ignore this email.</p>
+<p style="color:#666;font-size:12px">sonoQui — simple attendance for small businesses.</p>
+{{ end }}
+</body>
+</html>

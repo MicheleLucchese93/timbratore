@@ -3,6 +3,7 @@ import { createLogger } from '../lib/logger.js';
 import { processExportJobs } from './jobs/process-exports.js';
 import { cleanupOldGps } from './jobs/cleanup-old-gps.js';
 import { cleanupExpiredIdempotency } from './jobs/cleanup-idempotency.js';
+import { cleanupExpiredDocumentOtps } from './jobs/cleanup-document-otps.js';
 import { forgottenClockoutReminder } from './jobs/forgotten-clockout.js';
 import { autoClockout } from './jobs/auto-clockout.js';
 import { retentionEnforcement } from './jobs/retention-enforcement.js';
@@ -29,6 +30,13 @@ class SchedulerService {
       cron.schedule(
         '30 3 * * *',
         () => safeRun('cleanup_idempotency', cleanupExpiredIdempotency),
+        { timezone: 'UTC' }
+      )
+    );
+    this.jobs.push(
+      cron.schedule(
+        '40 3 * * *',
+        () => safeRun('cleanup_document_otps', cleanupExpiredDocumentOtps),
         { timezone: 'UTC' }
       )
     );

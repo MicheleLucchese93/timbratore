@@ -65,6 +65,11 @@ export function App() {
     );
   }
 
+  // The all-documents management surface is gated by the Documentale capability,
+  // not by role — an admin OR a base user may hold it. Everyone (admin included)
+  // gets their OWN documents at /me/documents.
+  const isDocumentale = me.user.is_documentale === true;
+
   if (me.user.role === 'admin') {
     return (
       <Layout>
@@ -77,7 +82,8 @@ export function App() {
               <Route path="/stamps" element={<Stamps />} />
               <Route path="/corrections" element={<Corrections />} />
               <Route path="/exports" element={<Exports />} />
-              <Route path="/documents" element={<Documents />} />
+              {isDocumentale && <Route path="/documents" element={<Documents />} />}
+              <Route path="/me/documents" element={<MyDocuments />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/shifts" element={<Shifts />} />
               <Route path="/anomalies" element={<Anomalies />} />
@@ -91,7 +97,8 @@ export function App() {
     );
   }
 
-  // role = user — own-data only, no admin pages.
+  // role = user — own-data only. A base user MAY also hold the Documentale
+  // capability, which unlocks the all-documents management page.
   return (
     <Layout>
       <ErrorBoundary key={loc.pathname}>
@@ -102,6 +109,7 @@ export function App() {
             <Route path="/me/corrections" element={<Corrections />} />
             <Route path="/me/leaves" element={<MyLeaves />} />
             <Route path="/me/documents" element={<MyDocuments />} />
+            {isDocumentale && <Route path="/documents" element={<Documents />} />}
             <Route path="/manual" element={<Manual />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

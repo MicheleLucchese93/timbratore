@@ -1,7 +1,7 @@
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef, type GridRowSelectionModel } from '@mui/x-data-grid';
-import { api, apiUrl, getToken } from '../lib/api.ts';
+import { api, apiUrl, getToken, type ApiError } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { useSession } from '../store/session.ts';
 import { IconButton } from '../components/IconButton.tsx';
@@ -15,6 +15,9 @@ interface UserRow {
   user_id: string;
   email: string;
   role: 'admin' | 'user';
+  // Additive capability, independent of role: may upload + OTP-view every
+  // employee's documents. Capped per tenant by max_documentali.
+  is_documentale: boolean;
   active: boolean;
   stamp_modes: Array<'gps' | 'remote'>;
   created_at: string;
@@ -34,6 +37,7 @@ interface UserRow {
 interface UserPatch {
   first_name?: string | null;
   last_name?: string | null;
+  is_documentale?: boolean;
   codice_fiscale?: string | null;
   matricola?: string | null;
   inail?: string | null;
@@ -72,6 +76,25 @@ interface ImportResult {
   created: number;
   updated: number;
   reactivated: number;
+}
+
+// The API throws 409 LIMIT_REACHED with details.kind when the documentale cap
+// is exceeded — same shape as the admins limit. Map it to a localized title;
+// fall back to the raw API message for any other error.
+function documentaleLimitMessage(
+  e: unknown,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+  fallback: string
+): string {
+  const err = e as ApiError;
+  const details = err?.details as { kind?: string; current?: number; max?: number } | undefined;
+  if (err?.code === 'LIMIT_REACHED' && details?.kind === 'documentali') {
+    return t('limits.documentaleLimitTitle', {
+      count: details.current ?? '',
+      max: details.max ?? '',
+    });
+  }
+  return e instanceof Error ? e.message : fallback;
 }
 
 export function Users() {
@@ -300,7 +323,7 @@ export function Users() {
       await api(`/api/v1/users/${u.user_id}`, { method: 'PATCH', json: patch });
       await load();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : t('errorGeneric'));
+      setErr(documentaleLimitMessage(e, t, t('errorGeneric')));
     }
   }
 
@@ -405,8 +428,13 @@ export function Users() {
 
   const usersCount = Number(usage?.active_users ?? 0);
   const adminsCount = Number(usage?.active_admins ?? 0);
+  // Documentale is an additive capability; its cap comes from the tenant (me),
+  // and the count is derived from the loaded rows (no usage counter for it).
+  const maxDocumentali = me?.tenant.max_documentali ?? 1;
+  const documentaliCount = list.filter((u) => u.is_documentale).length;
   const atUserLimit = !!usage && usersCount >= usage.max_users;
   const atAdminLimit = !!usage && adminsCount >= usage.max_admins;
+  const atDocumentaleLimit = documentaliCount >= maxDocumentali;
 
   return (
     <div className="space-y-5">
@@ -459,6 +487,10 @@ export function Users() {
           <div>
             <span className="muted">{t('usage.admins')}</span>
             <strong className="num">{adminsCount}</strong> / {usage.max_admins}
+          </div>
+          <div>
+            <span className="muted">{t('usage.documentali')}</span>
+            <strong className="num">{documentaliCount}</strong> / {maxDocumentali}
           </div>
         </div>
       )}
@@ -568,6 +600,8 @@ export function Users() {
       {showInvite && (
         <InviteForm
           branches={branches}
+          atDocumentaleLimit={atDocumentaleLimit}
+          maxDocumentali={maxDocumentali}
           onClose={() => setShowInvite(false)}
           onInvited={async (emailSent: boolean) => {
             setShowInvite(false);
@@ -702,6 +736,8 @@ export function Users() {
       {userEditor && (
         <UserEditor
           user={userEditor}
+          atDocumentaleLimit={atDocumentaleLimit}
+          maxDocumentali={maxDocumentali}
           onClose={() => setUserEditor(null)}
           onSave={async (patch) => {
             const target = userEditor;
@@ -985,10 +1021,14 @@ function ShiftAssignEditor({
 
 function UserEditor({
   user,
+  atDocumentaleLimit,
+  maxDocumentali,
   onClose,
   onSave,
 }: {
   user: UserRow;
+  atDocumentaleLimit: boolean;
+  maxDocumentali: number;
   onClose: () => void;
   onSave: (patch: UserPatch) => Promise<void> | void;
 }) {
@@ -996,6 +1036,7 @@ function UserEditor({
   useEscapeKey(onClose);
   const [firstName, setFirstName] = useState(user.first_name ?? '');
   const [lastName, setLastName] = useState(user.last_name ?? '');
+  const [isDocumentale, setIsDocumentale] = useState(user.is_documentale);
   const [codiceFiscale, setCodiceFiscale] = useState(user.codice_fiscale ?? '');
   const [matricola, setMatricola] = useState(user.matricola ?? '');
   const [inail, setInail] = useState(user.inail ?? '');
@@ -1010,6 +1051,7 @@ function UserEditor({
       await onSave({
         first_name: firstName.trim() || null,
         last_name: lastName.trim() || null,
+        is_documentale: isDocumentale,
         codice_fiscale: codiceFiscale.trim().toUpperCase() || null,
         matricola: matricola.trim() || null,
         inail: inail.trim().toUpperCase() || null,
@@ -1052,6 +1094,22 @@ function UserEditor({
               maxLength={80}
             />
           </div>
+        </div>
+
+        <div>
+          <label className="flex items-start gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={isDocumentale}
+              disabled={atDocumentaleLimit && !user.is_documentale}
+              onChange={(e) => setIsDocumentale(e.target.checked)}
+            />
+            <span>{t('userEditor.isDocumentale')}</span>
+          </label>
+          <p className="text-xs muted mt-1">
+            {t('invite.isDocumentaleHint', { max: maxDocumentali })}
+          </p>
         </div>
 
         <div className="hairline my-1" />
@@ -1654,10 +1712,14 @@ function BranchEditor({
 
 function InviteForm({
   branches,
+  atDocumentaleLimit,
+  maxDocumentali,
   onClose,
   onInvited,
 }: {
   branches: BranchOption[];
+  atDocumentaleLimit: boolean;
+  maxDocumentali: number;
   onClose: () => void;
   onInvited: (emailSent: boolean) => void;
 }) {
@@ -1667,6 +1729,7 @@ function InviteForm({
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [role, setRole] = useState<'user' | 'admin'>('user');
+  const [isDocumentale, setIsDocumentale] = useState(false);
   // Drives the language of the member's emails (reset password etc.). Default
   // to the admin's current UI language; the backend falls back to the tenant
   // locale if omitted.
@@ -1702,6 +1765,7 @@ function InviteForm({
         json: {
           email,
           role,
+          is_documentale: isDocumentale,
           language,
           send_reset_email: sendResetEmail,
           first_name: firstName.trim() || undefined,
@@ -1716,7 +1780,7 @@ function InviteForm({
       });
       onInvited(out?.email_sent ?? sendResetEmail);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : t('errorGeneric'));
+      setErr(documentaleLimitMessage(e, t, t('errorGeneric')));
     } finally {
       setBusy(false);
     }
@@ -1761,6 +1825,21 @@ function InviteForm({
             <option value="user">{t('invite.roleUser')}</option>
             <option value="admin">{t('common:role.admin')}</option>
           </select>
+        </div>
+        <div>
+          <label className="flex items-start gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={isDocumentale}
+              disabled={atDocumentaleLimit}
+              onChange={(e) => setIsDocumentale(e.target.checked)}
+            />
+            <span>{t('invite.isDocumentale')}</span>
+          </label>
+          <p className="text-xs muted mt-1">
+            {t('invite.isDocumentaleHint', { max: maxDocumentali })}
+          </p>
         </div>
         <div>
           <label className="label">{t('invite.language')}</label>

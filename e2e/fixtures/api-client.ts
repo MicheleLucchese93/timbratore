@@ -853,9 +853,109 @@ export async function downloadDocument(
   return apiGet<{ url: string; expires_in: number }>(token, `/api/v1/documents/${id}/download`);
 }
 
-/** Admin soft-deletes a document (row deleted_at + R2 object removed). */
-export async function deleteDocument(adminToken: string, id: string): Promise<void> {
-  await apiDelete(adminToken, `/api/v1/documents/${id}`);
+/** Documentale soft-deletes a document (row deleted_at + R2 object removed). */
+export async function deleteDocument(token: string, id: string): Promise<void> {
+  await apiDelete(token, `/api/v1/documents/${id}`);
+}
+
+/* ---------------- Documentale capability + OTP helpers ---------------- */
+
+/** Grant/revoke the additive Documentale capability on a member (admin action).
+ *  Returns status/code so the limit (409) path can be asserted. */
+export async function setDocumentale(
+  adminToken: string,
+  userId: string,
+  value: boolean,
+): Promise<{ status: number; code?: string; message?: string }> {
+  const r = await fetch(`${API_BASE}/api/v1/users/${userId}`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ is_documentale: value }),
+  });
+  let parsed: { error?: { code?: string; message?: string } } = {};
+  try {
+    parsed = JSON.parse(await r.text());
+  } catch {
+    /* non-JSON */
+  }
+  return { status: r.status, code: parsed.error?.code, message: parsed.error?.message };
+}
+
+export async function requestDocumentOtp(
+  token: string,
+): Promise<{ status: number; data: { sent: boolean } | null; code?: string }> {
+  return apiPost<{ sent: boolean }>(token, '/api/v1/documents/otp/request', {});
+}
+
+export async function verifyDocumentOtp(
+  token: string,
+  code: string,
+): Promise<{ status: number; data: { verified: boolean } | null; code?: string }> {
+  return apiPost<{ verified: boolean }>(token, '/api/v1/documents/otp/verify', { code });
+}
+
+export async function getDocumentOtpStatus(
+  token: string,
+): Promise<{ verified: boolean; verified_until: string | null }> {
+  return apiGet<{ verified: boolean; verified_until: string | null }>(
+    token,
+    '/api/v1/documents/otp/status',
+  );
+}
+
+/** Request + verify a code so the caller holds a live OTP session. Idempotent —
+ *  no-ops when a session is already active. Requires the backend to run with
+ *  E2E_FIXED_OTP set to `fixedCode` for the pinned test tenant. */
+export async function ensureDocumentOtp(token: string, fixedCode: string): Promise<void> {
+  const status = await getDocumentOtpStatus(token);
+  if (status.verified) return;
+  const req = await requestDocumentOtp(token);
+  if (req.status !== 200) throw new Error(`requestDocumentOtp failed: ${req.status} ${req.code ?? ''}`);
+  const v = await verifyDocumentOtp(token, fixedCode);
+  if (v.status !== 200 || !v.data?.verified) {
+    throw new Error(`verifyDocumentOtp failed: ${v.status} ${v.code ?? ''}`);
+  }
+}
+
+export async function listDocumentRecipients(
+  token: string,
+): Promise<Array<{ user_id: string; email: string; display_name: string | null; codice_fiscale: string | null; matricola: string | null; active: boolean }>> {
+  return apiGet(token, '/api/v1/documents/recipients');
+}
+
+/** Raw GET of the all-docs list returning status/code (OTP/role negative paths). */
+export async function listDocumentsAllRaw(
+  token: string,
+  userId?: string,
+): Promise<{ status: number; code?: string; data: DocumentAdminItem[] | null }> {
+  const qs = userId ? `?user_id=${encodeURIComponent(userId)}` : '';
+  const r = await fetch(`${API_BASE}/api/v1/documents${qs}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  let parsed: { data?: DocumentAdminItem[]; error?: { code?: string } } = {};
+  try {
+    parsed = JSON.parse(await r.text());
+  } catch {
+    /* non-JSON */
+  }
+  return { status: r.status, code: parsed.error?.code, data: parsed.data ?? null };
+}
+
+/** Raw GET of a download returning status/code (owner / documentale / 404 paths). */
+export async function downloadDocumentRaw(
+  token: string,
+  id: string,
+): Promise<{ status: number; code?: string; url?: string }> {
+  const r = await fetch(`${API_BASE}/api/v1/documents/${id}/download`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  let parsed: { data?: { url?: string }; error?: { code?: string } } = {};
+  try {
+    parsed = JSON.parse(await r.text());
+  } catch {
+    /* non-JSON */
+  }
+  return { status: r.status, code: parsed.error?.code, url: parsed.data?.url };
 }
 
 /* Approver-assignment helpers */

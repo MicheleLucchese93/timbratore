@@ -8,6 +8,17 @@
   "deleted": "Documento eliminato.",
   "viewed": "Visto",
   "notViewed": "Non visto",
+  "otp": {
+    "title": "Verifica richiesta",
+    "intro": "Per consultare i documenti caricati, conferma la tua identità con un codice inviato alla tua email.",
+    "send": "Invia codice via email",
+    "sending": "Invio in corso…",
+    "sent": "Codice inviato. Controlla la tua casella email e inseriscilo qui sotto.",
+    "verify": "Verifica",
+    "verifying": "Verifica…",
+    "resend": "Invia di nuovo",
+    "invalid": "Codice non valido o scaduto."
+  },
   "col": {
     "employee": "Dipendente",
     "category": "Categoria",

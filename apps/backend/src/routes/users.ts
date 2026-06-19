@@ -24,10 +24,12 @@ function buildDisplayName(first?: string | null, last?: string | null): string |
 interface TenantLimits {
   max_admins: number;
   max_users: number;
+  max_documentali: number;
 }
 
 interface MembershipCounts {
   admins: number;
+  documentali: number;
   total: number;
 }
 
@@ -35,18 +37,23 @@ async function fetchLimits(
   client: PoolClient
 ): Promise<{ limits: TenantLimits; counts: MembershipCounts }> {
   const tenant = await client.query(
-    `SELECT max_admins, max_users FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid`
+    `SELECT max_admins, max_users, max_documentali FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid`
   );
   const counts = await client.query(
     `SELECT
        COUNT(*) FILTER (WHERE role = 'admin' AND deleted_at IS NULL) AS admins,
+       COUNT(*) FILTER (WHERE is_documentale AND deleted_at IS NULL) AS documentali,
        COUNT(*) FILTER (WHERE deleted_at IS NULL) AS total
      FROM memberships
      WHERE tenant_id = current_setting('app.current_tenant_id')::uuid`
   );
   return {
     limits: tenant.rows[0],
-    counts: { admins: Number(counts.rows[0].admins), total: Number(counts.rows[0].total) },
+    counts: {
+      admins: Number(counts.rows[0].admins),
+      documentali: Number(counts.rows[0].documentali),
+      total: Number(counts.rows[0].total),
+    },
   };
 }
 
@@ -56,7 +63,7 @@ usersRouter.get(
   tenantHandler(async (_req, res, client) => {
     const r = await client.query(
       `SELECT m.id AS membership_id, m.user_id, m.role, m.active, m.created_at,
-              m.stamp_modes,
+              m.stamp_modes, m.is_documentale,
               m.codice_fiscale, m.matricola, m.inail, m.qualifica, m.qualifica2,
               COALESCE(au.email, m.user_id::text) AS email,
               au.first_name, au.last_name, au.display_name,
@@ -126,6 +133,9 @@ const Invite = z.object({
   first_name: NameField.optional(),
   last_name: NameField.optional(),
   role: z.enum(['admin', 'user']).default('user'),
+  // Additive "Documentale" capability (independent of role): may upload + OTP-
+  // view every employee's documents. Capped per tenant by max_documentali.
+  is_documentale: z.boolean().default(false),
   // Language for the member's emails (reset password etc.). Omitted → tenant
   // locale (resolved in ensureAuthUser).
   language: z.enum(['it', 'en']).optional(),
@@ -139,6 +149,7 @@ const Invite = z.object({
 interface InviteInput {
   email: string;
   role: 'admin' | 'user';
+  is_documentale?: boolean;
   language?: 'it' | 'en';
   first_name?: string | null;
   last_name?: string | null;
@@ -250,8 +261,8 @@ async function performInvite(client: PoolClient, inv: InviteInput): Promise<Invi
     const ex = existing.rows[0];
     if (ex.active && !ex.deleted_at) {
       const upd = await client.query(
-        `UPDATE memberships SET role = $1 WHERE id = $2 RETURNING *`,
-        [inv.role, ex.id]
+        `UPDATE memberships SET role = $1, is_documentale = $3 WHERE id = $2 RETURNING *`,
+        [inv.role, ex.id, inv.is_documentale ?? false]
       );
       membership = upd.rows[0];
       addedMember = false;
@@ -262,6 +273,7 @@ async function performInvite(client: PoolClient, inv: InviteInput): Promise<Invi
       const upd = await client.query(
         `UPDATE memberships
          SET role = $1, active = TRUE, deleted_at = NULL,
+             is_documentale = $8,
              codice_fiscale = COALESCE($3, codice_fiscale),
              matricola = COALESCE($4, matricola),
              inail = COALESCE($5, inail),
@@ -276,6 +288,7 @@ async function performInvite(client: PoolClient, inv: InviteInput): Promise<Invi
           inv.inail ?? null,
           inv.qualifica ?? null,
           inv.qualifica2 ?? null,
+          inv.is_documentale ?? false,
         ]
       );
       membership = upd.rows[0];
@@ -283,12 +296,13 @@ async function performInvite(client: PoolClient, inv: InviteInput): Promise<Invi
     }
   } else {
     const ins = await client.query(
-      `INSERT INTO memberships(tenant_id, user_id, role, codice_fiscale, matricola, inail, qualifica, qualifica2)
-       VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO memberships(tenant_id, user_id, role, is_documentale, codice_fiscale, matricola, inail, qualifica, qualifica2)
+       VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [
         userId,
         inv.role,
+        inv.is_documentale ?? false,
         inv.codice_fiscale ?? null,
         inv.matricola ?? null,
         inv.inail ?? null,
@@ -339,6 +353,13 @@ usersRouter.post(
         `Admin limit reached: ${counts.admins}/${limits.max_admins}`,
         'LIMIT_REACHED',
         { kind: 'admins', current: counts.admins, limit: limits.max_admins }
+      );
+    }
+    if (inv.is_documentale && counts.documentali >= limits.max_documentali) {
+      throw new ConflictError(
+        `Documentale limit reached: ${counts.documentali}/${limits.max_documentali}`,
+        'LIMIT_REACHED',
+        { kind: 'documentali', current: counts.documentali, limit: limits.max_documentali }
       );
     }
 
@@ -460,6 +481,8 @@ usersRouter.post(
 
 const PatchUser = z.object({
   role: z.enum(['admin', 'user']).optional(),
+  // Additive "Documentale" capability toggle (capped by max_documentali).
+  is_documentale: z.boolean().optional(),
   // Allowed clock-in methods. Empty array = user cannot clock in.
   // 'wifi' is not yet implemented, so it is rejected here for now.
   stamp_modes: z.array(z.enum(['gps', 'remote'])).max(2).optional(),
@@ -497,16 +520,36 @@ usersRouter.patch(
         }
       }
     }
+    // Enforce the per-tenant Documentale cap only when ENABLING the capability on
+    // a member that doesn't already have it (turning it off is always allowed).
+    if (parse.data.is_documentale === true) {
+      const cur = await client.query(
+        `SELECT is_documentale FROM memberships WHERE user_id = $1 AND deleted_at IS NULL`,
+        [req.params.id]
+      );
+      if (cur.rowCount && cur.rows[0].is_documentale !== true) {
+        const { limits, counts } = await fetchLimits(client);
+        if (counts.documentali >= limits.max_documentali) {
+          throw new ConflictError(
+            `Documentale limit reached: ${counts.documentali}/${limits.max_documentali}`,
+            'LIMIT_REACHED',
+            { kind: 'documentali', current: counts.documentali, limit: limits.max_documentali }
+          );
+        }
+      }
+    }
     const setClauses = [
       'role = COALESCE($2, role)',
       'stamp_modes = COALESCE($3::text[], stamp_modes)',
+      'is_documentale = COALESCE($4, is_documentale)',
     ];
     const values: unknown[] = [
       req.params.id,
       parse.data.role ?? null,
       parse.data.stamp_modes ?? null,
+      parse.data.is_documentale ?? null,
     ];
-    let idx = 4;
+    let idx = 5;
     for (const col of MEMBERSHIP_ANAGRAFICA) {
       // undefined = leave unchanged; null/value = set (allows clearing).
       if (parse.data[col] !== undefined) {

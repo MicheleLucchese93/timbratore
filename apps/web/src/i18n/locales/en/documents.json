@@ -8,6 +8,17 @@
   "deleted": "Document deleted.",
   "viewed": "Viewed",
   "notViewed": "Not viewed",
+  "otp": {
+    "title": "Verification required",
+    "intro": "To view uploaded documents, confirm your identity with a code sent to your email.",
+    "send": "Send code by email",
+    "sending": "Sending…",
+    "sent": "Code sent. Check your inbox and enter it below.",
+    "verify": "Verify",
+    "verifying": "Verifying…",
+    "resend": "Resend",
+    "invalid": "Invalid or expired code."
+  },
   "col": {
     "employee": "Employee",
     "category": "Category",

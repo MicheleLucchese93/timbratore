@@ -3,19 +3,24 @@ import { CREDS, STORAGE } from '../../fixtures/test-data';
 import {
   deleteDocument,
   downloadDocument,
+  ensureDocumentOtp,
   listMyDocuments,
   loadHandleFromStorage,
+  setDocumentale,
   uploadDocument,
   type ApiHandle,
   type DocumentRecord,
 } from '../../fixtures/api-client';
 
 // Employee-side documents lifecycle. Gated behind E2E_MUTATING=1: an admin
-// handle (loaded via GoTrue, independent of the web-user storageState) seeds a
-// PDF for test3, then we assert the employee can see + download ONLY their own
-// doc and that the first download flips viewed_at. Titles are 'e2e-'-prefixed
-// for the teardown purge.
+// handle (loaded via GoTrue, independent of the web-user storageState) is granted
+// the Documentale capability to SEED a PDF for test3, then we assert the employee
+// can see + download ONLY their own doc and that the first download flips
+// viewed_at. The owner-download path needs no OTP. Titles are 'e2e-'-prefixed for
+// the teardown purge. Requires the NEW backend (migration 042).
 const ENABLED = process.env.E2E_MUTATING === '1';
+const FIXED_OTP = process.env.E2E_FIXED_OTP ?? '';
+const OTP_ENABLED = ENABLED && /^\d{6}$/.test(FIXED_OTP);
 
 test.describe('web — I miei documenti (employee)', () => {
   test.skip(!ENABLED, 'set E2E_MUTATING=1 to enable mutating specs');
@@ -27,14 +32,23 @@ test.describe('web — I miei documenti (employee)', () => {
   test.beforeAll(async () => {
     admin = await loadHandleFromStorage(STORAGE.webAuth, CREDS.admin);
     user = await loadHandleFromStorage(STORAGE.webUserAuth, CREDS.user);
+    // Uploading is now gated by the Documentale capability — grant it to the
+    // admin seeder (upload itself needs no OTP).
+    await setDocumentale(admin.token, admin.userId, true);
   });
 
   test.afterAll(async () => {
-    for (const doc of created.splice(0)) {
-      await deleteDocument(admin.token, doc.id).catch(() => {
-        /* best-effort — teardown purge is the safety net */
-      });
+    // Delete needs Documentale + OTP; otherwise the purge sweeps the rows.
+    if (OTP_ENABLED) {
+      await ensureDocumentOtp(admin.token, FIXED_OTP).catch(() => {});
+      for (const doc of created.splice(0)) {
+        await deleteDocument(admin.token, doc.id).catch(() => {
+          /* best-effort — teardown purge is the safety net */
+        });
+      }
     }
+    // Return the shared tenant to baseline (no capability).
+    await setDocumentale(admin.token, admin.userId, false).catch(() => {});
   });
 
   test('GET /documents/me returns the employee\'s own doc; first download sets viewed_at', async () => {

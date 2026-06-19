@@ -77,6 +77,11 @@ const Env = z.object({
   // the demo tenant lives alongside real ones. This is what makes running
   // e2e against prod safe.
   E2E_TEST_TENANT_ID: z.string().uuid().optional(),
+  // Deterministic Documentale OTP for the e2e suite: when set, document OTP
+  // requests for E2E_TEST_TENANT_ID return THIS fixed code instead of a random
+  // one, so the mutating suite can verify the OTP gate without reading email.
+  // Only honoured for the pinned test tenant; never fires for real tenants.
+  E2E_FIXED_OTP: z.string().regex(/^\d{6}$/).optional(),
   // Bearer secret for the internal tenant-provisioning endpoint
   // (POST /api/v1/_internal/provision/tenant). The router mounts ONLY when this
   // is set (see app.ts), so a deploy without it has no provisioning route at

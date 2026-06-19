@@ -521,3 +521,42 @@ export function buildDocumentUploadedMail(p: DocumentUploadedMailPayload): {
   });
   return { subject, text, html };
 }
+
+/* ----- Documentale OTP email ----- */
+
+export interface DocumentOtpMailPayload {
+  code: string;
+  ttlMinutes: number;
+  language?: 'it' | 'en';
+}
+
+/**
+ * One-time code emailed to a Documentale member before they may view the
+ * tenant's documents. The code is in the BODY only (never the subject), since
+ * subject lines surface in lock-screen notification previews.
+ */
+export function buildDocumentOtpMail(p: DocumentOtpMailPayload): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const language = p.language ?? 'it';
+  const subject =
+    language === 'it'
+      ? `[sonoQui] Codice di verifica per i documenti`
+      : `[sonoQui] Your documents verification code`;
+  const text =
+    language === 'it'
+      ? `Il tuo codice di verifica per consultare i documenti è: ${p.code}\n` +
+        `Il codice è valido per ${p.ttlMinutes} minuti. Non condividerlo con nessuno.\n` +
+        `Se non hai richiesto questo codice, ignora questa email.`
+      : `Your verification code to view documents is: ${p.code}\n` +
+        `The code is valid for ${p.ttlMinutes} minutes. Do not share it with anyone.\n` +
+        `If you did not request this code, ignore this email.`;
+  const html = renderTemplate('document-otp.html', {
+    language,
+    Code: p.code,
+    TtlMinutes: String(p.ttlMinutes),
+  });
+  return { subject, text, html };
+}

@@ -12,6 +12,8 @@ export interface MeResponse {
     id: string;
     email: string;
     role: 'admin' | 'user';
+    // Additive capability: may upload + OTP-view every employee's documents.
+    is_documentale: boolean;
     first_name: string | null;
     last_name: string | null;
     display_name: string | null;
@@ -26,6 +28,7 @@ export interface MeResponse {
     max_admins: number;
     max_users: number;
     max_branches: number;
+    max_documentali: number;
   };
   branches: Array<{
     id: string;
