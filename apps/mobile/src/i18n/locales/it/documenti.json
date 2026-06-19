@@ -13,6 +13,7 @@
     "altro": "Altro"
   },
   "uploadedAt": "Caricato il {{date}}",
+  "viewedAt": "Letto il {{date}}",
   "retentionUntil": "Disponibile fino al {{date}}",
   "viewed": "Letto",
   "notViewed": "Da leggere",

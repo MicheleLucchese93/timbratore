@@ -13,6 +13,7 @@
     "altro": "Other"
   },
   "uploadedAt": "Uploaded on {{date}}",
+  "viewedAt": "Read on {{date}}",
   "retentionUntil": "Available until {{date}}",
   "viewed": "Read",
   "notViewed": "Unread",

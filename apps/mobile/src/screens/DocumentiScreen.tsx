@@ -279,6 +279,11 @@ function DocumentCard({
         <Text style={styles.docMeta}>
           {t('uploadedAt', { date: fmtDate(doc.created_at, DATE_OPTS) })}
         </Text>
+        {doc.viewed_at && (
+          <Text style={styles.docMeta}>
+            {t('viewedAt', { date: fmtDate(doc.viewed_at, DATE_OPTS) })}
+          </Text>
+        )}
         <Text style={styles.docMetaFaint}>
           {t('retentionUntil', { date: fmtDate(doc.retention_until, DATE_OPTS) })}
         </Text>
@@ -355,7 +360,6 @@ const styles = StyleSheet.create({
   cardTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: 8,
   },
   catLabel: {
