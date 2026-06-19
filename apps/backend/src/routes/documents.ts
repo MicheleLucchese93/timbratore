@@ -42,15 +42,21 @@ const CATEGORY_ENUM = z.enum(
   DOCUMENT_CATEGORIES as [DocumentCategory, ...DocumentCategory[]]
 );
 
-// Upload metadata travels in headers (the request body is the raw PDF binary,
-// same transport as POST /api/v1/users/import). Title + filename are
-// percent-encoded by the client so non-ASCII (accents) survive a header.
-const UploadHeaders = z.object({
+// Upload metadata travels in the QUERY STRING (the request body is the raw PDF
+// binary). It used to ride X-Doc-* request headers, but those custom headers are
+// not in the gateway's CORS allow-list, so a cross-origin browser upload failed
+// preflight ("Failed to fetch"); query params need no custom header. Express
+// URL-decodes query values once, so accents in title/filename survive.
+const UploadMeta = z.object({
   user_id: z.string().uuid(),
   category: CATEGORY_ENUM,
   title: z.string().min(1).max(300),
   filename: z.string().min(1).max(300),
 });
+
+function queryStr(v: unknown): string | undefined {
+  return typeof v === 'string' ? v : undefined;
+}
 
 // R2 keys must be safe path segments. Strip anything that isn't a sane filename
 // char, collapse runs, keep a .pdf suffix. The DB still stores the original
@@ -64,15 +70,6 @@ function sanitizeFilename(name: string): string {
     .slice(0, 200);
   const safe = cleaned.length > 0 ? cleaned : 'document';
   return safe.toLowerCase().endsWith('.pdf') ? safe : `${safe}.pdf`;
-}
-
-function decodeHeaderValue(v: string | undefined): string {
-  if (!v) return '';
-  try {
-    return decodeURIComponent(v);
-  } catch {
-    return v;
-  }
 }
 
 function presignFor(doc: { id: string; r2_key: string }): Promise<string> {
@@ -280,11 +277,11 @@ documentsRouter.post(
   requireDocumentale,
   raw({ type: '*/*', limit: '15mb' }),
   asyncHandler(async (req, res) => {
-    const parsed = UploadHeaders.safeParse({
-      user_id: req.header('x-doc-user-id'),
-      category: req.header('x-doc-category'),
-      title: decodeHeaderValue(req.header('x-doc-title')),
-      filename: decodeHeaderValue(req.header('x-doc-filename')),
+    const parsed = UploadMeta.safeParse({
+      user_id: queryStr(req.query.user_id),
+      category: queryStr(req.query.category),
+      title: queryStr(req.query.title),
+      filename: queryStr(req.query.filename),
     });
     if (!parsed.success) {
       throw new ValidationError('invalid document metadata', parsed.error.flatten());

@@ -785,9 +785,9 @@ export function minimalPdfBuffer(): Buffer {
 }
 
 /**
- * Admin uploads one PDF for a target employee. The body is the raw binary;
- * metadata travels in X-Doc-* headers (title/filename URI-encoded). Titles
- * MUST stay 'e2e-'-prefixed so /api/v1/_internal/e2e/purge-fixtures sweeps them.
+ * Documentale uploads one PDF for a target employee. The body is the raw binary;
+ * metadata travels in the query string. Titles MUST stay 'e2e-'-prefixed so
+ * /api/v1/_internal/e2e/purge-fixtures sweeps them.
  */
 export async function uploadDocument(
   adminToken: string,
@@ -800,15 +800,17 @@ export async function uploadDocument(
   },
 ): Promise<DocumentRecord> {
   const buf = opts.pdfBuffer ?? minimalPdfBuffer();
-  const r = await fetch(`${API_BASE}/api/v1/documents`, {
+  const qs = new URLSearchParams({
+    user_id: opts.userId,
+    category: opts.category,
+    title: opts.title,
+    filename: opts.filename,
+  });
+  const r = await fetch(`${API_BASE}/api/v1/documents?${qs.toString()}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${adminToken}`,
       'Content-Type': 'application/pdf',
-      'X-Doc-User-Id': opts.userId,
-      'X-Doc-Category': opts.category,
-      'X-Doc-Title': encodeURIComponent(opts.title),
-      'X-Doc-Filename': encodeURIComponent(opts.filename),
     },
     // Uint8Array view keeps fetch's BodyInit type happy for a Node Buffer.
     body: new Uint8Array(buf),

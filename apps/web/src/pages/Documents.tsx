@@ -528,18 +528,23 @@ function BulkUploadModal({
   const hasUnmatched = rows.some((r) => r.status !== 'error' && !r.userId);
 
   async function uploadOne(row: UploadRow): Promise<boolean> {
+    // Metadata rides the query string (not X-Doc-* headers): custom headers
+    // aren't in the gateway CORS allow-list and broke the cross-origin upload
+    // preflight. URLSearchParams encodes accents; the body stays the raw PDF.
+    const params = new URLSearchParams({
+      user_id: row.userId!,
+      category: row.category,
+      title: row.title.trim(),
+      filename: row.file.name,
+    });
     const headers: Record<string, string> = {
       'Content-Type': 'application/pdf',
       Authorization: `Bearer ${getToken()}`,
-      'X-Doc-User-Id': row.userId!,
-      'X-Doc-Category': row.category,
-      'X-Doc-Title': encodeURIComponent(row.title.trim()),
-      'X-Doc-Filename': encodeURIComponent(row.file.name),
     };
     const tid = getTenantId();
     if (tid) headers['X-Tenant-Id'] = tid;
     try {
-      const r = await fetch(apiUrl('/api/v1/documents'), {
+      const r = await fetch(apiUrl(`/api/v1/documents?${params.toString()}`), {
         method: 'POST',
         headers,
         body: row.file,
@@ -591,7 +596,7 @@ function BulkUploadModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
-      <div className="card w-full max-w-3xl space-y-3" style={{ maxHeight: '90vh', overflow: 'auto' }}>
+      <div className="card w-full max-w-6xl space-y-3" style={{ maxHeight: '94vh', overflow: 'auto' }}>
         <h2 className="section-title">{t('upload.title')}</h2>
         <p className="text-xs muted">{t('upload.subtitle')}</p>
 
@@ -619,7 +624,7 @@ function BulkUploadModal({
         )}
 
         {rows.length > 0 && (
-          <div className="overflow-auto" style={{ maxHeight: '50vh' }}>
+          <div className="overflow-auto" style={{ maxHeight: '68vh' }}>
             <table className="text-sm" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ textAlign: 'left' }}>
