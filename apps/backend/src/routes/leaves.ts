@@ -13,6 +13,7 @@ import {
 import {
   notifyLeaveSubmitted,
   notifyLeaveDecided,
+  notifyLeaveAddedByAdmin,
   notifyCancellationRequested,
   notifyCancellationDecided,
   notifyBulkEvent,
@@ -297,7 +298,7 @@ leavesRouter.post(
       duration_hours: duration,
       on_behalf_of: b.user_id,
     });
-    await notifyLeaveDecided(
+    await notifyLeaveAddedByAdmin(
       client,
       {
         requestId: row.id,
@@ -306,8 +307,8 @@ leavesRouter.post(
         to_ts: b.to_ts,
         duration_hours: duration,
         requester_id: b.user_id,
+        reason: b.user_note ?? undefined,
       },
-      'approved',
       req.user!.id
     );
     ok(res, row, 201);

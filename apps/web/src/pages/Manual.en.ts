@@ -610,7 +610,7 @@ export const MAIN_EN = `
             <tr><td><strong>Justify with a note</strong></td><td>Annotates the anomaly with a reason, without modifying stamps or absences. The anomaly stays visible but justified. Available for any type.</td></tr>
           </tbody>
         </table>
-        <p><strong>Notification to the employee:</strong> for holiday and leave entered by the admin the employee receives a notification (push and email), as for an approved request.</p>
+        <p><strong>Notification to the employee:</strong> for holiday and leave entered by the admin the employee receives a dedicated notification (push and email) explaining that the administrator entered the absence to fix an anomaly — distinct from the confirmation of an approved request. Any <em>note for the employee</em> is included in the notification.</p>
         <p><strong>Traceability in the exports:</strong> every correction stays documented in the XLSX/JSON files. The added stamps appear in the <em>Stamps</em> sheet with source "Manual (admin)" and a note; the holiday/leave entered by the admin in the <em>Holiday and Leave</em> sheet with the <em>Source</em> column = "Entered by admin"; the note justifications in the dedicated <em>Anomaly justifications</em> sheet.</p>
       </div>
     </section>

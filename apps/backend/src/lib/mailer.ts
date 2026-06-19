@@ -201,6 +201,67 @@ export function buildDecidedMail(
   return { subject, text, html };
 }
 
+/**
+ * Notice to an employee that an admin entered ferie/permesso on their behalf to
+ * resolve an attendance anomaly (POST /leaves/admin-create). Distinct from
+ * buildDecidedMail: the employee never submitted a request, so the wording must
+ * not say "your request has been approved". `reason` carries the optional admin
+ * note to the employee (the "Nota per il dipendente" field). Inline HTML, no
+ * template file — mirrors the reminder/company-event mails.
+ */
+export function buildLeaveAddedByAdminMail(p: LeaveMailPayload): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const language = p.language ?? 'it';
+  const label = labelFor(p.type, language);
+  const range = fmtRange(p.from_ts, p.to_ts, p.type, language);
+  const subject =
+    language === 'it'
+      ? `[sonoQui] Assenza inserita dall'amministratore`
+      : `[sonoQui] Time off entered by your administrator`;
+  const approverLine = p.approver_name
+    ? (language === 'it' ? `Inserita da: ${p.approver_name}\n` : `Entered by: ${p.approver_name}\n`)
+    : '';
+  const noteLine = p.reason
+    ? (language === 'it' ? `Nota: ${p.reason}\n` : `Note: ${p.reason}\n`)
+    : '';
+  const text =
+    language === 'it'
+      ? `L'amministratore ha inserito un'assenza a tuo nome per correggere un'anomalia di presenza.\n` +
+        `Tipo: ${label}\nPeriodo: ${range}\nOre: ${p.duration_hours}\n${approverLine}${noteLine}` +
+        `\nNon è richiesta alcuna azione. Accedi a sonoQui per i dettagli.`
+      : `Your administrator entered time off on your behalf to resolve an attendance anomaly.\n` +
+        `Type: ${label}\nPeriod: ${range}\nHours: ${p.duration_hours}\n${approverLine}${noteLine}` +
+        `\nNo action is required. Open sonoQui for details.`;
+  const lines =
+    language === 'it'
+      ? [
+          `L'amministratore ha inserito un'assenza a tuo nome per correggere un'anomalia di presenza.`,
+          `Tipo: <strong>${escapeHtml(label)}</strong>`,
+          `Periodo: ${escapeHtml(range)}`,
+          `Ore: ${escapeHtml(String(p.duration_hours))}`,
+          ...(p.approver_name ? [`Inserita da: ${escapeHtml(p.approver_name)}`] : []),
+          ...(p.reason ? [`Nota: ${escapeHtml(p.reason)}`] : []),
+          `Non è richiesta alcuna azione.`,
+        ]
+      : [
+          `Your administrator entered time off on your behalf to resolve an attendance anomaly.`,
+          `Type: <strong>${escapeHtml(label)}</strong>`,
+          `Period: ${escapeHtml(range)}`,
+          `Hours: ${escapeHtml(String(p.duration_hours))}`,
+          ...(p.approver_name ? [`Entered by: ${escapeHtml(p.approver_name)}`] : []),
+          ...(p.reason ? [`Note: ${escapeHtml(p.reason)}`] : []),
+          `No action is required.`,
+        ];
+  return {
+    subject,
+    text,
+    html: inlineMail(language === 'it' ? 'Assenza inserita' : 'Time off added', lines),
+  };
+}
+
 export function buildCancellationRequestedMail(p: LeaveMailPayload): {
   subject: string;
   text: string;

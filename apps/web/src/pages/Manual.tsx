@@ -617,7 +617,7 @@ const MAIN_IT = `
             <tr><td><strong>Giustifica con nota</strong></td><td>Annota l'anomalia con una motivazione, senza modificare timbri o assenze. L'anomalia resta visibile ma giustificata. Disponibile per qualsiasi tipo.</td></tr>
           </tbody>
         </table>
-        <p><strong>Notifica al dipendente:</strong> per ferie e permessi inseriti dall'admin il dipendente riceve una notifica (push ed email), come per una richiesta approvata.</p>
+        <p><strong>Notifica al dipendente:</strong> per ferie e permessi inseriti dall'admin il dipendente riceve una notifica dedicata (push ed email) che spiega che è stata l'amministrazione a inserire l'assenza per correggere un'anomalia — distinta dalla conferma di una richiesta approvata. L'eventuale <em>nota per il dipendente</em> è inclusa nella notifica.</p>
         <p><strong>Tracciabilità nelle esportazioni:</strong> ogni correzione resta documentata nei file XLSX/JSON. I timbri aggiunti compaiono nel foglio <em>Timbrature</em> con origine "Manuale (admin)" e nota; le ferie/permessi inseriti dall'admin nel foglio <em>Ferie e Permessi</em> con colonna <em>Origine</em> = "Inserito da admin"; le giustificazioni con nota nel foglio dedicato <em>Giustifiche anomalie</em>.</p>
       </div>
     </section>

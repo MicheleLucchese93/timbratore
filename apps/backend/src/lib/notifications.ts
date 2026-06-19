@@ -4,6 +4,7 @@ import { createLogger } from './logger.js';
 import {
   buildSubmittedMail,
   buildDecidedMail,
+  buildLeaveAddedByAdminMail,
   buildCancellationRequestedMail,
   buildCancellationDecidedMail,
   buildCorrectionSubmittedMail,
@@ -260,6 +261,46 @@ export async function notifyLeaveDecided(
       title: PUSH.leaveDecided.title(decision)[lang],
       body: PUSH.leaveDecided.body(labelOf(ctx.type, lang), decision, rejectionReason)[lang],
       data: { kind: 'leave_decided', request_id: ctx.requestId, decision },
+      prefKey: 'push_leave_decisions',
+    },
+    { ...mail, prefKey: 'email_leave_decisions' }
+  );
+  void client;
+}
+
+/**
+ * Notice to an employee that an admin entered ferie/permesso on their behalf to
+ * resolve an attendance anomaly (POST /leaves/admin-create). Distinct from
+ * notifyLeaveDecided: the employee never submitted a request, so we must not say
+ * "your request has been approved". `ctx.reason` carries the optional admin note
+ * to the employee. Shares the leave-decisions push/email channel (no new pref).
+ */
+export async function notifyLeaveAddedByAdmin(
+  client: PoolClient,
+  ctx: LeaveContext,
+  adminId: string
+): Promise<void> {
+  const [requester] = await loadRecipients([ctx.requester_id]);
+  const [admin] = await loadRecipients([adminId]);
+  if (!requester) return;
+  const lang = asLang(requester.language);
+  const payload: LeaveMailPayload = {
+    type: ctx.type,
+    from_ts: ctx.from_ts,
+    to_ts: ctx.to_ts,
+    duration_hours: ctx.duration_hours,
+    requester_name: requester.display_name || requester.email || 'Utente',
+    approver_name: admin?.display_name || admin?.email || undefined,
+    reason: ctx.reason,
+    language: lang,
+  };
+  const mail = buildLeaveAddedByAdminMail(payload);
+  await deliver(
+    requester,
+    {
+      title: PUSH.leaveAddedByAdmin.title[lang],
+      body: PUSH.leaveAddedByAdmin.body(labelOf(ctx.type, lang), ctx.reason)[lang],
+      data: { kind: 'leave_added_by_admin', request_id: ctx.requestId },
       prefKey: 'push_leave_decisions',
     },
     { ...mail, prefKey: 'email_leave_decisions' }
@@ -566,6 +607,16 @@ const PUSH = {
       const v = { it: d === 'approved' ? 'approvata' : 'rifiutata', en: d === 'approved' ? 'approved' : 'rejected' };
       const tail = reason ? `: ${reason}` : '';
       return { it: `${label} ${v.it}${tail}`, en: `${label} ${v.en}${tail}` };
+    },
+  },
+  leaveAddedByAdmin: {
+    title: { it: 'Assenza inserita', en: 'Time off added' },
+    body: (label: string, note?: string): Record<Lang, string> => {
+      const tail = note ? ` — ${note}` : '';
+      return {
+        it: `L'amministratore ha inserito: ${label}${tail}`,
+        en: `Your administrator entered: ${label}${tail}`,
+      };
     },
   },
   cancellationRequested: {
