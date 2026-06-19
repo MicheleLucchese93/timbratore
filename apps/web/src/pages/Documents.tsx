@@ -466,6 +466,26 @@ function BulkUploadModal({
     return { userId: null, by: null };
   }
 
+  // The employee list loads asynchronously. If files were picked before it
+  // arrived, the initial auto-match ran against an empty list. Re-run it ONCE
+  // the list is available so a matching codice fiscale still associates the file
+  // (only touches still-unmatched, non-error rows — never overrides a manual
+  // choice the admin already made).
+  const rematchedRef = useRef(false);
+  useEffect(() => {
+    if (rematchedRef.current || users.length === 0) return;
+    rematchedRef.current = true;
+    setRows((cur) =>
+      cur.map((r) => {
+        if (r.userId || r.status === 'error') return r;
+        const m = matchUser(r.file.name);
+        return m.userId ? { ...r, userId: m.userId, matchedBy: m.by } : r;
+      })
+    );
+    // matchUser closes over `users`; re-run whenever the list reference changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [users]);
+
   function onPick(e: ChangeEvent<HTMLInputElement>) {
     setErr(null);
     const picked = Array.from(e.target.files ?? []);
