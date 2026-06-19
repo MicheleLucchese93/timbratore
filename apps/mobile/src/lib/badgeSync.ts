@@ -70,7 +70,7 @@ export function setupBadgeSync(): () => void {
     }
   );
 
-  // Foreground push: re-pull from server (correction-requests is
+  // Foreground push: re-pull from server (GET /notifications is the
   // source of truth; OS just bumped the badge).
   const receivedSub = Notifications.addNotificationReceivedListener(() => {
     void refresh();

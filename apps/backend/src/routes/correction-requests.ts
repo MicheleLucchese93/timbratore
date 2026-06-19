@@ -50,7 +50,7 @@ correctionRequestsRouter.post(
        ))`,
       [req.user!.tenantId, JSON.stringify(r.rows[0])]
     );
-    await notifyCorrectionSubmitted(client, {
+    await notifyCorrectionSubmitted(req.user!.tenantId, client, {
       requestId: r.rows[0].id,
       event_type: b.claimed_event_type,
       occurred_at: b.claimed_occurred_at,
@@ -200,6 +200,7 @@ correctionRequestsRouter.post(
       [parse.data.resolution_note ?? null, req.params.id]
     );
     await notifyCorrectionDecided(
+      req.user!.tenantId,
       client,
       {
         requestId: String(req.params.id),
@@ -243,6 +244,7 @@ correctionRequestsRouter.post(
     );
     const row = r.rows[0];
     await notifyCorrectionDecided(
+      req.user!.tenantId,
       client,
       {
         requestId: row.id,

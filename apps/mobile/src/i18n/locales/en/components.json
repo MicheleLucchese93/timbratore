@@ -17,7 +17,7 @@
     "filterUnread": "Unread",
     "filterUnreadCount": "Unread · {{count}}",
     "emptyTitle": "No notifications",
-    "emptySub": "Updates on requests and corrections appear here.",
+    "emptySub": "Updates on requests, corrections, documents and reminders appear here.",
     "emptyUnreadTitle": "All caught up",
     "emptyUnreadSub": "No unread notifications.",
     "timeAgo": {

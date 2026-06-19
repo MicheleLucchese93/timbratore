@@ -169,15 +169,59 @@ async function sendExpoPush(
   }
 }
 
+/**
+ * Persist one in-app notification (the bell row) for a recipient. Written on the
+ * service role (adminPool) so it works the same whether the caller is inside a
+ * tenant transaction (leaves/corrections) or fire-and-forget after commit
+ * (documents) or in a cross-tenant cron (reminders, bulk). The bell is recorded
+ * UNCONDITIONALLY — independent of push/email opt-outs and of whether the device
+ * has a push token — so turning off push never hides the in-app feed. Best-effort:
+ * a failure here must never break the push/email path or the request.
+ */
+async function persistBell(
+  tenantId: string,
+  userId: string,
+  bell: { kind: string; title: string; body: string; data: Record<string, unknown>; route: string | null }
+): Promise<void> {
+  const d = bell.data;
+  const sourceId =
+    (typeof d.request_id === 'string' && d.request_id) ||
+    (typeof d.document_id === 'string' && d.document_id) ||
+    (typeof d.batch_id === 'string' && d.batch_id) ||
+    null;
+  try {
+    await adminPool.query(
+      `INSERT INTO notifications(tenant_id, user_id, kind, title, body, data, route, source_id)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8)`,
+      [tenantId, userId, bell.kind, bell.title, bell.body, JSON.stringify(d ?? {}), bell.route, sourceId]
+    );
+  } catch (err) {
+    logger.error({ err, userId, kind: bell.kind }, 'persist notification failed');
+  }
+}
+
 async function deliver(
+  tenantId: string,
   recipient: RecipientRow,
   push:
     | { title: string; body: string; data?: Record<string, unknown>; prefKey: PushPrefKey }
     | null,
-  email: { subject: string; text: string; html: string; prefKey: EmailPrefKey } | null
+  email: { subject: string; text: string; html: string; prefKey: EmailPrefKey } | null,
+  route: string | null
 ): Promise<void> {
-  if (push && recipient.push_token && pushAllowed(recipient, push.prefKey)) {
-    await sendExpoPush(recipient.push_token, push.title, push.body, push.data);
+  if (push) {
+    // Bell row first, mirroring the push content. Recorded for every recipient
+    // regardless of opt-outs / push token (see persistBell).
+    await persistBell(tenantId, recipient.user_id, {
+      kind: typeof push.data?.kind === 'string' ? push.data.kind : 'notification',
+      title: push.title,
+      body: push.body,
+      data: push.data ?? {},
+      route,
+    });
+    if (recipient.push_token && pushAllowed(recipient, push.prefKey)) {
+      await sendExpoPush(recipient.push_token, push.title, push.body, push.data);
+    }
   }
   if (email && recipient.email && emailAllowed(recipient, email.prefKey)) {
     await sendMail({
@@ -200,6 +244,7 @@ interface LeaveContext {
 }
 
 export async function notifyLeaveSubmitted(
+  tenantId: string,
   client: PoolClient,
   ctx: LeaveContext
 ): Promise<void> {
@@ -222,6 +267,7 @@ export async function notifyLeaveSubmitted(
       language: lang,
     });
     await deliver(
+      tenantId,
       a,
       {
         title: PUSH.leaveSubmitted.title[lang],
@@ -229,12 +275,14 @@ export async function notifyLeaveSubmitted(
         data: { kind: 'leave_submitted', request_id: ctx.requestId },
         prefKey: 'push_leave_submissions',
       },
-      { ...mail, prefKey: 'email_leave_submissions' }
+      { ...mail, prefKey: 'email_leave_submissions' },
+      'richieste'
     );
   }
 }
 
 export async function notifyLeaveDecided(
+  tenantId: string,
   client: PoolClient,
   ctx: LeaveContext,
   decision: 'approved' | 'rejected',
@@ -256,6 +304,7 @@ export async function notifyLeaveDecided(
   };
   const mail = buildDecidedMail(payload, decision, rejectionReason);
   await deliver(
+    tenantId,
     requester,
     {
       title: PUSH.leaveDecided.title(decision)[lang],
@@ -263,7 +312,8 @@ export async function notifyLeaveDecided(
       data: { kind: 'leave_decided', request_id: ctx.requestId, decision },
       prefKey: 'push_leave_decisions',
     },
-    { ...mail, prefKey: 'email_leave_decisions' }
+    { ...mail, prefKey: 'email_leave_decisions' },
+    'richieste'
   );
   void client;
 }
@@ -276,6 +326,7 @@ export async function notifyLeaveDecided(
  * to the employee. Shares the leave-decisions push/email channel (no new pref).
  */
 export async function notifyLeaveAddedByAdmin(
+  tenantId: string,
   client: PoolClient,
   ctx: LeaveContext,
   adminId: string
@@ -296,6 +347,7 @@ export async function notifyLeaveAddedByAdmin(
   };
   const mail = buildLeaveAddedByAdminMail(payload);
   await deliver(
+    tenantId,
     requester,
     {
       title: PUSH.leaveAddedByAdmin.title[lang],
@@ -303,12 +355,14 @@ export async function notifyLeaveAddedByAdmin(
       data: { kind: 'leave_added_by_admin', request_id: ctx.requestId },
       prefKey: 'push_leave_decisions',
     },
-    { ...mail, prefKey: 'email_leave_decisions' }
+    { ...mail, prefKey: 'email_leave_decisions' },
+    'richieste'
   );
   void client;
 }
 
 export async function notifyCancellationRequested(
+  tenantId: string,
   client: PoolClient,
   ctx: LeaveContext
 ): Promise<void> {
@@ -329,6 +383,7 @@ export async function notifyCancellationRequested(
       language: lang,
     });
     await deliver(
+      tenantId,
       a,
       {
         title: PUSH.cancellationRequested.title[lang],
@@ -336,12 +391,14 @@ export async function notifyCancellationRequested(
         data: { kind: 'leave_cancellation_requested', request_id: ctx.requestId },
         prefKey: 'push_leave_submissions',
       },
-      { ...mail, prefKey: 'email_leave_submissions' }
+      { ...mail, prefKey: 'email_leave_submissions' },
+      'richieste'
     );
   }
 }
 
 export async function notifyCancellationDecided(
+  tenantId: string,
   _client: PoolClient,
   ctx: LeaveContext,
   accepted: boolean
@@ -359,6 +416,7 @@ export async function notifyCancellationDecided(
   };
   const mail = buildCancellationDecidedMail(payload, accepted);
   await deliver(
+    tenantId,
     requester,
     {
       title: PUSH.cancellationDecided.title(accepted)[lang],
@@ -366,7 +424,8 @@ export async function notifyCancellationDecided(
       data: { kind: 'leave_cancellation_decided', request_id: ctx.requestId, accepted },
       prefKey: 'push_leave_decisions',
     },
-    { ...mail, prefKey: 'email_leave_decisions' }
+    { ...mail, prefKey: 'email_leave_decisions' },
+    'richieste'
   );
 }
 
@@ -375,6 +434,7 @@ export async function notifyCancellationDecided(
  * (cross-tenant via adminPool) once per qualifying row.
  */
 export async function notifyLeaveReminder(
+  tenantId: string,
   userId: string,
   leave: {
     requestId: string;
@@ -396,6 +456,7 @@ export async function notifyLeaveReminder(
     language,
   });
   await deliver(
+    tenantId,
     recipient,
     {
       title: PUSH.reminder.title[language],
@@ -403,7 +464,8 @@ export async function notifyLeaveReminder(
       data: { kind: 'leave_reminder', request_id: leave.requestId },
       prefKey: 'push_leave_reminders',
     },
-    { ...mail, prefKey: 'email_leave_reminders' }
+    { ...mail, prefKey: 'email_leave_reminders' },
+    'richieste'
   );
 }
 
@@ -413,6 +475,7 @@ export async function notifyLeaveReminder(
  * run inside or outside a request transaction.
  */
 export async function notifyBulkEvent(
+  tenantId: string,
   userIds: string[],
   event: { title: string; from_ts: string; to_ts: string; deducts_ferie: boolean; batchId: string }
 ): Promise<void> {
@@ -427,6 +490,7 @@ export async function notifyBulkEvent(
       language,
     });
     await deliver(
+      tenantId,
       r,
       {
         title: PUSH.bulkEvent.title[language],
@@ -434,7 +498,8 @@ export async function notifyBulkEvent(
         data: { kind: 'company_event', batch_id: event.batchId },
         prefKey: 'push_leave_decisions',
       },
-      { ...mail, prefKey: 'email_leave_decisions' }
+      { ...mail, prefKey: 'email_leave_decisions' },
+      'richieste'
     );
   }
 }
@@ -457,6 +522,7 @@ interface DocumentContext {
  * `client` arg is kept for signature parity with the other notify* helpers.
  */
 export async function notifyDocumentUploaded(
+  tenantId: string,
   client: PoolClient,
   ctx: DocumentContext
 ): Promise<void> {
@@ -469,6 +535,7 @@ export async function notifyDocumentUploaded(
     language: lang,
   });
   await deliver(
+    tenantId,
     recipient,
     {
       title: PUSH.documents.title[lang],
@@ -476,7 +543,8 @@ export async function notifyDocumentUploaded(
       data: { kind: 'document', document_id: ctx.documentId },
       prefKey: 'push_documents',
     },
-    { ...mail, prefKey: 'email_documents' }
+    { ...mail, prefKey: 'email_documents' },
+    'documenti'
   );
   void client;
 }
@@ -493,6 +561,7 @@ interface CorrectionContext {
 }
 
 export async function notifyCorrectionSubmitted(
+  tenantId: string,
   client: PoolClient,
   ctx: CorrectionContext
 ): Promise<void> {
@@ -514,6 +583,7 @@ export async function notifyCorrectionSubmitted(
       language: lang,
     });
     await deliver(
+      tenantId,
       a,
       {
         title: PUSH.correctionSubmitted.title[lang],
@@ -521,12 +591,14 @@ export async function notifyCorrectionSubmitted(
         data: { kind: 'correction_submitted', request_id: ctx.requestId },
         prefKey: 'push_correction_submissions',
       },
-      { ...mail, prefKey: 'email_correction_submissions' }
+      { ...mail, prefKey: 'email_correction_submissions' },
+      'correzioni'
     );
   }
 }
 
 export async function notifyCorrectionDecided(
+  tenantId: string,
   _client: PoolClient,
   ctx: CorrectionContext,
   decision: 'approved' | 'rejected',
@@ -549,6 +621,7 @@ export async function notifyCorrectionDecided(
   };
   const mail = buildCorrectionDecidedMail(payload, decision);
   await deliver(
+    tenantId,
     requester,
     {
       title: PUSH.correctionDecided.title(decision)[lang],
@@ -556,7 +629,8 @@ export async function notifyCorrectionDecided(
       data: { kind: 'correction_decided', request_id: ctx.requestId, decision },
       prefKey: 'push_correction_decisions',
     },
-    { ...mail, prefKey: 'email_correction_decisions' }
+    { ...mail, prefKey: 'email_correction_decisions' },
+    'correzioni'
   );
 }
 

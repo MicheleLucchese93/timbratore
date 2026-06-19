@@ -36,13 +36,14 @@ test.describe('mobile — Notifications bell tap', () => {
     await expect(page.getByText('Tutte', { exact: true })).toBeVisible();
     await expect(page.getByText(/^Non lette/)).toBeVisible();
 
-    // The feed now merges leaves (richieste) and corrections. With no seeded
-    // pending items the empty state names both sources; otherwise a real
-    // notification row is shown. Either satisfies the assertion.
+    // The feed is now server-backed (GET /api/v1/notifications): one persisted
+    // row per event — leaves, corrections, documents, reminders. With no seeded
+    // items the empty state is shown; otherwise a real notification row is.
+    // Either satisfies the assertion.
     await expect(
       page
-        .getByText(/Aggiornamenti su richieste e correzioni qui\.|Nessuna notifica/i)
-        .or(page.getByText(/Nuova richiesta|Correzione|Assenza/).first()),
+        .getByText(/Aggiornamenti su richieste.*qui\.|Nessuna notifica/i)
+        .or(page.getByText(/Nuova richiesta|Correzione|Assenza|Documento/).first()),
     ).toBeVisible({ timeout: 10_000 });
   });
 });

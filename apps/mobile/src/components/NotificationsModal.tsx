@@ -22,20 +22,46 @@ interface Props {
   onClose: () => void;
 }
 
-const TYPE_CONFIG: Record<
-  AppNotification['type'],
-  { icon: keyof typeof import('@expo/vector-icons').Ionicons.glyphMap; fg: string; bg: string }
-> = {
-  correction_pending: { icon: 'time-outline', fg: color.warning, bg: '#fff3d1' },
-  correction_approved: { icon: 'checkmark-circle-outline', fg: color.success, bg: '#e8f3ec' },
-  correction_rejected: { icon: 'close-circle-outline', fg: color.error, bg: '#fde4e4' },
-  correction_acted: { icon: 'checkmark-done-outline', fg: color.primary, bg: '#e6eefb' },
-  leave_pending: { icon: 'calendar-outline', fg: color.warning, bg: '#fff3d1' },
-  leave_cancellation_pending: { icon: 'alert-circle-outline', fg: color.warning, bg: '#fff3d1' },
-  leave_approved: { icon: 'checkmark-circle-outline', fg: color.success, bg: '#e8f3ec' },
-  leave_rejected: { icon: 'close-circle-outline', fg: color.error, bg: '#fde4e4' },
-  leave_cancelled: { icon: 'ban-outline', fg: color.onSurfaceVariant, bg: color.surfaceVariant },
+type Visual = {
+  icon: keyof typeof import('@expo/vector-icons').Ionicons.glyphMap;
+  fg: string;
+  bg: string;
 };
+
+const APPROVED: Visual = { icon: 'checkmark-circle-outline', fg: color.success, bg: '#e8f3ec' };
+const REJECTED: Visual = { icon: 'close-circle-outline', fg: color.error, bg: '#fde4e4' };
+const PENDING: Visual = { icon: 'time-outline', fg: color.warning, bg: '#fff3d1' };
+const INFO: Visual = { icon: 'notifications-outline', fg: color.primary, bg: '#e6eefb' };
+
+// Icon/colour for a server notification. Keyed by `kind`, refined by the push
+// payload (decision / accepted) so an approval reads green and a rejection red.
+function visualFor(n: AppNotification): Visual {
+  const d = n.data ?? {};
+  switch (n.kind) {
+    case 'correction_submitted':
+    case 'leave_submitted':
+      return PENDING;
+    case 'leave_cancellation_requested':
+      return { icon: 'alert-circle-outline', fg: color.warning, bg: '#fff3d1' };
+    case 'correction_decided':
+    case 'leave_decided':
+      return d.decision === 'approved' ? APPROVED : REJECTED;
+    case 'leave_cancellation_decided':
+      return d.accepted
+        ? { icon: 'ban-outline', fg: color.onSurfaceVariant, bg: color.surfaceVariant }
+        : APPROVED;
+    case 'leave_added_by_admin':
+      return { icon: 'calendar-outline', fg: color.primary, bg: '#e6eefb' };
+    case 'leave_reminder':
+      return { icon: 'alarm-outline', fg: color.primary, bg: '#e6eefb' };
+    case 'company_event':
+      return { icon: 'megaphone-outline', fg: color.primary, bg: '#e6eefb' };
+    case 'document':
+      return { icon: 'document-text-outline', fg: color.primary, bg: '#e6eefb' };
+    default:
+      return INFO;
+  }
+}
 
 function timeAgo(iso: string, tr: (key: string, opts?: Record<string, unknown>) => string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -96,14 +122,20 @@ export function NotificationsModal({ visible, onClose }: Props) {
       onClose();
       // Corrections were merged into the Timbrature tab — deep-link there and
       // land on the pending-corrections sub-tab via the `corr` param.
-      router.push(n.route === 'richieste' ? '/richieste' : '/timbrature?corr=1');
+      const target =
+        n.route === 'documenti'
+          ? '/documenti'
+          : n.route === 'richieste'
+            ? '/richieste'
+            : '/timbrature?corr=1';
+      router.push(target);
     },
     [markAsRead, onClose, router]
   );
 
   const renderItem = useCallback(
     ({ item }: { item: AppNotification }) => {
-      const cfg = TYPE_CONFIG[item.type];
+      const cfg = visualFor(item);
       return (
         <Pressable
           onPress={() => onItemPress(item)}

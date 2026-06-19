@@ -215,7 +215,7 @@ leavesRouter.post(
         }
       }
     } else {
-      await notifyLeaveSubmitted(client, {
+      await notifyLeaveSubmitted(req.user!.tenantId, client, {
         requestId: row.id,
         type: b.type,
         from_ts: b.from_ts,
@@ -299,6 +299,7 @@ leavesRouter.post(
       on_behalf_of: b.user_id,
     });
     await notifyLeaveAddedByAdmin(
+      req.user!.tenantId,
       client,
       {
         requestId: row.id,
@@ -468,6 +469,7 @@ leavesRouter.post(
     );
     await logEvent(client, row.id, 'approve');
     await notifyLeaveDecided(
+      req.user!.tenantId,
       client,
       {
         requestId: row.id,
@@ -512,6 +514,7 @@ leavesRouter.post(
     );
     await logEvent(client, row.id, 'reject', { reason: parse.data.rejection_reason });
     await notifyLeaveDecided(
+      req.user!.tenantId,
       client,
       {
         requestId: row.id,
@@ -595,7 +598,7 @@ leavesRouter.post(
     await logEvent(client, row.id, 'request_cancellation', {
       reason: parse.data.cancellation_reason,
     });
-    await notifyCancellationRequested(client, {
+    await notifyCancellationRequested(req.user!.tenantId, client, {
       requestId: row.id,
       type: row.type,
       from_ts: row.from_ts,
@@ -644,6 +647,7 @@ leavesRouter.post(
       reason: parse.data.reason ?? null,
     });
     await notifyCancellationDecided(
+      req.user!.tenantId,
       client,
       {
         requestId: row.id,
@@ -754,7 +758,7 @@ leavesRouter.post(
       created.push(uid);
     }
 
-    await notifyBulkEvent(created, {
+    await notifyBulkEvent(req.user!.tenantId, created, {
       title: b.title,
       from_ts: b.from_ts,
       to_ts: b.to_ts,

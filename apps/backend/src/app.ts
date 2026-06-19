@@ -16,6 +16,7 @@ import { usersRouter } from './routes/users.js';
 import { stampsRouter } from './routes/stamps.js';
 import { adminStampsRouter } from './routes/admin-stamps.js';
 import { correctionRequestsRouter } from './routes/correction-requests.js';
+import { notificationsRouter } from './routes/notifications.js';
 import { exportsRouter } from './routes/exports.js';
 import { realtimeRouter } from './routes/realtime.js';
 import { settingsRouter } from './routes/settings.js';
@@ -107,6 +108,7 @@ export function createApp(): Express {
   app.use('/api/v1/stamps', stampsRouter);
   app.use('/api/v1/admin', adminStampsRouter);
   app.use('/api/v1/correction-requests', correctionRequestsRouter);
+  app.use('/api/v1/notifications', notificationsRouter);
   app.use('/api/v1/exports', exportsRouter);
   app.use('/api/v1/realtime', realtimeRouter);
   app.use('/api/v1/settings', settingsRouter);

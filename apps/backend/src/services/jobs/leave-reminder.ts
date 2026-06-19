@@ -15,7 +15,7 @@ export async function leaveReminder(): Promise<void> {
     `WITH bounds AS (
        SELECT ((now() AT TIME ZONE 'Europe/Rome')::date + 1) AS d
      )
-     SELECT lr.id, lr.user_id, lr.type, lr.from_ts, lr.to_ts, lr.title
+     SELECT lr.id, lr.tenant_id, lr.user_id, lr.type, lr.from_ts, lr.to_ts, lr.title
        FROM leave_requests lr, bounds
       WHERE lr.status = 'approved'
         AND lr.reminder_sent_at IS NULL
@@ -29,7 +29,7 @@ export async function leaveReminder(): Promise<void> {
   const sent: string[] = [];
   for (const row of r.rows) {
     try {
-      await notifyLeaveReminder(row.user_id, {
+      await notifyLeaveReminder(row.tenant_id, row.user_id, {
         requestId: row.id,
         type: row.type,
         from_ts: new Date(row.from_ts).toISOString(),

@@ -1484,6 +1484,11 @@ const MAIN_IT = `
           <li><strong>Push</strong>: toggle granulari per ciascun tipo nel Profilo dell'app mobile, incluso il <strong>Promemoria 24h prima</strong>. Le push richiedono il permesso del sistema operativo.</li>
         </ul>
       </div>
+
+      <div class="feature">
+        <h3>La campanella in app</h3>
+        <p>Nell'app mobile l'icona a <strong>campanella</strong> (in alto) raccoglie <strong>tutte</strong> le notifiche ricevute — esiti e nuove richieste di ferie/permessi e correzioni, promemoria 24h, eventi aziendali e nuovi documenti — con il numero di non lette in evidenza sul badge. Toccando una notifica si apre la sezione corrispondente. Lo stato di lettura è salvato sul server, quindi resta <strong>sincronizzato su tutti i tuoi dispositivi</strong>. La campanella mostra le notifiche indipendentemente dalle preferenze push: disattivare una push silenzia solo l'avviso del sistema, non l'elenco in app.</p>
+      </div>
     </section>
 
     <section class="chapter" id="offline">

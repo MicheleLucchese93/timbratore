@@ -1468,6 +1468,11 @@ export const MAIN_EN = `
           <li><strong>Push</strong>: granular toggles for each type in the Profile of the mobile app, including the <strong>24h reminder</strong>. Push requires the operating system's permission.</li>
         </ul>
       </div>
+
+      <div class="feature">
+        <h3>The in-app bell</h3>
+        <p>In the mobile app the <strong>bell</strong> icon (top bar) collects <strong>every</strong> notification you receive — holiday/leave and correction outcomes and new requests, 24h reminders, company events and new documents — with the unread count highlighted on the badge. Tapping a notification opens the matching section. The read state is stored on the server, so it stays <strong>in sync across all your devices</strong>. The bell shows notifications regardless of your push preferences: turning a push off only silences the system alert, not the in-app list.</p>
+      </div>
     </section>
 
     <section class="chapter" id="offline">

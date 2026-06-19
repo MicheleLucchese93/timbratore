@@ -369,7 +369,7 @@ documentsRouter.post(
     }
 
     // Fire-and-forget: a notification failure must never fail the upload.
-    notifyDocumentUploaded(client, {
+    notifyDocumentUploaded(tenantId, client, {
       documentId: finalDoc.id,
       userId: finalDoc.user_id,
       category: finalDoc.category as DocumentCategory,
