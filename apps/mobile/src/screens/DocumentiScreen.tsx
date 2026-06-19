@@ -2,7 +2,6 @@ import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Platform,
   Pressable,
   RefreshControl,
@@ -22,8 +21,6 @@ import { api } from '../lib/api';
 import { authenticate, getBiometricCapability } from '../lib/biometric';
 import { AppHeader } from '../components/AppHeader';
 import { fmtDate } from '../i18n/format';
-
-const LOGO = require('../../assets/images/icon.png');
 
 const DATE_OPTS: Intl.DateTimeFormatOptions = {
   day: '2-digit',
@@ -156,7 +153,6 @@ export function DocumentiScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.lockCenter}>
-          <Image source={LOGO} style={styles.lockLogo} resizeMode="contain" accessible={false} />
           <Ionicons
             name={gate === 'blocked' ? 'lock-closed-outline' : 'document-lock-outline'}
             size={40}
@@ -390,7 +386,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: space.s5,
   },
-  lockLogo: { width: 72, height: 72, marginBottom: space.s3, backgroundColor: color.surface },
   lockIcon: { marginBottom: space.s3 },
   lockTitle: {
     fontSize: 22,
