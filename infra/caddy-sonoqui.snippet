@@ -2,6 +2,24 @@
 # Paste these stanzas into /opt/infra/Caddyfile, then:
 #   docker exec gateway caddy reload --config /etc/caddy/Caddyfile
 
+# Access log that redacts the document-upload metadata from the request URI.
+# POST /api/v1/documents carries title + filename in the query string (employee
+# names / payroll period); strip them so plaintext name↔payslip pairs don't
+# accumulate in access logs. Add ALONGSIDE the existing (access_log) snippet.
+(access_log_docs) {
+	log {
+		format filter {
+			wrap json
+			fields {
+				request>uri query {
+					delete title
+					delete filename
+				}
+			}
+		}
+	}
+}
+
 (sonoqui_web_prod_cors) {
 	@origin_app header Origin "https://app-sonoqui.xdevapp.it"
 	@origin_mobile header Origin "https://m-sonoqui.xdevapp.it"
@@ -30,7 +48,7 @@
 
 api-sonoqui.xdevapp.it {
 	import origin_tls
-	import access_log
+	import access_log_docs
 	import api_security_headers
 	import sonoqui_web_prod_cors
 	reverse_proxy sonoqui-api:4000
