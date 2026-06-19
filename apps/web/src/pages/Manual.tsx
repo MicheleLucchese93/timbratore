@@ -852,7 +852,7 @@ const MAIN_IT = `
           <li><strong>Titolo</strong> — il nome assegnato in fase di caricamento.</li>
           <li><strong>Caricato il</strong> — data e ora di caricamento.</li>
           <li><strong>Archiviato fino al</strong> — la data oltre la quale il documento viene eliminato automaticamente (36 mesi dal caricamento).</li>
-          <li><strong>Presa visione</strong> — <span class="pill pill-ok">Visto</span> se il dipendente (destinatario) l'ha aperto almeno una volta, altrimenti <span class="pill pill-warn">Non visto</span>. <em>Le aperture e i download effettuati dal Documentale non contano mai come presa visione: il documento resta <span class="pill pill-warn">Non visto</span> finché non lo apre il dipendente stesso.</em></li>
+          <li><strong>Presa visione</strong> — la <strong>data e ora</strong> in cui il dipendente (destinatario) ha aperto il documento la prima volta (salvata nel sistema), oppure <span class="pill pill-warn">Non visto</span> se non l'ha ancora consultato. <em>Le aperture e i download effettuati dal Documentale non contano mai come presa visione: il documento resta <span class="pill pill-warn">Non visto</span> finché non lo apre il dipendente stesso.</em></li>
           <li><strong>Azioni</strong> — scarica ed elimina.</li>
         </ul>
         <p>In alto puoi <strong>filtrare per dipendente</strong> per vedere solo i suoi documenti.</p>
@@ -1012,8 +1012,8 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Consultare e scaricare</h3>
-        <p>La tabella elenca, per ogni documento: <strong>Categoria</strong>, <strong>Titolo</strong>, <strong>Caricato il</strong>, <strong>Archiviato fino al</strong> e lo stato di <strong>presa visione</strong> (<span class="pill pill-ok">Visto</span> / <span class="pill pill-warn">Non visto</span>).</p>
-        <p>Premi l'icona <strong>Scarica</strong> per aprire il PDF in una nuova scheda. La <strong>prima apertura</strong> di un documento viene registrata come <em>presa visione</em>: da quel momento il badge diventa <span class="pill pill-ok">Visto</span> e l'azienda sa che l'hai consultato. La presa visione viene registrata <strong>solo quando lo apri tu</strong> (il destinatario): le aperture del Documentale non la attivano.</p>
+        <p>La tabella elenca, per ogni documento: <strong>Categoria</strong>, <strong>Titolo</strong>, <strong>Caricato il</strong>, <strong>Archiviato fino al</strong> e la <strong>presa visione</strong> (la <strong>data e ora</strong> della prima apertura, oppure <span class="pill pill-warn">Non visto</span>).</p>
+        <p>Premi l'icona <strong>Scarica</strong> per aprire il PDF in una nuova scheda. La <strong>prima apertura</strong> di un documento viene registrata come <em>presa visione</em>: da quel momento la colonna mostra la <strong>data e ora</strong> della tua presa visione e l'azienda sa che l'hai consultato. La presa visione viene registrata <strong>solo quando lo apri tu</strong> (il destinatario): le aperture del Documentale non la attivano.</p>
         <div class="callout callout-info">
           Riceverai una <strong>notifica</strong> (push ed email) ogni volta che l'azienda carica un nuovo documento per te. Puoi disattivare l'email da <strong>Impostazioni → Notifiche email</strong> e la push dall'app mobile (<em>Profilo</em>).
         </div>

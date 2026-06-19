@@ -76,13 +76,13 @@ export function MyDocuments() {
       {
         field: 'viewed_at',
         headerName: t('col.viewed'),
-        width: 130,
+        width: 170,
         sortable: false,
         valueGetter: (_v, row) => row.viewed_at ?? '',
         renderCell: (p) =>
           p.row.viewed_at ? (
-            <span className="badge badge-ok" title={fmtDateTime(p.row.viewed_at)}>
-              {t('viewed')}
+            <span className="badge badge-ok num text-xs" title={t('viewed')}>
+              {fmtDateTime(p.row.viewed_at)}
             </span>
           ) : (
             <span className="badge badge-warn">{t('notViewed')}</span>

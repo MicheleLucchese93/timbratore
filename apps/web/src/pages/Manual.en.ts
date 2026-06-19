@@ -840,7 +840,7 @@ export const MAIN_EN = `
           <li><strong>Title</strong> — the name given at upload time.</li>
           <li><strong>Uploaded</strong> — upload date and time.</li>
           <li><strong>Kept until</strong> — the date after which the document is deleted automatically (36 months from upload).</li>
-          <li><strong>Read receipt</strong> — <span class="pill pill-ok">Viewed</span> if the employee (the recipient) has opened it at least once, otherwise <span class="pill pill-warn">Not viewed</span>. <em>Views and downloads by the document manager never count as a read: the document stays <span class="pill pill-warn">Not viewed</span> until the employee themselves opens it.</em></li>
+          <li><strong>Read receipt</strong> — the <strong>date and time</strong> the employee (the recipient) first opened the document (stored in the system), or <span class="pill pill-warn">Not viewed</span> if not yet opened. <em>Views and downloads by the document manager never count as a read: the document stays <span class="pill pill-warn">Not viewed</span> until the employee themselves opens it.</em></li>
           <li><strong>Actions</strong> — download and delete.</li>
         </ul>
         <p>At the top you can <strong>filter by employee</strong> to see only their documents.</p>
@@ -1000,8 +1000,8 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>Viewing and downloading</h3>
-        <p>The table lists, for each document: <strong>Category</strong>, <strong>Title</strong>, <strong>Uploaded</strong>, <strong>Kept until</strong> and the <strong>read receipt</strong> status (<span class="pill pill-ok">Viewed</span> / <span class="pill pill-warn">Not viewed</span>).</p>
-        <p>Press the <strong>Download</strong> icon to open the PDF in a new tab. The <strong>first time</strong> you open a document is recorded as <em>read</em>: from then on the badge turns <span class="pill pill-ok">Viewed</span> and the company knows you have seen it. The read receipt is recorded <strong>only when you</strong> (the recipient) open it: opens by the document manager do not trigger it.</p>
+        <p>The table lists, for each document: <strong>Category</strong>, <strong>Title</strong>, <strong>Uploaded</strong>, <strong>Kept until</strong> and the <strong>read receipt</strong> (the <strong>date and time</strong> of the first open, or <span class="pill pill-warn">Not viewed</span>).</p>
+        <p>Press the <strong>Download</strong> icon to open the PDF in a new tab. The <strong>first time</strong> you open a document is recorded as <em>read</em>: from then on the column shows the <strong>date and time</strong> of your read and the company knows you have seen it. The read receipt is recorded <strong>only when you</strong> (the recipient) open it: opens by the document manager do not trigger it.</p>
         <div class="callout callout-info">
           You receive a <strong>notification</strong> (push and email) whenever the company uploads a new document for you. You can turn off the email from <strong>Settings → Email notifications</strong> and push from the mobile app (<em>Profile</em>).
         </div>
