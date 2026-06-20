@@ -36,7 +36,7 @@ export const homeFaq: Record<Lang, FaqItem[]> = {
     {
       question: "Posso condividere cedolini e documenti con i dipendenti?",
       answer:
-        "Sì. Carichi i PDF (cedolini, CU, contratti, comunicazioni) e li assegni a ogni dipendente, che li trova nella sezione «I miei documenti» sul web e nel tab «Documenti» dell'app. Ogni documento registra la presa visione e viene archiviato per 36 mesi; sull'app la sezione è protetta da sblocco biometrico.",
+        "Sì. Carichi i PDF (cedolini, CU, contratti, comunicazioni) e li assegni a ogni dipendente, che li trova nella sezione «I miei documenti» sul web e nel tab «Documenti» dell'app. Ogni documento registra la presa visione e viene archiviato per 36 mesi; sull'app la sezione è protetta da sblocco biometrico. L'accesso all'archivio di tutti i dipendenti è riservato a un responsabile autorizzato («Documentale»): ogni consultazione richiede un codice di verifica inviato via email e viene registrata, mentre ciascun dipendente vede esclusivamente i propri documenti.",
     },
     {
       question: "Cosa succede se il dipendente non ha campo o internet?",
