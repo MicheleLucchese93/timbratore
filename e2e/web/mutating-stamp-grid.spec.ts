@@ -5,6 +5,7 @@ import {
   deleteStampAdmin,
   listStampsAdmin,
   loadHandleFromStorage,
+  resolveDisplayName,
   type ApiHandle,
 } from '../fixtures/api-client';
 
@@ -75,8 +76,10 @@ test.describe('web — Timbrature monthly grid (mutating)', () => {
     const grid = page.getByTestId('stamp-grid');
     await expect(grid).toBeVisible({ timeout: 15_000 });
 
-    // The e2e user (display_name "Mario Rossi") is a column in the matrix.
-    await expect(grid.getByText(CREDS.user.displayName).first()).toBeVisible();
+    // The e2e user is a column in the matrix. Its display_name drifts on the
+    // shared tenant, so resolve the live value rather than pinning a literal.
+    const userName = await resolveDisplayName(admin.token, CREDS.user.email);
+    await expect(grid.getByText(userName).first()).toBeVisible();
 
     // Its today cell shows the seeded clock-in time; click to open the editor.
     const cell = page.locator(`[data-cell="${user.userId}:${dateIso}"]`);
@@ -85,7 +88,7 @@ test.describe('web — Timbrature monthly grid (mutating)', () => {
 
     const editor = page.getByTestId('day-editor');
     await expect(editor).toBeVisible();
-    await expect(editor.getByText(CREDS.user.displayName)).toBeVisible();
+    await expect(editor.getByText(userName).first()).toBeVisible();
 
     // --- ADD: a break_start at 12:30 via the add form. ---
     const addForm = editor.getByTestId('add-stamp-form');

@@ -8,16 +8,20 @@ export const CREDS = {
     password: process.env.E2E_ADMIN_PASSWORD ?? 'Test123@!',
   },
   // test3 is the only non-admin on the test tenant. test1 & test2 are both
-  // admins, so always use test3 for employee-role coverage. Mobile-user
-  // specs assert test3-specific seeded data (display_name "Mario Rossi",
-  // pre-seeded ferie/permessi quotas, configured approvers), so the actor
-  // must stay stable across runs. Residue from web mutating specs is
-  // handled by the text-marker purge in /api/v1/_internal/e2e/purge-fixtures
-  // — leave_requests and correction_requests whose text fields match the
-  // e2e seed prefix get wiped at globalTeardown regardless of user.
+  // admins, so always use test3 for employee-role coverage. Mobile-user specs
+  // assert test3-specific seeded data (pre-seeded ferie/permessi quotas,
+  // configured approvers), so the actor must stay stable across runs. Its
+  // display_name drifts (manual product testing renames users), so
+  // name-rendering specs resolve the live value via
+  // resolveDisplayName/selfDisplayName rather than pinning `displayName` below.
+  // Residue from web mutating specs is handled by the text-marker purge in
+  // /api/v1/_internal/e2e/purge-fixtures — leave_requests and correction_requests
+  // whose text fields match the e2e seed prefix get wiped at globalTeardown.
   user: {
     email: process.env.E2E_USER_EMAIL ?? 'test3@test.it',
     password: process.env.E2E_USER_PASSWORD ?? 'Test123@!',
+    // Canonical seed name; may be stale on the shared tenant — resolve the live
+    // value for assertions (see comment above). Kept for reference/back-compat.
     displayName: 'Mario Rossi',
   },
 } as const;

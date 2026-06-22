@@ -34,7 +34,13 @@ test.describe('web — Ferie & Permessi (employee)', () => {
       await page.getByRole('button', { name: /Nuova richiesta/i }).click();
       await expect(page.getByRole('heading', { name: 'Nuova richiesta' })).toBeVisible({ timeout: 10_000 });
       await expect(page.getByText('Tipo', { exact: true })).toBeVisible();
-      await page.getByRole('button', { name: 'Annulla', exact: true }).click();
+      // Scope to the modal card: a residue pending request on the mine list
+      // renders its own "Annulla" (cancel) button, so a page-wide match is not
+      // unique. The modal is the .card containing the "Nuova richiesta" heading.
+      await page
+        .locator('.card', { has: page.getByRole('heading', { name: 'Nuova richiesta' }) })
+        .getByRole('button', { name: 'Annulla', exact: true })
+        .click();
     });
 
     test('a timed Permesso splits date from time (Giorno + Dalle/Alle ore)', async ({ page }) => {
@@ -58,7 +64,13 @@ test.describe('web — Ferie & Permessi (employee)', () => {
       await expect(page.locator('input[type="date"]')).toHaveCount(2);
       await expect(page.locator('input[type="time"]')).toHaveCount(0);
 
-      await page.getByRole('button', { name: 'Annulla', exact: true }).click();
+      // Scope to the modal card: a residue pending request on the mine list
+      // renders its own "Annulla" (cancel) button, so a page-wide match is not
+      // unique. The modal is the .card containing the "Nuova richiesta" heading.
+      await page
+        .locator('.card', { has: page.getByRole('heading', { name: 'Nuova richiesta' }) })
+        .getByRole('button', { name: 'Annulla', exact: true })
+        .click();
     });
 
     test('Calendario tab renders the view switcher', async ({ page }) => {

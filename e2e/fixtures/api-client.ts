@@ -980,3 +980,25 @@ export async function setLeaveApprovers(
     throw new Error(`setLeaveApprovers failed: ${r.status} ${text}`);
   }
 }
+
+/* Display-name resolvers ----------------------------------------------------
+ * The shared test tenant's display names drift (manual edits during product
+ * testing), so name-rendering assertions must not pin a literal like
+ * "Mario Rossi". These resolve the live display_name from the API instead, and
+ * fall back to the email prefix when it is unset. */
+
+/** Resolve a teammate's display_name as an admin sees it (GET /users). */
+export async function resolveDisplayName(adminToken: string, email: string): Promise<string> {
+  const users = await apiGet<Array<{ email: string; display_name: string | null }>>(
+    adminToken,
+    '/api/v1/users',
+  );
+  return users.find((u) => u.email === email)?.display_name?.trim() || email.split('@')[0] || email;
+}
+
+/** Resolve the logged-in user's own display_name (GET /me) — for employee
+ *  specs that have no admin token. */
+export async function selfDisplayName(userToken: string, email: string): Promise<string> {
+  const me = await apiGet<{ user: { display_name: string | null } }>(userToken, '/api/v1/me');
+  return me.user.display_name?.trim() || email.split('@')[0] || email;
+}

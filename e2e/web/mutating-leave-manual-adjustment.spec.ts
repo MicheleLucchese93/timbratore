@@ -68,9 +68,15 @@ test.describe('web — Manual leave-quota adjustment + audit (mutating)', () => 
 
     const row = page.getByRole('row').filter({ hasText: 'test2@test.it' });
     await expect(row).toBeVisible({ timeout: 15_000 });
-    // Fresh assignment starts at 0h. exact:true so "0.00h" does not also match
-    // a stray "20.00h" balance button left on the shared tenant by prior runs.
-    await expect(row.getByRole('button', { name: '0.00h', exact: true })).toBeVisible({ timeout: 10_000 });
+    // The balance button shows the current residual. Prior runs leave manual
+    // ledger rows on the shared tenant (afterEach closes the assignment but the
+    // signed rows persist), so the starting balance is NOT reliably 0.00h.
+    // Read the live baseline and assert deltas relative to it instead.
+    const balanceBtn = row.getByRole('button', { name: /^-?\d+\.\d{2}h$/ }).first();
+    await expect(balanceBtn).toBeVisible({ timeout: 10_000 });
+    const base = parseFloat(((await balanceBtn.textContent()) ?? '').trim());
+    expect(Number.isFinite(base)).toBeTruthy();
+    const fmt = (n: number): string => `${n.toFixed(2)}h`;
 
     // --- Add 8h ---
     await row.getByRole('button', { name: 'Aggiungi/Rimuovi ore' }).click();
@@ -79,7 +85,7 @@ test.describe('web — Manual leave-quota adjustment + audit (mutating)', () => 
     await form.getByLabel('Nota').fill(`${tag} add`);
     await form.getByRole('button', { name: 'Salva' }).click();
     await expect(form).toBeHidden({ timeout: 10_000 });
-    await expect(row.getByRole('button', { name: '8.00h', exact: true })).toBeVisible({ timeout: 10_000 });
+    await expect(row.getByRole('button', { name: fmt(base + 8), exact: true })).toBeVisible({ timeout: 10_000 });
 
     // --- Remove 3h (same day → exercises migration 034) ---
     await row.getByRole('button', { name: 'Aggiungi/Rimuovi ore' }).click();
@@ -89,7 +95,7 @@ test.describe('web — Manual leave-quota adjustment + audit (mutating)', () => 
     await form.getByLabel('Nota').fill(`${tag} rem`);
     await form.getByRole('button', { name: 'Salva' }).click();
     await expect(form).toBeHidden({ timeout: 10_000 });
-    await expect(row.getByRole('button', { name: '5.00h', exact: true })).toBeVisible({ timeout: 10_000 });
+    await expect(row.getByRole('button', { name: fmt(base + 5), exact: true })).toBeVisible({ timeout: 10_000 });
 
     // --- Audit log lists both operations, by unique note + signed amount ---
     await row.getByRole('button', { name: 'Storico modifiche manuali' }).click();

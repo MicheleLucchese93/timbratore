@@ -3,6 +3,7 @@ import { CREDS, STORAGE } from '../fixtures/test-data';
 import {
   createBulkEvent,
   loadHandleFromStorage,
+  resolveDisplayName,
   revokeBulkEvent,
   type ApiHandle,
 } from '../fixtures/api-client';
@@ -57,10 +58,13 @@ test.describe('web — Admin bulk company event (mutating)', () => {
     await page.goto('/leaves');
     await expect(page.getByRole('heading', { name: 'Ferie & Permessi' })).toBeVisible({ timeout: 15_000 });
     await page.getByRole('button', { name: 'Calendario', exact: true }).click();
-    // The filter chip renders the employee's display_name once the calendar
-    // has loaded the current-year range that contains the seeded event.
+    // The filter chip renders the seeded employee's display_name once the
+    // calendar has loaded the current-year range that contains the event. The
+    // name drifts on the shared tenant — resolve the live value so this asserts
+    // the seeded employee's chip (not whoever happens to share a literal).
+    const userName = await resolveDisplayName(admin.token, CREDS.user.email);
     await expect(
-      page.getByRole('button', { name: new RegExp(CREDS.user.displayName) }).first(),
+      page.getByRole('button', { name: userName }).first(),
     ).toBeVisible({ timeout: 15_000 });
   });
 });

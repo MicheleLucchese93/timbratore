@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { CREDS } from '../../fixtures/test-data';
+import { CREDS, STORAGE } from '../../fixtures/test-data';
+import { loadHandleFromStorage, selfDisplayName } from '../../fixtures/api-client';
 
 test.describe('mobile — Profilo screen (employee)', () => {
   test.beforeEach(async ({ page }) => {
@@ -14,10 +15,13 @@ test.describe('mobile — Profilo screen (employee)', () => {
     await expect(page.getByText(CREDS.user.email)).toBeVisible();
   });
 
-  test('display_name is rendered when set (test3 = Mario Rossi)', async ({ page }) => {
-    // The seeded employee has a display_name; the screen prefers it over
-    // the email-prefix fallback.
-    await expect(page.getByText(CREDS.user.displayName)).toBeVisible();
+  test('display_name is rendered when set', async ({ page }) => {
+    // The seeded employee has a display_name; the screen prefers it over the
+    // email-prefix fallback. Its exact value drifts on the shared tenant, so
+    // resolve the live value from /me instead of pinning a literal.
+    const handle = await loadHandleFromStorage(STORAGE.mobileUserAuth, CREDS.user);
+    const name = await selfDisplayName(handle.token, CREDS.user.email);
+    await expect(page.getByText(name).first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('notification settings include the 24h reminder toggle', async ({ page }) => {

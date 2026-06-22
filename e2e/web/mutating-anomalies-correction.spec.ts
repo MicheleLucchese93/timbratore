@@ -10,6 +10,7 @@ import {
   deleteStampAdmin,
   listLeaves,
   loadHandleFromStorage,
+  resolveDisplayName,
   type ApiHandle,
 } from '../fixtures/api-client';
 
@@ -249,21 +250,40 @@ test.describe.serial('web — Anomalie Correggi menu resolves anomalies (mutatin
 
     expect((await anomalies(day.date)).map((a) => a.kind)).toContain('short_hours');
 
-    // Isolate the seeded day + user in the UI so the row is unambiguous.
+    // Isolate the seeded day + user in the UI so the row is unambiguous. The
+    // employee's display_name drifts on the shared tenant, so resolve the live
+    // value rather than pinning a literal.
+    const userName = await resolveDisplayName(admin.token, CREDS.user.email);
     await page.goto('/anomalies');
     await expect(page.getByRole('heading', { name: /Anomalie orario/i })).toBeVisible({ timeout: 15_000 });
     await page.locator('input[type="date"]').first().fill(day.date);
     await page.locator('input[type="date"]').nth(1).fill(day.date);
-    await page.locator('select').first().selectOption({ label: CREDS.user.displayName });
+    await page.locator('select').first().selectOption({ label: userName });
     await page.getByRole('button', { name: 'Aggiorna' }).click();
 
-    const row = page.locator('li', { hasText: 'Ore giornaliere insufficienti' }).first();
+    // Scope the row to the seeded employee's name: the page's initial mount-load
+    // (all users, default range) can still be painted when we read this, and a
+    // real anomaly from another user sorts first by date-desc — clicking it would
+    // justify the wrong user's row. Requiring the resolved name forces the
+    // locator to wait for the filtered (user + day) load before matching.
+    const row = page
+      .locator('li')
+      .filter({ hasText: 'Ore giornaliere insufficienti' })
+      .filter({ hasText: userName })
+      .first();
     await expect(row).toBeVisible({ timeout: 15_000 });
     await row.getByRole('button', { name: /Correggi/ }).click();
     await row.getByRole('combobox').selectOption({ label: 'Giustifica con nota' });
     await row.getByRole('textbox').fill('e2e giustifica da anomalia');
     await row.getByRole('button', { name: 'Conferma' }).click();
 
+    // Wait for the form to close (justify POST resolved), then re-apply the
+    // filter via "Aggiorna" so the final list is the seeded user+day fetch — not
+    // a late-resolving initial mount-load (all users / default range) that could
+    // otherwise overwrite it. Then assert the row gained its note. (Server-side
+    // merge is verified directly by the API check just below.)
+    await expect(row.getByRole('button', { name: 'Conferma' })).toHaveCount(0, { timeout: 10_000 });
+    await page.getByRole('button', { name: 'Aggiorna' }).click();
     await expect(row.getByText(/Giustificata:/)).toBeVisible({ timeout: 15_000 });
 
     // API confirms the note persisted on the right (day, kind).
