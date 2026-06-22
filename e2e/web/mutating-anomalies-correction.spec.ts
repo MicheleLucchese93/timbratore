@@ -256,16 +256,28 @@ test.describe.serial('web — Anomalie Correggi menu resolves anomalies (mutatin
     const userName = await resolveDisplayName(admin.token, CREDS.user.email);
     await page.goto('/anomalies');
     await expect(page.getByRole('heading', { name: /Anomalie orario/i })).toBeVisible({ timeout: 15_000 });
+    // Let the initial mount-load (all users, default range) finish before we
+    // filter, so its response can't land late and revert our filtered list
+    // mid-interaction (which would detach the open Correggi form).
+    await page
+      .waitForResponse((r) => r.url().includes('/api/v1/shifts/anomalies'), { timeout: 15_000 })
+      .catch(() => {});
     await page.locator('input[type="date"]').first().fill(day.date);
     await page.locator('input[type="date"]').nth(1).fill(day.date);
     await page.locator('select').first().selectOption({ label: userName });
-    await page.getByRole('button', { name: 'Aggiorna' }).click();
+    // Couple the click with its response so the filtered (user + day) list is
+    // fully settled before we touch a row — no pending load remains to re-render
+    // the list while the Correggi form is open.
+    await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes('/api/v1/shifts/anomalies') && r.url().includes(user.userId),
+        { timeout: 15_000 },
+      ),
+      page.getByRole('button', { name: 'Aggiorna' }).click(),
+    ]);
 
-    // Scope the row to the seeded employee's name: the page's initial mount-load
-    // (all users, default range) can still be painted when we read this, and a
-    // real anomaly from another user sorts first by date-desc — clicking it would
-    // justify the wrong user's row. Requiring the resolved name forces the
-    // locator to wait for the filtered (user + day) load before matching.
+    // Scope the row to the seeded employee's name so we never act on another
+    // user's row (a real anomaly elsewhere could otherwise sort first).
     const row = page
       .locator('li')
       .filter({ hasText: 'Ore giornaliere insufficienti' })
