@@ -90,6 +90,7 @@ const more = [
 ];
 
 const src = (file: string) => `/screenshots-web/${file}.png`;
+const webp = (file: string) => `/screenshots-web/${file}.webp`;
 ---
 
 <section id="web" class="bg-surface py-20 sm:py-28 scroll-mt-20">
@@ -125,7 +126,10 @@ const src = (file: string) => `/screenshots-web/${file}.png`;
                 <span class="h-2.5 w-2.5 rounded-full bg-green-400"></span>
               </div>
               <div class="relative">
-                <img src={src(row.file)} alt={row.label} class="block w-full" loading="lazy" />
+                <picture>
+                  <source srcset={webp(row.file)} type="image/webp" />
+                  <img src={src(row.file)} alt={row.label} width="3024" height="1540" class="block w-full" loading="lazy" />
+                </picture>
                 <span class="pointer-events-none absolute inset-0 flex items-center justify-center bg-on-surface/0 opacity-0 transition-all duration-200 group-hover:bg-on-surface/10 group-hover:opacity-100">
                   <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-on-surface shadow-lg">
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 8v6M8 11h6M19 11a8 8 0 11-16 0 8 8 0 0116 0z"/></svg>
@@ -171,7 +175,10 @@ const src = (file: string) => `/screenshots-web/${file}.png`;
                 <span class="h-2 w-2 rounded-full bg-green-400"></span>
               </div>
               <div class="relative">
-                <img src={src(shot.file)} alt={shot.label} class="block w-full" loading="lazy" />
+                <picture>
+                  <source srcset={webp(shot.file)} type="image/webp" />
+                  <img src={src(shot.file)} alt={shot.label} width="3024" height="1540" class="block w-full" loading="lazy" />
+                </picture>
                 <span class="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                   <span class="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-on-surface shadow-md">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 8v6M8 11h6M19 11a8 8 0 11-16 0 8 8 0 0116 0z"/></svg>

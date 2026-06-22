@@ -5,6 +5,7 @@ import Footer from "../components/Footer.astro";
 import CookieBanner from "../components/CookieBanner.astro";
 import { defaultLang, type Lang } from "../i18n/ui";
 import { getLangFromUrl } from "../i18n/utils";
+import { DEFAULT_IMAGE } from "../data/seo";
 
 interface Props {
   title: string;
@@ -12,14 +13,14 @@ interface Props {
   image?: string;
   type?: "website" | "article";
   alternatePaths?: Partial<Record<Lang, string>>;
-  schema?: Record<string, unknown>;
+  schema?: Record<string, unknown> | Record<string, unknown>[];
   noindex?: boolean;
 }
 
 const {
   title,
   description = "sonoQui — rilevazione presenze GPS per PMI italiane.",
-  image = "/icon.png",
+  image = DEFAULT_IMAGE,
   type = "website",
   alternatePaths,
   schema,
@@ -33,6 +34,7 @@ const alternateLinks = alternatePaths
   ? Object.entries(alternatePaths).filter((entry): entry is [Lang, string] => Boolean(entry[1]))
   : [];
 const xDefaultPath = alternatePaths?.[defaultLang] ?? alternatePaths?.[lang];
+const schemas = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
 ---
 
 <!doctype html>
@@ -41,6 +43,8 @@ const xDefaultPath = alternatePaths?.[defaultLang] ?? alternatePaths?.[lang];
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
+    <meta name="theme-color" content="#15569e" />
+    <meta name="color-scheme" content="light" />
     {noindex && <meta name="robots" content="noindex,follow" />}
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
@@ -56,19 +60,26 @@ const xDefaultPath = alternatePaths?.[defaultLang] ?? alternatePaths?.[lang];
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:site_name" content="sonoQui" />
     <meta property="og:image" content={imageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:alt" content={title} />
     <meta property="og:locale" content="it_IT" />
 
     <!-- Twitter -->
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={imageUrl} />
+    <meta name="twitter:image:alt" content={title} />
 
     {alternateLinks.map(([alternateLang, path]) => (
       <link rel="alternate" hreflang={alternateLang} href={new URL(path, site).toString()} />
     ))}
     {xDefaultPath && <link rel="alternate" hreflang="x-default" href={new URL(xDefaultPath, site).toString()} />}
-    {schema && <script type="application/ld+json" set:html={JSON.stringify(schema)} />}
+    {schemas.map((s) => (
+      <script type="application/ld+json" set:html={JSON.stringify(s)} />
+    ))}
   </head>
   <body class="bg-white text-on-surface antialiased">
     <Header />

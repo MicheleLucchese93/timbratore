@@ -1,20 +1,44 @@
 # sonoQui
 
-> sonoQui è l'app di rilevazione presenze per PMI italiane (≤20 dipendenti). Timbratura GPS al momento del check-in, gestione richieste ferie/permessi/correzioni, dashboard amministrativa, export per il commercialista.
+> sonoQui è l'app di rilevazione presenze per le piccole e medie imprese italiane (tipicamente fino a circa 20 dipendenti). Offre timbratura GPS al momento del check-in, gestione di ferie, permessi, malattia e correzioni, una dashboard amministrativa web ed export XLSX per il commercialista. È pensata per essere semplice per chi timbra e completa per chi amministra, nel rispetto della normativa italiana sul lavoro.
+
+## Chi siamo
+
+sonoQui è un servizio SaaS italiano dedicato alla rilevazione presenze. Il prodotto è disponibile come app mobile (iOS e Android) e come dashboard web per gli amministratori. Il contatto avviene tramite il modulo presente sul sito sonoqui.pro; non esiste una registrazione pubblica self-service.
+
+## Modello commerciale
+
+- Nessuna registrazione pubblica: l'azienda viene attivata su richiesta e il primo account amministratore è creato dal team sonoQui.
+- Il prezzo dipende dal numero di dipendenti e dalle funzioni attivate; viene fornito un preventivo su misura tramite il modulo di contatto.
+- L'app è gratuita da scaricare dagli store; il servizio è destinato alle aziende clienti.
 
 ## Caratteristiche chiave
 
-- Timbratura iOS/Android con verifica posizione (GPS rilevato SOLO al momento del tap, mai in background — conforme all'art. 4 Statuto dei Lavoratori)
-- Dashboard web per amministratori: visione presenze, anomalie, ferie, correzioni
-- Multi-tenant con Row Level Security (RLS) Postgres
-- Export XLSX per il commercialista (paghe italiane)
-- Nessun riconoscimento facciale, nessun tracciamento continuo
-- Cifratura in transito (TLS 1.2+) e a riposo
+- Timbratura iOS/Android con verifica della posizione: il GPS è rilevato SOLO al momento del tap, mai in background.
+- Raggio (geofence) della sede configurabile da 50 a 1500 metri, di default 300 metri.
+- Modalità smart working / fuori sede: timbratura senza verifica della posizione per chi lavora da remoto; sedi multiple supportate.
+- Gestione di ferie, permessi e malattia con approvazione da parte di amministratori o di approvatori dedicati per singola sede.
+- Correzioni delle timbrature con audit log completo (chi, quando e perché).
+- Anomalie segnalate in automatico: turni troppo lunghi, pause anomale, timbrature mancanti.
+- Dashboard web per amministratori: presenze in tempo reale, anomalie, ferie, correzioni, timbrature.
+- Export XLSX mensile per le paghe italiane (ore ordinarie e straordinari, ferie, permessi, anomalie, totali per dipendente e sede).
+- Documenti per i dipendenti (cedolini, CU, contratti) con presa visione tracciata, archiviazione 36 mesi e accesso all'archivio completo riservato a un responsabile autorizzato con codice di verifica.
+- Funziona offline: le timbrature vanno in coda e si sincronizzano automaticamente al ritorno della connessione, con protezione anti-doppioni.
+
+## Conformità e sicurezza
+
+- Pensata nel rispetto dell'art. 4 della Legge 300/1970 (Statuto dei Lavoratori): nessun tracciamento continuo della posizione.
+- Nessun riconoscimento facciale e nessun dato biometrico per la timbratura.
+- Dati GPS dettagliati mascherati dopo 90 giorni: rimane solo la sede di riferimento.
+- Architettura multi-tenant con isolamento dei dati per azienda (Row Level Security su PostgreSQL).
+- Cifratura in transito (TLS 1.2+) e a riposo; backup cifrati; dati conservati su server nell'Unione Europea, nel rispetto del GDPR (Regolamento UE 2016/679).
+- Conservazione delle timbrature per 5 anni di default (configurabile fino a 10 anni).
 
 ## Link utili
 
 - [Sito principale](https://sonoqui.pro/it/)
 - [Web app amministratori](https://app.sonoqui.pro/)
+- [Domande frequenti (FAQ)](https://sonoqui.pro/it/#faq)
 - [Informativa Privacy](https://sonoqui.pro/it/privacy-policy/)
 - [Cookie Policy](https://sonoqui.pro/it/cookie-policy/)
 - [Termini e Condizioni](https://sonoqui.pro/it/termini-e-condizioni/)

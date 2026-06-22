@@ -1,10 +1,13 @@
 ---
 import LegalLayout from "../../layouts/LegalLayout.astro";
+import { legalMeta } from "../../data/seo";
 ---
 
 <LegalLayout
   title="Termini e Condizioni"
+  description={legalMeta["termini-e-condizioni"].it}
   lastUpdated="16 giugno 2026 · v1.1"
+  isoDate="2026-06-16"
   alternatePaths={{ it: "/it/termini-e-condizioni/" }}
 >
   <h2>1. Accettazione dei termini</h2>

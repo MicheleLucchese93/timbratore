@@ -2,20 +2,36 @@
 import BaseLayout from "./BaseLayout.astro";
 import type { Lang } from "../i18n/ui";
 import { getLangFromUrl, useTranslations } from "../i18n/utils";
+import { SITE_URL } from "../data/seo";
 
 interface Props {
   title: string;
   description?: string;
   lastUpdated: string;
+  /** ISO 8601 date (e.g. "2026-06-16") for the WebPage dateModified signal. */
+  isoDate?: string;
   alternatePaths?: Partial<Record<Lang, string>>;
 }
 
-const { title, description, lastUpdated, alternatePaths } = Astro.props;
+const { title, description, lastUpdated, isoDate, alternatePaths } = Astro.props;
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
+
+const pageUrl = alternatePaths?.[lang] ? `${SITE_URL}${alternatePaths[lang]}` : undefined;
+const schema = isoDate
+  ? {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      name: `${title} — sonoQui`,
+      ...(pageUrl ? { url: pageUrl } : {}),
+      inLanguage: "it-IT",
+      dateModified: isoDate,
+      publisher: { "@type": "Organization", name: "sonoQui", url: SITE_URL },
+    }
+  : undefined;
 ---
 
-<BaseLayout title={`${title} — sonoQui`} description={description} alternatePaths={alternatePaths}>
+<BaseLayout title={`${title} — sonoQui`} description={description} type="article" alternatePaths={alternatePaths} schema={schema}>
   <div class="pt-24 pb-16 bg-surface">
     <div class="mx-auto max-w-3xl px-4 sm:px-6">
       <h1 class="text-3xl font-bold text-primary sm:text-4xl">{title}</h1>

@@ -1,0 +1,31 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Pagina non trovata — sonoQui" noindex={true}>
+  <section class="flex min-h-[70vh] items-center justify-center bg-surface px-4 py-24">
+    <div class="mx-auto max-w-lg text-center">
+      <p class="text-sm font-semibold uppercase tracking-wide text-primary">Errore 404</p>
+      <h1 class="mt-3 text-4xl font-extrabold tracking-tight text-on-surface sm:text-5xl">
+        Pagina non trovata
+      </h1>
+      <p class="mt-4 text-lg text-on-surface-variant">
+        La pagina che cerchi non esiste o è stata spostata. Torna alla home di sonoQui o scrivici.
+      </p>
+      <div class="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <a
+          href="/it/"
+          class="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-primary-container"
+        >
+          Torna alla home
+        </a>
+        <a
+          href="/it/#contact"
+          class="inline-flex items-center justify-center rounded-full border border-gray-200 bg-white px-6 py-3 text-base font-semibold text-on-surface transition-colors hover:bg-surface"
+        >
+          Contattaci
+        </a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

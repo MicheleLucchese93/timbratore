@@ -6,7 +6,7 @@ import Screenshots from "../../components/Screenshots.astro";
 import WebShowcase from "../../components/WebShowcase.astro";
 import FAQ from "../../components/FAQ.astro";
 import CTA from "../../components/CTA.astro";
-import { buildHomeSchema, homeMeta } from "../../data/seo";
+import { buildHomeSchemas, homeMeta } from "../../data/seo";
 
 const meta = homeMeta.it;
 ---
@@ -15,7 +15,7 @@ const meta = homeMeta.it;
   title={meta.title}
   description={meta.description}
   alternatePaths={{ it: "/it/" }}
-  schema={buildHomeSchema("it")}
+  schema={buildHomeSchemas("it")}
 >
   <Hero />
   <Features />
