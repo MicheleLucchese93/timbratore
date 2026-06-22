@@ -2,7 +2,7 @@ import { defineConfig } from 'astro/config';
 import tailwindcss from '@tailwindcss/vite';
 import sitemap from '@astrojs/sitemap';
 
-const site = 'https://sonoqui.xdevapp.it';
+const site = 'https://sonoqui.pro';
 const lastmod = new Date('2026-05-28T00:00:00.000Z');
 
 export default defineConfig({

@@ -38,7 +38,10 @@ services:
       # gotrue_superadmin role owns the `auth` schema in sonoqui DB (pg-init).
       GOTRUE_DB_DATABASE_URL: "postgres://gotrue_superadmin:${GOTRUE_PG_PASS}@postgres:5432/sonoqui?sslmode=disable"
       GOTRUE_SITE_URL: "https://api-sonoqui.xdevapp.it"
-      GOTRUE_URI_ALLOW_LIST: "sonoqui://auth-callback,sonoqui://*,https://api-sonoqui.xdevapp.it/**,https://app-sonoqui.xdevapp.it/**"
+      # sonoqui.pro cutover (2026-06-22): the .pro entries are ADDITIVE — the
+      # xdevapp hosts stay so already-installed mobile builds and the old web
+      # origin keep working. app.sonoqui.pro is the same-origin web app.
+      GOTRUE_URI_ALLOW_LIST: "sonoqui://auth-callback,sonoqui://*,https://api-sonoqui.xdevapp.it/**,https://app-sonoqui.xdevapp.it/**,https://app.sonoqui.pro/**,https://sonoqui.pro/**,https://api.sonoqui.pro/**"
       GOTRUE_JWT_SECRET: "${SONOQUI_JWT_SECRET}"
       GOTRUE_JWT_ISSUER: "https://auth-sonoqui.xdevapp.it"
       GOTRUE_JWT_EXP: "3600"
@@ -56,7 +59,12 @@ services:
       GOTRUE_SMTP_PORT: "${SMTP_PORT}"
       GOTRUE_SMTP_USER: "${SMTP_USER}"
       GOTRUE_SMTP_PASS: "${SMTP_PASS}"
-      GOTRUE_SMTP_ADMIN_EMAIL: "noreply@xdevapp.it"
+      # sonoqui.pro cutover: from-address moves to noreply@sonoqui.pro.
+      # REQUIRES the sonoqui.pro domain to be AUTHENTICATED in Brevo first
+      # (DKIM/DMARC records are staged in Cloudflare; auth completes once the
+      # .pro→Cloudflare NS delegation propagates). Deploy this only after Brevo
+      # shows sonoqui.pro = Authenticated, otherwise Brevo rejects the sends.
+      GOTRUE_SMTP_ADMIN_EMAIL: "noreply@sonoqui.pro"
       GOTRUE_MAILER_URLPATHS_CONFIRMATION: "/verify"
       GOTRUE_MAILER_URLPATHS_RECOVERY: "/verify"
       GOTRUE_EXTERNAL_GOOGLE_ENABLED: "${SONOQUI_GOOGLE_ENABLED:-false}"
@@ -120,6 +128,34 @@ services:
         VITE_CENTRIFUGO_URL: "wss://ws-sonoqui.xdevapp.it/connection/websocket"
         VITE_GOOGLE_MAPS_API_KEY: "${VITE_GOOGLE_MAPS_API_KEY:-}"
     container_name: sonoqui-web
+    restart: unless-stopped
+    networks:
+      - gateway
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.10'
+
+  # sonoqui.pro parallel web (app.sonoqui.pro) — SAME-ORIGIN build. The browser
+  # talks ONLY to app.sonoqui.pro: the gateway's app.sonoqui.pro vhost path-
+  # routes /api → sonoqui-api, /auth → gotrue (prefix stripped), and
+  # /connection/websocket → centrifugo. This sidesteps the Cloudflare-Free
+  # HTTP/2 coalescing 503 that hits cross-host *.sonoqui.pro browser XHRs under
+  # the shared Universal cert (see the penno.pro migration). VITE_API_URL=""
+  # makes the API client emit relative /api paths; VITE_AUTH_URL points at the
+  # same host's /auth prefix. Served ONLY at app.sonoqui.pro; the existing
+  # sonoqui-web (app-sonoqui.xdevapp.it) stays untouched.
+  sonoqui-web-pro:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_URL: ""
+        VITE_AUTH_URL: "https://app.sonoqui.pro/auth"
+        VITE_CENTRIFUGO_URL: "wss://app.sonoqui.pro/connection/websocket"
+        VITE_GOOGLE_MAPS_API_KEY: "${VITE_GOOGLE_MAPS_API_KEY:-}"
+    container_name: sonoqui-web-pro
     restart: unless-stopped
     networks:
       - gateway

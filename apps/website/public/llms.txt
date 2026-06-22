@@ -13,9 +13,9 @@
 
 ## Link utili
 
-- [Sito principale](https://sonoqui.xdevapp.it/it/)
-- [Web app amministratori](https://app-sonoqui.xdevapp.it/)
-- [Informativa Privacy](https://sonoqui.xdevapp.it/it/privacy-policy/)
-- [Cookie Policy](https://sonoqui.xdevapp.it/it/cookie-policy/)
-- [Termini e Condizioni](https://sonoqui.xdevapp.it/it/termini-e-condizioni/)
-- [EULA](https://sonoqui.xdevapp.it/it/eula/)
+- [Sito principale](https://sonoqui.pro/it/)
+- [Web app amministratori](https://app.sonoqui.pro/)
+- [Informativa Privacy](https://sonoqui.pro/it/privacy-policy/)
+- [Cookie Policy](https://sonoqui.pro/it/cookie-policy/)
+- [Termini e Condizioni](https://sonoqui.pro/it/termini-e-condizioni/)
+- [EULA](https://sonoqui.pro/it/eula/)

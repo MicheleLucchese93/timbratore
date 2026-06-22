@@ -26,7 +26,7 @@ const {
   noindex = false,
 } = Astro.props;
 const lang = getLangFromUrl(Astro.url);
-const site = Astro.site ?? new URL("https://sonoqui.xdevapp.it");
+const site = Astro.site ?? new URL("https://sonoqui.pro");
 const canonicalUrl = new URL(Astro.url.pathname, site).toString();
 const imageUrl = new URL(image, site).toString();
 const alternateLinks = alternatePaths

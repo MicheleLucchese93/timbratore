@@ -85,7 +85,7 @@
       "eas": {
         "projectId": "729f39a2-86a4-4bb6-ae03-21dad1922c34"
       },
-      "apiBaseUrl": "https://api-sonoqui.xdevapp.it",
+      "apiBaseUrl": "https://api.sonoqui.pro",
       "authBaseUrl": "https://auth-sonoqui.xdevapp.it"
     },
     "owner": "micheel93-2"

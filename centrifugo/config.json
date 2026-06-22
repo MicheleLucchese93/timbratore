@@ -2,7 +2,8 @@
   "client": {
     "token": { "hmac_secret_key": "__HMAC_SECRET__" },
     "allowed_origins": [
-      "https://app-sonoqui.xdevapp.it"
+      "https://app-sonoqui.xdevapp.it",
+      "https://app.sonoqui.pro"
     ],
     "proxy": {
       "connect": {

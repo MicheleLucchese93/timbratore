@@ -96,3 +96,75 @@ sonoqui.xdevapp.it {
 		reverse_proxy sonoqui-website:80
 	}
 }
+
+# ──────────── sonoQui — sonoqui.pro cutover (2026-06-22) ────────────
+# ADDITIVE: these run ALONGSIDE the *-sonoqui.xdevapp.it vhosts above, which
+# stay live for already-installed mobile builds and the old web origin. The
+# backend containers are DUAL-SERVED (same sonoqui-api / gotrue-sonoqui /
+# centrifugo-sonoqui answer both host sets). GOTRUE_JWT_ISSUER stays
+# auth-sonoqui.xdevapp.it, so existing tokens keep validating.
+
+api.sonoqui.pro {
+	import origin_tls
+	import access_log_docs
+	import api_security_headers
+	import sonoqui_web_prod_cors
+	reverse_proxy sonoqui-api:4000
+}
+
+auth.sonoqui.pro {
+	import origin_tls
+	import access_log
+	import api_security_headers
+	import sonoqui_web_prod_cors
+	reverse_proxy gotrue-sonoqui:9999
+}
+
+ws.sonoqui.pro {
+	import origin_tls
+	import access_log
+	import api_security_headers
+	reverse_proxy centrifugo-sonoqui:8000
+}
+
+# Same-origin web app. The SPA (sonoqui-web-pro) only ever calls app.sonoqui.pro,
+# so the browser makes NO cross-host XHR — this sidesteps the Cloudflare-Free
+# HTTP/2 coalescing 503 that breaks cross-host *.sonoqui.pro browser requests
+# under the shared Universal cert (see the penno.pro migration). Path-route the
+# API/auth/ws calls to the same backend containers; everything else is the SPA.
+# handle_path strips the /auth prefix so GoTrue sees /token, /logout, etc.
+app.sonoqui.pro {
+	import origin_tls
+	import access_log_docs
+	import api_security_headers
+	handle /api/* {
+		reverse_proxy sonoqui-api:4000
+	}
+	handle_path /auth/* {
+		reverse_proxy gotrue-sonoqui:9999
+	}
+	handle /connection/websocket {
+		reverse_proxy centrifugo-sonoqui:8000
+	}
+	handle {
+		reverse_proxy sonoqui-web-pro:80
+	}
+}
+
+# Canonical marketing host. www → apex 301.
+www.sonoqui.pro {
+	import origin_tls
+	redir https://sonoqui.pro{uri} permanent
+}
+
+sonoqui.pro {
+	import origin_tls
+	import access_log
+	# Same-origin proxy for the marketing contact form (mirrors the xdevapp host).
+	handle /api/v1/helpdesk* {
+		reverse_proxy sonoqui-api:4000
+	}
+	handle {
+		reverse_proxy sonoqui-website:80
+	}
+}

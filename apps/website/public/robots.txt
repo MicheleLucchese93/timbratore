@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://sonoqui.xdevapp.it/sitemap-index.xml
+Sitemap: https://sonoqui.pro/sitemap-index.xml

@@ -118,7 +118,7 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
 
             <p className="text-center text-sm">
               <a
-                href="https://sonoqui.xdevapp.it"
+                href="https://sonoqui.pro"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium underline-offset-4 hover:underline"
