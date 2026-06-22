@@ -1487,7 +1487,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>La campanella in app</h3>
-        <p>Nell'app mobile l'icona a <strong>campanella</strong> (in alto) raccoglie <strong>tutte</strong> le notifiche ricevute — esiti e nuove richieste di ferie/permessi e correzioni, promemoria 24h, eventi aziendali e nuovi documenti — con il numero di non lette in evidenza sul badge. Toccando una notifica si apre la sezione corrispondente. Lo stato di lettura è salvato sul server, quindi resta <strong>sincronizzato su tutti i tuoi dispositivi</strong>. La campanella mostra le notifiche indipendentemente dalle preferenze push: disattivare una push silenzia solo l'avviso del sistema, non l'elenco in app.</p>
+        <p>Nell'app mobile l'icona a <strong>campanella</strong> (in alto) raccoglie <strong>tutte</strong> le notifiche ricevute — esiti e nuove richieste di ferie/permessi e correzioni, promemoria 24h, eventi aziendali e nuovi documenti — con il numero di non lette in evidenza sul badge. Toccando una notifica si apre la sezione corrispondente. Lo stato di lettura è salvato sul server, quindi resta <strong>sincronizzato su tutti i tuoi dispositivi</strong>. La campanella mostra le notifiche indipendentemente dalle preferenze push: disattivare una push silenzia solo l'avviso del sistema, non l'elenco in app. Le notifiche <strong>già lette</strong> vengono eliminate automaticamente dopo <strong>15 giorni</strong>; quelle non lette restano finché non le apri.</p>
       </div>
     </section>
 

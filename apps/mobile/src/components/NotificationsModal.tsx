@@ -33,6 +33,10 @@ const REJECTED: Visual = { icon: 'close-circle-outline', fg: color.error, bg: '#
 const PENDING: Visual = { icon: 'time-outline', fg: color.warning, bg: '#fff3d1' };
 const INFO: Visual = { icon: 'notifications-outline', fg: color.primary, bg: '#e6eefb' };
 
+// Kept in sync with the backend cron (cleanup-read-notifications.ts): read
+// notifications are purged this many days after being read; unread ones persist.
+const READ_RETENTION_DAYS = 15;
+
 // Icon/colour for a server notification. Keyed by `kind`, refined by the push
 // payload (decision / accepted) so an approval reads green and a rejection red.
 function visualFor(n: AppNotification): Visual {
@@ -234,6 +238,13 @@ export function NotificationsModal({ visible, onClose }: Props) {
             renderItem={renderItem}
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={empty}
+            ListFooterComponent={
+              filtered.length > 0 ? (
+                <Text style={styles.retentionNote}>
+                  {tr('notifications.retentionNote', { days: READ_RETENTION_DAYS })}
+                </Text>
+              ) : null
+            }
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           />
         )}
@@ -306,6 +317,15 @@ const styles = StyleSheet.create({
   itemTitleUnread: { fontWeight: '700' },
   itemMessage: { fontSize: 13, color: color.onSurfaceVariant, marginTop: 2 },
   itemTime: { fontSize: 11, color: color.onSurfaceVariant, marginTop: 6, fontWeight: '500' },
+
+  retentionNote: {
+    fontSize: 11,
+    color: color.onSurfaceVariant,
+    textAlign: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 4,
+  },
 
   empty: { alignItems: 'center', paddingVertical: 64, gap: 8 },
   emptyTitle: { fontSize: 16, fontWeight: '700', color: color.onSurface, marginTop: 8 },

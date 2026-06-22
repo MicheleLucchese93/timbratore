@@ -20,6 +20,7 @@
     "emptySub": "Aggiornamenti su richieste, correzioni, documenti e promemoria qui.",
     "emptyUnreadTitle": "Tutto a posto",
     "emptyUnreadSub": "Nessuna notifica non letta.",
+    "retentionNote": "Le notifiche già lette vengono eliminate automaticamente dopo {{days}} giorni.",
     "timeAgo": {
       "now": "ora",
       "minutes": "{{count}} min",

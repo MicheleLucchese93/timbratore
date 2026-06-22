@@ -1471,7 +1471,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>The in-app bell</h3>
-        <p>In the mobile app the <strong>bell</strong> icon (top bar) collects <strong>every</strong> notification you receive — holiday/leave and correction outcomes and new requests, 24h reminders, company events and new documents — with the unread count highlighted on the badge. Tapping a notification opens the matching section. The read state is stored on the server, so it stays <strong>in sync across all your devices</strong>. The bell shows notifications regardless of your push preferences: turning a push off only silences the system alert, not the in-app list.</p>
+        <p>In the mobile app the <strong>bell</strong> icon (top bar) collects <strong>every</strong> notification you receive — holiday/leave and correction outcomes and new requests, 24h reminders, company events and new documents — with the unread count highlighted on the badge. Tapping a notification opens the matching section. The read state is stored on the server, so it stays <strong>in sync across all your devices</strong>. The bell shows notifications regardless of your push preferences: turning a push off only silences the system alert, not the in-app list. Notifications you have <strong>already read</strong> are automatically deleted after <strong>15 days</strong>; unread ones stay until you open them.</p>
       </div>
     </section>
 

@@ -10,6 +10,7 @@ import { retentionEnforcement } from './jobs/retention-enforcement.js';
 import { leaveDailyAccrual } from './jobs/leave-daily-accrual.js';
 import { leaveReminder } from './jobs/leave-reminder.js';
 import { documentsRetention } from './jobs/documents-retention.js';
+import { cleanupReadNotifications } from './jobs/cleanup-read-notifications.js';
 
 const logger = createLogger('scheduler');
 
@@ -93,6 +94,15 @@ class SchedulerService {
       cron.schedule(
         '15 3 * * *',
         () => safeRun('documents_retention', documentsRetention),
+        { timezone: 'Europe/Rome' }
+      )
+    );
+    // Daily at 03:50 Europe/Rome — hard-delete notifications read more than
+    // 15 days ago (unread rows are kept). Free slot among the nightly sweeps.
+    this.jobs.push(
+      cron.schedule(
+        '50 3 * * *',
+        () => safeRun('cleanup_read_notifications', cleanupReadNotifications),
         { timezone: 'Europe/Rome' }
       )
     );

@@ -20,6 +20,7 @@
     "emptySub": "Updates on requests, corrections, documents and reminders appear here.",
     "emptyUnreadTitle": "All caught up",
     "emptyUnreadSub": "No unread notifications.",
+    "retentionNote": "Notifications you have already read are automatically deleted after {{days}} days.",
     "timeAgo": {
       "now": "now",
       "minutes": "{{count}} min",

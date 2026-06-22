@@ -212,6 +212,18 @@ internalE2eRouter.post(
       );
       const docKeys: string[] = dq.rows.map((row) => row.r2_key).filter(Boolean);
 
+      // In-app notifications (migration 043). The server pipeline inserts one row
+      // per recipient for every notify* event (correction_submitted/decided,
+      // leave_*, document, ...), so a mutating run leaves rows on both the e2e
+      // fixture users and the persistent test3 QA account. They never cascade
+      // from the source rows deleted above, so wipe the whole pinned test tenant
+      // ($1) — hard-scoped, same as the marker sweeps; can never reach another
+      // tenant.
+      const nq = await client.query(
+        `DELETE FROM notifications WHERE tenant_id = $1`,
+        [TEST_TENANT_ID]
+      );
+
       await client.query('COMMIT');
 
       // Best-effort R2 object cleanup for the purged fixture documents. A
@@ -248,6 +260,7 @@ internalE2eRouter.post(
           anomaly_justifications_marker_sweep: ajm.rowCount,
           documents: dq.rowCount,
           document_objects_deleted: docObjectsDeleted,
+          notifications: nq.rowCount,
         },
         'e2e fixtures purged'
       );
@@ -268,6 +281,7 @@ internalE2eRouter.post(
         gotrue_users_deleted: g.rowCount,
         documents_deleted: dq.rowCount,
         document_objects_deleted: docObjectsDeleted,
+        notifications_deleted: nq.rowCount,
       });
     } catch (err) {
       await client.query('ROLLBACK');
