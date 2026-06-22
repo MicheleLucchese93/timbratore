@@ -74,6 +74,9 @@ interface LeaveRequest {
   cancellation_reason: string | null;
   assenza_subtype: AssenzaSubtype | null;
   is_paid: boolean | null;
+  decided_by: string | null;
+  decided_by_display_name: string | null;
+  decided_by_email: string | null;
   created_at: string;
 }
 
@@ -151,22 +154,27 @@ export function RichiesteScreen() {
   const [refreshingInbox, setRefreshingInbox] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [quotas, setQuotas] = useState<QuotaSummary[]>([]);
+  const [myApprovers, setMyApprovers] = useState<Approver[]>([]);
 
   const loadMine = useCallback(async () => {
     try {
-      const [list, q] = await Promise.all([
+      const [list, q, appr] = await Promise.all([
         api<LeaveRequest[]>('/api/v1/leaves?scope=mine'),
         api<QuotaSummary[]>('/api/v1/leave-quotas/me/summary').catch(() => [] as QuotaSummary[]),
+        me?.user.id
+          ? api<Approver[]>(`/api/v1/users/${me.user.id}/approvers`).catch(() => [] as Approver[])
+          : Promise.resolve([] as Approver[]),
       ]);
       setMineRows(list);
       setQuotas(q);
+      setMyApprovers(appr);
     } catch {
       /* ignore */
     } finally {
       setLoadingMine(false);
       setRefreshingMine(false);
     }
-  }, []);
+  }, [me?.user.id]);
 
   const loadInbox = useCallback(async () => {
     try {
@@ -294,6 +302,23 @@ export function RichiesteScreen() {
     [inboxRows]
   );
 
+  const approverNames = useMemo(
+    () => myApprovers.map((a) => a.display_name || a.email).join(', '),
+    [myApprovers]
+  );
+
+  // KPI sub-line: "Totale X · Usate Y", plus "· In attesa: Zh" only when the
+  // quota has hours pending approval (used_pending > 0).
+  const quotaSub = (q: QuotaSummary): string => {
+    const base = t('kpi.total', {
+      total: fmtH(q.initial_balance + q.accrued_total),
+      used: fmtH(q.used_approved),
+    });
+    return q.used_pending > 0
+      ? `${base} · ${t('kpi.pending', { pending: fmtH(q.used_pending) })}`
+      : base;
+  };
+
   const ferieQuota = quotas.find((q) => q.type === 'ferie');
   const permessiQuota = quotas.find((q) => q.type === 'permessi');
 
@@ -374,36 +399,16 @@ export function RichiesteScreen() {
       }>
       <View style={styles.kpiRow}>
         <KpiTile
-          wide
           label={t('kpi.ferie')}
           value={ferieQuota ? fmtH(ferieQuota.residual_strict) : '—'}
-          sub={
-            ferieQuota
-              ? t('kpi.total', {
-                  total: fmtH(ferieQuota.initial_balance + ferieQuota.accrued_total),
-                  used: fmtH(ferieQuota.used_approved),
-                })
-              : t('kpi.noQuota')
-          }
-          icon="sunny-outline"
+          sub={ferieQuota ? quotaSub(ferieQuota) : t('kpi.noQuota')}
           fg={typeFg('ferie')}
-          bg={typeBg('ferie')}
         />
         <KpiTile
-          wide
           label={t('kpi.permessi')}
           value={permessiQuota ? fmtH(permessiQuota.residual_strict) : '—'}
-          sub={
-            permessiQuota
-              ? t('kpi.total', {
-                  total: fmtH(permessiQuota.initial_balance + permessiQuota.accrued_total),
-                  used: fmtH(permessiQuota.used_approved),
-                })
-              : t('kpi.noQuota')
-          }
-          icon="time-outline"
+          sub={permessiQuota ? quotaSub(permessiQuota) : t('kpi.noQuota')}
           fg={typeFg('permessi')}
-          bg={typeBg('permessi')}
         />
       </View>
       {loadingMine && (
@@ -423,6 +428,7 @@ export function RichiesteScreen() {
           row={r}
           tab="mine"
           myUserId={me?.user.id ?? ''}
+          approverNames={approverNames}
           onApprove={() => approve(r)}
           onReject={() => reject(r)}
           onCancel={() => cancel(r)}
@@ -515,6 +521,7 @@ function LeaveCard({
   row,
   tab,
   myUserId,
+  approverNames,
   onApprove,
   onReject,
   onCancel,
@@ -524,6 +531,7 @@ function LeaveCard({
   row: LeaveRequest;
   tab: 'mine' | 'inbox';
   myUserId: string;
+  approverNames?: string;
   onApprove: () => void;
   onReject: () => void;
   onCancel: () => void;
@@ -533,6 +541,17 @@ function LeaveCard({
   const { t } = useTranslation(['richieste', 'common']);
   const isMine = row.user_id === myUserId;
   const status = statusBadge(row.status);
+  // Who approves / decided this request (own requests, non-malattia). Decided
+  // requests show the decider; otherwise the configured approver(s).
+  const decidedName = row.decided_by_display_name || row.decided_by_email;
+  const approverLine =
+    row.status === 'approved' && decidedName
+      ? t('card.approvedBy', { name: decidedName })
+      : row.status === 'rejected' && decidedName
+        ? t('card.rejectedBy', { name: decidedName })
+        : approverNames
+          ? t('card.approver', { names: approverNames })
+          : t('card.noApprover');
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -541,11 +560,6 @@ function LeaveCard({
             styles.typeChip,
             { backgroundColor: typeBg(row.type) },
           ]}>
-          <Ionicons
-            name={typeIcon(row.type)}
-            size={14}
-            color={typeFg(row.type)}
-          />
           <Text style={[styles.typeChipText, { color: typeFg(row.type) }]}>
             {t(`common:leaveType.${row.type}`)}
           </Text>
@@ -574,6 +588,13 @@ function LeaveCard({
         <Ionicons name="hourglass-outline" size={14} color={color.onSurfaceVariant} />
         <Text style={styles.metaText}>{row.duration_hours}h</Text>
       </View>
+
+      {tab === 'mine' && row.type !== 'malattia' ? (
+        <View style={styles.metaRow}>
+          <Ionicons name="person-outline" size={14} color={color.onSurfaceVariant} />
+          <Text style={styles.metaText}>{approverLine}</Text>
+        </View>
+      ) : null}
 
       {row.type === 'malattia' && row.inps_protocol ? (
         <View style={styles.metaRow}>
@@ -1045,7 +1066,7 @@ function NewLeaveModal({
             ) : null}
 
             {type !== 'malattia' && (
-              <View style={styles.approverBox}>
+              <View style={styles.approverBox} testID="modal-approver-box">
                 <Ionicons
                   name="person-outline"
                   size={14}
@@ -1165,30 +1186,21 @@ function KpiTile({
   label,
   value,
   sub,
-  icon,
   fg,
-  bg,
-  wide,
 }: {
   label: string;
   value: string;
   sub?: string;
-  icon: keyof typeof Ionicons.glyphMap;
   fg: string;
-  bg: string;
-  wide?: boolean;
 }) {
   return (
-    <View style={[styles.kpiTile, wide && styles.kpiTileWide]}>
-      <View style={[styles.kpiIcon, { backgroundColor: bg }]}>
-        <Ionicons name={icon} size={16} color={fg} />
-      </View>
+    <View style={styles.kpiTile}>
       <Text style={styles.kpiLabel} numberOfLines={1}>
         {label}
       </Text>
       <Text style={[styles.kpiValue, { color: fg }]}>{value}</Text>
       {sub ? (
-        <Text style={styles.kpiSub} numberOfLines={2}>
+        <Text style={styles.kpiSub} numberOfLines={3}>
           {sub}
         </Text>
       ) : null}
@@ -1314,18 +1326,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 10,
     gap: 2,
-  },
-  kpiTileWide: {
-    flexBasis: '46%',
-    minWidth: 150,
-  },
-  kpiIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
   },
   kpiLabel: {
     fontSize: 10,

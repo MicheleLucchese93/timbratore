@@ -20,14 +20,14 @@ test.describe('web — Ferie & Permessi (employee)', () => {
     });
 
     test('"Le mie" shows the KPI summary tiles', async ({ page }) => {
-      // KPI band: Ferie + Permessi (residual hours) + In attesa count. Scope to
+      // KPI band: two tiles, Ferie + Permessi (residual hours). Their sub-line
+      // also shows "In attesa: Xh" when that quota has pending hours. Scope to
       // the .stat-grid so the "Ferie"/"Permessi" labels don't collide with the
       // per-request rows below.
       const grid = page.locator('.stat-grid');
       await expect(grid).toBeVisible({ timeout: 10_000 });
       await expect(grid.getByText('Ferie', { exact: true })).toBeVisible();
       await expect(grid.getByText('Permessi', { exact: true })).toBeVisible();
-      await expect(grid.getByText('In attesa', { exact: true })).toBeVisible();
     });
 
     test('"+ Nuova richiesta" opens a request form with a Tipo selector', async ({ page }) => {

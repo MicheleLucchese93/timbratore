@@ -10,6 +10,7 @@
   "kpi": {
     "ferie": "Ferie",
     "permessi": "Permessi",
+    "pending": "In attesa: {{pending}}",
     "total": "Totale {{total}} · Usate {{used}}",
     "noQuota": "Nessuna quota"
   },
@@ -36,6 +37,10 @@
     "cancellation": "Annullamento",
     "requestCancellation": "Richiedi annullamento",
     "acceptCancellation": "Accetta annullamento",
+    "approver": "Approvatore: {{names}}",
+    "noApprover": "Nessun approvatore",
+    "approvedBy": "Approvato da {{name}}",
+    "rejectedBy": "Rifiutato da {{name}}",
     "sentAt": "Inviata {{date}}"
   },
   "confirm": {

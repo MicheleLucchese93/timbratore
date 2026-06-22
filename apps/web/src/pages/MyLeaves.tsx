@@ -7,6 +7,7 @@ import { MyResidui } from './Residui.tsx';
 import { localeTag } from '../i18n/format.ts';
 import { PageHeader } from '../components/PageHeader.tsx';
 import { IconButton } from '../components/IconButton.tsx';
+import { useSession } from '../store/session.ts';
 
 type LeaveType = 'ferie' | 'permessi' | 'malattia' | 'assenza';
 
@@ -24,6 +25,16 @@ interface LeaveRequest {
   user_note: string | null;
   title: string | null;
   rejection_reason: string | null;
+  decided_by: string | null;
+  decided_by_display_name: string | null;
+  decided_by_email: string | null;
+}
+
+interface Approver {
+  user_id: string;
+  email: string;
+  display_name: string | null;
+  role: 'admin' | 'user' | null;
 }
 
 interface QuotaSummary {
@@ -77,25 +88,32 @@ export function MyLeaves() {
     const key = STATUS_LABEL_KEY[s];
     return key ? t(key) : s;
   };
+  const { me } = useSession();
+  const myUserId = me?.user.id ?? null;
   const [tab, setTab] = useState<'mine' | 'calendar' | 'inbox' | 'residui'>('mine');
   const [mine, setMine] = useState<LeaveRequest[]>([]);
   const [inbox, setInbox] = useState<LeaveRequest[]>([]);
   const [quotas, setQuotas] = useState<QuotaSummary[]>([]);
+  const [approvers, setApprovers] = useState<Approver[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
 
   const loadMine = useCallback(async () => {
     try {
-      const [list, q] = await Promise.all([
+      const [list, q, appr] = await Promise.all([
         api<LeaveRequest[]>('/api/v1/leaves?scope=mine'),
         api<QuotaSummary[]>('/api/v1/leave-quotas/me/summary').catch(() => [] as QuotaSummary[]),
+        myUserId
+          ? api<Approver[]>(`/api/v1/users/${myUserId}/approvers`).catch(() => [] as Approver[])
+          : Promise.resolve([] as Approver[]),
       ]);
       setMine(list);
       setQuotas(q);
+      setApprovers(appr);
     } catch (e) {
       setErr(e instanceof Error ? e.message : t('common:state.error'));
     }
-  }, [t]);
+  }, [t, myUserId]);
   const loadInbox = useCallback(async () => {
     try {
       setInbox(await api<LeaveRequest[]>('/api/v1/leaves?scope=inbox'));
@@ -112,11 +130,29 @@ export function MyLeaves() {
   const calEvents = useMemo(() => mine.map(toCalEvent), [mine]);
   const pendingInbox = inbox.filter((r) => r.status === 'pending' || r.status === 'cancellation_pending');
 
-  // Outstanding requests awaiting a decision (pending + cancellation requests).
-  const pendingCount = useMemo(
-    () => mine.filter((r) => r.status === 'pending' || r.status === 'cancellation_pending').length,
-    [mine]
+  // KPI sub-line: "Totale X · Usate Y", plus "· In attesa: Zh" only when the
+  // quota has hours pending approval (used_pending > 0).
+  const quotaSub = (q: QuotaSummary): string => {
+    const base = t('quota.totalUsed', {
+      total: fmtH(q.initial_balance + q.accrued_total),
+      used: fmtH(q.used_approved),
+    });
+    return q.used_pending > 0
+      ? `${base} · ${t('kpiPending', { pending: fmtH(q.used_pending) })}`
+      : base;
+  };
+  const approverNames = useMemo(
+    () => approvers.map((a) => a.display_name || a.email).join(', '),
+    [approvers]
   );
+  // Who approves / decided an own request (non-malattia / non-chiusura). Decided
+  // requests show the decider; otherwise the configured approver(s).
+  const approverLine = (r: LeaveRequest): string => {
+    const decidedName = r.decided_by_display_name || r.decided_by_email;
+    if (r.status === 'approved' && decidedName) return t('card.approvedBy', { name: decidedName });
+    if (r.status === 'rejected' && decidedName) return t('card.rejectedBy', { name: decidedName });
+    return approverNames ? t('card.approver', { names: approverNames }) : t('card.noApprover');
+  };
   const ferieQuota = quotas.find((q) => q.type === 'ferie');
   const permessiQuota = quotas.find((q) => q.type === 'permessi');
 
@@ -155,32 +191,15 @@ export function MyLeaves() {
                 <Kpi
                   label={t('common:leaveType.ferie')}
                   value={ferieQuota ? fmtH(ferieQuota.residual_strict) : '—'}
-                  sub={
-                    ferieQuota
-                      ? t('quota.totalUsed', {
-                          total: fmtH(ferieQuota.initial_balance + ferieQuota.accrued_total),
-                          used: fmtH(ferieQuota.used_approved),
-                        })
-                      : t('quota.none')
-                  }
-                  icon={<IconSun />}
+                  sub={ferieQuota ? quotaSub(ferieQuota) : t('quota.none')}
                   tone="ferie"
                 />
                 <Kpi
                   label={t('kpiPermessi')}
                   value={permessiQuota ? fmtH(permessiQuota.residual_strict) : '—'}
-                  sub={
-                    permessiQuota
-                      ? t('quota.totalUsed', {
-                          total: fmtH(permessiQuota.initial_balance + permessiQuota.accrued_total),
-                          used: fmtH(permessiQuota.used_approved),
-                        })
-                      : t('quota.none')
-                  }
-                  icon={<IconClock />}
+                  sub={permessiQuota ? quotaSub(permessiQuota) : t('quota.none')}
                   tone="permessi"
                 />
-                <Kpi label={t('common:status.pending')} value={String(pendingCount)} icon={<IconHourglass />} tone="warn" />
               </div>
               <div className="flex justify-end">
                 <button type="button" className="btn btn-primary" onClick={() => setShowNew(true)}>{t('newRequest')}</button>
@@ -200,6 +219,9 @@ export function MyLeaves() {
                           {r.duration_hours}{t('common:unit.hoursShort')} · {statusLabel(r.status)}
                           {r.rejection_reason ? ` · ${r.rejection_reason}` : ''}
                         </div>
+                        {r.type !== 'malattia' && r.type !== 'chiusura' && (
+                          <div className="text-xs opacity-70">{approverLine(r)}</div>
+                        )}
                       </div>
                       <div className="flex gap-1 items-center">
                         {r.status === 'pending' && (
@@ -302,19 +324,16 @@ function Kpi({
   label,
   value,
   sub,
-  icon,
   tone,
 }: {
   label: string;
   value: string;
   sub?: string;
-  icon: React.ReactNode;
   tone: keyof typeof KPI_TONES;
 }) {
   const t = KPI_TONES[tone];
   return (
     <div className="stat-card">
-      <div className="stat-card-icon" style={{ background: t.bg, color: t.fg }}>{icon}</div>
       <div className="stat-card-body">
         <div className="stat-card-label">{label}</div>
         <div className="stat-card-value" style={{ color: t.fg }}>{value}</div>
@@ -328,28 +347,4 @@ function Kpi({
 function fmtH(n: number): string {
   const r = Math.round(n * 100) / 100;
   return `${Number.isInteger(r) ? r : r.toFixed(2)}h`;
-}
-
-function IconSun() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" />
-    </svg>
-  );
-}
-function IconClock() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" />
-    </svg>
-  );
-}
-function IconHourglass() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 3h12M6 21h12M7 3c0 5 4 6 5 9 1-3 5-4 5-9M7 21c0-5 4-6 5-9 1 3 5 4 5 9" />
-    </svg>
-  );
 }

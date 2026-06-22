@@ -1,6 +1,13 @@
 {
   "heading": "Ferie & Permessi",
   "kpiPermessi": "Permessi",
+  "kpiPending": "In attesa: {{pending}}",
+  "card": {
+    "approver": "Approvatore: {{names}}",
+    "noApprover": "Nessun approvatore",
+    "approvedBy": "Approvato da {{name}}",
+    "rejectedBy": "Rifiutato da {{name}}"
+  },
   "tab": {
     "mine": "Le mie",
     "calendar": "Calendario",

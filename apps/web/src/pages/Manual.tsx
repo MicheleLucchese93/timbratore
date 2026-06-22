@@ -917,7 +917,7 @@ const MAIN_IT = `
         <h3>Ferie &amp; Permessi (web)</h3>
         <p>La pagina ha tre tab:</p>
         <ul class="tidy">
-          <li><strong>Le mie</strong> — in cima trovi le <strong>schede riepilogo (KPI)</strong>: per <strong>Ferie</strong> e <strong>Permessi</strong> il <strong>Residuo</strong> in evidenza (ore disponibili) con sotto il <strong>Totale</strong> assegnato e le ore <strong>Usate</strong>, più il numero di richieste <strong>In attesa</strong>. Sotto, l'elenco delle tue richieste con stato; pulsante <strong>+ Nuova richiesta</strong> per inviarne una (Ferie, Permesso, Malattia, Assenza), <strong>Annulla</strong> sulle pending e <strong>Richiedi annullamento</strong> sulle approvate.</li>
+          <li><strong>Le mie</strong> — in cima trovi le <strong>schede riepilogo (KPI)</strong> per <strong>Ferie</strong> e <strong>Permessi</strong>: il <strong>Residuo</strong> in evidenza (ore disponibili) con sotto il <strong>Totale</strong> assegnato, le ore <strong>Usate</strong> e — se hai richieste pending — le ore <strong>In attesa</strong> non ancora approvate. Sotto, l'elenco delle tue richieste con stato e l'<strong>approvatore</strong> (per le richieste decise, chi ha approvato o rifiutato); pulsante <strong>+ Nuova richiesta</strong> per inviarne una (Ferie, Permesso, Malattia, Assenza), <strong>Annulla</strong> sulle pending e <strong>Richiedi annullamento</strong> sulle approvate.</li>
           <li><strong>Calendario</strong> — vista Giorno/Settimana/Mese/Anno delle tue assenze, con festività nazionali evidenziate.</li>
           <li><strong>Da approvare</strong> — compare solo se sei stato designato approvatore di altri dipendenti.</li>
         </ul>
@@ -1214,7 +1214,7 @@ const MAIN_IT = `
         <h3>Riepilogo e quota disponibile</h3>
         <p>In cima alla tab "Le mie" trovi delle <strong>schede riepilogo (KPI)</strong> per avere la situazione sempre aggiornata:</p>
         <ul class="tidy">
-          <li><strong>Ferie</strong> e <strong>Permessi</strong>: il <strong>Residuo</strong> (ore ancora disponibili) in evidenza, con sotto il <strong>Totale</strong> assegnato e le ore <strong>Usate</strong>.</li>
+          <li><strong>Ferie</strong> e <strong>Permessi</strong>: il <strong>Residuo</strong> (ore ancora disponibili) in evidenza, con sotto il <strong>Totale</strong> assegnato, le ore <strong>Usate</strong> e — se presenti — le ore <strong>In attesa</strong> di approvazione.</li>
         </ul>
         <p>Sotto, la card <strong>Disponibilità</strong> mostra il dettaglio per tipo: saldo iniziale, maturato, usato e ore in attesa, con l'hint sul residuo dopo le richieste pending (es. "(15.75h dopo richieste in attesa)").</p>
       </div>
@@ -1237,7 +1237,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Le tue richieste</h3>
-        <p>Ogni richiesta è una card con: tipo, stato, periodo, ore, eventuali note, motivo del rifiuto se applicabile.</p>
+        <p>Ogni richiesta è una card con: tipo, stato, periodo, ore, <strong>approvatore</strong> (per le richieste decise, chi ha approvato o rifiutato), eventuali note, motivo del rifiuto se applicabile.</p>
         <p>Stati possibili:</p>
         <table>
           <thead><tr><th>Stato</th><th>Significato</th></tr></thead>

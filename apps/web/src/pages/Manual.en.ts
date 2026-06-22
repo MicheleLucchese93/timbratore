@@ -905,7 +905,7 @@ export const MAIN_EN = `
         <h3>Holiday &amp; Leave (web)</h3>
         <p>The page has three tabs:</p>
         <ul class="tidy">
-          <li><strong>Mine</strong> — at the top you find the <strong>summary cards (KPI)</strong>: for <strong>Holiday</strong> and <strong>Leave</strong> the <strong>Balance</strong> highlighted (available hours) with below the assigned <strong>Total</strong> and the <strong>Used</strong> hours, plus the number of <strong>Pending</strong> requests. Below, the list of your requests with status; a <strong>+ New request</strong> button to submit one (Holiday, Leave, Sick leave, Absence), <strong>Cancel</strong> on pending ones and <strong>Request cancellation</strong> on approved ones.</li>
+          <li><strong>Mine</strong> — at the top you find the <strong>summary cards (KPI)</strong> for <strong>Holiday</strong> and <strong>Leave</strong>: the <strong>Balance</strong> highlighted (available hours) with below the assigned <strong>Total</strong>, the <strong>Used</strong> hours and — if you have pending requests — the <strong>Pending</strong> hours not yet approved. Below, the list of your requests with status and the <strong>approver</strong> (for decided requests, who approved or rejected); a <strong>+ New request</strong> button to submit one (Holiday, Leave, Sick leave, Absence), <strong>Cancel</strong> on pending ones and <strong>Request cancellation</strong> on approved ones.</li>
           <li><strong>Calendar</strong> — Day/Week/Month/Year view of your absences, with national public holidays highlighted.</li>
           <li><strong>To approve</strong> — appears only if you have been designated as an approver of other employees.</li>
         </ul>
@@ -1202,7 +1202,7 @@ export const MAIN_EN = `
         <h3>Summary and available balance</h3>
         <p>At the top of the "Mine" tab you find <strong>summary cards (KPI)</strong> to keep the situation always up to date:</p>
         <ul class="tidy">
-          <li><strong>Holiday</strong> and <strong>Leave</strong>: the <strong>Balance</strong> (hours still available) highlighted, with below the assigned <strong>Total</strong> and the <strong>Used</strong> hours.</li>
+          <li><strong>Holiday</strong> and <strong>Leave</strong>: the <strong>Balance</strong> (hours still available) highlighted, with below the assigned <strong>Total</strong>, the <strong>Used</strong> hours and — when present — the <strong>Pending</strong> hours awaiting approval.</li>
         </ul>
         <p>Below, the <strong>Availability</strong> card shows the detail by type: initial balance, accrued, used and pending hours, with the hint on the balance after the pending requests (e.g. "(15.75h after pending requests)").</p>
       </div>
@@ -1225,7 +1225,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>Your requests</h3>
-        <p>Each request is a card with: type, status, period, hours, any notes, the reason for rejection if applicable.</p>
+        <p>Each request is a card with: type, status, period, hours, <strong>approver</strong> (for decided requests, who approved or rejected), any notes, the reason for rejection if applicable.</p>
         <p>Possible statuses:</p>
         <table>
           <thead><tr><th>Status</th><th>Meaning</th></tr></thead>

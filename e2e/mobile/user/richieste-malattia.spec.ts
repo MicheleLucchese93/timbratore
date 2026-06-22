@@ -41,10 +41,11 @@ test.describe('mobile — Malattia request UX (employee)', () => {
   });
 
   test('no approver-box shown for Malattia (auto-approved on file)', async ({ page }) => {
-    // Backend sets status='approved' on create. UI removes the
-    // "Approvatore: …" / "Nessun approvatore configurato" hint for malattia
-    // — there is no one to approve.
-    await expect(page.getByText('Nessun approvatore configurato')).toHaveCount(0);
-    await expect(page.getByText(/^Approvatore: /)).toHaveCount(0);
+    // Backend sets status='approved' on create. The modal removes the
+    // approver-box (testID "modal-approver-box") for malattia — there is no
+    // one to approve. Scope to the box's testID: the "Le mie" request cards
+    // behind the modal now carry their own per-row "Approvatore: …" line, so a
+    // page-wide text assertion would no longer be malattia-specific.
+    await expect(page.getByTestId('modal-approver-box')).toHaveCount(0);
   });
 });

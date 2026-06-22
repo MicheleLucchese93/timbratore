@@ -1,6 +1,13 @@
 {
   "heading": "Holidays & Leave",
   "kpiPermessi": "Leave",
+  "kpiPending": "Pending: {{pending}}",
+  "card": {
+    "approver": "Approver: {{names}}",
+    "noApprover": "No approver",
+    "approvedBy": "Approved by {{name}}",
+    "rejectedBy": "Rejected by {{name}}"
+  },
   "tab": {
     "mine": "Mine",
     "calendar": "Calendar",
