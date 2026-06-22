@@ -2,7 +2,7 @@
   "expo": {
     "name": "sonoQui",
     "slug": "traduttore",
-    "version": "9.0.0",
+    "version": "10.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "sonoqui",
