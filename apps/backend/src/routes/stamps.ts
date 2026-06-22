@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '../middleware/auth.js';
-import { tenantHandler } from '../lib/route-helpers.js';
+import { tenantHandler, tenantMutation } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
 import { idempotencyMiddleware } from '../middleware/idempotency.js';
@@ -27,7 +27,7 @@ const StampBody = z.object({
 stampsRouter.post(
   '/',
   idempotencyMiddleware('stamp_create'),
-  tenantHandler(async (req, res, client) => {
+  tenantMutation(async (req, client) => {
     const parse = StampBody.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     const body = parse.data;
@@ -75,7 +75,7 @@ stampsRouter.post(
        ))`,
       [req.user!.tenantId, JSON.stringify(ins.rows[0])]
     );
-    ok(res, ins.rows[0], 201);
+    return { data: ins.rows[0], status: 201 };
   })
 );
 
@@ -158,7 +158,7 @@ stampsRouter.get(
 
 stampsRouter.delete(
   '/:id',
-  tenantHandler(async (req, res, client) => {
+  tenantMutation(async (req, client) => {
     const s = await client.query(
       `SELECT * FROM stamps WHERE id = $1 AND deleted_at IS NULL`,
       [req.params.id]
@@ -189,6 +189,6 @@ stampsRouter.delete(
        RETURNING *`,
       [req.user!.id, stamp.id]
     );
-    ok(res, r.rows[0]);
+    return { data: r.rows[0] };
   })
 );
