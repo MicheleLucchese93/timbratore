@@ -147,7 +147,7 @@ const MAIN_IT = `
       </div>
 
       <div class="callout callout-info">
-        <strong>Approvatori dedicati:</strong> per ciascun dipendente è possibile designare uno o più amministratori specifici come approvatori di ferie, permessi o correzioni. Se nessuno è configurato, qualunque admin può decidere. <em>Vince il primo che decide.</em>
+        <strong>Approvatori dedicati:</strong> per ciascun dipendente è possibile designare uno o più amministratori specifici come approvatori di ferie, permessi o correzioni. Se nessuno è configurato, qualunque admin può decidere. <em>Vince il primo che decide.</em> Se elimini un amministratore che era approvatore designato, viene rimosso automaticamente dalle liste di approvazione: le richieste in attesa non vanno perse e restano approvabili dagli altri approvatori rimasti — o, se non ne resta nessuno, di nuovo da qualunque admin.
       </div>
     </section>
 

@@ -140,7 +140,7 @@ export const MAIN_EN = `
       </div>
 
       <div class="callout callout-info">
-        <strong>Dedicated approvers:</strong> for each employee you can designate one or more specific administrators as approvers of holiday, leave or corrections. If none is configured, any admin can decide. <em>The first to decide wins.</em>
+        <strong>Dedicated approvers:</strong> for each employee you can designate one or more specific administrators as approvers of holiday, leave or corrections. If none is configured, any admin can decide. <em>The first to decide wins.</em> If you delete an administrator who was a designated approver, they are automatically removed from the approval lists: pending requests are not lost and remain approvable by the other remaining approvers — or, if none remain, by any admin again.
       </div>
     </section>
 

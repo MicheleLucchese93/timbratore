@@ -756,6 +756,20 @@ usersRouter.delete(
       [req.params.id]
     );
     if (r.rowCount === 0) throw new NotFoundError('user');
+    // Cascade approver links: a deleted member must not stay wired as anyone's
+    // approver (orphans pending requests) nor keep their own approver rows.
+    await client.query(
+      `DELETE FROM leave_approvers
+        WHERE tenant_id = current_setting('app.current_tenant_id')::uuid
+          AND (user_id = $1 OR approver_user_id = $1)`,
+      [req.params.id]
+    );
+    await client.query(
+      `DELETE FROM correction_approvers
+        WHERE tenant_id = current_setting('app.current_tenant_id')::uuid
+          AND (user_id = $1 OR approver_user_id = $1)`,
+      [req.params.id]
+    );
     await emitAudit(client, 'user.delete', String(req.params.id), null, null);
     invalidateMembershipCache(String(req.params.id));
     ok(res, { deleted: true });
