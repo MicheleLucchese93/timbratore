@@ -16,7 +16,7 @@ export const ui = {
     // Video
     'video.title': 'Guarda sonoQui in azione',
     'video.subtitle':
-      'Un minuto e mezzo: dalla timbratura in un tap alla dashboard per chi amministra.',
+      'Meno di due minuti: dalla timbratura in un tap alla dashboard per chi amministra.',
     'video.play': 'Riproduci il video demo',
 
     // Hero
