@@ -1,0 +1,109 @@
+{
+  "app": { "name": "sonoQui", "suffix": "Partner", "subtitle": "Gestione tenant rivenditori" },
+  "nav": { "tenants": "Aziende", "partners": "Partner", "audit": "Registro attività", "logout": "Esci" },
+  "role": { "admin": "Amministratore", "partner": "Partner" },
+  "actions": {
+    "save": "Salva", "cancel": "Annulla", "create": "Crea", "edit": "Modifica",
+    "close": "Chiudi", "confirm": "Conferma", "search": "Cerca", "refresh": "Aggiorna"
+  },
+  "common": {
+    "loading": "Caricamento…", "none": "—", "unlimited": "Illimitato", "yes": "Sì", "no": "No",
+    "of": "di", "saving": "Salvataggio…", "empty": "Nessun risultato"
+  },
+  "login": {
+    "tagline": "Console partner",
+    "email": "Email", "password": "Password",
+    "emailPlaceholder": "tu@azienda.it",
+    "signIn": "Accedi", "signingIn": "Accesso…",
+    "errors": {
+      "invalid_credentials": "Email o password non validi.",
+      "NOT_PARTNERSHIP_MEMBER": "Questo account non ha accesso alla console partner.",
+      "PARTNERSHIP_INACTIVE": "Accesso partner disattivato. Contatta l'amministratore.",
+      "default": "Accesso non riuscito. Riprova."
+    }
+  },
+  "tenants": {
+    "title": "Aziende", "subtitle_admin": "Tutte le aziende della piattaforma",
+    "subtitle_partner": "Le aziende che hai creato",
+    "new": "Nuova azienda",
+    "col": {
+      "name": "Ragione sociale", "owner": "Partner", "language": "Lingua",
+      "users": "Utenti", "admins": "Admin", "documentali": "Documentali", "branches": "Sedi",
+      "status": "Stato", "created": "Creata", "actions": "Azioni"
+    },
+    "status": { "active": "Attiva", "suspended": "Sospesa" },
+    "platform": "Piattaforma",
+    "create": {
+      "title": "Nuova azienda",
+      "ragione_sociale": "Ragione sociale",
+      "admin_email": "Email amministratore",
+      "admin_first_name": "Nome (opz.)",
+      "admin_last_name": "Cognome (opz.)",
+      "language": "Lingua",
+      "limits": "Limiti",
+      "max_users": "Max utenti", "max_admins": "Max admin",
+      "max_documentali": "Max documentali", "max_branches": "Max sedi",
+      "submit": "Crea azienda",
+      "created": "Azienda creata. Invito amministratore inviato.",
+      "created_existing": "Azienda creata. L'amministratore aveva già un account."
+    },
+    "edit": { "title": "Modifica limiti", "submit": "Salva limiti", "saved": "Limiti aggiornati." },
+    "suspend": { "label": "Sospendi", "confirm": "Sospendere questa azienda? Gli utenti non potranno più accedere.", "done": "Azienda sospesa." },
+    "resume": { "label": "Riattiva", "done": "Azienda riattivata." },
+    "reinvite": { "label": "Reinvita admin", "done": "Email di accesso inviata a {{email}}." }
+  },
+  "partners": {
+    "title": "Partner", "subtitle": "Rivenditori e relativi limiti",
+    "new": "Nuovo partner",
+    "col": {
+      "email": "Email", "tenants": "Aziende", "cap_tenants": "Max aziende",
+      "cap_users": "Max utenti/azienda", "cap_admins": "Max admin/azienda",
+      "cap_documentali": "Max documentali/azienda", "cap_branches": "Max sedi/azienda",
+      "status": "Stato", "actions": "Azioni"
+    },
+    "status": { "active": "Attivo", "inactive": "Disattivato" },
+    "create": {
+      "title": "Nuovo partner",
+      "email": "Email partner",
+      "first_name": "Nome (opz.)", "last_name": "Cognome (opz.)",
+      "caps": "Limiti del partner",
+      "caps_hint": "Lascia vuoto per illimitato.",
+      "submit": "Crea partner",
+      "created": "Partner creato. Invito inviato.",
+      "created_existing": "Partner creato. L'utente aveva già un account."
+    },
+    "edit": { "title": "Modifica limiti partner", "submit": "Salva", "saved": "Limiti partner aggiornati." },
+    "activate": { "label": "Attiva", "done": "Partner attivato." },
+    "deactivate": { "label": "Disattiva", "confirm": "Disattivare questo partner? Non potrà più accedere.", "done": "Partner disattivato." }
+  },
+  "caps": {
+    "cap_tenants": "Max aziende creabili",
+    "cap_users_per_tenant": "Max utenti per azienda",
+    "cap_admins_per_tenant": "Max admin per azienda",
+    "cap_documentali_per_tenant": "Max documentali per azienda",
+    "cap_branches_per_tenant": "Max sedi per azienda"
+  },
+  "audit": {
+    "title": "Registro attività", "subtitle": "Ogni operazione effettuata nella console",
+    "col": { "when": "Data/ora", "actor": "Autore", "role": "Ruolo", "action": "Operazione", "target": "Oggetto" },
+    "action": {
+      "tenant.create": "Azienda creata",
+      "tenant.update_limits": "Limiti azienda modificati",
+      "tenant.suspend": "Azienda sospesa",
+      "tenant.resume": "Azienda riattivata",
+      "tenant.admin_reinvite": "Admin reinvitato",
+      "partner.create": "Partner creato",
+      "partner.update_caps": "Limiti partner modificati",
+      "partner.activate": "Partner attivato",
+      "partner.deactivate": "Partner disattivato"
+    }
+  },
+  "errors": {
+    "CAP_TENANTS_REACHED": "Hai raggiunto il numero massimo di aziende create.",
+    "CAP_EXCEEDED": "Un limite supera il tuo massimo consentito.",
+    "BELOW_USAGE": "Il limite non può scendere sotto l'utilizzo attuale.",
+    "ALREADY_ADMIN": "L'utente è già un amministratore di piattaforma.",
+    "TENANT_NOT_OWNED": "Questa azienda non è tua.",
+    "default": "Operazione non riuscita. Riprova."
+  }
+}

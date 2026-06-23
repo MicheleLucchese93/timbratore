@@ -151,6 +151,26 @@ app.sonoqui.pro {
 	}
 }
 
+# Reseller / tenant-management console. SAME-ORIGIN, mirrors app.sonoqui.pro:
+# the SPA (sonoqui-partner) only ever calls partners.sonoqui.pro, so the browser
+# makes NO cross-host XHR (sidesteps the Cloudflare-Free HTTP/2 coalescing 503).
+# Path-route /api + /auth to the shared backend; everything else is the SPA.
+# No /connection/websocket — the partner app has no realtime surface.
+partners.sonoqui.pro {
+	import origin_tls
+	import access_log
+	import api_security_headers
+	handle /api/* {
+		reverse_proxy sonoqui-api:4000
+	}
+	handle_path /auth/* {
+		reverse_proxy gotrue-sonoqui:9999
+	}
+	handle {
+		reverse_proxy sonoqui-partner:80
+	}
+}
+
 # Canonical marketing host. www → apex 301.
 www.sonoqui.pro {
 	import origin_tls

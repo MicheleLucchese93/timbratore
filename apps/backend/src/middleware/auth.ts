@@ -56,6 +56,10 @@ export async function fetchMembership(
        AND m.active = TRUE
        AND m.deleted_at IS NULL
        AND t.deleted_at IS NULL
+       -- A partner/admin can suspend a tenant from the partnership app; while
+       -- suspended no membership resolves, so its users can't sign in. Default
+       -- NULL (every existing tenant) → no change in behavior.
+       AND t.suspended_at IS NULL
      ORDER BY m.created_at DESC
      LIMIT 1`,
     params

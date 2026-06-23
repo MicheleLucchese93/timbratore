@@ -71,6 +71,9 @@ export async function createUserSilently(
 }
 
 export async function triggerRecovery(email: string): Promise<void> {
+  // Local dev has no GoTrue instance — skip the call (it would only DNS-fail and
+  // stall). Prod (DEV_AUTH_ENABLED=false) is unchanged.
+  if (env.DEV_AUTH_ENABLED) return;
   try {
     const r = await fetch(`${env.GOTRUE_URL}/recover`, {
       method: 'POST',

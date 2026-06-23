@@ -26,9 +26,36 @@ export const CREDS = {
   },
 } as const;
 
+// Partner-app fixtures. These run ONLY against a LOCAL backend (dev-token login,
+// DEV_AUTH_ENABLED) so the reseller flows never touch the production DB. Emails
+// use the e2e-*@e2e.local namespace so the purge endpoint can clean them.
+export const PARTNER_CREDS = {
+  // Platform admin (partnership role = admin): sees/manages all tenants + partners.
+  admin: {
+    email: process.env.E2E_PARTNER_ADMIN_EMAIL ?? 'e2e-padmin@e2e.local',
+    password: process.env.E2E_PARTNER_ADMIN_PASSWORD ?? 'Test123@!',
+  },
+  // Reseller (partnership role = partner) with finite caps (seeded by setup).
+  partner: {
+    email: process.env.E2E_PARTNER_EMAIL ?? 'e2e-ppartner@e2e.local',
+    password: process.env.E2E_PARTNER_PASSWORD ?? 'Test123@!',
+  },
+} as const;
+
+// Caps granted to the fixture partner — small on purpose so cap-enforcement
+// specs can hit the ceilings.
+export const PARTNER_CAPS = {
+  cap_tenants: 2,
+  cap_users_per_tenant: 10,
+  cap_admins_per_tenant: 2,
+  cap_documentali_per_tenant: 1,
+  cap_branches_per_tenant: 3,
+} as const;
+
 export const URLS = {
   web: process.env.E2E_WEB_URL ?? 'http://localhost:5173',
   mobile: process.env.E2E_MOBILE_URL ?? 'http://localhost:8082',
+  partner: process.env.E2E_PARTNER_URL ?? 'http://localhost:5175',
 } as const;
 
 export const STORAGE = {
@@ -36,4 +63,6 @@ export const STORAGE = {
   webUserAuth: 'e2e/.auth/web.user.json',
   mobileAuth: 'e2e/.auth/mobile.json',
   mobileUserAuth: 'e2e/.auth/mobile.user.json',
+  partnerAuth: 'e2e/.auth/partner.json',
+  partnerUserAuth: 'e2e/.auth/partner.user.json',
 } as const;

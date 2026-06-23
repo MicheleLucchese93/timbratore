@@ -105,6 +105,43 @@ export default defineConfig({
       },
     },
 
+    // --- Partner / reseller app (platform admin) -------------------------
+    // Runs against a LOCAL backend (dev-token, DEV_AUTH_ENABLED) so creating
+    // tenants/partners never touches prod. Set E2E_PARTNER=1 to auto-start the
+    // backend + partner dev servers (see webServer below).
+    {
+      name: 'partner-setup',
+      testMatch: /partner\.auth\.setup\.ts/,
+      use: { ...devices['Desktop Chrome'], baseURL: URLS.partner },
+    },
+    {
+      name: 'partner',
+      testMatch: /partner\/(?!user\/).*\.spec\.ts/,
+      dependencies: ['partner-setup'],
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: URLS.partner,
+        storageState: STORAGE.partnerAuth,
+      },
+    },
+
+    // --- Partner / reseller app (partner role) ---------------------------
+    {
+      name: 'partner-user-setup',
+      testMatch: /partner\.user-auth\.setup\.ts/,
+      use: { ...devices['Desktop Chrome'], baseURL: URLS.partner },
+    },
+    {
+      name: 'partner-user',
+      testMatch: /partner\/user\/.*\.spec\.ts/,
+      dependencies: ['partner-user-setup'],
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: URLS.partner,
+        storageState: STORAGE.partnerUserAuth,
+      },
+    },
+
     // --- Smoke (read-only prod monitor) ----------------------------------
     // Self-logs-in (no setup dependency), creates/mutates nothing. Run against
     // prod as a synthetic monitor:
@@ -120,18 +157,36 @@ export default defineConfig({
   ],
   webServer: process.env.E2E_NO_WEBSERVER
     ? undefined
-    : [
-        {
-          command: 'npm run dev:web',
-          url: URLS.web,
-          reuseExistingServer: true,
-          timeout: 120_000,
-        },
-        {
-          command: 'npm --prefix apps/mobile run web',
-          url: URLS.mobile,
-          reuseExistingServer: true,
-          timeout: 300_000,
-        },
-      ],
+    : process.env.E2E_PARTNER
+      ? // Partner suite: local backend (dev-token) + partner SPA. The backend
+        // inherits E2E_PURGE_SECRET / E2E_TEST_TENANT_ID from this process so the
+        // /grant-partnership + purge endpoints mount.
+        [
+          {
+            command: 'npm run dev:backend',
+            url: 'http://localhost:4000/health',
+            reuseExistingServer: true,
+            timeout: 120_000,
+          },
+          {
+            command: 'npm run dev:partner',
+            url: URLS.partner,
+            reuseExistingServer: true,
+            timeout: 120_000,
+          },
+        ]
+      : [
+          {
+            command: 'npm run dev:web',
+            url: URLS.web,
+            reuseExistingServer: true,
+            timeout: 120_000,
+          },
+          {
+            command: 'npm --prefix apps/mobile run web',
+            url: URLS.mobile,
+            reuseExistingServer: true,
+            timeout: 300_000,
+          },
+        ],
 });

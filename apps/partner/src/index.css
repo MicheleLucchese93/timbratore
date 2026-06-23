@@ -1,0 +1,110 @@
+@import "tailwindcss";
+/* Brand palette generated from packages/shared/src/design/tokens.ts. */
+@import "../../../packages/shared/src/design/tokens.css";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+html, body, #root { height: 100%; }
+body { background: var(--color-surface); color: var(--color-on-surface); }
+
+/* Buttons --------------------------------------------------------------- */
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-md font-medium text-sm whitespace-nowrap transition select-none;
+  padding: 0.5rem 1rem;
+  min-height: 2.25rem;
+  line-height: 1.25rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.btn-primary { background: var(--color-primary); color: var(--color-on-primary); }
+.btn-primary:hover { filter: brightness(1.05); }
+.btn-secondary { background: var(--color-surface-variant); color: var(--color-on-surface-variant); }
+.btn-secondary:hover { filter: brightness(0.97); }
+.btn-danger { background: var(--color-error); color: white; }
+.btn-danger:hover { filter: brightness(0.95); }
+.btn-ghost { background: transparent; color: var(--color-on-surface-variant); border: 1px solid var(--color-surface-variant); }
+.btn-ghost:hover { background: var(--color-surface-variant); }
+.btn-sm { font-size: 0.75rem; padding: 0.375rem 0.75rem; min-height: 1.875rem; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+
+/* Forms ----------------------------------------------------------------- */
+.label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--color-on-surface-variant); margin-bottom: 0.25rem; }
+.input {
+  @apply w-full rounded-md text-sm;
+  border: 1px solid var(--color-outline);
+  background: white;
+  padding: 0.5rem 0.75rem;
+  min-height: 2.25rem;
+  outline: none;
+  color: var(--color-on-surface);
+}
+.input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 18%, transparent); }
+.input:disabled { background: var(--color-surface-variant); cursor: not-allowed; }
+select.input { background-color: white; }
+
+/* Surfaces -------------------------------------------------------------- */
+.card { background: #fff; border: 1px solid var(--color-surface-variant); border-radius: 0.75rem; }
+
+/* Badges ---------------------------------------------------------------- */
+.badge { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.7rem; font-weight: 600; padding: 0.125rem 0.5rem; border-radius: 999px; }
+.badge-ok { background: color-mix(in oklab, var(--color-success) 16%, transparent); color: var(--color-success); }
+.badge-warn { background: color-mix(in oklab, var(--color-error) 14%, transparent); color: var(--color-error); }
+.badge-muted { background: var(--color-surface-variant); color: var(--color-on-surface-variant); }
+
+/* App shell ------------------------------------------------------------- */
+.app-shell { display: flex; height: 100%; }
+.sidebar {
+  width: 240px; flex-shrink: 0; background: #fff; border-right: 1px solid var(--color-surface-variant);
+  display: flex; flex-direction: column;
+}
+.sidebar-brand { display: flex; align-items: center; gap: 0.625rem; padding: 1rem 0.875rem; min-height: 64px; border-bottom: 1px solid var(--color-surface-variant); }
+.sidebar-brand img { width: 36px; height: 36px; border-radius: 0.5rem; }
+.sidebar-brand-name { font-size: 1.125rem; font-weight: 800; letter-spacing: -0.01em; color: var(--color-primary); }
+.sidebar-brand-sub { font-size: 0.7rem; color: var(--color-on-surface-variant); }
+.sidebar-nav { flex: 1; padding: 0.5rem; display: flex; flex-direction: column; gap: 2px; }
+.sidebar-nav a {
+  display: flex; align-items: center; gap: 0.625rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem;
+  font-size: 0.875rem; font-weight: 500; color: var(--color-on-surface-variant); text-decoration: none;
+}
+.sidebar-nav a:hover { background: var(--color-surface-variant); }
+.sidebar-nav a.active { background: color-mix(in oklab, var(--color-primary) 12%, transparent); color: var(--color-primary); font-weight: 600; }
+.sidebar-foot { border-top: 1px solid var(--color-surface-variant); padding: 0.75rem; font-size: 0.75rem; color: var(--color-on-surface-variant); }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.main-bar { display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; padding: 0.625rem 1.5rem; border-bottom: 1px solid var(--color-surface-variant); }
+.main-body { flex: 1; min-height: 0; overflow: auto; padding: 1.5rem; display: flex; flex-direction: column; }
+
+/* Page header ----------------------------------------------------------- */
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+.page-header-title h1 { font-size: 1.375rem; font-weight: 700; letter-spacing: -0.01em; }
+.page-header-title p { font-size: 0.8125rem; color: var(--color-on-surface-variant); margin-top: 0.125rem; }
+.page-header-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+
+/* Language toggle ------------------------------------------------------- */
+.lang-toggle { display: inline-flex; border: 1px solid var(--color-surface-variant); border-radius: 0.5rem; overflow: hidden; }
+.lang-toggle button { font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.5rem; background: transparent; color: var(--color-on-surface-variant); cursor: pointer; }
+.lang-toggle button.is-active { background: var(--color-primary); color: var(--color-on-primary); }
+.user-email { font-size: 0.8125rem; color: var(--color-on-surface-variant); }
+
+/* Modal ----------------------------------------------------------------- */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 50; }
+.modal { background: #fff; border-radius: 0.75rem; width: 100%; max-width: 520px; max-height: 90vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+.modal-head { padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-surface-variant); font-weight: 700; }
+.modal-body { padding: 1.25rem; display: flex; flex-direction: column; gap: 0.875rem; }
+.modal-foot { padding: 1rem 1.25rem; border-top: 1px solid var(--color-surface-variant); display: flex; justify-content: flex-end; gap: 0.5rem; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.875rem; }
+.form-err { background: var(--color-error-tint, #fde8e8); color: var(--color-error); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.8125rem; }
+
+/* Toasts ---------------------------------------------------------------- */
+.toast-stack { position: fixed; bottom: 1rem; right: 1rem; display: flex; flex-direction: column; gap: 0.5rem; z-index: 60; }
+.toast { background: var(--color-on-surface); color: #fff; padding: 0.625rem 0.875rem; border-radius: 0.5rem; font-size: 0.8125rem; box-shadow: 0 8px 24px rgba(0,0,0,0.2); max-width: 360px; }
+.toast-err { background: var(--color-error); }
+
+/* DataGrid container ---------------------------------------------------- */
+.grid-wrap { flex: 1; min-height: 360px; }
+
+/* Login ----------------------------------------------------------------- */
+.login-wrap { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 1.5rem; background: linear-gradient(135deg, color-mix(in oklab, var(--color-primary) 12%, white), var(--color-surface)); }
+.login-card { width: 100%; max-width: 420px; }

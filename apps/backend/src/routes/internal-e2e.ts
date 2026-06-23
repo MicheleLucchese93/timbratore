@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { timingSafeEqual } from 'node:crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { adminPool } from '../lib/admin-db.js';
 import { env } from '../env.js';
 import { ForbiddenError, ValidationError } from '../errors/index.js';
@@ -130,6 +130,35 @@ internalE2eRouter.post(
         `DELETE FROM memberships WHERE user_id ${inE2eUsers} AND tenant_id = $2`,
         argsT
       );
+
+      // --- Partnership / reseller fixtures (migration 044) ---
+      // The partner e2e specs create REAL child tenants (ragione_sociale 'e2e-…')
+      // owned by a fixture partner, plus partnership_members rows and audit
+      // entries. Clean them BEFORE the auth_users delete below — FKs from
+      // partnership_members.user_id/created_by, partnership_audit_log.actor_user_id
+      // and tenants.created_by_partner/suspended_by all reference auth_users. The
+      // pinned demo tenant is excluded by id (and can never be named 'e2e-…').
+      const e2eTenantMemberships = await client.query(
+        `DELETE FROM memberships
+          WHERE tenant_id IN (SELECT id FROM tenants WHERE ragione_sociale LIKE 'e2e-%' AND id <> $1)`,
+        [TEST_TENANT_ID]
+      );
+      const palog = await client.query(
+        `DELETE FROM partnership_audit_log
+          WHERE actor_user_id ${inE2eUsers}
+             OR (target_type = 'tenant'
+                 AND target_id IN (SELECT id FROM tenants WHERE ragione_sociale LIKE 'e2e-%' AND id <> $2))`,
+        argsT
+      );
+      const pmembers = await client.query(
+        `DELETE FROM partnership_members WHERE user_id ${inE2eUsers}`,
+        argsU
+      );
+      const e2eTenantsDeleted = await client.query(
+        `DELETE FROM tenants WHERE ragione_sociale LIKE 'e2e-%' AND id <> $1`,
+        [TEST_TENANT_ID]
+      );
+
       // auth_users / GoTrue users are global (no tenant_id). Confined by the
       // dedicated e2e-*@e2e.local namespace, which can never be a real user.
       const a = await client.query(`DELETE FROM auth_users WHERE email LIKE $1`, argsU);
@@ -261,6 +290,10 @@ internalE2eRouter.post(
           documents: dq.rowCount,
           document_objects_deleted: docObjectsDeleted,
           notifications: nq.rowCount,
+          partnership_members: pmembers.rowCount,
+          partnership_audit_log: palog.rowCount,
+          partnership_tenants: e2eTenantsDeleted.rowCount,
+          partnership_tenant_memberships: e2eTenantMemberships.rowCount,
         },
         'e2e fixtures purged'
       );
@@ -282,6 +315,10 @@ internalE2eRouter.post(
         documents_deleted: dq.rowCount,
         document_objects_deleted: docObjectsDeleted,
         notifications_deleted: nq.rowCount,
+        partnership_members_deleted: pmembers.rowCount,
+        partnership_audit_log_deleted: palog.rowCount,
+        partnership_tenants_deleted: e2eTenantsDeleted.rowCount,
+        partnership_tenant_memberships_deleted: e2eTenantMemberships.rowCount,
       });
     } catch (err) {
       await client.query('ROLLBACK');
@@ -343,9 +380,15 @@ internalE2eRouter.post(
       if (existing.rowCount && existing.rows[0]) {
         userId = existing.rows[0].id;
       } else {
-        const g = await createUserWithPassword(email, password);
-        userId = g.id;
-        createdGoTrue = true;
+        // Local dev has no GoTrue: mint a mirror-only account (dev-token resolves
+        // logins by auth_users.email). Prod creates the real GoTrue user.
+        if (env.DEV_AUTH_ENABLED) {
+          userId = randomUUID();
+        } else {
+          const g = await createUserWithPassword(email, password);
+          userId = g.id;
+          createdGoTrue = true;
+        }
         await client.query(
           `INSERT INTO auth_users(id, email, first_name, last_name, display_name, created_at)
            VALUES ($1, $2, $3, $4, $5, now())
@@ -378,6 +421,102 @@ internalE2eRouter.post(
         },
         201
       );
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  })
+);
+
+// Seed a partnership member (platform admin or partner) for the partner-app e2e
+// suite. Same bearer guard as the other e2e endpoints. The email MUST match the
+// e2e-*@e2e.local pattern so this can never grant partnership powers to a real
+// user. Ensures the auth_users row first (mirror-only in dev, GoTrue with a set
+// password in prod), then upserts partnership_members. Idempotent on user_id.
+internalE2eRouter.post(
+  '/grant-partnership',
+  asyncHandler(async (req, res) => {
+    const secret = env.E2E_PURGE_SECRET;
+    if (!secret) throw new ForbiddenError('endpoint disabled');
+    if (!TEST_TENANT_ID) throw new ForbiddenError('endpoint not configured (E2E_TEST_TENANT_ID unset)');
+    if (!bearerMatches(req.header('authorization'), secret)) {
+      throw new ForbiddenError('invalid token');
+    }
+
+    const body = req.body as Record<string, unknown>;
+    const email = typeof body.email === 'string' ? body.email : '';
+    const password = typeof body.password === 'string' ? body.password : '';
+    const role = body.role === 'admin' ? 'admin' : 'partner';
+    if (!E2E_EMAIL_REGEX.test(email)) {
+      throw new ValidationError('email must match e2e-*@e2e.local', { email });
+    }
+    if (!env.DEV_AUTH_ENABLED && password.length < 8) {
+      throw new ValidationError('password must be at least 8 chars', {});
+    }
+    const num = (v: unknown): number | null =>
+      typeof v === 'number' && Number.isFinite(v) ? Math.trunc(v) : null;
+    const caps = {
+      cap_tenants: num(body.cap_tenants),
+      cap_users_per_tenant: num(body.cap_users_per_tenant),
+      cap_admins_per_tenant: num(body.cap_admins_per_tenant),
+      cap_documentali_per_tenant: num(body.cap_documentali_per_tenant),
+      cap_branches_per_tenant: num(body.cap_branches_per_tenant),
+    };
+
+    const client = await adminPool.connect();
+    try {
+      await client.query('BEGIN');
+      const existing = await client.query(`SELECT id FROM auth_users WHERE email = $1`, [email]);
+      let userId: string;
+      if (existing.rowCount && existing.rows[0]) {
+        userId = existing.rows[0].id;
+      } else if (env.DEV_AUTH_ENABLED) {
+        // No GoTrue locally; the dev-token shim resolves logins by email.
+        userId = randomUUID();
+        await client.query(
+          `INSERT INTO auth_users(id, email, first_name, last_name, display_name, created_at)
+           VALUES ($1, $2, 'E2E', 'Partner', 'E2E Partner', now())
+           ON CONFLICT (id) DO NOTHING`,
+          [userId, email]
+        );
+      } else {
+        const gu = await createUserWithPassword(email, password);
+        userId = gu.id;
+        await client.query(
+          `INSERT INTO auth_users(id, email, first_name, last_name, display_name, created_at)
+           VALUES ($1, $2, 'E2E', 'Partner', 'E2E Partner', now())
+           ON CONFLICT (id) DO NOTHING`,
+          [userId, email]
+        );
+      }
+      await client.query(
+        `INSERT INTO partnership_members
+           (user_id, role, active, cap_tenants, cap_users_per_tenant, cap_admins_per_tenant,
+            cap_documentali_per_tenant, cap_branches_per_tenant, updated_at)
+         VALUES ($1, $2, TRUE, $3, $4, $5, $6, $7, now())
+         ON CONFLICT (user_id) DO UPDATE
+           SET role = EXCLUDED.role, active = TRUE,
+               cap_tenants = EXCLUDED.cap_tenants,
+               cap_users_per_tenant = EXCLUDED.cap_users_per_tenant,
+               cap_admins_per_tenant = EXCLUDED.cap_admins_per_tenant,
+               cap_documentali_per_tenant = EXCLUDED.cap_documentali_per_tenant,
+               cap_branches_per_tenant = EXCLUDED.cap_branches_per_tenant,
+               updated_at = now()`,
+        [
+          userId,
+          role,
+          caps.cap_tenants,
+          caps.cap_users_per_tenant,
+          caps.cap_admins_per_tenant,
+          caps.cap_documentali_per_tenant,
+          caps.cap_branches_per_tenant,
+        ]
+      );
+      await client.query('COMMIT');
+      logger.info({ email, user_id: userId, role }, 'e2e partnership member granted');
+      ok(res, { user_id: userId, email, role, caps }, 201);
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;

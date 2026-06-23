@@ -30,6 +30,7 @@ import { documentsRouter } from './routes/documents.js';
 import { helpdeskRouter } from './routes/helpdesk.js';
 import { internalE2eRouter } from './routes/internal-e2e.js';
 import { internalProvisionRouter } from './routes/internal-provision.js';
+import { partnershipRouter } from './routes/partnership.js';
 
 export function createApp(): Express {
   const app = express();
@@ -52,6 +53,12 @@ export function createApp(): Express {
       origin: (origin, cb) => {
         if (!origin) return cb(null, true);
         if (allowed.includes(origin)) return cb(null, true);
+        // Local dev: allow any localhost:<port> so the several dev SPAs (web
+        // 5173, mobile 8082, partner 5175, …) work without per-port env config.
+        // Never fires in production (NODE_ENV pinned to 'production').
+        if (env.NODE_ENV !== 'production' && /^http:\/\/localhost(:\d+)?$/.test(origin)) {
+          return cb(null, true);
+        }
         return cb(new Error('CORS_NOT_ALLOWED'));
       },
       credentials: true,
@@ -120,6 +127,11 @@ export function createApp(): Express {
   app.use('/api/v1/leave-quotas', leaveQuotasRouter);
   app.use('/api/v1/documents', documentsRouter);
   app.use('/api/v1/helpdesk', helpdeskRouter);
+  // Reseller / tenant-management surface (partners.sonoqui.pro). Each route is
+  // gated by its own partnership-member auth (see middleware/partnership-auth.ts);
+  // wholly isolated from the per-tenant routes above. Always mounted — access is
+  // controlled by partnership_members, not by a mount-time secret.
+  app.use('/api/v1/partnership', partnershipRouter);
   // The internal-e2e router runs destructive cross-table deletes. It mounts
   // ONLY when both the bearer secret AND the tenant pin are configured — so a
   // misconfigured deploy fails closed (endpoint absent) instead of exposing an

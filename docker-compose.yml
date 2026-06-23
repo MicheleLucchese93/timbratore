@@ -18,7 +18,10 @@ services:
       # app (app.sonoqui.pro) and the marketing site (sonoqui.pro). The same-
       # origin web build sends Origin: https://app.sonoqui.pro on every mutating
       # request, so the API must allow it or POST/PUT/DELETE fail CORS_NOT_ALLOWED.
-      - CORS_ORIGINS=https://app-sonoqui.xdevapp.it,https://app.sonoqui.pro,https://sonoqui.pro
+      # partners.sonoqui.pro is the reseller/tenant-management SPA (same-origin
+      # build, like app.sonoqui.pro) — its mutating XHRs send Origin:
+      # https://partners.sonoqui.pro, so the API must allow it.
+      - CORS_ORIGINS=https://app-sonoqui.xdevapp.it,https://app.sonoqui.pro,https://sonoqui.pro,https://partners.sonoqui.pro
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:4000/health"]
       interval: 30s
@@ -49,7 +52,7 @@ services:
       # sonoqui.pro cutover (2026-06-22): the .pro entries are ADDITIVE — the
       # xdevapp hosts stay so already-installed mobile builds and the old web
       # origin keep working. app.sonoqui.pro is the same-origin web app.
-      GOTRUE_URI_ALLOW_LIST: "sonoqui://auth-callback,sonoqui://*,https://api-sonoqui.xdevapp.it/**,https://app-sonoqui.xdevapp.it/**,https://app.sonoqui.pro/**,https://sonoqui.pro/**,https://api.sonoqui.pro/**"
+      GOTRUE_URI_ALLOW_LIST: "sonoqui://auth-callback,sonoqui://*,https://api-sonoqui.xdevapp.it/**,https://app-sonoqui.xdevapp.it/**,https://app.sonoqui.pro/**,https://sonoqui.pro/**,https://api.sonoqui.pro/**,https://partners.sonoqui.pro/**"
       GOTRUE_JWT_SECRET: "${SONOQUI_JWT_SECRET}"
       GOTRUE_JWT_ISSUER: "https://auth-sonoqui.xdevapp.it"
       GOTRUE_JWT_EXP: "3600"
@@ -164,6 +167,27 @@ services:
         VITE_CENTRIFUGO_URL: "wss://app.sonoqui.pro/connection/websocket"
         VITE_GOOGLE_MAPS_API_KEY: "${VITE_GOOGLE_MAPS_API_KEY:-}"
     container_name: sonoqui-web-pro
+    restart: unless-stopped
+    networks:
+      - gateway
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.10'
+
+  # Reseller / tenant-management SPA (partners.sonoqui.pro). SAME-ORIGIN build,
+  # identical pattern to sonoqui-web-pro: the browser talks only to
+  # partners.sonoqui.pro and Caddy path-routes /api → sonoqui-api and /auth →
+  # gotrue. Served by the SAME backend (sonoqui-api) via /api/v1/partnership/*.
+  sonoqui-partner:
+    build:
+      context: .
+      dockerfile: apps/partner/Dockerfile
+      args:
+        VITE_API_URL: ""
+        VITE_AUTH_URL: "https://partners.sonoqui.pro/auth"
+    container_name: sonoqui-partner
     restart: unless-stopped
     networks:
       - gateway

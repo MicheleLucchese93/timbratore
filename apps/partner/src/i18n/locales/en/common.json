@@ -1,0 +1,109 @@
+{
+  "app": { "name": "sonoQui", "suffix": "Partner", "subtitle": "Reseller tenant management" },
+  "nav": { "tenants": "Companies", "partners": "Partners", "audit": "Activity log", "logout": "Sign out" },
+  "role": { "admin": "Administrator", "partner": "Partner" },
+  "actions": {
+    "save": "Save", "cancel": "Cancel", "create": "Create", "edit": "Edit",
+    "close": "Close", "confirm": "Confirm", "search": "Search", "refresh": "Refresh"
+  },
+  "common": {
+    "loading": "Loading…", "none": "—", "unlimited": "Unlimited", "yes": "Yes", "no": "No",
+    "of": "of", "saving": "Saving…", "empty": "No results"
+  },
+  "login": {
+    "tagline": "Partner console",
+    "email": "Email", "password": "Password",
+    "emailPlaceholder": "you@company.com",
+    "signIn": "Sign in", "signingIn": "Signing in…",
+    "errors": {
+      "invalid_credentials": "Invalid email or password.",
+      "NOT_PARTNERSHIP_MEMBER": "This account has no access to the partner console.",
+      "PARTNERSHIP_INACTIVE": "Partner access disabled. Contact the administrator.",
+      "default": "Sign-in failed. Try again."
+    }
+  },
+  "tenants": {
+    "title": "Companies", "subtitle_admin": "All platform companies",
+    "subtitle_partner": "Companies you created",
+    "new": "New company",
+    "col": {
+      "name": "Company name", "owner": "Partner", "language": "Language",
+      "users": "Users", "admins": "Admins", "documentali": "Documentali", "branches": "Branches",
+      "status": "Status", "created": "Created", "actions": "Actions"
+    },
+    "status": { "active": "Active", "suspended": "Suspended" },
+    "platform": "Platform",
+    "create": {
+      "title": "New company",
+      "ragione_sociale": "Company name",
+      "admin_email": "Administrator email",
+      "admin_first_name": "First name (opt.)",
+      "admin_last_name": "Last name (opt.)",
+      "language": "Language",
+      "limits": "Limits",
+      "max_users": "Max users", "max_admins": "Max admins",
+      "max_documentali": "Max documentali", "max_branches": "Max branches",
+      "submit": "Create company",
+      "created": "Company created. Admin invite sent.",
+      "created_existing": "Company created. The admin already had an account."
+    },
+    "edit": { "title": "Edit limits", "submit": "Save limits", "saved": "Limits updated." },
+    "suspend": { "label": "Suspend", "confirm": "Suspend this company? Its users will no longer be able to sign in.", "done": "Company suspended." },
+    "resume": { "label": "Resume", "done": "Company resumed." },
+    "reinvite": { "label": "Re-invite admin", "done": "Access email sent to {{email}}." }
+  },
+  "partners": {
+    "title": "Partners", "subtitle": "Resellers and their caps",
+    "new": "New partner",
+    "col": {
+      "email": "Email", "tenants": "Companies", "cap_tenants": "Max companies",
+      "cap_users": "Max users/company", "cap_admins": "Max admins/company",
+      "cap_documentali": "Max documentali/company", "cap_branches": "Max branches/company",
+      "status": "Status", "actions": "Actions"
+    },
+    "status": { "active": "Active", "inactive": "Disabled" },
+    "create": {
+      "title": "New partner",
+      "email": "Partner email",
+      "first_name": "First name (opt.)", "last_name": "Last name (opt.)",
+      "caps": "Partner caps",
+      "caps_hint": "Leave blank for unlimited.",
+      "submit": "Create partner",
+      "created": "Partner created. Invite sent.",
+      "created_existing": "Partner created. The user already had an account."
+    },
+    "edit": { "title": "Edit partner caps", "submit": "Save", "saved": "Partner caps updated." },
+    "activate": { "label": "Activate", "done": "Partner activated." },
+    "deactivate": { "label": "Disable", "confirm": "Disable this partner? They will no longer be able to sign in.", "done": "Partner disabled." }
+  },
+  "caps": {
+    "cap_tenants": "Max companies they can create",
+    "cap_users_per_tenant": "Max users per company",
+    "cap_admins_per_tenant": "Max admins per company",
+    "cap_documentali_per_tenant": "Max documentali per company",
+    "cap_branches_per_tenant": "Max branches per company"
+  },
+  "audit": {
+    "title": "Activity log", "subtitle": "Every operation performed in the console",
+    "col": { "when": "When", "actor": "Actor", "role": "Role", "action": "Operation", "target": "Target" },
+    "action": {
+      "tenant.create": "Company created",
+      "tenant.update_limits": "Company limits changed",
+      "tenant.suspend": "Company suspended",
+      "tenant.resume": "Company resumed",
+      "tenant.admin_reinvite": "Admin re-invited",
+      "partner.create": "Partner created",
+      "partner.update_caps": "Partner caps changed",
+      "partner.activate": "Partner activated",
+      "partner.deactivate": "Partner disabled"
+    }
+  },
+  "errors": {
+    "CAP_TENANTS_REACHED": "You have reached your maximum number of created companies.",
+    "CAP_EXCEEDED": "A limit exceeds your allowed maximum.",
+    "BELOW_USAGE": "The limit cannot drop below current usage.",
+    "ALREADY_ADMIN": "The user is already a platform administrator.",
+    "TENANT_NOT_OWNED": "This company is not yours.",
+    "default": "Operation failed. Try again."
+  }
+}

@@ -1,0 +1,641 @@
+import { Router } from 'express';
+import type { Request } from 'express';
+import { z } from 'zod';
+import { adminPool } from '../lib/admin-db.js';
+import { ok } from '../lib/api-response.js';
+import { asyncHandler } from '../lib/route-helpers.js';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
+import { authenticatePartner, requirePartnershipAdmin } from '../middleware/partnership-auth.js';
+import type { PartnerContext } from '../middleware/partnership-auth.js';
+import { provisionTenant } from '../lib/provision-tenant.js';
+import { ensureAuthUser } from '../lib/auth-users.js';
+import { logPartnershipAudit } from '../lib/partnership-audit.js';
+import { triggerRecovery } from '../lib/gotrue-admin.js';
+import { createLogger } from '../lib/logger.js';
+
+const logger = createLogger('partnership');
+
+export const partnershipRouter = Router();
+
+// Every route requires an active partnership member.
+partnershipRouter.use(authenticatePartner);
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function partner(req: Request): PartnerContext {
+  if (!req.partner) throw new ForbiddenError('Not a partnership member', 'NOT_PARTNERSHIP_MEMBER');
+  return req.partner;
+}
+function auditCtx(req: Request): { ip: string | null; userAgent: string | null } {
+  return { ip: req.ip ?? null, userAgent: req.header('user-agent') ?? null };
+}
+
+// Reject when a per-tenant limit exceeds the partner's cap. Admins (no caps) skip.
+function enforceCap(name: string, value: number | null | undefined, cap: number | null): void {
+  if (value == null || cap == null) return;
+  if (value > cap) {
+    throw new ConflictError(
+      `${name} (${value}) exceeds your cap (${cap})`,
+      'CAP_EXCEEDED',
+      { field: name, value, cap }
+    );
+  }
+}
+
+const Limits = {
+  max_users: z.coerce.number().int().min(1).max(100000),
+  max_admins: z.coerce.number().int().min(1).max(1000),
+  max_documentali: z.coerce.number().int().min(0).max(1000),
+  max_branches: z.coerce.number().int().min(1).max(10000),
+};
+
+// ---- GET /me ---------------------------------------------------------------
+partnershipRouter.get(
+  '/me',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    ok(res, {
+      user_id: p.userId,
+      email: p.email,
+      role: p.role,
+      caps: {
+        cap_tenants: p.capTenants,
+        cap_users_per_tenant: p.capUsersPerTenant,
+        cap_admins_per_tenant: p.capAdminsPerTenant,
+        cap_documentali_per_tenant: p.capDocumentaliPerTenant,
+        cap_branches_per_tenant: p.capBranchesPerTenant,
+      },
+    });
+  })
+);
+
+// ---- GET /tenants ----------------------------------------------------------
+// admin → all tenants; partner → only the tenants they created. Each row carries
+// current usage (members/admins/documentali/branches) alongside the limits.
+partnershipRouter.get(
+  '/tenants',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const params: unknown[] = [];
+    let scope = '';
+    if (p.role === 'partner') {
+      params.push(p.userId);
+      scope = 'AND t.created_by_partner = $1';
+    }
+    const r = await adminPool.query(
+      `SELECT t.id, t.ragione_sociale, t.language,
+              t.max_admins, t.max_users, t.max_documentali, t.max_branches,
+              t.suspended_at, t.created_at, t.created_by_partner,
+              pu.email AS owner_email,
+              (SELECT count(*)::int FROM memberships m
+                 WHERE m.tenant_id = t.id AND m.deleted_at IS NULL) AS used_members,
+              (SELECT count(*)::int FROM memberships m
+                 WHERE m.tenant_id = t.id AND m.deleted_at IS NULL AND m.role = 'admin') AS used_admins,
+              (SELECT count(*)::int FROM memberships m
+                 WHERE m.tenant_id = t.id AND m.deleted_at IS NULL AND m.is_documentale) AS used_documentali,
+              (SELECT count(*)::int FROM branches b
+                 WHERE b.tenant_id = t.id AND b.deleted_at IS NULL) AS used_branches
+         FROM tenants t
+         LEFT JOIN auth_users pu ON pu.id = t.created_by_partner
+        WHERE t.deleted_at IS NULL ${scope}
+        ORDER BY t.created_at DESC`,
+      params
+    );
+    ok(res, { tenants: r.rows });
+  })
+);
+
+// ---- POST /tenants ---------------------------------------------------------
+const CreateTenant = z.object({
+  ragione_sociale: z.string().trim().min(1).max(200),
+  admin_email: z.string().email(),
+  admin_first_name: z.string().trim().max(80).optional(),
+  admin_last_name: z.string().trim().max(80).optional(),
+  language: z.enum(['it', 'en']).default('it'),
+  max_users: Limits.max_users.optional(),
+  max_admins: Limits.max_admins.optional(),
+  max_documentali: Limits.max_documentali.optional(),
+  max_branches: Limits.max_branches.optional(),
+});
+
+partnershipRouter.post(
+  '/tenants',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const parse = CreateTenant.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const b = parse.data;
+
+    // Partner caps: tenant-count ceiling + per-tenant limit ceilings.
+    if (p.role === 'partner') {
+      if (p.capTenants != null) {
+        const c = await adminPool.query(
+          `SELECT count(*)::int AS n FROM tenants
+            WHERE created_by_partner = $1 AND deleted_at IS NULL`,
+          [p.userId]
+        );
+        if ((c.rows[0]?.n ?? 0) >= p.capTenants) {
+          throw new ConflictError(
+            `tenant cap reached (${p.capTenants})`,
+            'CAP_TENANTS_REACHED',
+            { cap: p.capTenants }
+          );
+        }
+      }
+      enforceCap('max_users', b.max_users, p.capUsersPerTenant);
+      enforceCap('max_admins', b.max_admins, p.capAdminsPerTenant);
+      enforceCap('max_documentali', b.max_documentali, p.capDocumentaliPerTenant);
+      enforceCap('max_branches', b.max_branches, p.capBranchesPerTenant);
+    }
+
+    const result = await provisionTenant({
+      ragioneSociale: b.ragione_sociale,
+      adminEmail: b.admin_email,
+      adminFirstName: b.admin_first_name ?? null,
+      adminLastName: b.admin_last_name ?? null,
+      language: b.language,
+      maxUsers: b.max_users ?? null,
+      maxAdmins: b.max_admins ?? null,
+      maxDocumentali: b.max_documentali ?? null,
+      maxBranches: b.max_branches ?? null,
+      // Admin-created tenants are platform-owned (NULL); partner-created tenants
+      // are owned by the partner so only they (and admins) see them.
+      createdByPartner: p.role === 'partner' ? p.userId : null,
+    });
+
+    await logPartnershipAudit({
+      actorUserId: p.userId,
+      actorRole: p.role,
+      action: 'tenant.create',
+      targetType: 'tenant',
+      targetId: result.tenantId,
+      targetLabel: result.ragioneSociale,
+      after: {
+        admin_email: result.admin.email,
+        invited: result.invited,
+        limits: result.limits,
+      },
+      ...auditCtx(req),
+    });
+
+    ok(
+      res,
+      {
+        tenant_id: result.tenantId,
+        ragione_sociale: result.ragioneSociale,
+        admin: {
+          user_id: result.admin.userId,
+          email: result.admin.email,
+          role: result.admin.role,
+          membership_id: result.admin.membershipId,
+        },
+        invited: result.invited,
+        limits: {
+          max_admins: result.limits.maxAdmins,
+          max_users: result.limits.maxUsers,
+          max_branches: result.limits.maxBranches,
+          max_documentali: result.limits.maxDocumentali,
+        },
+      },
+      201
+    );
+  })
+);
+
+// Load a tenant the actor is allowed to act on (admin: any; partner: own).
+async function loadOwnedTenant(p: PartnerContext, tenantId: string) {
+  if (!UUID_RE.test(tenantId)) throw new ValidationError('invalid tenant id');
+  const r = await adminPool.query(
+    `SELECT t.id, t.ragione_sociale, t.created_by_partner, t.suspended_at,
+            t.max_admins, t.max_users, t.max_documentali, t.max_branches,
+            (SELECT count(*)::int FROM memberships m
+               WHERE m.tenant_id = t.id AND m.deleted_at IS NULL) AS used_members,
+            (SELECT count(*)::int FROM memberships m
+               WHERE m.tenant_id = t.id AND m.deleted_at IS NULL AND m.role = 'admin') AS used_admins,
+            (SELECT count(*)::int FROM memberships m
+               WHERE m.tenant_id = t.id AND m.deleted_at IS NULL AND m.is_documentale) AS used_documentali,
+            (SELECT count(*)::int FROM branches b
+               WHERE b.tenant_id = t.id AND b.deleted_at IS NULL) AS used_branches
+       FROM tenants t
+      WHERE t.id = $1 AND t.deleted_at IS NULL`,
+    [tenantId]
+  );
+  if (r.rowCount === 0) throw new NotFoundError('tenant not found');
+  const t = r.rows[0];
+  if (p.role === 'partner' && t.created_by_partner !== p.userId) {
+    throw new ForbiddenError('not your tenant', 'TENANT_NOT_OWNED');
+  }
+  return t;
+}
+
+// ---- PATCH /tenants/:id/limits ---------------------------------------------
+const UpdateLimits = z
+  .object({
+    max_users: Limits.max_users.optional(),
+    max_admins: Limits.max_admins.optional(),
+    max_documentali: Limits.max_documentali.optional(),
+    max_branches: Limits.max_branches.optional(),
+  })
+  .refine((d) => Object.keys(d).length > 0, { message: 'no limits to update' });
+
+partnershipRouter.patch(
+  '/tenants/:id/limits',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const parse = UpdateLimits.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const b = parse.data;
+    const t = await loadOwnedTenant(p, String(req.params.id));
+
+    if (p.role === 'partner') {
+      enforceCap('max_users', b.max_users, p.capUsersPerTenant);
+      enforceCap('max_admins', b.max_admins, p.capAdminsPerTenant);
+      enforceCap('max_documentali', b.max_documentali, p.capDocumentaliPerTenant);
+      enforceCap('max_branches', b.max_branches, p.capBranchesPerTenant);
+    }
+
+    // Never let a limit drop below what the tenant is already using.
+    const floor = (label: string, next: number | undefined, used: number): void => {
+      if (next != null && next < used) {
+        throw new ConflictError(
+          `${label} (${next}) is below current usage (${used})`,
+          'BELOW_USAGE',
+          { field: label, value: next, used }
+        );
+      }
+    };
+    floor('max_users', b.max_users, t.used_members);
+    floor('max_admins', b.max_admins, t.used_admins);
+    floor('max_documentali', b.max_documentali, t.used_documentali);
+    floor('max_branches', b.max_branches, t.used_branches);
+
+    const before = {
+      max_users: t.max_users,
+      max_admins: t.max_admins,
+      max_documentali: t.max_documentali,
+      max_branches: t.max_branches,
+    };
+    const next = {
+      max_users: b.max_users ?? t.max_users,
+      max_admins: b.max_admins ?? t.max_admins,
+      max_documentali: b.max_documentali ?? t.max_documentali,
+      max_branches: b.max_branches ?? t.max_branches,
+    };
+    await adminPool.query(
+      `UPDATE tenants
+          SET max_users = $2, max_admins = $3, max_documentali = $4, max_branches = $5
+        WHERE id = $1`,
+      [t.id, next.max_users, next.max_admins, next.max_documentali, next.max_branches]
+    );
+    await logPartnershipAudit({
+      actorUserId: p.userId,
+      actorRole: p.role,
+      action: 'tenant.update_limits',
+      targetType: 'tenant',
+      targetId: t.id,
+      targetLabel: t.ragione_sociale,
+      before,
+      after: next,
+      ...auditCtx(req),
+    });
+    ok(res, { tenant_id: t.id, limits: next });
+  })
+);
+
+// ---- POST /tenants/:id/suspend  &  /resume ---------------------------------
+partnershipRouter.post(
+  '/tenants/:id/suspend',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const t = await loadOwnedTenant(p, String(req.params.id));
+    if (t.suspended_at) {
+      return ok(res, { tenant_id: t.id, suspended: true });
+    }
+    await adminPool.query(
+      `UPDATE tenants SET suspended_at = now(), suspended_by = $2 WHERE id = $1`,
+      [t.id, p.userId]
+    );
+    await logPartnershipAudit({
+      actorUserId: p.userId,
+      actorRole: p.role,
+      action: 'tenant.suspend',
+      targetType: 'tenant',
+      targetId: t.id,
+      targetLabel: t.ragione_sociale,
+      ...auditCtx(req),
+    });
+    ok(res, { tenant_id: t.id, suspended: true });
+  })
+);
+
+partnershipRouter.post(
+  '/tenants/:id/resume',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const t = await loadOwnedTenant(p, String(req.params.id));
+    if (!t.suspended_at) {
+      return ok(res, { tenant_id: t.id, suspended: false });
+    }
+    await adminPool.query(
+      `UPDATE tenants SET suspended_at = NULL, suspended_by = NULL WHERE id = $1`,
+      [t.id]
+    );
+    await logPartnershipAudit({
+      actorUserId: p.userId,
+      actorRole: p.role,
+      action: 'tenant.resume',
+      targetType: 'tenant',
+      targetId: t.id,
+      targetLabel: t.ragione_sociale,
+      ...auditCtx(req),
+    });
+    ok(res, { tenant_id: t.id, suspended: false });
+  })
+);
+
+// ---- POST /tenants/:id/admin-reinvite --------------------------------------
+// Resend the set-password email to the tenant's first (oldest) active admin.
+partnershipRouter.post(
+  '/tenants/:id/admin-reinvite',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const t = await loadOwnedTenant(p, String(req.params.id));
+    const r = await adminPool.query(
+      `SELECT au.email
+         FROM memberships m JOIN auth_users au ON au.id = m.user_id
+        WHERE m.tenant_id = $1 AND m.role = 'admin'
+          AND m.active = TRUE AND m.deleted_at IS NULL
+        ORDER BY m.created_at ASC
+        LIMIT 1`,
+      [t.id]
+    );
+    if (r.rowCount === 0) throw new NotFoundError('tenant has no active admin');
+    const email = r.rows[0].email as string;
+    await triggerRecovery(email);
+    await logPartnershipAudit({
+      actorUserId: p.userId,
+      actorRole: p.role,
+      action: 'tenant.admin_reinvite',
+      targetType: 'tenant',
+      targetId: t.id,
+      targetLabel: t.ragione_sociale,
+      after: { email },
+      ...auditCtx(req),
+    });
+    ok(res, { tenant_id: t.id, email });
+  })
+);
+
+// ===== Partner management (platform admin only) =============================
+
+const CapsSchema = {
+  cap_tenants: z.coerce.number().int().min(0).max(100000).nullable().optional(),
+  cap_users_per_tenant: z.coerce.number().int().min(1).max(100000).nullable().optional(),
+  cap_admins_per_tenant: z.coerce.number().int().min(1).max(1000).nullable().optional(),
+  cap_documentali_per_tenant: z.coerce.number().int().min(0).max(1000).nullable().optional(),
+  cap_branches_per_tenant: z.coerce.number().int().min(1).max(10000).nullable().optional(),
+};
+
+// ---- GET /partners ---------------------------------------------------------
+partnershipRouter.get(
+  '/partners',
+  requirePartnershipAdmin,
+  asyncHandler(async (req, res) => {
+    const r = await adminPool.query(
+      `SELECT pm.user_id, au.email, pm.active,
+              pm.cap_tenants, pm.cap_users_per_tenant, pm.cap_admins_per_tenant,
+              pm.cap_documentali_per_tenant, pm.cap_branches_per_tenant, pm.created_at,
+              (SELECT count(*)::int FROM tenants t
+                 WHERE t.created_by_partner = pm.user_id AND t.deleted_at IS NULL) AS tenant_count
+         FROM partnership_members pm
+         JOIN auth_users au ON au.id = pm.user_id
+        WHERE pm.role = 'partner'
+        ORDER BY pm.created_at DESC`
+    );
+    ok(res, { partners: r.rows });
+  })
+);
+
+// ---- POST /partners --------------------------------------------------------
+const CreatePartner = z.object({
+  email: z.string().email(),
+  first_name: z.string().trim().max(80).optional(),
+  last_name: z.string().trim().max(80).optional(),
+  ...CapsSchema,
+});
+
+partnershipRouter.post(
+  '/partners',
+  requirePartnershipAdmin,
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const parse = CreatePartner.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const b = parse.data;
+    const email = b.email.trim().toLowerCase();
+
+    const client = await adminPool.connect();
+    try {
+      await client.query('BEGIN');
+      const u = await ensureAuthUser(client, {
+        email,
+        firstName: b.first_name ?? null,
+        lastName: b.last_name ?? null,
+        language: 'it',
+      });
+      // Refuse to convert an existing platform admin into a partner.
+      const existing = await client.query(
+        `SELECT role FROM partnership_members WHERE user_id = $1`,
+        [u.userId]
+      );
+      if (existing.rowCount && existing.rows[0].role === 'admin') {
+        throw new ConflictError('user is already a platform admin', 'ALREADY_ADMIN');
+      }
+      const caps = [
+        b.cap_tenants ?? null,
+        b.cap_users_per_tenant ?? null,
+        b.cap_admins_per_tenant ?? null,
+        b.cap_documentali_per_tenant ?? null,
+        b.cap_branches_per_tenant ?? null,
+      ];
+      await client.query(
+        `INSERT INTO partnership_members
+           (user_id, role, active, cap_tenants, cap_users_per_tenant, cap_admins_per_tenant,
+            cap_documentali_per_tenant, cap_branches_per_tenant, created_by, updated_at)
+         VALUES ($1, 'partner', TRUE, $2, $3, $4, $5, $6, $7, now())
+         ON CONFLICT (user_id) DO UPDATE
+           SET role = 'partner', active = TRUE,
+               cap_tenants = EXCLUDED.cap_tenants,
+               cap_users_per_tenant = EXCLUDED.cap_users_per_tenant,
+               cap_admins_per_tenant = EXCLUDED.cap_admins_per_tenant,
+               cap_documentali_per_tenant = EXCLUDED.cap_documentali_per_tenant,
+               cap_branches_per_tenant = EXCLUDED.cap_branches_per_tenant,
+               updated_at = now()`,
+        [u.userId, ...caps, p.userId]
+      );
+      await logPartnershipAudit(
+        {
+          actorUserId: p.userId,
+          actorRole: p.role,
+          action: 'partner.create',
+          targetType: 'partner',
+          targetId: u.userId,
+          targetLabel: email,
+          after: {
+            invited: u.invited,
+            caps: {
+              cap_tenants: caps[0],
+              cap_users_per_tenant: caps[1],
+              cap_admins_per_tenant: caps[2],
+              cap_documentali_per_tenant: caps[3],
+              cap_branches_per_tenant: caps[4],
+            },
+          },
+          ...auditCtx(req),
+        },
+        client
+      );
+      await client.query('COMMIT');
+      logger.info({ partner_user_id: u.userId, email, invited: u.invited }, 'partner created');
+      ok(res, { user_id: u.userId, email, invited: u.invited, role: 'partner' }, 201);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  })
+);
+
+// ---- PATCH /partners/:userId/caps ------------------------------------------
+const UpdateCaps = z
+  .object({ ...CapsSchema })
+  .refine((d) => Object.keys(d).length > 0, { message: 'no caps to update' });
+
+partnershipRouter.patch(
+  '/partners/:userId/caps',
+  requirePartnershipAdmin,
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const userId = String(req.params.userId);
+    if (!UUID_RE.test(userId)) throw new ValidationError('invalid user id');
+    const parse = UpdateCaps.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const b = parse.data;
+
+    const cur = await adminPool.query(
+      `SELECT au.email, pm.role, pm.cap_tenants, pm.cap_users_per_tenant, pm.cap_admins_per_tenant,
+              pm.cap_documentali_per_tenant, pm.cap_branches_per_tenant
+         FROM partnership_members pm JOIN auth_users au ON au.id = pm.user_id
+        WHERE pm.user_id = $1`,
+      [userId]
+    );
+    if (cur.rowCount === 0) throw new NotFoundError('partner not found');
+    if (cur.rows[0].role !== 'partner') throw new ConflictError('not a partner', 'NOT_A_PARTNER');
+    const before = {
+      cap_tenants: cur.rows[0].cap_tenants,
+      cap_users_per_tenant: cur.rows[0].cap_users_per_tenant,
+      cap_admins_per_tenant: cur.rows[0].cap_admins_per_tenant,
+      cap_documentali_per_tenant: cur.rows[0].cap_documentali_per_tenant,
+      cap_branches_per_tenant: cur.rows[0].cap_branches_per_tenant,
+    };
+    const pick = <K extends keyof typeof before>(k: K): number | null =>
+      k in b ? ((b as Record<string, number | null | undefined>)[k] ?? null) : before[k];
+    const next = {
+      cap_tenants: pick('cap_tenants'),
+      cap_users_per_tenant: pick('cap_users_per_tenant'),
+      cap_admins_per_tenant: pick('cap_admins_per_tenant'),
+      cap_documentali_per_tenant: pick('cap_documentali_per_tenant'),
+      cap_branches_per_tenant: pick('cap_branches_per_tenant'),
+    };
+    await adminPool.query(
+      `UPDATE partnership_members
+          SET cap_tenants = $2, cap_users_per_tenant = $3, cap_admins_per_tenant = $4,
+              cap_documentali_per_tenant = $5, cap_branches_per_tenant = $6, updated_at = now()
+        WHERE user_id = $1`,
+      [
+        userId,
+        next.cap_tenants,
+        next.cap_users_per_tenant,
+        next.cap_admins_per_tenant,
+        next.cap_documentali_per_tenant,
+        next.cap_branches_per_tenant,
+      ]
+    );
+    await logPartnershipAudit({
+      actorUserId: p.userId,
+      actorRole: p.role,
+      action: 'partner.update_caps',
+      targetType: 'partner',
+      targetId: userId,
+      targetLabel: cur.rows[0].email,
+      before,
+      after: next,
+      ...auditCtx(req),
+    });
+    ok(res, { user_id: userId, caps: next });
+  })
+);
+
+// ---- POST /partners/:userId/{activate,deactivate} --------------------------
+function partnerToggle(action: 'partner.activate' | 'partner.deactivate', active: boolean) {
+  return asyncHandler(async (req: Request, res) => {
+    const p = partner(req);
+    const userId = String(req.params.userId);
+    if (!UUID_RE.test(userId)) throw new ValidationError('invalid user id');
+    const cur = await adminPool.query(
+      `SELECT au.email, pm.role FROM partnership_members pm
+         JOIN auth_users au ON au.id = pm.user_id WHERE pm.user_id = $1`,
+      [userId]
+    );
+    if (cur.rowCount === 0) throw new NotFoundError('partner not found');
+    if (cur.rows[0].role !== 'partner') throw new ConflictError('not a partner', 'NOT_A_PARTNER');
+    await adminPool.query(
+      `UPDATE partnership_members SET active = $2, updated_at = now() WHERE user_id = $1`,
+      [userId, active]
+    );
+    await logPartnershipAudit({
+      actorUserId: p.userId,
+      actorRole: p.role,
+      action,
+      targetType: 'partner',
+      targetId: userId,
+      targetLabel: cur.rows[0].email,
+      after: { active },
+      ...auditCtx(req),
+    });
+    ok(res, { user_id: userId, active });
+  });
+}
+partnershipRouter.post('/partners/:userId/deactivate', requirePartnershipAdmin, partnerToggle('partner.deactivate', false));
+partnershipRouter.post('/partners/:userId/activate', requirePartnershipAdmin, partnerToggle('partner.activate', true));
+
+// ---- GET /audit ------------------------------------------------------------
+// admin → all entries; partner → only their own actions.
+partnershipRouter.get(
+  '/audit',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const limit = Math.min(Number(req.query.limit) || 100, 500);
+    const offset = Math.max(Number(req.query.offset) || 0, 0);
+    const params: unknown[] = [];
+    let scope = '';
+    if (p.role === 'partner') {
+      params.push(p.userId);
+      scope = 'WHERE al.actor_user_id = $1';
+    }
+    params.push(limit, offset);
+    const r = await adminPool.query(
+      `SELECT al.id, al.actor_user_id, au.email AS actor_email, al.actor_role, al.action,
+              al.target_type, al.target_id, al.target_label, al.before, al.after,
+              al.ip, al.created_at
+         FROM partnership_audit_log al
+         LEFT JOIN auth_users au ON au.id = al.actor_user_id
+         ${scope}
+        ORDER BY al.created_at DESC
+        LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params
+    );
+    ok(res, { entries: r.rows });
+  })
+);

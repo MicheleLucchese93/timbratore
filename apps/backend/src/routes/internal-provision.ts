@@ -1,15 +1,11 @@
 import { Router } from 'express';
 import { timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
-import { adminPool } from '../lib/admin-db.js';
 import { env } from '../env.js';
 import { ForbiddenError, ValidationError } from '../errors/index.js';
 import { ok } from '../lib/api-response.js';
-import { createLogger } from '../lib/logger.js';
 import { asyncHandler } from '../lib/route-helpers.js';
-import { inviteUser } from '../lib/gotrue-admin.js';
-
-const logger = createLogger('internal-provision');
+import { provisionTenant } from '../lib/provision-tenant.js';
 
 // Constant-time bearer comparison — same guard the internal-e2e router uses.
 function bearerMatches(header: string | undefined, secret: string): boolean {
@@ -70,96 +66,40 @@ internalProvisionRouter.post(
     const parse = ProvisionTenant.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     const body = parse.data;
-    const email = body.admin_email.trim().toLowerCase();
-    const firstName = body.admin_first_name ?? null;
-    const lastName = body.admin_last_name ?? null;
-    const display = [firstName, lastName].map((s) => s ?? '').join(' ').trim() || null;
 
-    const client = await adminPool.connect();
-    // GoTrue user creation is not part of the PG transaction. If /invite
-    // succeeds but a later INSERT fails, the rollback drops the tenant while the
-    // GoTrue user lingers — log its id so it can be cleaned up by hand.
-    let orphanGoTrueUserId: string | null = null;
-    try {
-      await client.query('BEGIN');
+    // Shared with the partnership API — see lib/provision-tenant.ts. This route
+    // keeps its original response contract (3 limits) for back-compat.
+    const result = await provisionTenant({
+      ragioneSociale: body.ragione_sociale,
+      adminEmail: body.admin_email,
+      adminFirstName: body.admin_first_name ?? null,
+      adminLastName: body.admin_last_name ?? null,
+      language: body.language,
+      maxAdmins: body.max_admins ?? null,
+      maxUsers: body.max_users ?? null,
+      maxBranches: body.max_branches ?? null,
+    });
 
-      const t = await client.query(
-        `INSERT INTO tenants (ragione_sociale, language, max_admins, max_users, max_branches)
-         VALUES ($1, $2, COALESCE($3, 2), COALESCE($4, 20), COALESCE($5, 3))
-         RETURNING id, max_admins, max_users, max_branches`,
-        [
-          body.ragione_sociale,
-          body.language,
-          body.max_admins ?? null,
-          body.max_users ?? null,
-          body.max_branches ?? null,
-        ]
-      );
-      const tenantId = t.rows[0].id as string;
-
-      // Reuse an existing account if the email is already a GoTrue user
-      // (idempotent re-runs, or adding an existing person as a new tenant's
-      // admin) — GoTrue /invite would reject a duplicate. A reused account
-      // already has credentials, so no invite email is sent.
-      const existing = await client.query(`SELECT id FROM auth_users WHERE email = $1`, [email]);
-      let userId: string;
-      let invited = false;
-      if (existing.rowCount && existing.rows[0]) {
-        userId = existing.rows[0].id as string;
-      } else {
-        const g = await inviteUser(email, body.language);
-        userId = g.id;
-        orphanGoTrueUserId = g.id;
-        invited = true;
-        await client.query(
-          `INSERT INTO auth_users (id, email, first_name, last_name, display_name, created_at)
-           VALUES ($1, $2, $3, $4, $5, now())
-           ON CONFLICT (id) DO NOTHING`,
-          [userId, email, firstName, lastName, display]
-        );
-      }
-
-      const mem = await client.query(
-        `INSERT INTO memberships (tenant_id, user_id, role)
-         VALUES ($1, $2, 'admin')
-         ON CONFLICT (tenant_id, user_id) DO UPDATE
-           SET role = 'admin', active = TRUE, deleted_at = NULL
-         RETURNING id`,
-        [tenantId, userId]
-      );
-
-      await client.query('COMMIT');
-      logger.info(
-        { tenant_id: tenantId, user_id: userId, email, invited },
-        'tenant provisioned'
-      );
-      ok(
-        res,
-        {
-          tenant_id: tenantId,
-          ragione_sociale: body.ragione_sociale,
-          admin: { user_id: userId, email, role: 'admin', membership_id: mem.rows[0].id },
-          // true → invite email sent; false → admin already had an account.
-          invited,
-          limits: {
-            max_admins: t.rows[0].max_admins,
-            max_users: t.rows[0].max_users,
-            max_branches: t.rows[0].max_branches,
-          },
+    ok(
+      res,
+      {
+        tenant_id: result.tenantId,
+        ragione_sociale: result.ragioneSociale,
+        admin: {
+          user_id: result.admin.userId,
+          email: result.admin.email,
+          role: result.admin.role,
+          membership_id: result.admin.membershipId,
         },
-        201
-      );
-    } catch (err) {
-      await client.query('ROLLBACK');
-      if (orphanGoTrueUserId) {
-        logger.error(
-          { orphan_gotrue_user_id: orphanGoTrueUserId, email },
-          'provisioning failed after GoTrue /invite — orphan auth user left behind, clean up manually'
-        );
-      }
-      throw err;
-    } finally {
-      client.release();
-    }
+        // true → invite email sent; false → admin already had an account.
+        invited: result.invited,
+        limits: {
+          max_admins: result.limits.maxAdmins,
+          max_users: result.limits.maxUsers,
+          max_branches: result.limits.maxBranches,
+        },
+      },
+      201
+    );
   })
 );
