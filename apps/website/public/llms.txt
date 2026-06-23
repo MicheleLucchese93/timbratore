@@ -23,7 +23,6 @@ sonoQui è un servizio SaaS italiano dedicato alla rilevazione presenze. Il prod
 - Dashboard web per amministratori: presenze in tempo reale, anomalie, ferie, correzioni, timbrature.
 - Export XLSX mensile per le paghe italiane (ore ordinarie e straordinari, ferie, permessi, anomalie, totali per dipendente e sede).
 - Documenti per i dipendenti (cedolini, CU, contratti) con presa visione tracciata, archiviazione 36 mesi e accesso all'archivio completo riservato a un responsabile autorizzato con codice di verifica.
-- Funziona offline: le timbrature vanno in coda e si sincronizzano automaticamente al ritorno della connessione, con protezione anti-doppioni.
 
 ## Conformità e sicurezza
 

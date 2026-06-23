@@ -60,11 +60,6 @@ export const homeFaq: Record<Lang, FaqItem[]> = {
         "Sì. Carichi i PDF (cedolini, CU, contratti, comunicazioni) e li assegni a ogni dipendente, che li trova nella sezione «I miei documenti» sul web e nel tab «Documenti» dell'app. Ogni documento registra la presa visione e viene archiviato per 36 mesi; sull'app la sezione è protetta da sblocco biometrico. L'accesso all'archivio di tutti i dipendenti è riservato a un responsabile autorizzato («Documentale»): ogni consultazione richiede un codice di verifica inviato via email e viene registrata, mentre ciascun dipendente vede esclusivamente i propri documenti.",
     },
     {
-      question: "Cosa succede se il dipendente non ha campo o internet?",
-      answer:
-        "La timbratura non va persa: viene messa in coda e inviata automaticamente appena il telefono torna online, anche dopo aver chiuso l'app. Un sistema anti-doppioni evita timbrature duplicate. Utile per cantieri, trasferte e zone senza copertura.",
-    },
-    {
       question: "Che succede se un dipendente si dimentica di timbrare?",
       answer:
         "Può richiedere una correzione direttamente dall'app indicando orario e motivo. L'amministratore approva o rifiuta. La timbratura corretta viene tracciata con audit log completo.",
@@ -168,7 +163,6 @@ export function buildHomeSchema(lang: Lang) {
       'Export XLSX per il commercialista',
       'Documenti dei dipendenti con presa visione',
       'Smart working e sedi multiple',
-      'Funziona offline con coda di sincronizzazione',
       "Conforme all'art. 4 dello Statuto dei Lavoratori e al GDPR",
     ],
     screenshot: [
