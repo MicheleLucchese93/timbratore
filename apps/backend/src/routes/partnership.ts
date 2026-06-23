@@ -54,9 +54,17 @@ partnershipRouter.get(
   '/me',
   asyncHandler(async (req, res) => {
     const p = partner(req);
+    const u = await adminPool.query(
+      `SELECT email, first_name, last_name, display_name FROM auth_users WHERE id = $1`,
+      [p.userId]
+    );
+    const row = u.rows[0] ?? {};
     ok(res, {
       user_id: p.userId,
-      email: p.email,
+      email: p.email ?? row.email ?? null,
+      first_name: row.first_name ?? null,
+      last_name: row.last_name ?? null,
+      display_name: row.display_name ?? null,
       role: p.role,
       caps: {
         cap_tenants: p.capTenants,
@@ -66,6 +74,37 @@ partnershipRouter.get(
         cap_branches_per_tenant: p.capBranchesPerTenant,
       },
     });
+  })
+);
+
+// ---- PATCH /me — edit own display name -------------------------------------
+const emptyToNull = (v: string) => (v.length === 0 ? null : v);
+const ProfileName = z
+  .object({
+    first_name: z.string().trim().max(80).transform(emptyToNull).nullable().optional(),
+    last_name: z.string().trim().max(80).transform(emptyToNull).nullable().optional(),
+  })
+  .refine((d) => 'first_name' in d || 'last_name' in d, { message: 'nothing to update' });
+
+partnershipRouter.patch(
+  '/me',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const parse = ProfileName.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const b = parse.data;
+    const cur = await adminPool.query(
+      `SELECT first_name, last_name FROM auth_users WHERE id = $1`,
+      [p.userId]
+    );
+    const first = ('first_name' in b ? b.first_name : cur.rows[0]?.first_name) ?? null;
+    const last = ('last_name' in b ? b.last_name : cur.rows[0]?.last_name) ?? null;
+    const display = [first, last].map((s) => s ?? '').join(' ').trim() || null;
+    await adminPool.query(
+      `UPDATE auth_users SET first_name = $2, last_name = $3, display_name = $4 WHERE id = $1`,
+      [p.userId, first, last, display]
+    );
+    ok(res, { first_name: first, last_name: last, display_name: display });
   })
 );
 

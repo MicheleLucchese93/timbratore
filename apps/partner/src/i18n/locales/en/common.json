@@ -2,6 +2,7 @@
   "app": { "name": "sonoQui", "suffix": "Partner", "subtitle": "Reseller tenant management" },
   "nav": { "tenants": "Companies", "partners": "Partners", "audit": "Activity log", "logout": "Sign out" },
   "role": { "admin": "Administrator", "partner": "Partner" },
+  "profile": { "title": "Profile", "email": "Email", "first_name": "First name", "last_name": "Last name", "saved": "Profile updated." },
   "actions": {
     "save": "Save", "cancel": "Cancel", "create": "Create", "edit": "Edit",
     "close": "Close", "confirm": "Confirm", "search": "Search", "refresh": "Refresh"

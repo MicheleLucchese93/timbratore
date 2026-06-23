@@ -2,6 +2,7 @@
   "app": { "name": "sonoQui", "suffix": "Partner", "subtitle": "Gestione tenant rivenditori" },
   "nav": { "tenants": "Aziende", "partners": "Partner", "audit": "Registro attività", "logout": "Esci" },
   "role": { "admin": "Amministratore", "partner": "Partner" },
+  "profile": { "title": "Profilo", "email": "Email", "first_name": "Nome", "last_name": "Cognome", "saved": "Profilo aggiornato." },
   "actions": {
     "save": "Salva", "cancel": "Annulla", "create": "Crea", "edit": "Modifica",
     "close": "Chiudi", "confirm": "Conferma", "search": "Cerca", "refresh": "Aggiorna"

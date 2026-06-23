@@ -12,6 +12,9 @@ export interface PartnerCaps {
 export interface PartnerMe {
   user_id: string;
   email: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  display_name: string | null;
   role: 'admin' | 'partner';
   caps: PartnerCaps;
 }
@@ -22,6 +25,7 @@ interface SessionState {
   /** Error code from the last failed resolve (e.g. NOT_PARTNERSHIP_MEMBER). */
   error: string | null;
   refresh: () => Promise<void>;
+  updateProfile: (p: { first_name: string | null; last_name: string | null }) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -46,6 +50,13 @@ export const useSession = create<SessionState>((set) => ({
       await logoutAuth();
       set({ loading: false, me: null, error: code });
     }
+  },
+  async updateProfile(p) {
+    const updated = await api<{ first_name: string | null; last_name: string | null; display_name: string | null }>(
+      '/api/v1/partnership/me',
+      { method: 'PATCH', json: p }
+    );
+    set((s) => (s.me ? { me: { ...s.me, ...updated } } : {}));
   },
   async logout() {
     await logoutAuth();
