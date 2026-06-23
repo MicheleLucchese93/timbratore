@@ -172,9 +172,9 @@ export function buildHomeSchema(lang: Lang) {
       "Conforme all'art. 4 dello Statuto dei Lavoratori e al GDPR",
     ],
     screenshot: [
-      { '@type': 'ImageObject', url: `${SITE_URL}/screenshots/clock-in.png`, caption: 'Timbra in un tap' },
-      { '@type': 'ImageObject', url: `${SITE_URL}/screenshots/dashboard.png`, caption: 'La tua giornata' },
-      { '@type': 'ImageObject', url: `${SITE_URL}/screenshots-web/stamps.png`, caption: 'Dashboard amministratori' },
+      { '@type': 'ImageObject', url: `${SITE_URL}/screenshots/timbra.png`, caption: 'Timbra in un tap' },
+      { '@type': 'ImageObject', url: `${SITE_URL}/screenshots/storico.png`, caption: 'Storico delle timbrature' },
+      { '@type': 'ImageObject', url: `${SITE_URL}/screenshots-web/dashboard.png`, caption: 'Dashboard amministratori' },
     ],
     offers: {
       '@type': 'Offer',

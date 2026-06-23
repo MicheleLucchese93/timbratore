@@ -6,11 +6,18 @@ export const ui = {
   it: {
     // Nav
     'nav.features': 'Funzionalità',
+    'nav.video': 'Demo',
     'nav.screenshots': 'App',
     'nav.web': 'Dashboard',
     'nav.faq': 'FAQ',
     'nav.contact': 'Contatti',
     'nav.download': "Richiedi l'accesso",
+
+    // Video
+    'video.title': 'Guarda sonoQui in azione',
+    'video.subtitle':
+      'Un minuto e mezzo: dalla timbratura in un tap alla dashboard per chi amministra.',
+    'video.play': 'Riproduci il video demo',
 
     // Hero
     'hero.tagline': 'La timbratura è qui.',

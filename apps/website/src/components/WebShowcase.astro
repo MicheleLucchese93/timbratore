@@ -4,14 +4,12 @@ import { getLangFromUrl, useTranslations } from "../i18n/utils";
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 
-// Labels match the actual captured screen (see Specs/images/web). The file
-// names don't reflect content (they were assigned before review), so each
-// entry maps a file to its real screen.
+// Files are named by content; labels match the captured screen.
 
 // The core admin story, shown as large alternating rows.
 const rows = [
   {
-    file: "stamps",
+    file: "dashboard",
     eyebrow: "In tempo reale",
     label: "Panoramica giornaliera",
     desc: "Apri la dashboard e vedi subito com'è andata la giornata: chi è presente, chi è in pausa, chi è assente e cosa c'è da approvare.",
@@ -22,7 +20,7 @@ const rows = [
     ],
   },
   {
-    file: "branches",
+    file: "anomalie",
     eyebrow: "Sotto controllo",
     label: "Anomalie orario",
     desc: "Ritardi, uscite anticipate, ore insufficienti, pause anomale e timbrature mancanti emergono da soli, confrontati con l'orario assegnato.",
@@ -33,7 +31,7 @@ const rows = [
     ],
   },
   {
-    file: "anomalies",
+    file: "timbrature",
     eyebrow: "Registro",
     label: "Timbrature",
     desc: "Tutte le timbrature dei dipendenti in un unico elenco, filtrabile per persona, sede e periodo.",
@@ -44,7 +42,7 @@ const rows = [
     ],
   },
   {
-    file: "settings",
+    file: "ferie",
     eyebrow: "Assenze",
     label: "Ferie e permessi",
     desc: "Ferie, permessi e malattia in un'unica scheda, con periodo, ore, stato e chi ha deciso.",
@@ -55,7 +53,7 @@ const rows = [
     ],
   },
   {
-    file: "leave-detail",
+    file: "utenti",
     eyebrow: "Team",
     label: "Dipendenti",
     desc: "Gestisci ruoli, sedi e attivazione. Inviti nuovi dipendenti e li importi o esporti in Excel.",
@@ -66,7 +64,7 @@ const rows = [
     ],
   },
   {
-    file: "documents",
+    file: "documenti",
     eyebrow: "Documenti",
     label: "Cedolini e documenti, condivisi",
     desc: "Carica cedolini, CU, contratti e comunicazioni in PDF e assegnali a ogni dipendente. Li consulta dal web o dall'app, e tu sai quando li ha visti.",
@@ -81,12 +79,12 @@ const rows = [
 
 // Everything else, shown compactly so the breadth resta visibile.
 const more = [
-  { file: "leaves", label: "Correzioni", desc: "Le richieste di correzione dei dipendenti, con motivazione: approvi o rifiuti." },
-  { file: "login", label: "Quote ferie e modelli", desc: "Accredito automatico (es. 176 ore l'anno): le ferie residue si aggiornano da sole." },
-  { file: "corrections", label: "Sedi di lavoro", desc: "Ogni sede sulla mappa con il proprio raggio. Lo smart working è una sede senza GPS." },
-  { file: "export", label: "Raggio e geofence", desc: "Raggio da 50 a 1500 m, politica di tolleranza e accuratezza GPS massima per sede." },
-  { file: "users", label: "Orari e tolleranze", desc: "Modelli di orario con fasce, tolleranze di entrata/uscita, penalità e straordinario." },
-  { file: "dashboard", label: "Accesso amministratore", desc: "Login con email e password. Solo gli account abilitati come amministratori vedono la dashboard." },
+  { file: "correzioni", label: "Correzioni", desc: "Le richieste di correzione dei dipendenti, con motivazione: approvi o rifiuti." },
+  { file: "quote", label: "Quote ferie e modelli", desc: "Accredito automatico (es. 176 ore l'anno): le ferie residue si aggiornano da sole." },
+  { file: "sedi", label: "Sedi di lavoro", desc: "Ogni sede sulla mappa con il proprio raggio. Lo smart working è una sede senza GPS." },
+  { file: "raggio", label: "Raggio e geofence", desc: "Raggio da 50 a 1500 m, politica di tolleranza e accuratezza GPS massima per sede." },
+  { file: "orari", label: "Orari e tolleranze", desc: "Modelli di orario con fasce, tolleranze di entrata/uscita, penalità e straordinario." },
+  { file: "login", label: "Accesso amministratore", desc: "Login con email e password. Solo gli account abilitati come amministratori vedono la dashboard." },
 ];
 
 const src = (file: string) => `/screenshots-web/${file}.png`;

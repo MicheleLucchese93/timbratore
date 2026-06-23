@@ -4,20 +4,22 @@ import { getLangFromUrl, useTranslations } from "../i18n/utils";
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 
-// Labels are written to match the actual captured screen (see Specs/images/mobile).
+// Files are named by content. Labels match the actual captured screen.
 const screenshots = [
   { file: "login", label: "Accesso sicuro", desc: "Email e password. L'account è creato dall'amministratore della tua azienda." },
-  { file: "dashboard", label: "La tua giornata", desc: "Stato attuale, ore lavorate e conteggiate, sede. Timbra entrata, uscita e pause con un tap." },
-  { file: "clock-in", label: "Storico timbrature", desc: "Totale lavorato su 7, 30 o 90 giorni. Ogni ingresso e uscita, giorno per giorno." },
-  { file: "leaves-list", label: "Richiesta ferie", desc: "Scegli le date, tutto il giorno o a ore, e invia la richiesta all'amministratore." },
-  { file: "leave-request", label: "Richiesta permesso", desc: "Permesso a orario specifico: imposta ora di inizio e fine e la motivazione." },
-  { file: "corrections", label: "Segnalazione malattia", desc: "Comunica la malattia con numero di protocollo INPS e note facoltative." },
-  { file: "correction-form", label: "Altre assenze", desc: "Donazione sangue, congedi e altri permessi, retribuiti o non retribuiti." },
-  { file: "history-detail", label: "Le tue richieste", desc: "Stato di ferie e permessi: in attesa, approvate, annullate. Richiedi l'annullamento." },
-  { file: "clock-in-success", label: "Correzioni da approvare", desc: "Per l'amministratore: timbrature mancanti segnalate dai dipendenti, da approvare o rifiutare." },
-  { file: "history", label: "Tutte le correzioni", desc: "Storico completo delle correzioni con esito e motivazione." },
-  { file: "notifications", label: "Approvazioni dal telefono", desc: "Per l'amministratore: approva richieste e annullamenti di ferie direttamente dall'app." },
-  { file: "profile", label: "Centro notifiche", desc: "Esiti di approvazioni di ferie e correzioni in tempo reale." },
+  { file: "timbra", label: "La tua giornata", desc: "Stato attuale, ore lavorate e conteggiate, sede. Timbra entrata, uscita e pause con un tap." },
+  { file: "storico", label: "Storico timbrature", desc: "Totale lavorato su 7, 30 o 90 giorni. Ogni ingresso e uscita, giorno per giorno." },
+  { file: "orario", label: "Il tuo orario", desc: "L'orario di lavoro assegnato, giorno per giorno, con le fasce e il totale settimanale." },
+  { file: "richiesta-ferie", label: "Richiesta ferie", desc: "Scegli le date, tutto il giorno o a ore, e invia la richiesta all'amministratore." },
+  { file: "richiesta-permesso", label: "Richiesta permesso", desc: "Permesso a orario specifico: imposta ora di inizio e fine e la motivazione." },
+  { file: "malattia", label: "Segnalazione malattia", desc: "Comunica la malattia con numero di protocollo INPS e note facoltative." },
+  { file: "assenza", label: "Altre assenze", desc: "Donazione sangue, congedi e altri permessi, retribuiti o non retribuiti." },
+  { file: "richieste", label: "Le tue richieste", desc: "Stato di ferie e permessi: in attesa, approvate, annullate. Richiedi l'annullamento." },
+  { file: "documento", label: "Documenti sul telefono", desc: "Cedolini, CU e contratti sempre con te. La presa visione è tracciata: l'azienda sa quando li hai letti." },
+  { file: "notifiche", label: "Centro notifiche", desc: "Esiti di approvazioni di ferie e correzioni in tempo reale." },
+  { file: "correzioni-approva", label: "Correzioni da approvare", desc: "Per l'amministratore: timbrature mancanti segnalate dai dipendenti, da approvare o rifiutare." },
+  { file: "correzioni", label: "Tutte le correzioni", desc: "Storico completo delle correzioni con esito e motivazione." },
+  { file: "approvazioni", label: "Approvazioni dal telefono", desc: "Per l'amministratore: approva richieste e annullamenti di ferie direttamente dall'app." },
 ];
 
 const src = (file: string) => `/screenshots/${file}.png`;
@@ -55,7 +57,7 @@ for (let i = 0; i < screenshots.length; i += 3) {
               <div class="rounded-[1.3rem] border-[4px] border-on-surface bg-on-surface p-0.5 shadow-xl">
                 <picture>
                   <source srcset={webp(s.file)} type="image/webp" />
-                  <img src={src(s.file)} alt={s.label} width="1206" height="2862" class="block w-full rounded-[1.1rem] bg-on-surface" loading="lazy" />
+                  <img src={src(s.file)} alt={s.label} width="1170" height="2532" class="block w-full rounded-[1.1rem] bg-on-surface" loading="lazy" />
                 </picture>
               </div>
               <span class="pointer-events-none absolute inset-0 flex items-center justify-center rounded-[1.8rem] bg-on-surface/0 opacity-0 transition-all duration-200 group-hover:bg-on-surface/20 group-hover:opacity-100">
@@ -98,7 +100,7 @@ for (let i = 0; i < screenshots.length; i += 3) {
                       <div class="rounded-[1.3rem] border-[4px] border-on-surface bg-on-surface p-0.5 shadow-xl">
                       <picture>
                         <source srcset={webp(s.file)} type="image/webp" />
-                        <img src={src(s.file)} alt={s.label} width="1206" height="2862" class="block w-full rounded-[1.1rem] bg-on-surface" loading="lazy" />
+                        <img src={src(s.file)} alt={s.label} width="1170" height="2532" class="block w-full rounded-[1.1rem] bg-on-surface" loading="lazy" />
                       </picture>
                       </div>
                       <span class="pointer-events-none absolute inset-0 flex items-center justify-center rounded-[1.8rem] bg-on-surface/0 opacity-0 transition-all duration-200 group-hover:bg-on-surface/20 group-hover:opacity-100">

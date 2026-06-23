@@ -1,0 +1,63 @@
+---
+import { getLangFromUrl, useTranslations } from "../i18n/utils";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+// GDPR-friendly "click to load": the Vimeo iframe is injected only after the
+// user clicks the poster, so no third-party request/cookie fires on page load.
+// dnt=1 (do-not-track) keeps the player cookieless even after play.
+const VIMEO_SRC =
+  "https://player.vimeo.com/video/1203721844?dnt=1&badge=0&autopause=0&autoplay=1&title=0&byline=0&portrait=0&app_id=58479";
+---
+
+<section id="video" class="bg-white py-16 sm:py-24">
+  <div class="mx-auto max-w-4xl px-4 text-center sm:px-6">
+    <h2 class="text-3xl font-extrabold tracking-tight text-on-surface sm:text-4xl">
+      {t("video.title")}
+    </h2>
+    <p class="mx-auto mt-4 max-w-2xl text-lg text-on-surface-variant">
+      {t("video.subtitle")}
+    </p>
+
+    <div class="mt-10">
+      <button
+        id="video-facade"
+        type="button"
+        aria-label={t("video.play")}
+        data-src={VIMEO_SRC}
+        class="group relative block aspect-video w-full overflow-hidden rounded-2xl shadow-2xl ring-1 ring-black/5 transition-shadow hover:shadow-primary/20"
+      >
+        <img
+          src="/promo-thumbnail.jpg"
+          alt={t("video.title")}
+          width="1920"
+          height="1080"
+          loading="lazy"
+          class="block h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+        />
+      </button>
+    </div>
+  </div>
+</section>
+
+<script>
+  const facade = document.getElementById("video-facade");
+  facade?.addEventListener("click", () => {
+    const src = facade.getAttribute("data-src");
+    if (!src) return;
+    const wrap = document.createElement("div");
+    wrap.className = "relative aspect-video w-full overflow-hidden rounded-2xl shadow-2xl ring-1 ring-black/5";
+    const iframe = document.createElement("iframe");
+    iframe.src = src;
+    iframe.title = "sonoQui — la timbratura è qui";
+    iframe.className = "absolute inset-0 h-full w-full";
+    iframe.setAttribute("frameborder", "0");
+    iframe.setAttribute("allow", "autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share");
+    iframe.setAttribute("allowfullscreen", "");
+    iframe.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+    iframe.setAttribute("loading", "lazy");
+    facade.replaceWith(wrap);
+    wrap.appendChild(iframe);
+  });
+</script>
