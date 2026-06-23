@@ -49,8 +49,9 @@ test.describe('partner admin · tenants', () => {
     await expect(page.getByText(/Azienda sospesa|Company suspended/)).toBeVisible();
     await expect(row(page, tenantName)).toContainText(/Sospesa|Suspended/);
 
-    // --- resume ---
+    // --- resume (in-app confirm) ---
     await row(page, tenantName).getByTestId('resume').click();
+    await page.getByTestId('confirm-ok').click();
     await expect(page.getByText(/Azienda riattivata|Company resumed/)).toBeVisible();
     await expect(row(page, tenantName)).toContainText(/Attiva|Active/);
 

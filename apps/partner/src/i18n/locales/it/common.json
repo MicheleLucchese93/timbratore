@@ -52,7 +52,7 @@
     },
     "edit": { "title": "Modifica limiti", "submit": "Salva limiti", "saved": "Limiti aggiornati." },
     "suspend": { "label": "Sospendi", "confirm": "Sospendere questa azienda? Gli utenti non potranno più accedere.", "done": "Azienda sospesa." },
-    "resume": { "label": "Riattiva", "done": "Azienda riattivata." },
+    "resume": { "label": "Riattiva", "confirm": "Riattivare questa azienda? Gli utenti potranno nuovamente accedere.", "done": "Azienda riattivata." },
     "reinvite": { "label": "Reinvita admin", "done": "Email di accesso inviata a {{email}}." }
   },
   "partners": {
@@ -76,7 +76,7 @@
       "created_existing": "Partner creato. L'utente aveva già un account."
     },
     "edit": { "title": "Modifica limiti partner", "submit": "Salva", "saved": "Limiti partner aggiornati." },
-    "activate": { "label": "Attiva", "done": "Partner attivato." },
+    "activate": { "label": "Attiva", "confirm": "Riattivare questo partner? Potrà nuovamente accedere.", "done": "Partner attivato." },
     "deactivate": { "label": "Disattiva", "confirm": "Disattivare questo partner? Non potrà più accedere.", "done": "Partner disattivato." },
     "resend": { "label": "Reinvita", "done": "Invito inviato a {{email}}." }
   },

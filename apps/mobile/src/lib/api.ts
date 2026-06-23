@@ -19,6 +19,15 @@ const SECURE_RETRY_DELAYS_MS = [200, 500];
 // we mirror by parsing the JWT and arming a setTimeout.
 const REFRESH_SKEW_SECONDS = 60;
 
+// Called when the server reports the session's tenant is gone (suspended /
+// membership revoked). The session store registers a handler that drops the
+// session so the app returns to login. Module-level so api() can fire it from
+// any request without importing the store (avoids a cycle).
+let sessionInvalidHandler: (() => void) | null = null;
+export function setSessionInvalidHandler(fn: () => void): void {
+  sessionInvalidHandler = fn;
+}
+
 function extra(): { apiBaseUrl?: string; authBaseUrl?: string } {
   return (Constants.expoConfig?.extra as { apiBaseUrl?: string; authBaseUrl?: string } | undefined) ?? {};
 }
@@ -225,6 +234,13 @@ export async function api<T = unknown>(
       err.message = e.message ?? err.message;
       err.code = e.code;
       err.details = e.details;
+    }
+    // Tenant suspended / membership revoked mid-session → the server refuses to
+    // resolve a membership. Drop the session so the app logs out (mirrors the
+    // web client). A plain authorization 403 (FORBIDDEN) does NOT.
+    if (res.status === 403 && (err.code === 'NO_ACTIVE_TENANT' || err.code === 'TENANT_NOT_ALLOWED')) {
+      await clearTokens();
+      sessionInvalidHandler?.();
     }
     throw err;
   }

@@ -44,6 +44,7 @@ test.describe('partner admin · partners', () => {
     await expect(row(page, partnerEmail)).toContainText(/Disattivato|Disabled/);
 
     await row(page, partnerEmail).getByTestId('activate').click();
+    await page.getByTestId('confirm-ok').click();
     await expect(page.getByText(/Partner attivato|Partner activated/)).toBeVisible();
     await expect(row(page, partnerEmail)).toContainText(/Attivo|Active/);
   });

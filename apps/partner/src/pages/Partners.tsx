@@ -70,16 +70,12 @@ export function Partners() {
   const toggle = useCallback(
     async (row: PartnerRow) => {
       const path = row.active ? 'deactivate' : 'activate';
-      if (
-        row.active &&
-        !(await confirm({
-          message: t('partners.deactivate.confirm'),
-          confirmLabel: t('partners.deactivate.label'),
-          danger: true,
-        }))
-      ) {
-        return;
-      }
+      const ok = await confirm({
+        message: t(row.active ? 'partners.deactivate.confirm' : 'partners.activate.confirm'),
+        confirmLabel: t(row.active ? 'partners.deactivate.label' : 'partners.activate.label'),
+        danger: row.active,
+      });
+      if (!ok) return;
       try {
         await api(`/api/v1/partnership/partners/${row.user_id}/${path}`, { method: 'POST' });
         toast(t(row.active ? 'partners.deactivate.done' : 'partners.activate.done'));

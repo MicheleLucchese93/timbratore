@@ -145,7 +145,13 @@ export function Tenants() {
             <button
               className="btn btn-secondary btn-sm"
               data-testid="resume"
-              onClick={() => act(`/api/v1/partnership/tenants/${p.row.id}/resume`, 'tenants.resume.done')}
+              onClick={async () => {
+                const okToResume = await confirm({
+                  message: t('tenants.resume.confirm'),
+                  confirmLabel: t('tenants.resume.label'),
+                });
+                if (okToResume) await act(`/api/v1/partnership/tenants/${p.row.id}/resume`, 'tenants.resume.done');
+              }}
             >
               {t('tenants.resume.label')}
             </button>

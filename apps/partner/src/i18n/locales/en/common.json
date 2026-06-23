@@ -52,7 +52,7 @@
     },
     "edit": { "title": "Edit limits", "submit": "Save limits", "saved": "Limits updated." },
     "suspend": { "label": "Suspend", "confirm": "Suspend this company? Its users will no longer be able to sign in.", "done": "Company suspended." },
-    "resume": { "label": "Resume", "done": "Company resumed." },
+    "resume": { "label": "Resume", "confirm": "Resume this company? Its users will be able to sign in again.", "done": "Company resumed." },
     "reinvite": { "label": "Re-invite admin", "done": "Access email sent to {{email}}." }
   },
   "partners": {
@@ -76,7 +76,7 @@
       "created_existing": "Partner created. The user already had an account."
     },
     "edit": { "title": "Edit partner caps", "submit": "Save", "saved": "Partner caps updated." },
-    "activate": { "label": "Activate", "done": "Partner activated." },
+    "activate": { "label": "Activate", "confirm": "Reactivate this partner? They will be able to sign in again.", "done": "Partner activated." },
     "deactivate": { "label": "Disable", "confirm": "Disable this partner? They will no longer be able to sign in.", "done": "Partner disabled." },
     "resend": { "label": "Resend", "done": "Invite sent to {{email}}." }
   },

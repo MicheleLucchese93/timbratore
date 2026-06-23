@@ -124,6 +124,20 @@ export async function api<T = unknown>(
       err.code = e.code;
       err.details = e.details;
     }
+    // The user's tenant was suspended (or their membership revoked) mid-session:
+    // the server now refuses to resolve a membership. Treat it like a 401 — drop
+    // the session and bounce to login so a suspended company's users are logged
+    // out of the web app. A plain authorization 403 (code FORBIDDEN) does NOT.
+    if (
+      res.status === 403 &&
+      (err.code === 'NO_ACTIVE_TENANT' || err.code === 'TENANT_NOT_ALLOWED') &&
+      getToken()
+    ) {
+      clearTokens();
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        window.location.assign('/login');
+      }
+    }
     throw err;
   }
   if (parsed && typeof parsed === 'object' && 'data' in (parsed as Record<string, unknown>)) {

@@ -6,6 +6,7 @@ import {
   getTenantId,
   getToken,
   setTenantId,
+  setSessionInvalidHandler,
   logout as logoutAuth,
 } from '../lib/api';
 
@@ -136,3 +137,10 @@ export const useSession = create<SessionState>((set, get) => ({
     set({ me: null, tenants: [], activeTenantId: null });
   },
 }));
+
+// When any request reports the session's tenant is gone (suspended / revoked),
+// drop the session so the navigator returns to login. Tokens are already
+// cleared by api(); just reset store state.
+setSessionInvalidHandler(() => {
+  useSession.setState({ me: null, tenants: [], activeTenantId: null, loading: false });
+});

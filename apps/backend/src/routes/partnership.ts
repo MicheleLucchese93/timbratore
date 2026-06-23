@@ -7,6 +7,7 @@ import { asyncHandler } from '../lib/route-helpers.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
 import { authenticatePartner, requirePartnershipAdmin } from '../middleware/partnership-auth.js';
 import type { PartnerContext } from '../middleware/partnership-auth.js';
+import { invalidateMembershipCache } from '../middleware/auth.js';
 import { env } from '../env.js';
 import { provisionTenant } from '../lib/provision-tenant.js';
 import { ensureAuthUser } from '../lib/auth-users.js';
@@ -367,6 +368,15 @@ partnershipRouter.post(
       `UPDATE tenants SET suspended_at = now(), suspended_by = $2 WHERE id = $1`,
       [t.id, p.userId]
     );
+    // Evict every member's cached membership so the suspension takes effect on
+    // their VERY NEXT request (otherwise the 60s auth cache would keep serving a
+    // stale membership and delay the forced logout). The client treats the
+    // resulting 403 NO_ACTIVE_TENANT as session-invalid → logs out.
+    const members = await adminPool.query(
+      `SELECT DISTINCT user_id FROM memberships WHERE tenant_id = $1 AND deleted_at IS NULL`,
+      [t.id]
+    );
+    for (const m of members.rows) invalidateMembershipCache(m.user_id as string);
     await logPartnershipAudit({
       actorUserId: p.userId,
       actorRole: p.role,
