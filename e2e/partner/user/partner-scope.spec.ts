@@ -11,9 +11,6 @@ function row(page: Page, name: string) {
 
 test.describe('partner (reseller) · scope & caps', () => {
   test.skip(!ENABLED, 'set E2E_MUTATING=1 (runs against a local backend)');
-  test.beforeEach(async ({ page }) => {
-    page.on('dialog', (d) => d.accept());
-  });
 
   test('no admin surface: Partners hidden + API forbidden', async ({ page }) => {
     await page.goto('/');
@@ -72,8 +69,9 @@ test.describe('partner (reseller) · scope & caps', () => {
       expect(tn.created_by_partner).toBe(me.data?.user_id);
     }
 
-    // Suspend a tenant the partner owns.
+    // Suspend a tenant the partner owns (in-app confirm).
     await row(page, t1).getByTestId('suspend').click();
+    await page.getByTestId('confirm-ok').click();
     await expect(page.getByText(/Azienda sospesa|Company suspended/)).toBeVisible();
     await expect(row(page, t1)).toContainText(/Sospesa|Suspended/);
   });

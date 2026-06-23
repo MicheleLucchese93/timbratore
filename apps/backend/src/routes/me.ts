@@ -57,6 +57,10 @@ meRouter.get(
          AND m.active = TRUE
          AND m.deleted_at IS NULL
          AND t.deleted_at IS NULL
+         -- A suspended company is hidden from its users' company list, so it is
+         -- never offered in the chooser (matches the auth middleware, which also
+         -- refuses to resolve a membership for a suspended tenant).
+         AND t.suspended_at IS NULL
        ORDER BY t.ragione_sociale ASC`,
       [req.user!.id]
     );

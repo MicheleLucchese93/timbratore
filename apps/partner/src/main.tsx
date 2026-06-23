@@ -5,6 +5,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 import { App } from './app/App.tsx';
 import { ToastProvider } from './components/Toast.tsx';
+import { ConfirmProvider } from './components/ConfirmProvider.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import { makeMuiTheme } from './lib/mui-theme.ts';
 import './i18n/index.ts';
@@ -18,7 +19,9 @@ function Root() {
       <BrowserRouter>
         <ErrorBoundary>
           <ToastProvider>
-            <App />
+            <ConfirmProvider>
+              <App />
+            </ConfirmProvider>
           </ToastProvider>
         </ErrorBoundary>
       </BrowserRouter>

@@ -15,10 +15,6 @@ function row(page: Page, name: string) {
 
 test.describe('partner admin · tenants', () => {
   test.skip(!ENABLED, 'set E2E_MUTATING=1 (runs against a local backend)');
-  // The suspend/deactivate actions use window.confirm — auto-accept.
-  test.beforeEach(async ({ page }) => {
-    page.on('dialog', (d) => d.accept());
-  });
 
   test('create tenant, edit limits, suspend/resume, re-invite admin', async ({ page }) => {
     await page.goto('/');
@@ -47,8 +43,9 @@ test.describe('partner admin · tenants', () => {
     await expect(row(page, tenantName)).toContainText('1/25');
     await expect(row(page, tenantName)).toContainText(newAdminEmail);
 
-    // --- suspend ---
+    // --- suspend (in-app confirm dialog) ---
     await row(page, tenantName).getByTestId('suspend').click();
+    await page.getByTestId('confirm-ok').click();
     await expect(page.getByText(/Azienda sospesa|Company suspended/)).toBeVisible();
     await expect(row(page, tenantName)).toContainText(/Sospesa|Suspended/);
 

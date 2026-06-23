@@ -89,8 +89,18 @@ export function LoginScreen() {
       // this session behind the biometric lock (if enabled on this device).
       markUnlocked();
       await refresh();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : t('failed'));
+      // Credentials valid but no active company (e.g. company suspended, or no
+      // membership). Show the SAME generic error as wrong credentials so we
+      // never reveal suspension (no account enumeration). The multi-company
+      // chooser (tenants.length > 1) is a valid state and must not trip this.
+      const s = useSession.getState();
+      if (!s.me && s.tenants.length === 0) {
+        setErr(t('invalidCredentials'));
+      }
+    } catch {
+      // Wrong password / rejected login → generic credential message (localized,
+      // and identical to the suspended case above).
+      setErr(t('invalidCredentials'));
     } finally {
       setBusy(false);
     }

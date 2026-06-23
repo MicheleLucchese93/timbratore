@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { api, type ApiError } from '../lib/api.ts';
 import { useToast } from '../components/Toast.tsx';
+import { useConfirm } from '../components/ConfirmProvider.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
 import { Modal } from '../components/Modal.tsx';
 
@@ -44,6 +45,7 @@ function errMsg(t: (k: string, o?: Record<string, unknown>) => string, e: unknow
 export function Partners() {
   const { t } = useTranslation();
   const toast = useToast();
+  const confirm = useConfirm();
   const [rows, setRows] = useState<PartnerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -68,7 +70,16 @@ export function Partners() {
   const toggle = useCallback(
     async (row: PartnerRow) => {
       const path = row.active ? 'deactivate' : 'activate';
-      if (row.active && !window.confirm(t('partners.deactivate.confirm'))) return;
+      if (
+        row.active &&
+        !(await confirm({
+          message: t('partners.deactivate.confirm'),
+          confirmLabel: t('partners.deactivate.label'),
+          danger: true,
+        }))
+      ) {
+        return;
+      }
       try {
         await api(`/api/v1/partnership/partners/${row.user_id}/${path}`, { method: 'POST' });
         toast(t(row.active ? 'partners.deactivate.done' : 'partners.activate.done'));
@@ -77,7 +88,7 @@ export function Partners() {
         toast(errMsg(t, e), true);
       }
     },
-    [t, toast, load]
+    [t, toast, load, confirm]
   );
 
   const resend = useCallback(

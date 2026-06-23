@@ -27,6 +27,16 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
         await loginWithDevToken(email.trim().toLowerCase());
       }
       await refresh();
+      // Credentials were valid but the user has no active company — e.g. their
+      // company was suspended, or they have no membership. Show the SAME generic
+      // error as a wrong password (never reveal suspension → no account
+      // enumeration). The multi-company chooser (tenants.length > 1) is a valid
+      // state and must not trip this.
+      const s = useSession.getState();
+      if (!s.me && s.tenants.length === 0) {
+        setErr(t('errors.invalid_credentials', { defaultValue: t('errors.default') }));
+        return;
+      }
       onLoggedIn();
     } catch (err) {
       // Map GoTrue's machine error code to a localized message; fall back to a

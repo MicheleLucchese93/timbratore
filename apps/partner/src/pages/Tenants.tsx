@@ -4,6 +4,7 @@ import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { api, type ApiError } from '../lib/api.ts';
 import { useSession, type PartnerCaps } from '../store/session.ts';
 import { useToast } from '../components/Toast.tsx';
+import { useConfirm } from '../components/ConfirmProvider.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
 import { Modal } from '../components/Modal.tsx';
 
@@ -35,6 +36,7 @@ export function Tenants() {
   const { t } = useTranslation();
   const me = useSession((s) => s.me);
   const toast = useToast();
+  const confirm = useConfirm();
   const isAdmin = me?.role === 'admin';
   const caps = me?.caps;
 
@@ -151,9 +153,13 @@ export function Tenants() {
             <button
               className="btn btn-ghost btn-sm"
               data-testid="suspend"
-              onClick={() => {
-                if (window.confirm(t('tenants.suspend.confirm')))
-                  void act(`/api/v1/partnership/tenants/${p.row.id}/suspend`, 'tenants.suspend.done');
+              onClick={async () => {
+                const okToSuspend = await confirm({
+                  message: t('tenants.suspend.confirm'),
+                  confirmLabel: t('tenants.suspend.label'),
+                  danger: true,
+                });
+                if (okToSuspend) await act(`/api/v1/partnership/tenants/${p.row.id}/suspend`, 'tenants.suspend.done');
               }}
             >
               {t('tenants.suspend.label')}

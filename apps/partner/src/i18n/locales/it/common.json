@@ -4,6 +4,7 @@
   "settings": { "title": "Impostazioni", "subtitle": "Preferenze della console", "language": "Lingua" },
   "role": { "admin": "Amministratore", "partner": "Partner" },
   "profile": { "title": "Profilo", "email": "Email", "first_name": "Nome", "last_name": "Cognome", "saved": "Profilo aggiornato." },
+  "confirm": { "title": "Conferma" },
   "actions": {
     "save": "Salva", "cancel": "Annulla", "create": "Crea", "edit": "Modifica",
     "close": "Chiudi", "confirm": "Conferma", "search": "Cerca", "refresh": "Aggiorna"

@@ -11,9 +11,6 @@ function row(page: Page, text: string) {
 
 test.describe('partner admin · partners', () => {
   test.skip(!ENABLED, 'set E2E_MUTATING=1 (runs against a local backend)');
-  test.beforeEach(async ({ page }) => {
-    page.on('dialog', (d) => d.accept());
-  });
 
   test('create partner with caps, edit caps, deactivate/activate', async ({ page }) => {
     await page.goto('/partners');
@@ -40,8 +37,9 @@ test.describe('partner admin · partners', () => {
     await expect(page.getByText(/Limiti partner aggiornati|Partner caps updated/)).toBeVisible();
     await expect(row(page, partnerEmail)).toContainText('8');
 
-    // --- deactivate then activate ---
+    // --- deactivate (in-app confirm) then activate ---
     await row(page, partnerEmail).getByTestId('deactivate').click();
+    await page.getByTestId('confirm-ok').click();
     await expect(page.getByText(/Partner disattivato|Partner disabled/)).toBeVisible();
     await expect(row(page, partnerEmail)).toContainText(/Disattivato|Disabled/);
 
