@@ -10,6 +10,7 @@ export const ui = {
     'nav.screenshots': 'App',
     'nav.web': 'Dashboard',
     'nav.faq': 'FAQ',
+    'nav.partner': 'Partner',
     'nav.contact': 'Contatti',
     'nav.download': "Richiedi l'accesso",
 
@@ -112,6 +113,27 @@ export const ui = {
     'web.shot.login': 'Accesso amministratore',
     'web.shot.login.desc':
       'Login con email e password. Solo gli account abilitati come amministratori vedono la dashboard.',
+
+    // Partner program
+    'partner.badge': 'Programma partner',
+    'partner.title': 'Rivendi sonoQui ai tuoi clienti',
+    'partner.subtitle':
+      "Sei un commercialista, un consulente del lavoro o una software house? Diventa rivenditore sonoQui: attivi e gestisci le aziende dei tuoi clienti da un'unica console, con il tuo margine ricorrente. Al prodotto e all'infrastruttura pensiamo noi.",
+    'partner.b1.title': 'Console dedicata',
+    'partner.b1.desc':
+      "Crei e gestisci le aziende clienti da una console riservata: nuovi account, limiti, sospensioni e riattivazioni, in autonomia e senza passare da noi.",
+    'partner.b2.title': 'Margine ricorrente',
+    'partner.b2.desc':
+      "Rivendi un servizio in abbonamento alle PMI italiane e costruisci una rendita ricorrente. Prezzi e condizioni li concordiamo con te.",
+    'partner.b3.title': 'Prodotto pronto e conforme',
+    'partner.b3.desc':
+      "Offri ai clienti un'app già pronta, pensata per l'art. 4 dello Statuto dei Lavoratori e per il GDPR, con i dati conservati in Europa.",
+    'partner.b4.title': 'Pensiamo noi al resto',
+    'partner.b4.desc':
+      "Infrastruttura, aggiornamenti, sicurezza e backup sono a carico nostro. Tu segui i clienti, noi teniamo in piedi la piattaforma.",
+    'partner.cta.join': 'Diventa partner',
+    'partner.cta.login': 'Accedi alla console',
+    'partner.cta.note': 'Hai già un account partner?',
 
     // Contact / Footer
     'contact.title': 'Contattaci',

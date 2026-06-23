@@ -4,6 +4,8 @@ export const SITE_URL = 'https://sonoqui.pro';
 export const APP_STORE_URL = 'https://apps.apple.com/it/app/sonoqui/id6772960002';
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=app.sonoqui.mobile';
 export const WEB_APP_URL = 'https://app.sonoqui.pro/login';
+// Reseller console (partner program). Existing partners log in here.
+export const PARTNER_APP_URL = 'https://partners.sonoqui.pro';
 // 1200x630 branded social card (generated, see public/og-default.png). The square
 // /icon.png stays as favicon/app icon only.
 export const DEFAULT_IMAGE = '/og-default.png';
