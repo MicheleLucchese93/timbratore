@@ -70,6 +70,22 @@ export async function createUserSilently(
   return (await r.json()) as GoTrueUser;
 }
 
+// Update a GoTrue user's email (admin API). email_confirm so the new address is
+// immediately usable. Caller must skip this in dev (no GoTrue) and update only
+// the auth_users mirror.
+export async function updateUserEmail(id: string, email: string): Promise<void> {
+  const jwt = await serviceRoleJwt();
+  const r = await fetch(`${env.GOTRUE_URL}/admin/users/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt}` },
+    body: JSON.stringify({ email, email_confirm: true }),
+  });
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error(`GoTrue PUT /admin/users ${r.status}: ${text}`);
+  }
+}
+
 export async function triggerRecovery(email: string): Promise<void> {
   // Local dev has no GoTrue instance — skip the call (it would only DNS-fail and
   // stall). Prod (DEV_AUTH_ENABLED=false) is unchanged.

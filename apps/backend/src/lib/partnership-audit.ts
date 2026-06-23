@@ -7,10 +7,12 @@ export type PartnershipAction =
   | 'tenant.suspend'
   | 'tenant.resume'
   | 'tenant.admin_reinvite'
+  | 'tenant.change_admin'
   | 'partner.create'
   | 'partner.update_caps'
   | 'partner.activate'
-  | 'partner.deactivate';
+  | 'partner.deactivate'
+  | 'partner.resend';
 
 export interface PartnershipAuditEntry {
   actorUserId: string;

@@ -48,7 +48,11 @@ select.input { background-color: white; }
 .card { background: #fff; border: 1px solid var(--color-surface-variant); border-radius: 0.75rem; }
 
 /* Badges ---------------------------------------------------------------- */
-.badge { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.7rem; font-weight: 600; padding: 0.125rem 0.5rem; border-radius: 999px; }
+/* Fixed height + line-height:1 so the chip never exceeds a compact DataGrid
+   row (was overflowing into adjacent rows). Wrap in .cell-badge inside grid
+   cells to vertically center within the row. */
+.badge { display: inline-flex; align-items: center; gap: 0.25rem; height: 1.375rem; line-height: 1; box-sizing: border-box; font-size: 0.7rem; font-weight: 600; padding: 0 0.625rem; border-radius: 999px; white-space: nowrap; }
+.cell-badge { display: flex; align-items: center; height: 100%; }
 .badge-ok { background: color-mix(in oklab, var(--color-success) 16%, transparent); color: var(--color-success); }
 .badge-warn { background: color-mix(in oklab, var(--color-error) 14%, transparent); color: var(--color-error); }
 .badge-muted { background: var(--color-surface-variant); color: var(--color-on-surface-variant); }

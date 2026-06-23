@@ -29,6 +29,10 @@ test.describe('partner admin · partners', () => {
     await expect(row(page, partnerEmail)).toBeVisible();
     await expect(row(page, partnerEmail)).toContainText('5'); // cap_tenants
 
+    // --- resend invite ---
+    await row(page, partnerEmail).getByTestId('resend').click();
+    await expect(page.getByText(/Invito inviato a|Invite sent to/)).toBeVisible();
+
     // --- edit caps ---
     await row(page, partnerEmail).getByRole('button', { name: /Modifica|Edit/ }).click();
     await page.getByTestId('cap-cap_tenants').fill('8');

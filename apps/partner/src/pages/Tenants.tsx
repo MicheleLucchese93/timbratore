@@ -19,6 +19,7 @@ interface TenantRow {
   created_at: string;
   created_by_partner: string | null;
   owner_email: string | null;
+  admin_email: string | null;
   used_members: number;
   used_admins: number;
   used_documentali: number;
@@ -72,13 +73,20 @@ export function Tenants() {
   );
 
   const columns: GridColDef<TenantRow>[] = [
-    { field: 'ragione_sociale', headerName: t('tenants.col.name'), flex: 1.4, minWidth: 180 },
+    { field: 'ragione_sociale', headerName: t('tenants.col.name'), flex: 1.4, minWidth: 170 },
+    {
+      field: 'admin_email',
+      headerName: t('tenants.col.admin_email'),
+      flex: 1.2,
+      minWidth: 190,
+      valueGetter: (_v: unknown, row: TenantRow) => row.admin_email ?? t('common.none'),
+    },
     ...(isAdmin
       ? [{
           field: 'owner_email',
           headerName: t('tenants.col.owner'),
           flex: 1,
-          minWidth: 160,
+          minWidth: 150,
           valueGetter: (_v: unknown, row: TenantRow) => row.owner_email ?? t('tenants.platform'),
         } as GridColDef<TenantRow>]
       : []),
@@ -110,12 +118,15 @@ export function Tenants() {
       field: 'suspended_at',
       headerName: t('tenants.col.status'),
       width: 120,
-      renderCell: (p) =>
-        p.row.suspended_at ? (
-          <span className="badge badge-warn">{t('tenants.status.suspended')}</span>
-        ) : (
-          <span className="badge badge-ok">{t('tenants.status.active')}</span>
-        ),
+      renderCell: (p) => (
+        <span className="cell-badge">
+          {p.row.suspended_at ? (
+            <span className="badge badge-warn">{t('tenants.status.suspended')}</span>
+          ) : (
+            <span className="badge badge-ok">{t('tenants.status.active')}</span>
+          )}
+        </span>
+      ),
     },
     {
       field: 'actions',
@@ -325,6 +336,7 @@ function EditLimits({
 }) {
   const { t } = useTranslation();
   const toast = useToast();
+  const [adminEmail, setAdminEmail] = useState(tenant.admin_email ?? '');
   const [maxUsers, setMaxUsers] = useState(tenant.max_users);
   const [maxAdmins, setMaxAdmins] = useState(tenant.max_admins);
   const [maxDoc, setMaxDoc] = useState(tenant.max_documentali);
@@ -341,6 +353,15 @@ function EditLimits({
         method: 'PATCH',
         json: { max_users: maxUsers, max_admins: maxAdmins, max_documentali: maxDoc, max_branches: maxBranches },
       });
+      // Change the admin email only when it actually changed.
+      const next = adminEmail.trim().toLowerCase();
+      const curr = (tenant.admin_email ?? '').toLowerCase();
+      if (next && next !== curr) {
+        await api(`/api/v1/partnership/tenants/${tenant.id}/admin`, {
+          method: 'PATCH',
+          json: { admin_email: next },
+        });
+      }
       toast(t('tenants.edit.saved'));
       await onDone();
     } catch (e2) {
@@ -354,6 +375,10 @@ function EditLimits({
     <Modal title={`${t('tenants.edit.title')} · ${tenant.ragione_sociale}`} onClose={onClose}>
       <form onSubmit={submit}>
         <div className="modal-body">
+          <div>
+            <label className="label" htmlFor="e-admin-email">{t('tenants.create.admin_email')}</label>
+            <input id="e-admin-email" className="input" type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} />
+          </div>
           <div className="grid-2">
             <NumField id="e-users" label={t('tenants.create.max_users')} value={maxUsers} max={caps?.cap_users_per_tenant} min={tenant.used_members} onChange={setMaxUsers} />
             <NumField id="e-admins" label={t('tenants.create.max_admins')} value={maxAdmins} max={caps?.cap_admins_per_tenant} min={Math.max(1, tenant.used_admins)} onChange={setMaxAdmins} />

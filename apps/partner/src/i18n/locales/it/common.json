@@ -29,7 +29,7 @@
     "subtitle_partner": "Le aziende che hai creato",
     "new": "Nuova azienda",
     "col": {
-      "name": "Ragione sociale", "owner": "Partner", "language": "Lingua",
+      "name": "Ragione sociale", "admin_email": "Email admin", "owner": "Partner", "language": "Lingua",
       "users": "Utenti", "admins": "Admin", "documentali": "Documentali", "branches": "Sedi",
       "status": "Stato", "created": "Creata", "actions": "Azioni"
     },
@@ -76,7 +76,8 @@
     },
     "edit": { "title": "Modifica limiti partner", "submit": "Salva", "saved": "Limiti partner aggiornati." },
     "activate": { "label": "Attiva", "done": "Partner attivato." },
-    "deactivate": { "label": "Disattiva", "confirm": "Disattivare questo partner? Non potrà più accedere.", "done": "Partner disattivato." }
+    "deactivate": { "label": "Disattiva", "confirm": "Disattivare questo partner? Non potrà più accedere.", "done": "Partner disattivato." },
+    "resend": { "label": "Reinvita", "done": "Invito inviato a {{email}}." }
   },
   "caps": {
     "cap_tenants": "Max aziende creabili",
@@ -94,10 +95,12 @@
       "tenant.suspend": "Azienda sospesa",
       "tenant.resume": "Azienda riattivata",
       "tenant.admin_reinvite": "Admin reinvitato",
+      "tenant.change_admin": "Email admin modificata",
       "partner.create": "Partner creato",
       "partner.update_caps": "Limiti partner modificati",
       "partner.activate": "Partner attivato",
-      "partner.deactivate": "Partner disattivato"
+      "partner.deactivate": "Partner disattivato",
+      "partner.resend": "Invito reinviato"
     }
   },
   "errors": {
@@ -105,6 +108,7 @@
     "CAP_EXCEEDED": "Un limite supera il tuo massimo consentito.",
     "BELOW_USAGE": "Il limite non può scendere sotto l'utilizzo attuale.",
     "ALREADY_ADMIN": "L'utente è già un amministratore di piattaforma.",
+    "EMAIL_IN_USE": "Email già usata da un altro account.",
     "TENANT_NOT_OWNED": "Questa azienda non è tua.",
     "default": "Operazione non riuscita. Riprova."
   }

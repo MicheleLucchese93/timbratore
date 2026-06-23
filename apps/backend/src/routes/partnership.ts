@@ -7,10 +7,11 @@ import { asyncHandler } from '../lib/route-helpers.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
 import { authenticatePartner, requirePartnershipAdmin } from '../middleware/partnership-auth.js';
 import type { PartnerContext } from '../middleware/partnership-auth.js';
+import { env } from '../env.js';
 import { provisionTenant } from '../lib/provision-tenant.js';
 import { ensureAuthUser } from '../lib/auth-users.js';
 import { logPartnershipAudit } from '../lib/partnership-audit.js';
-import { triggerRecovery } from '../lib/gotrue-admin.js';
+import { triggerRecovery, updateUserEmail } from '../lib/gotrue-admin.js';
 import { createLogger } from '../lib/logger.js';
 
 const logger = createLogger('partnership');
@@ -126,6 +127,10 @@ partnershipRouter.get(
               t.max_admins, t.max_users, t.max_documentali, t.max_branches,
               t.suspended_at, t.created_at, t.created_by_partner,
               pu.email AS owner_email,
+              (SELECT au.email FROM memberships am JOIN auth_users au ON au.id = am.user_id
+                 WHERE am.tenant_id = t.id AND am.role = 'admin'
+                   AND am.active = TRUE AND am.deleted_at IS NULL
+                 ORDER BY am.created_at ASC LIMIT 1) AS admin_email,
               (SELECT count(*)::int FROM memberships m
                  WHERE m.tenant_id = t.id AND m.deleted_at IS NULL) AS used_members,
               (SELECT count(*)::int FROM memberships m
@@ -247,6 +252,14 @@ async function loadOwnedTenant(p: PartnerContext, tenantId: string) {
   const r = await adminPool.query(
     `SELECT t.id, t.ragione_sociale, t.created_by_partner, t.suspended_at,
             t.max_admins, t.max_users, t.max_documentali, t.max_branches,
+            (SELECT am.user_id FROM memberships am
+               WHERE am.tenant_id = t.id AND am.role = 'admin'
+                 AND am.active = TRUE AND am.deleted_at IS NULL
+               ORDER BY am.created_at ASC LIMIT 1) AS admin_user_id,
+            (SELECT au.email FROM memberships am JOIN auth_users au ON au.id = am.user_id
+               WHERE am.tenant_id = t.id AND am.role = 'admin'
+                 AND am.active = TRUE AND am.deleted_at IS NULL
+               ORDER BY am.created_at ASC LIMIT 1) AS admin_email,
             (SELECT count(*)::int FROM memberships m
                WHERE m.tenant_id = t.id AND m.deleted_at IS NULL) AS used_members,
             (SELECT count(*)::int FROM memberships m
@@ -422,6 +435,46 @@ partnershipRouter.post(
       ...auditCtx(req),
     });
     ok(res, { tenant_id: t.id, email });
+  })
+);
+
+// ---- PATCH /tenants/:id/admin — change the tenant's admin email ------------
+// Renames the first (oldest) admin's account email (GoTrue + mirror). Rejected
+// if the new email already belongs to a different account.
+const ChangeAdmin = z.object({ admin_email: z.string().email() });
+
+partnershipRouter.patch(
+  '/tenants/:id/admin',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const parse = ChangeAdmin.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const newEmail = parse.data.admin_email.trim().toLowerCase();
+    const t = await loadOwnedTenant(p, String(req.params.id));
+    if (!t.admin_user_id) throw new NotFoundError('tenant has no active admin');
+    if ((t.admin_email ?? '').toLowerCase() === newEmail) {
+      return ok(res, { tenant_id: t.id, admin_email: newEmail });
+    }
+    const ex = await adminPool.query(`SELECT id FROM auth_users WHERE email = $1`, [newEmail]);
+    if (ex.rowCount && ex.rows[0].id !== t.admin_user_id) {
+      throw new ConflictError('email already used by another account', 'EMAIL_IN_USE');
+    }
+    if (!env.DEV_AUTH_ENABLED) {
+      await updateUserEmail(t.admin_user_id, newEmail);
+    }
+    await adminPool.query(`UPDATE auth_users SET email = $2 WHERE id = $1`, [t.admin_user_id, newEmail]);
+    await logPartnershipAudit({
+      actorUserId: p.userId,
+      actorRole: p.role,
+      action: 'tenant.change_admin',
+      targetType: 'tenant',
+      targetId: t.id,
+      targetLabel: t.ragione_sociale,
+      before: { admin_email: t.admin_email },
+      after: { admin_email: newEmail },
+      ...auditCtx(req),
+    });
+    ok(res, { tenant_id: t.id, admin_email: newEmail });
   })
 );
 
@@ -648,6 +701,37 @@ function partnerToggle(action: 'partner.activate' | 'partner.deactivate', active
 }
 partnershipRouter.post('/partners/:userId/deactivate', requirePartnershipAdmin, partnerToggle('partner.deactivate', false));
 partnershipRouter.post('/partners/:userId/activate', requirePartnershipAdmin, partnerToggle('partner.activate', true));
+
+// ---- POST /partners/:userId/resend — resend the invite/set-password email ---
+partnershipRouter.post(
+  '/partners/:userId/resend',
+  requirePartnershipAdmin,
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const userId = String(req.params.userId);
+    if (!UUID_RE.test(userId)) throw new ValidationError('invalid user id');
+    const cur = await adminPool.query(
+      `SELECT au.email, pm.role FROM partnership_members pm
+         JOIN auth_users au ON au.id = pm.user_id WHERE pm.user_id = $1`,
+      [userId]
+    );
+    if (cur.rowCount === 0) throw new NotFoundError('partner not found');
+    if (cur.rows[0].role !== 'partner') throw new ConflictError('not a partner', 'NOT_A_PARTNER');
+    const email = cur.rows[0].email as string;
+    await triggerRecovery(email);
+    await logPartnershipAudit({
+      actorUserId: p.userId,
+      actorRole: p.role,
+      action: 'partner.resend',
+      targetType: 'partner',
+      targetId: userId,
+      targetLabel: email,
+      after: { email },
+      ...auditCtx(req),
+    });
+    ok(res, { user_id: userId, email });
+  })
+);
 
 // ---- GET /audit ------------------------------------------------------------
 // admin → all entries; partner → only their own actions.

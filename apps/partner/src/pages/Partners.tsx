@@ -80,6 +80,18 @@ export function Partners() {
     [t, toast, load]
   );
 
+  const resend = useCallback(
+    async (row: PartnerRow) => {
+      try {
+        await api(`/api/v1/partnership/partners/${row.user_id}/resend`, { method: 'POST' });
+        toast(t('partners.resend.done', { email: row.email }));
+      } catch (e) {
+        toast(errMsg(t, e), true);
+      }
+    },
+    [t, toast]
+  );
+
   const capCell = (v: number | null) => (v == null ? t('common.unlimited') : String(v));
 
   const columns: GridColDef<PartnerRow>[] = [
@@ -94,23 +106,29 @@ export function Partners() {
       field: 'active',
       headerName: t('partners.col.status'),
       width: 120,
-      renderCell: (p) =>
-        p.row.active ? (
-          <span className="badge badge-ok">{t('partners.status.active')}</span>
-        ) : (
-          <span className="badge badge-warn">{t('partners.status.inactive')}</span>
-        ),
+      renderCell: (p) => (
+        <span className="cell-badge">
+          {p.row.active ? (
+            <span className="badge badge-ok">{t('partners.status.active')}</span>
+          ) : (
+            <span className="badge badge-warn">{t('partners.status.inactive')}</span>
+          )}
+        </span>
+      ),
     },
     {
       field: 'actions',
       headerName: t('partners.col.actions'),
-      width: 220,
+      width: 320,
       sortable: false,
       filterable: false,
       renderCell: (p) => (
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', height: '100%' }}>
           <button className="btn btn-secondary btn-sm" onClick={() => setEditing(p.row)}>
             {t('actions.edit')}
+          </button>
+          <button className="btn btn-ghost btn-sm" data-testid="resend" onClick={() => resend(p.row)}>
+            {t('partners.resend.label')}
           </button>
           <button
             className={p.row.active ? 'btn btn-ghost btn-sm' : 'btn btn-secondary btn-sm'}

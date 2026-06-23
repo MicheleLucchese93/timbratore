@@ -29,7 +29,7 @@
     "subtitle_partner": "Companies you created",
     "new": "New company",
     "col": {
-      "name": "Company name", "owner": "Partner", "language": "Language",
+      "name": "Company name", "admin_email": "Admin email", "owner": "Partner", "language": "Language",
       "users": "Users", "admins": "Admins", "documentali": "Documentali", "branches": "Branches",
       "status": "Status", "created": "Created", "actions": "Actions"
     },
@@ -76,7 +76,8 @@
     },
     "edit": { "title": "Edit partner caps", "submit": "Save", "saved": "Partner caps updated." },
     "activate": { "label": "Activate", "done": "Partner activated." },
-    "deactivate": { "label": "Disable", "confirm": "Disable this partner? They will no longer be able to sign in.", "done": "Partner disabled." }
+    "deactivate": { "label": "Disable", "confirm": "Disable this partner? They will no longer be able to sign in.", "done": "Partner disabled." },
+    "resend": { "label": "Resend", "done": "Invite sent to {{email}}." }
   },
   "caps": {
     "cap_tenants": "Max companies they can create",
@@ -94,10 +95,12 @@
       "tenant.suspend": "Company suspended",
       "tenant.resume": "Company resumed",
       "tenant.admin_reinvite": "Admin re-invited",
+      "tenant.change_admin": "Admin email changed",
       "partner.create": "Partner created",
       "partner.update_caps": "Partner caps changed",
       "partner.activate": "Partner activated",
-      "partner.deactivate": "Partner disabled"
+      "partner.deactivate": "Partner disabled",
+      "partner.resend": "Invite resent"
     }
   },
   "errors": {
@@ -105,6 +108,7 @@
     "CAP_EXCEEDED": "A limit exceeds your allowed maximum.",
     "BELOW_USAGE": "The limit cannot drop below current usage.",
     "ALREADY_ADMIN": "The user is already a platform administrator.",
+    "EMAIL_IN_USE": "Email already used by another account.",
     "TENANT_NOT_OWNED": "This company is not yours.",
     "default": "Operation failed. Try again."
   }

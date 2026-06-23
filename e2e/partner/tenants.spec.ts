@@ -33,15 +33,19 @@ test.describe('partner admin · tenants', () => {
     await expect(page.getByText(/Azienda creata/)).toBeVisible({ timeout: 15_000 });
     await expect(row(page, tenantName)).toBeVisible();
 
-    // usage/limit cell shows 1 admin / 15 users etc.
+    // usage/limit cell shows 1 admin / 15 users etc, and the admin email column.
     await expect(row(page, tenantName)).toContainText('1/15');
+    await expect(row(page, tenantName)).toContainText(adminEmail);
 
-    // --- edit limits ---
+    // --- edit limits + change admin email ---
+    const newAdminEmail = `e2e-tadmin2-${suffix}@e2e.local`;
     await row(page, tenantName).getByRole('button', { name: /Modifica|Edit/ }).click();
     await page.locator('input#e-users').fill('25');
+    await page.locator('input#e-admin-email').fill(newAdminEmail);
     await page.getByTestId('edit-limits-submit').click();
     await expect(page.getByText(/Limiti aggiornati|Limits updated/)).toBeVisible();
     await expect(row(page, tenantName)).toContainText('1/25');
+    await expect(row(page, tenantName)).toContainText(newAdminEmail);
 
     // --- suspend ---
     await row(page, tenantName).getByTestId('suspend').click();
