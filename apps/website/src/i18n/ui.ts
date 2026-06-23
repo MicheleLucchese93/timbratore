@@ -124,10 +124,10 @@ export const ui = {
       "Crei e gestisci le aziende clienti da una console riservata: nuovi account, limiti, sospensioni e riattivazioni, in autonomia e senza passare da noi.",
     'partner.b2.title': 'Margine ricorrente',
     'partner.b2.desc':
-      "Rivendi un servizio in abbonamento alle PMI italiane e costruisci una rendita ricorrente. Prezzi e condizioni li concordiamo con te.",
-    'partner.b3.title': 'Prodotto pronto e conforme',
+      "Rivendi un servizio in abbonamento alle PMI italiane e costruisci una rendita ricorrente. Pacchetto sconti incrementale a seconda dei volumi.",
+    'partner.b3.title': 'Il cliente resta tuo',
     'partner.b3.desc':
-      "Offri ai clienti un'app già pronta, pensata per l'art. 4 dello Statuto dei Lavoratori e per il GDPR, con i dati conservati in Europa.",
+      "Fatturiamo a te il servizio; tu fatturi il cliente finale. Il rapporto commerciale, il prezzo e la relazione restano tuoi.",
     'partner.b4.title': 'Pensiamo noi al resto',
     'partner.b4.desc':
       "Infrastruttura, aggiornamenti, sicurezza e backup sono a carico nostro. Tu segui i clienti, noi teniamo in piedi la piattaforma.",
