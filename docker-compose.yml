@@ -11,6 +11,14 @@ services:
       - CENTRIFUGO_PROXY_SECRET=${CENTRIFUGO_SONOQUI_API_KEY}
       # Pin issuer — gotrue-sonoqui mints with this exact value below.
       - GOTRUE_JWT_ISSUER=https://auth-sonoqui.xdevapp.it
+      # Browser CORS allow-list. Pinned here (overrides any CORS_ORIGINS in the
+      # env_file) so it is version-controlled alongside the GoTrue and centrifugo
+      # allow-lists. sonoqui.pro cutover (2026-06-22) is ADDITIVE: the xdevapp
+      # origin stays for the old web build; the .pro entries are the same-origin
+      # app (app.sonoqui.pro) and the marketing site (sonoqui.pro). The same-
+      # origin web build sends Origin: https://app.sonoqui.pro on every mutating
+      # request, so the API must allow it or POST/PUT/DELETE fail CORS_NOT_ALLOWED.
+      - CORS_ORIGINS=https://app-sonoqui.xdevapp.it,https://app.sonoqui.pro,https://sonoqui.pro
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:4000/health"]
       interval: 30s
