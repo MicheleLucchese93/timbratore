@@ -1,6 +1,7 @@
 {
   "app": { "name": "sonoQui", "suffix": "Partner", "subtitle": "Reseller tenant management" },
-  "nav": { "tenants": "Companies", "partners": "Partners", "audit": "Activity log", "logout": "Sign out" },
+  "nav": { "tenants": "Companies", "partners": "Partners", "audit": "Activity log", "settings": "Settings", "logout": "Sign out" },
+  "settings": { "title": "Settings", "subtitle": "Console preferences", "language": "Language" },
   "role": { "admin": "Administrator", "partner": "Partner" },
   "profile": { "title": "Profile", "email": "Email", "first_name": "First name", "last_name": "Last name", "saved": "Profile updated." },
   "actions": {

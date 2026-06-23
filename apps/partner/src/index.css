@@ -70,9 +70,9 @@ select.input { background-color: white; }
 }
 .sidebar-nav a:hover { background: var(--color-surface-variant); }
 .sidebar-nav a.active { background: color-mix(in oklab, var(--color-primary) 12%, transparent); color: var(--color-primary); font-weight: 600; }
-/* Bottom-left user block — mirrors the webapp sidebar foot. */
-.sidebar-foot { border-top: 1px solid var(--color-surface-variant); padding: 0.625rem; display: flex; flex-direction: column; gap: 0.5rem; }
-.sidebar-user { display: flex; align-items: center; gap: 0.625rem; width: 100%; padding: 0.375rem 0.5rem; border-radius: 0.5rem; background: transparent; border: 0; cursor: pointer; text-align: left; }
+/* Bottom-left user block — mirrors the webapp sidebar foot (user + logout). */
+.sidebar-foot { border-top: 1px solid var(--color-surface-variant); padding: 0.5rem; display: flex; flex-direction: row; align-items: center; gap: 0.375rem; }
+.sidebar-user { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.625rem; padding: 0.375rem 0.5rem; border-radius: 0.5rem; background: transparent; border: 0; cursor: pointer; text-align: left; }
 .sidebar-user:hover { background: var(--color-surface-variant); }
 .avatar { width: 32px; height: 32px; flex-shrink: 0; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; background: var(--color-primary); color: var(--color-on-primary); }
 .sidebar-user-text { display: flex; flex-direction: column; min-width: 0; }
@@ -81,6 +81,12 @@ select.input { background-color: white; }
 .sidebar-foot-actions { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0 0.25rem; }
 .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 0.5rem; background: transparent; border: 1px solid var(--color-surface-variant); color: var(--color-on-surface-variant); cursor: pointer; }
 .icon-btn:hover { background: var(--color-surface-variant); }
+
+/* Settings language selector */
+.lang-options { display: flex; gap: 0.5rem; margin-top: 0.375rem; }
+.lang-option { flex: 1; padding: 0.625rem 1rem; border-radius: 0.5rem; border: 1px solid var(--color-outline); background: #fff; font-size: 0.875rem; font-weight: 600; color: var(--color-on-surface-variant); cursor: pointer; }
+.lang-option:hover { border-color: var(--color-primary); }
+.lang-option.is-active { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); }
 
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 .main-body { flex: 1; min-height: 0; overflow: auto; padding: 1.5rem; display: flex; flex-direction: column; }

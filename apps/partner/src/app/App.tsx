@@ -6,6 +6,7 @@ import { Layout } from './Layout.tsx';
 import { Tenants } from '../pages/Tenants.tsx';
 import { Partners } from '../pages/Partners.tsx';
 import { Audit } from '../pages/Audit.tsx';
+import { Settings } from '../pages/Settings.tsx';
 
 export function App() {
   const { me, loading, refresh } = useSession();
@@ -39,6 +40,7 @@ export function App() {
         <Route path="/" element={<Tenants />} />
         {isAdmin && <Route path="/partners" element={<Partners />} />}
         <Route path="/audit" element={<Audit />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

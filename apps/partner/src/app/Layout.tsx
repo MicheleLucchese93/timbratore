@@ -2,7 +2,6 @@ import { type ReactNode, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../store/session.ts';
-import { LanguageToggle } from '../components/LanguageToggle.tsx';
 import { ProfileModal } from '../components/ProfileModal.tsx';
 
 function initials(name: string): string {
@@ -44,6 +43,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <NavLink to="/" end>{t('nav.tenants')}</NavLink>
           {isAdmin && <NavLink to="/partners">{t('nav.partners')}</NavLink>}
           <NavLink to="/audit">{t('nav.audit')}</NavLink>
+          <NavLink to="/settings">{t('nav.settings')}</NavLink>
         </nav>
 
         <div className="sidebar-foot">
@@ -54,12 +54,9 @@ export function Layout({ children }: { children: ReactNode }) {
               <span className="sidebar-user-role">{t(`role.${me?.role ?? 'partner'}`)}</span>
             </span>
           </button>
-          <div className="sidebar-foot-actions">
-            <LanguageToggle />
-            <button className="icon-btn" onClick={() => logout()} title={t('nav.logout')} aria-label={t('nav.logout')}>
-              <IconLogout />
-            </button>
-          </div>
+          <button className="icon-btn" onClick={() => logout()} title={t('nav.logout')} aria-label={t('nav.logout')}>
+            <IconLogout />
+          </button>
         </div>
       </aside>
 
