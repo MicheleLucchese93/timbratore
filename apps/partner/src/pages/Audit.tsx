@@ -4,6 +4,8 @@ import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { api, type ApiError } from '../lib/api.ts';
 import { useToast } from '../components/Toast.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { IconButton } from '../components/IconButton.tsx';
+import { IconRefresh } from '../components/icons.tsx';
 
 interface AuditRow {
   id: string;
@@ -68,9 +70,7 @@ export function Audit() {
         title={t('audit.title')}
         subtitle={t('audit.subtitle')}
         actions={
-          <button className="btn btn-secondary" onClick={() => load()}>
-            {t('actions.refresh')}
-          </button>
+          <IconButton label={t('actions.refresh')} icon={<IconRefresh />} onClick={() => load()} />
         }
       />
       <div className="grid-wrap card">

@@ -7,6 +7,8 @@ import { useToast } from '../components/Toast.tsx';
 import { useConfirm } from '../components/ConfirmProvider.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
 import { Modal } from '../components/Modal.tsx';
+import { IconButton } from '../components/IconButton.tsx';
+import { IconEdit, IconPause, IconPlay, IconUsers, IconTrash, IconPlus, IconMail, IconUserMinus } from '../components/icons.tsx';
 
 interface TenantRow {
   id: string;
@@ -166,18 +168,17 @@ export function Tenants() {
     {
       field: 'actions',
       headerName: t('tenants.col.actions'),
-      width: isSuper ? 410 : 320,
+      width: isSuper ? 210 : 170,
       sortable: false,
       filterable: false,
       renderCell: (p) => (
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', height: '100%' }}>
-          <button className="btn btn-secondary btn-sm" onClick={() => setEditing(p.row)}>
-            {t('actions.edit')}
-          </button>
+          <IconButton label={t('actions.edit')} icon={<IconEdit />} onClick={() => setEditing(p.row)} />
           {p.row.suspended_at ? (
-            <button
-              className="btn btn-secondary btn-sm"
-              data-testid="resume"
+            <IconButton
+              label={t('tenants.resume.label')}
+              testId="resume"
+              icon={<IconPlay />}
               onClick={async () => {
                 const okToResume = await confirm({
                   message: t('tenants.resume.confirm'),
@@ -185,13 +186,12 @@ export function Tenants() {
                 });
                 if (okToResume) await act(`/api/v1/partnership/tenants/${p.row.id}/resume`, 'tenants.resume.done');
               }}
-            >
-              {t('tenants.resume.label')}
-            </button>
+            />
           ) : (
-            <button
-              className="btn btn-ghost btn-sm"
-              data-testid="suspend"
+            <IconButton
+              label={t('tenants.suspend.label')}
+              testId="suspend"
+              icon={<IconPause />}
               onClick={async () => {
                 const okToSuspend = await confirm({
                   message: t('tenants.suspend.confirm'),
@@ -200,21 +200,11 @@ export function Tenants() {
                 });
                 if (okToSuspend) await act(`/api/v1/partnership/tenants/${p.row.id}/suspend`, 'tenants.suspend.done');
               }}
-            >
-              {t('tenants.suspend.label')}
-            </button>
+            />
           )}
-          <button className="btn btn-ghost btn-sm" data-testid="manage-admins" onClick={() => setManagingAdmins(p.row)}>
-            {t('admins.label')}
-          </button>
+          <IconButton label={t('admins.label')} testId="manage-admins" icon={<IconUsers />} onClick={() => setManagingAdmins(p.row)} />
           {isSuper && (
-            <button
-              className="btn btn-danger btn-sm"
-              data-testid="delete-tenant"
-              onClick={() => setDeleting(p.row)}
-            >
-              {t('tenants.delete.label')}
-            </button>
+            <IconButton label={t('tenants.delete.label')} testId="delete-tenant" danger icon={<IconTrash />} onClick={() => setDeleting(p.row)} />
           )}
         </div>
       ),
@@ -227,9 +217,7 @@ export function Tenants() {
         title={t('tenants.title')}
         subtitle={isAdmin ? t('tenants.subtitle_admin') : t('tenants.subtitle_partner')}
         actions={
-          <button className="btn btn-primary" data-testid="new-tenant" onClick={() => setCreating(true)}>
-            {t('tenants.new')}
-          </button>
+          <IconButton label={t('tenants.new')} testId="new-tenant" primary icon={<IconPlus />} onClick={() => setCreating(true)} />
         }
       />
       <div className="grid-wrap card">
@@ -677,13 +665,9 @@ function ManageAdmins({
               <div className="admin-row" key={a.user_id}>
                 <span className="admin-row-email">{a.email}</span>
                 <span className="admin-row-actions">
-                  <button type="button" className="btn btn-ghost btn-sm" data-testid="admin-reinvite" onClick={() => reinvite(a)}>
-                    {t('admins.reinvite')}
-                  </button>
+                  <IconButton label={t('admins.reinvite')} testId="admin-reinvite" icon={<IconMail />} onClick={() => reinvite(a)} />
                   {admins.length > 1 && (
-                    <button type="button" className="btn btn-ghost btn-sm" data-testid="admin-remove" onClick={() => remove(a)}>
-                      {t('admins.remove')}
-                    </button>
+                    <IconButton label={t('admins.remove')} testId="admin-remove" danger icon={<IconUserMinus />} onClick={() => remove(a)} />
                   )}
                 </span>
               </div>

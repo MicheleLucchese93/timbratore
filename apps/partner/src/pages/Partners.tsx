@@ -6,6 +6,8 @@ import { useToast } from '../components/Toast.tsx';
 import { useConfirm } from '../components/ConfirmProvider.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
 import { Modal } from '../components/Modal.tsx';
+import { IconButton } from '../components/IconButton.tsx';
+import { IconEdit, IconMail, IconCheck, IconBan, IconPlus } from '../components/icons.tsx';
 
 interface PartnerRow {
   user_id: string;
@@ -151,24 +153,18 @@ export function Partners() {
     {
       field: 'actions',
       headerName: t('partners.col.actions'),
-      width: 320,
+      width: 150,
       sortable: false,
       filterable: false,
       renderCell: (p) => (
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', height: '100%' }}>
-          <button className="btn btn-secondary btn-sm" onClick={() => setEditing(p.row)}>
-            {t('actions.edit')}
-          </button>
-          <button className="btn btn-ghost btn-sm" data-testid="resend" onClick={() => resend(p.row)}>
-            {t('partners.resend.label')}
-          </button>
-          <button
-            className={p.row.active ? 'btn btn-ghost btn-sm' : 'btn btn-secondary btn-sm'}
-            data-testid={p.row.active ? 'deactivate' : 'activate'}
-            onClick={() => toggle(p.row)}
-          >
-            {p.row.active ? t('partners.deactivate.label') : t('partners.activate.label')}
-          </button>
+          <IconButton label={t('actions.edit')} icon={<IconEdit />} onClick={() => setEditing(p.row)} />
+          <IconButton label={t('partners.resend.label')} testId="resend" icon={<IconMail />} onClick={() => resend(p.row)} />
+          {p.row.active ? (
+            <IconButton label={t('partners.deactivate.label')} testId="deactivate" danger icon={<IconBan />} onClick={() => toggle(p.row)} />
+          ) : (
+            <IconButton label={t('partners.activate.label')} testId="activate" icon={<IconCheck />} onClick={() => toggle(p.row)} />
+          )}
         </div>
       ),
     },
@@ -180,9 +176,7 @@ export function Partners() {
         title={t('partners.title')}
         subtitle={t('partners.subtitle')}
         actions={
-          <button className="btn btn-primary" data-testid="new-partner" onClick={() => setCreating(true)}>
-            {t('partners.new')}
-          </button>
+          <IconButton label={t('partners.new')} testId="new-partner" primary icon={<IconPlus />} onClick={() => setCreating(true)} />
         }
       />
       <div className="grid-wrap card">
