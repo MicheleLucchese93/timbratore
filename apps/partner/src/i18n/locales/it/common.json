@@ -30,6 +30,7 @@
   },
   "login": {
     "tagline": "Console partner",
+    "hero": { "payoff": "Gestisci i tuoi clienti. Tutto in una console.", "managed": "Aziende gestite", "statusActive": "Attiva" },
     "email": "Email", "password": "Password",
     "emailPlaceholder": "tu@azienda.it",
     "signIn": "Accedi", "signingIn": "Accesso…",

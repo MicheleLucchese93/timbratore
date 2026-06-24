@@ -30,6 +30,7 @@
   },
   "login": {
     "tagline": "Partner console",
+    "hero": { "payoff": "Manage your clients. All in one console.", "managed": "Managed companies", "statusActive": "Active" },
     "email": "Email", "password": "Password",
     "emailPlaceholder": "you@company.com",
     "signIn": "Sign in", "signingIn": "Signing in…",

@@ -1,0 +1,188 @@
+.phero {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 0% 0%, color-mix(in oklab, var(--color-primary) 78%, white) 0%, transparent 60%),
+    radial-gradient(120% 80% at 100% 100%, color-mix(in oklab, var(--color-primary) 60%, black) 0%, transparent 60%),
+    linear-gradient(135deg, var(--color-primary) 0%, color-mix(in oklab, var(--color-primary) 78%, white) 50%, color-mix(in oklab, var(--color-primary) 60%, black) 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.phero__bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 25% 30%, rgba(255, 255, 255, 0.18) 0%, transparent 35%),
+    radial-gradient(circle at 75% 80%, rgba(255, 255, 255, 0.10) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+.phero__blob {
+  position: absolute;
+  filter: blur(36px);
+  pointer-events: none;
+}
+.phero__blob--1 {
+  width: 60%;
+  top: -12%;
+  left: -10%;
+  animation: phero-blob-1 22s ease-in-out infinite alternate;
+}
+.phero__blob--2 {
+  width: 55%;
+  bottom: -15%;
+  right: -8%;
+  animation: phero-blob-2 28s ease-in-out infinite alternate;
+}
+@keyframes phero-blob-1 {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(8%, 6%) scale(1.1); }
+}
+@keyframes phero-blob-2 {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-6%, -4%) scale(1.05); }
+}
+
+.phero__content {
+  position: relative;
+  z-index: 1;
+  padding: 4rem 3rem 4rem clamp(3rem, 7vw, 7rem);
+  max-width: 760px;
+}
+
+/* Below lg the login card centers over the full-page blue, so hide the hero
+   text/stage to avoid overlap — the gradient still shows. */
+@media (max-width: 1023px) {
+  .phero { justify-content: center; }
+  .phero__content { display: none; }
+}
+
+.phero__brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  font-size: 5.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin: 0 0 1.25rem;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+.phero__brand-tag {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  text-shadow: none;
+  align-self: center;
+}
+
+.phero__payoff {
+  font-size: 1.85rem;
+  font-weight: 500;
+  line-height: 1.35;
+  opacity: 0.95;
+  margin: 0 0 3rem;
+  max-width: 22ch;
+}
+
+/* Portfolio stage — a small stack of "managed company" glass cards. */
+.phero__stage {
+  position: relative;
+  margin-top: 1rem;
+  margin-left: clamp(0rem, 4vw, 4rem);
+  max-width: 26rem;
+}
+
+.phero__portfolio-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-bottom: 1rem;
+}
+
+.phero__company {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  background: rgba(255, 255, 255, 0.96);
+  color: #1f1b16;
+  padding: 0.85rem 1rem;
+  border-radius: 0.9rem;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  animation: phero-card 7s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.phero__company-avatar {
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+.phero__company--a .phero__company-avatar { background: var(--color-primary); }
+.phero__company--b .phero__company-avatar { background: var(--color-on-primary-container, #003a72); }
+.phero__company--c .phero__company-avatar { background: var(--color-secondary, #00696e); }
+
+.phero__company-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  flex: 1;
+}
+
+.phero__company-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1e7a3a;
+  background: color-mix(in oklab, #1e7a3a 12%, white);
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+}
+.phero__company-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #1e7a3a;
+}
+
+/* Slide in once, then settle into a gentle perpetual float (single keyframe so
+   the two transforms never fight). Staggered via animation-delay; during the
+   delay the card sits at frame 0 (opacity 0), so it stays hidden until its turn. */
+@keyframes phero-card {
+  0%   { opacity: 0; transform: translate(-16px, 10px) scale(0.96); }
+  14%  { opacity: 1; transform: translate(0, 0) scale(1); }
+  55%  { opacity: 1; transform: translate(0, -6px) scale(1); }
+  100% { opacity: 1; transform: translate(0, 0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phero__blob--1, .phero__blob--2, .phero__company {
+    animation: none;
+  }
+  .phero__company { opacity: 1; }
+}
