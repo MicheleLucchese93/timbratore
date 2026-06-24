@@ -10,6 +10,8 @@ import { Modal } from '../components/Modal.tsx';
 interface PartnerRow {
   user_id: string;
   email: string;
+  partner_name: string | null;
+  note: string | null;
   active: boolean;
   cap_tenants: number | null;
   cap_users_per_tenant: number | null;
@@ -102,6 +104,14 @@ export function Partners() {
   const capCell = (v: number | null) => (v == null ? t('common.unlimited') : String(v));
 
   const columns: GridColDef<PartnerRow>[] = [
+    {
+      field: 'partner_name',
+      headerName: t('partners.col.partner_name'),
+      flex: 1,
+      minWidth: 150,
+      renderCell: (p) =>
+        p.row.partner_name ? p.row.partner_name : <span className="muted">{t('common.none')}</span>,
+    },
     { field: 'email', headerName: t('partners.col.email'), flex: 1.4, minWidth: 200 },
     { field: 'tenant_count', headerName: t('partners.col.tenants'), width: 100 },
     { field: 'cap_tenants', headerName: t('partners.col.cap_tenants'), width: 120, renderCell: (p) => capCell(p.row.cap_tenants) },
@@ -122,6 +132,21 @@ export function Partners() {
           )}
         </span>
       ),
+    },
+    {
+      field: 'note',
+      headerName: t('partners.col.note'),
+      flex: 1.2,
+      minWidth: 160,
+      sortable: false,
+      renderCell: (p) =>
+        p.row.note ? (
+          <span title={p.row.note} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {p.row.note}
+          </span>
+        ) : (
+          <span className="muted">—</span>
+        ),
     },
     {
       field: 'actions',
@@ -225,8 +250,10 @@ function CreatePartner({ onClose, onDone }: { onClose: () => void; onDone: () =>
   const { t } = useTranslation();
   const toast = useToast();
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
   const [first, setFirst] = useState('');
   const [last, setLast] = useState('');
+  const [note, setNote] = useState('');
   const [caps, setCaps] = useState<Caps>({
     cap_tenants: null,
     cap_users_per_tenant: null,
@@ -246,8 +273,10 @@ function CreatePartner({ onClose, onDone }: { onClose: () => void; onDone: () =>
         method: 'POST',
         json: {
           email: email.trim().toLowerCase(),
+          partner_name: name.trim() || undefined,
           first_name: first.trim() || undefined,
           last_name: last.trim() || undefined,
+          note: note.trim() || undefined,
           ...caps,
         },
       });
@@ -268,6 +297,10 @@ function CreatePartner({ onClose, onDone }: { onClose: () => void; onDone: () =>
             <label className="label" htmlFor="p-email">{t('partners.create.email')}</label>
             <input id="p-email" className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
+          <div>
+            <label className="label" htmlFor="p-name">{t('partners.create.partner_name')}</label>
+            <input id="p-name" className="input" data-testid="partner-name" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
           <div className="grid-2">
             <div>
               <label className="label" htmlFor="p-first">{t('partners.create.first_name')}</label>
@@ -277,6 +310,10 @@ function CreatePartner({ onClose, onDone }: { onClose: () => void; onDone: () =>
               <label className="label" htmlFor="p-last">{t('partners.create.last_name')}</label>
               <input id="p-last" className="input" value={last} onChange={(e) => setLast(e.target.value)} />
             </div>
+          </div>
+          <div>
+            <label className="label" htmlFor="p-note">{t('partners.create.note')}</label>
+            <textarea id="p-note" className="input" rows={2} data-testid="partner-note" value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
           <div className="label" style={{ marginTop: '0.25rem' }}>
             {t('partners.create.caps')} <span style={{ fontWeight: 400 }}>— {t('partners.create.caps_hint')}</span>
@@ -306,6 +343,8 @@ function EditCaps({
 }) {
   const { t } = useTranslation();
   const toast = useToast();
+  const [name, setName] = useState(partner.partner_name ?? '');
+  const [note, setNote] = useState(partner.note ?? '');
   const [caps, setCaps] = useState<Caps>({
     cap_tenants: partner.cap_tenants,
     cap_users_per_tenant: partner.cap_users_per_tenant,
@@ -322,6 +361,14 @@ function EditCaps({
     setErr(null);
     try {
       await api(`/api/v1/partnership/partners/${partner.user_id}/caps`, { method: 'PATCH', json: caps });
+      const nextName = name.trim() || null;
+      const nextNote = note.trim() || null;
+      if (nextName !== (partner.partner_name ?? null) || nextNote !== (partner.note ?? null)) {
+        await api(`/api/v1/partnership/partners/${partner.user_id}`, {
+          method: 'PATCH',
+          json: { partner_name: nextName, note: nextNote },
+        });
+      }
       toast(t('partners.edit.saved'));
       await onDone();
     } catch (e2) {
@@ -335,6 +382,14 @@ function EditCaps({
     <Modal title={`${t('partners.edit.title')} · ${partner.email}`} onClose={onClose}>
       <form onSubmit={submit}>
         <div className="modal-body">
+          <div>
+            <label className="label" htmlFor="e-name">{t('partners.create.partner_name')}</label>
+            <input id="e-name" className="input" data-testid="edit-partner-name" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div>
+            <label className="label" htmlFor="e-note">{t('partners.create.note')}</label>
+            <textarea id="e-note" className="input" rows={2} data-testid="edit-partner-note" value={note} onChange={(e) => setNote(e.target.value)} />
+          </div>
           <CapInputs caps={caps} set={(k, v) => setCaps((c) => ({ ...c, [k]: v }))} />
           {err && <div className="form-err">{err}</div>}
         </div>

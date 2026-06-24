@@ -126,8 +126,8 @@ partnershipRouter.get(
     const r = await adminPool.query(
       `SELECT t.id, t.ragione_sociale, t.language,
               t.max_admins, t.max_users, t.max_documentali, t.max_branches,
-              t.suspended_at, t.created_at, t.created_by_partner,
-              pu.email AS owner_email,
+              t.suspended_at, t.created_at, t.created_by_partner, t.partner_note AS note,
+              pu.email AS owner_email, opm.partner_name AS owner_name,
               (SELECT au.email FROM memberships am JOIN auth_users au ON au.id = am.user_id
                  WHERE am.tenant_id = t.id AND am.role = 'admin'
                    AND am.active = TRUE AND am.deleted_at IS NULL
@@ -145,6 +145,7 @@ partnershipRouter.get(
                  WHERE b.tenant_id = t.id AND b.deleted_at IS NULL) AS used_branches
          FROM tenants t
          LEFT JOIN auth_users pu ON pu.id = t.created_by_partner
+         LEFT JOIN partnership_members opm ON opm.user_id = t.created_by_partner
         WHERE t.deleted_at IS NULL ${scope}
         ORDER BY t.created_at DESC`,
       params
@@ -254,7 +255,7 @@ partnershipRouter.post(
 async function loadOwnedTenant(p: PartnerContext, tenantId: string) {
   if (!UUID_RE.test(tenantId)) throw new ValidationError('invalid tenant id');
   const r = await adminPool.query(
-    `SELECT t.id, t.ragione_sociale, t.created_by_partner, t.suspended_at,
+    `SELECT t.id, t.ragione_sociale, t.created_by_partner, t.suspended_at, t.partner_note,
             t.max_admins, t.max_users, t.max_documentali, t.max_branches,
             (SELECT am.user_id FROM memberships am
                WHERE am.tenant_id = t.id AND am.role = 'admin'
@@ -355,6 +356,33 @@ partnershipRouter.patch(
       ...auditCtx(req),
     });
     ok(res, { tenant_id: t.id, limits: next });
+  })
+);
+
+// ---- PATCH /tenants/:id/note — edit the partner-console note on a company ---
+const UpdateNote = z.object({
+  note: z.string().trim().max(2000).transform(emptyToNull).nullable(),
+});
+partnershipRouter.patch(
+  '/tenants/:id/note',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const parse = UpdateNote.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const t = await loadOwnedTenant(p, String(req.params.id));
+    await adminPool.query(`UPDATE tenants SET partner_note = $2 WHERE id = $1`, [t.id, parse.data.note]);
+    await logPartnershipAudit({
+      actorUserId: p.userId,
+      actorRole: p.role,
+      action: 'tenant.update_note',
+      targetType: 'tenant',
+      targetId: t.id,
+      targetLabel: t.ragione_sociale,
+      before: { note: t.partner_note },
+      after: { note: parse.data.note },
+      ...auditCtx(req),
+    });
+    ok(res, { tenant_id: t.id, note: parse.data.note });
   })
 );
 
@@ -705,7 +733,7 @@ partnershipRouter.get(
   requirePartnershipAdmin,
   asyncHandler(async (req, res) => {
     const r = await adminPool.query(
-      `SELECT pm.user_id, au.email, pm.active,
+      `SELECT pm.user_id, au.email, pm.active, pm.partner_name, pm.note,
               pm.cap_tenants, pm.cap_users_per_tenant, pm.cap_admins_per_tenant,
               pm.cap_documentali_per_tenant, pm.cap_branches_per_tenant, pm.created_at,
               (SELECT count(*)::int FROM tenants t
@@ -724,6 +752,8 @@ const CreatePartner = z.object({
   email: z.string().email(),
   first_name: z.string().trim().max(80).optional(),
   last_name: z.string().trim().max(80).optional(),
+  partner_name: z.string().trim().max(200).transform(emptyToNull).nullable().optional(),
+  note: z.string().trim().max(2000).transform(emptyToNull).nullable().optional(),
   ...CapsSchema,
 });
 
@@ -764,8 +794,8 @@ partnershipRouter.post(
       await client.query(
         `INSERT INTO partnership_members
            (user_id, role, active, cap_tenants, cap_users_per_tenant, cap_admins_per_tenant,
-            cap_documentali_per_tenant, cap_branches_per_tenant, created_by, updated_at)
-         VALUES ($1, 'partner', TRUE, $2, $3, $4, $5, $6, $7, now())
+            cap_documentali_per_tenant, cap_branches_per_tenant, partner_name, note, created_by, updated_at)
+         VALUES ($1, 'partner', TRUE, $2, $3, $4, $5, $6, $7, $8, $9, now())
          ON CONFLICT (user_id) DO UPDATE
            SET role = 'partner', active = TRUE,
                cap_tenants = EXCLUDED.cap_tenants,
@@ -773,8 +803,10 @@ partnershipRouter.post(
                cap_admins_per_tenant = EXCLUDED.cap_admins_per_tenant,
                cap_documentali_per_tenant = EXCLUDED.cap_documentali_per_tenant,
                cap_branches_per_tenant = EXCLUDED.cap_branches_per_tenant,
+               partner_name = EXCLUDED.partner_name,
+               note = EXCLUDED.note,
                updated_at = now()`,
-        [u.userId, ...caps, p.userId]
+        [u.userId, ...caps, b.partner_name ?? null, b.note ?? null, p.userId]
       );
       await logPartnershipAudit(
         {
@@ -786,6 +818,8 @@ partnershipRouter.post(
           targetLabel: email,
           after: {
             invited: u.invited,
+            partner_name: b.partner_name ?? null,
+            note: b.note ?? null,
             caps: {
               cap_tenants: caps[0],
               cap_users_per_tenant: caps[1],
@@ -877,6 +911,57 @@ partnershipRouter.patch(
       ...auditCtx(req),
     });
     ok(res, { user_id: userId, caps: next });
+  })
+);
+
+// ---- PATCH /partners/:userId — edit reseller name + note (admin) -----------
+const PartnerProfile = z
+  .object({
+    partner_name: z.string().trim().max(200).transform(emptyToNull).nullable().optional(),
+    note: z.string().trim().max(2000).transform(emptyToNull).nullable().optional(),
+  })
+  .refine((d) => 'partner_name' in d || 'note' in d, { message: 'nothing to update' });
+
+partnershipRouter.patch(
+  '/partners/:userId',
+  requirePartnershipAdmin,
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const userId = String(req.params.userId);
+    if (!UUID_RE.test(userId)) throw new ValidationError('invalid user id');
+    const parse = PartnerProfile.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const b = parse.data;
+
+    const cur = await adminPool.query(
+      `SELECT au.email, pm.role, pm.partner_name, pm.note
+         FROM partnership_members pm JOIN auth_users au ON au.id = pm.user_id
+        WHERE pm.user_id = $1`,
+      [userId]
+    );
+    if (cur.rowCount === 0) throw new NotFoundError('partner not found');
+    if (cur.rows[0].role !== 'partner') throw new ConflictError('not a partner', 'NOT_A_PARTNER');
+    const before = { partner_name: cur.rows[0].partner_name, note: cur.rows[0].note };
+    const next = {
+      partner_name: 'partner_name' in b ? (b.partner_name ?? null) : before.partner_name,
+      note: 'note' in b ? (b.note ?? null) : before.note,
+    };
+    await adminPool.query(
+      `UPDATE partnership_members SET partner_name = $2, note = $3, updated_at = now() WHERE user_id = $1`,
+      [userId, next.partner_name, next.note]
+    );
+    await logPartnershipAudit({
+      actorUserId: p.userId,
+      actorRole: p.role,
+      action: 'partner.update_profile',
+      targetType: 'partner',
+      targetId: userId,
+      targetLabel: cur.rows[0].email,
+      before,
+      after: next,
+      ...auditCtx(req),
+    });
+    ok(res, { user_id: userId, partner_name: next.partner_name, note: next.note });
   })
 );
 

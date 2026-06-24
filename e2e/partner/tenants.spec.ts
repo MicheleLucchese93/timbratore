@@ -8,6 +8,7 @@ const ENABLED = process.env.E2E_MUTATING === '1';
 const suffix = `${Date.now()}`;
 const tenantName = `e2e-tenant-${suffix}`;
 const adminEmail = `e2e-tadmin-${suffix}@e2e.local`;
+const tenantNote = `promemoria ${suffix}`;
 
 function row(page: Page, name: string) {
   return page.locator('.MuiDataGrid-row', { hasText: name });
@@ -33,12 +34,14 @@ test.describe('partner admin · tenants', () => {
     await expect(row(page, tenantName)).toContainText('1/15');
     await expect(row(page, tenantName)).toContainText(adminEmail);
 
-    // --- edit limits ---
+    // --- edit limits + note ---
     await row(page, tenantName).getByRole('button', { name: /Modifica|Edit/ }).click();
     await page.locator('input#e-users').fill('25');
+    await page.getByTestId('tenant-note').fill(tenantNote);
     await page.getByTestId('edit-limits-submit').click();
     await expect(page.getByText(/Limiti aggiornati|Limits updated/)).toBeVisible();
     await expect(row(page, tenantName)).toContainText('1/25');
+    await expect(row(page, tenantName)).toContainText(tenantNote);
 
     // --- suspend (in-app confirm dialog) ---
     await row(page, tenantName).getByTestId('suspend').click();

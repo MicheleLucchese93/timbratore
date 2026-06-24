@@ -20,6 +20,8 @@ interface TenantRow {
   created_at: string;
   created_by_partner: string | null;
   owner_email: string | null;
+  owner_name: string | null;
+  note: string | null;
   admin_email: string | null;
   admin_count: number;
   used_members: number;
@@ -98,11 +100,12 @@ export function Tenants() {
     },
     ...(isAdmin
       ? [{
-          field: 'owner_email',
+          field: 'owner_name',
           headerName: t('tenants.col.owner'),
           flex: 1,
           minWidth: 150,
-          valueGetter: (_v: unknown, row: TenantRow) => row.owner_email ?? t('tenants.platform'),
+          valueGetter: (_v: unknown, row: TenantRow) =>
+            row.owner_name || row.owner_email || t('tenants.platform'),
         } as GridColDef<TenantRow>]
       : []),
     {
@@ -142,6 +145,21 @@ export function Tenants() {
           )}
         </span>
       ),
+    },
+    {
+      field: 'note',
+      headerName: t('tenants.col.note'),
+      flex: 1.2,
+      minWidth: 160,
+      sortable: false,
+      renderCell: (p) =>
+        p.row.note ? (
+          <span title={p.row.note} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {p.row.note}
+          </span>
+        ) : (
+          <span className="muted">—</span>
+        ),
     },
     {
       field: 'actions',
@@ -372,6 +390,7 @@ function EditLimits({
   const [maxAdmins, setMaxAdmins] = useState(tenant.max_admins);
   const [maxDoc, setMaxDoc] = useState(tenant.max_documentali);
   const [maxBranches, setMaxBranches] = useState(tenant.max_branches);
+  const [note, setNote] = useState(tenant.note ?? '');
   // Admin-only: which partner owns/manages this tenant ('' = Piattaforma).
   const [ownerPartner, setOwnerPartner] = useState(tenant.created_by_partner ?? '');
   const [partners, setPartners] = useState<Array<{ user_id: string; email: string }>>([]);
@@ -399,6 +418,13 @@ function EditLimits({
         await api(`/api/v1/partnership/tenants/${tenant.id}/owner`, {
           method: 'PATCH',
           json: { partner_user_id: ownerPartner || null },
+        });
+      }
+      const nextNote = note.trim() || null;
+      if (nextNote !== (tenant.note ?? null)) {
+        await api(`/api/v1/partnership/tenants/${tenant.id}/note`, {
+          method: 'PATCH',
+          json: { note: nextNote },
         });
       }
       toast(t('tenants.edit.saved'));
@@ -436,6 +462,10 @@ function EditLimits({
             <NumField id="e-admins" label={t('tenants.create.max_admins')} value={maxAdmins} max={caps?.cap_admins_per_tenant} min={Math.max(1, tenant.used_admins)} onChange={setMaxAdmins} />
             <NumField id="e-doc" label={t('tenants.create.max_documentali')} value={maxDoc} max={caps?.cap_documentali_per_tenant} min={tenant.used_documentali} onChange={setMaxDoc} />
             <NumField id="e-branches" label={t('tenants.create.max_branches')} value={maxBranches} max={caps?.cap_branches_per_tenant} min={Math.max(1, tenant.used_branches)} onChange={setMaxBranches} />
+          </div>
+          <div>
+            <label className="label" htmlFor="e-note">{t('tenants.edit.note')}</label>
+            <textarea id="e-note" className="input" rows={2} data-testid="tenant-note" value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
           {err && <div className="form-err">{err}</div>}
         </div>

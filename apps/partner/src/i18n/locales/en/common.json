@@ -57,7 +57,7 @@
     "col": {
       "name": "Company name", "admin_email": "Admin email", "owner": "Partner", "language": "Language",
       "users": "Users", "admins": "Admins", "documentali": "Documentali", "branches": "Branches",
-      "status": "Status", "created": "Created", "actions": "Actions"
+      "note": "Note", "status": "Status", "created": "Created", "actions": "Actions"
     },
     "status": { "active": "Active", "suspended": "Suspended" },
     "platform": "Platform",
@@ -75,7 +75,7 @@
       "created": "Company created. Admin invite sent.",
       "created_existing": "Company created. The admin already had an account."
     },
-    "edit": { "title": "Edit limits", "submit": "Save limits", "saved": "Limits updated.", "owner": "Assigned partner" },
+    "edit": { "title": "Edit limits", "submit": "Save limits", "saved": "Limits updated.", "owner": "Assigned partner", "note": "Note" },
     "suspend": { "label": "Suspend", "confirm": "Suspend this company? Its users will no longer be able to sign in.", "done": "Company suspended." },
     "resume": { "label": "Resume", "confirm": "Resume this company? Its users will be able to sign in again.", "done": "Company resumed." },
     "reinvite": { "label": "Re-invite admin", "done": "Access email sent to {{email}}." }
@@ -84,7 +84,8 @@
     "title": "Partners", "subtitle": "Resellers and their caps",
     "new": "New partner",
     "col": {
-      "email": "Email", "tenants": "Companies", "cap_tenants": "Max companies",
+      "partner_name": "Partner name", "email": "Email", "note": "Note",
+      "tenants": "Companies", "cap_tenants": "Max companies",
       "cap_users": "Max users/company", "cap_admins": "Max admins/company",
       "cap_documentali": "Max documentali/company", "cap_branches": "Max branches/company",
       "status": "Status", "actions": "Actions"
@@ -93,6 +94,7 @@
     "create": {
       "title": "New partner",
       "email": "Partner email",
+      "partner_name": "Partner name (opt.)", "note": "Note (opt.)",
       "first_name": "First name (opt.)", "last_name": "Last name (opt.)",
       "caps": "Partner caps",
       "caps_hint": "Leave blank for unlimited.",
@@ -125,8 +127,10 @@
       "tenant.add_admin": "Admin added",
       "tenant.remove_admin": "Admin removed",
       "tenant.assign_partner": "Tenant assigned to partner",
+      "tenant.update_note": "Company note changed",
       "partner.create": "Partner created",
       "partner.update_caps": "Partner caps changed",
+      "partner.update_profile": "Partner profile changed",
       "partner.activate": "Partner activated",
       "partner.deactivate": "Partner disabled",
       "partner.resend": "Invite resent"

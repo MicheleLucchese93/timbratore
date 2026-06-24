@@ -11,8 +11,10 @@ export type PartnershipAction =
   | 'tenant.add_admin'
   | 'tenant.remove_admin'
   | 'tenant.assign_partner'
+  | 'tenant.update_note'
   | 'partner.create'
   | 'partner.update_caps'
+  | 'partner.update_profile'
   | 'partner.activate'
   | 'partner.deactivate'
   | 'partner.resend';
