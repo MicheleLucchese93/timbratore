@@ -21,6 +21,7 @@ interface TenantRow {
   created_by_partner: string | null;
   owner_email: string | null;
   admin_email: string | null;
+  admin_count: number;
   used_members: number;
   used_admins: number;
   used_documentali: number;
@@ -44,6 +45,7 @@ export function Tenants() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<TenantRow | null>(null);
+  const [managingAdmins, setManagingAdmins] = useState<TenantRow | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,7 +83,18 @@ export function Tenants() {
       headerName: t('tenants.col.admin_email'),
       flex: 1.2,
       minWidth: 190,
-      valueGetter: (_v: unknown, row: TenantRow) => row.admin_email ?? t('common.none'),
+      sortable: false,
+      renderCell: (p) =>
+        p.row.admin_email ? (
+          <span>
+            {p.row.admin_email}
+            {p.row.admin_count > 1 && (
+              <span style={{ color: 'var(--color-on-surface-variant)' }}> +{p.row.admin_count - 1}</span>
+            )}
+          </span>
+        ) : (
+          t('common.none')
+        ),
     },
     ...(isAdmin
       ? [{
@@ -171,11 +184,8 @@ export function Tenants() {
               {t('tenants.suspend.label')}
             </button>
           )}
-          <button
-            className="btn btn-ghost btn-sm"
-            onClick={() => act(`/api/v1/partnership/tenants/${p.row.id}/admin-reinvite`, 'tenants.reinvite.done')}
-          >
-            {t('tenants.reinvite.label')}
+          <button className="btn btn-ghost btn-sm" data-testid="manage-admins" onClick={() => setManagingAdmins(p.row)}>
+            {t('admins.label')}
           </button>
         </div>
       ),
@@ -226,6 +236,13 @@ export function Tenants() {
             setEditing(null);
             await load();
           }}
+        />
+      )}
+      {managingAdmins && (
+        <ManageAdmins
+          tenant={managingAdmins}
+          onClose={() => setManagingAdmins(null)}
+          onChanged={load}
         />
       )}
     </>
@@ -348,7 +365,6 @@ function EditLimits({
 }) {
   const { t } = useTranslation();
   const toast = useToast();
-  const [adminEmail, setAdminEmail] = useState(tenant.admin_email ?? '');
   const [maxUsers, setMaxUsers] = useState(tenant.max_users);
   const [maxAdmins, setMaxAdmins] = useState(tenant.max_admins);
   const [maxDoc, setMaxDoc] = useState(tenant.max_documentali);
@@ -365,15 +381,6 @@ function EditLimits({
         method: 'PATCH',
         json: { max_users: maxUsers, max_admins: maxAdmins, max_documentali: maxDoc, max_branches: maxBranches },
       });
-      // Change the admin email only when it actually changed.
-      const next = adminEmail.trim().toLowerCase();
-      const curr = (tenant.admin_email ?? '').toLowerCase();
-      if (next && next !== curr) {
-        await api(`/api/v1/partnership/tenants/${tenant.id}/admin`, {
-          method: 'PATCH',
-          json: { admin_email: next },
-        });
-      }
       toast(t('tenants.edit.saved'));
       await onDone();
     } catch (e2) {
@@ -387,10 +394,6 @@ function EditLimits({
     <Modal title={`${t('tenants.edit.title')} · ${tenant.ragione_sociale}`} onClose={onClose}>
       <form onSubmit={submit}>
         <div className="modal-body">
-          <div>
-            <label className="label" htmlFor="e-admin-email">{t('tenants.create.admin_email')}</label>
-            <input id="e-admin-email" className="input" type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} />
-          </div>
           <div className="grid-2">
             <NumField id="e-users" label={t('tenants.create.max_users')} value={maxUsers} max={caps?.cap_users_per_tenant} min={tenant.used_members} onChange={setMaxUsers} />
             <NumField id="e-admins" label={t('tenants.create.max_admins')} value={maxAdmins} max={caps?.cap_admins_per_tenant} min={Math.max(1, tenant.used_admins)} onChange={setMaxAdmins} />
@@ -406,6 +409,147 @@ function EditLimits({
           </button>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+interface AdminRow {
+  user_id: string;
+  email: string;
+  created_at: string;
+}
+
+function ManageAdmins({
+  tenant,
+  onClose,
+  onChanged,
+}: {
+  tenant: TenantRow;
+  onClose: () => void;
+  onChanged: () => Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const confirm = useConfirm();
+  const [admins, setAdmins] = useState<AdminRow[]>([]);
+  const [maxAdmins, setMaxAdmins] = useState(tenant.max_admins);
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await api<{ admins: AdminRow[]; max_admins: number }>(
+        `/api/v1/partnership/tenants/${tenant.id}/admins`
+      );
+      setAdmins(r.admins);
+      setMaxAdmins(r.max_admins);
+    } catch (e) {
+      setErr(errMsg(t, e));
+    } finally {
+      setLoading(false);
+    }
+  }, [t, tenant.id]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const atLimit = admins.length >= maxAdmins;
+
+  async function add(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await api<{ invited: boolean }>(`/api/v1/partnership/tenants/${tenant.id}/admins`, {
+        method: 'POST',
+        json: { email: email.trim().toLowerCase() },
+      });
+      toast(t(res.invited ? 'admins.added' : 'admins.added_existing'));
+      setEmail('');
+      await load();
+      await onChanged();
+    } catch (e2) {
+      setErr(errMsg(t, e2));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function reinvite(a: AdminRow) {
+    try {
+      await api(`/api/v1/partnership/tenants/${tenant.id}/admins/${a.user_id}/reinvite`, { method: 'POST' });
+      toast(t('admins.reinvited', { email: a.email }));
+    } catch (e) {
+      toast(errMsg(t, e), true);
+    }
+  }
+
+  async function remove(a: AdminRow) {
+    if (!(await confirm({ message: t('admins.remove_confirm', { email: a.email }), confirmLabel: t('admins.remove'), danger: true }))) {
+      return;
+    }
+    try {
+      await api(`/api/v1/partnership/tenants/${tenant.id}/admins/${a.user_id}`, { method: 'DELETE' });
+      toast(t('admins.removed'));
+      await load();
+      await onChanged();
+    } catch (e) {
+      toast(errMsg(t, e), true);
+    }
+  }
+
+  return (
+    <Modal title={`${t('admins.title')} · ${tenant.ragione_sociale}`} onClose={onClose}>
+      <div className="modal-body">
+        <div className="label">{t('admins.count', { count: admins.length, max: maxAdmins })}</div>
+        <div className="admin-list">
+          {loading ? (
+            <div className="muted">{t('common.loading')}</div>
+          ) : (
+            admins.map((a) => (
+              <div className="admin-row" key={a.user_id}>
+                <span className="admin-row-email">{a.email}</span>
+                <span className="admin-row-actions">
+                  <button type="button" className="btn btn-ghost btn-sm" data-testid="admin-reinvite" onClick={() => reinvite(a)}>
+                    {t('admins.reinvite')}
+                  </button>
+                  {admins.length > 1 && (
+                    <button type="button" className="btn btn-ghost btn-sm" data-testid="admin-remove" onClick={() => remove(a)}>
+                      {t('admins.remove')}
+                    </button>
+                  )}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+        <form onSubmit={add} className="admin-add">
+          <input
+            className="input"
+            type="email"
+            required
+            placeholder={t('admins.add_placeholder')}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={atLimit}
+            data-testid="admin-add-email"
+          />
+          <button type="submit" className="btn btn-primary" disabled={busy || atLimit} data-testid="admin-add-submit">
+            {t('admins.add')}
+          </button>
+        </form>
+        {atLimit && <div className="muted">{t('admins.limit_reached')}</div>}
+        {err && <div className="form-err">{err}</div>}
+      </div>
+      <div className="modal-foot">
+        <button type="button" className="btn btn-secondary" onClick={onClose}>
+          {t('actions.close')}
+        </button>
+      </div>
     </Modal>
   );
 }

@@ -8,6 +8,8 @@ export type PartnershipAction =
   | 'tenant.resume'
   | 'tenant.admin_reinvite'
   | 'tenant.change_admin'
+  | 'tenant.add_admin'
+  | 'tenant.remove_admin'
   | 'partner.create'
   | 'partner.update_caps'
   | 'partner.activate'

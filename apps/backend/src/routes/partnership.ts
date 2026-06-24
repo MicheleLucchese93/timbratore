@@ -137,6 +137,9 @@ partnershipRouter.get(
               (SELECT count(*)::int FROM memberships m
                  WHERE m.tenant_id = t.id AND m.deleted_at IS NULL AND m.role = 'admin') AS used_admins,
               (SELECT count(*)::int FROM memberships m
+                 WHERE m.tenant_id = t.id AND m.deleted_at IS NULL AND m.role = 'admin'
+                   AND m.active = TRUE) AS admin_count,
+              (SELECT count(*)::int FROM memberships m
                  WHERE m.tenant_id = t.id AND m.deleted_at IS NULL AND m.is_documentale) AS used_documentali,
               (SELECT count(*)::int FROM branches b
                  WHERE b.tenant_id = t.id AND b.deleted_at IS NULL) AS used_branches
@@ -445,6 +448,163 @@ partnershipRouter.post(
       ...auditCtx(req),
     });
     ok(res, { tenant_id: t.id, email });
+  })
+);
+
+// ===== Multi-admin management (up to tenant.max_admins) =====================
+
+// GET the tenant's active admins.
+partnershipRouter.get(
+  '/tenants/:id/admins',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const t = await loadOwnedTenant(p, String(req.params.id));
+    const r = await adminPool.query(
+      `SELECT au.id AS user_id, au.email, m.created_at
+         FROM memberships m JOIN auth_users au ON au.id = m.user_id
+        WHERE m.tenant_id = $1 AND m.role = 'admin' AND m.active = TRUE AND m.deleted_at IS NULL
+        ORDER BY m.created_at ASC`,
+      [t.id]
+    );
+    ok(res, { admins: r.rows, max_admins: t.max_admins, count: r.rowCount ?? 0 });
+  })
+);
+
+// Add an admin (invites a brand-new email), bounded by tenant.max_admins.
+const AddAdmin = z.object({
+  email: z.string().email(),
+  first_name: z.string().trim().max(80).optional(),
+  last_name: z.string().trim().max(80).optional(),
+});
+partnershipRouter.post(
+  '/tenants/:id/admins',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const parse = AddAdmin.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const b = parse.data;
+    const email = b.email.trim().toLowerCase();
+    const t = await loadOwnedTenant(p, String(req.params.id));
+
+    const client = await adminPool.connect();
+    try {
+      await client.query('BEGIN');
+      const cnt = await client.query(
+        `SELECT count(*)::int AS n FROM memberships
+          WHERE tenant_id = $1 AND role = 'admin' AND active = TRUE AND deleted_at IS NULL`,
+        [t.id]
+      );
+      // Adding someone who is ALREADY an active admin is idempotent (no bump).
+      const already = await client.query(
+        `SELECT 1 FROM memberships m JOIN auth_users au ON au.id = m.user_id
+          WHERE m.tenant_id = $1 AND au.email = $2 AND m.role = 'admin'
+            AND m.active = TRUE AND m.deleted_at IS NULL`,
+        [t.id, email]
+      );
+      if (!already.rowCount && (cnt.rows[0]?.n ?? 0) >= t.max_admins) {
+        throw new ConflictError(`admin limit reached (${t.max_admins})`, 'ADMIN_LIMIT', { max: t.max_admins });
+      }
+      const u = await ensureAuthUser(client, {
+        email,
+        firstName: b.first_name ?? null,
+        lastName: b.last_name ?? null,
+        language: 'it',
+      });
+      await client.query(
+        `INSERT INTO memberships (tenant_id, user_id, role)
+         VALUES ($1, $2, 'admin')
+         ON CONFLICT (tenant_id, user_id) DO UPDATE
+           SET role = 'admin', active = TRUE, deleted_at = NULL`,
+        [t.id, u.userId]
+      );
+      await logPartnershipAudit(
+        {
+          actorUserId: p.userId,
+          actorRole: p.role,
+          action: 'tenant.add_admin',
+          targetType: 'tenant',
+          targetId: t.id,
+          targetLabel: t.ragione_sociale,
+          after: { email, invited: u.invited },
+          ...auditCtx(req),
+        },
+        client
+      );
+      await client.query('COMMIT');
+      invalidateMembershipCache(u.userId);
+      ok(res, { user_id: u.userId, email, invited: u.invited }, 201);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  })
+);
+
+// Remove an admin (soft-delete their membership). Never the last one.
+partnershipRouter.delete(
+  '/tenants/:id/admins/:userId',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const userId = String(req.params.userId);
+    if (!UUID_RE.test(userId)) throw new ValidationError('invalid user id');
+    const t = await loadOwnedTenant(p, String(req.params.id));
+    const admins = await adminPool.query(
+      `SELECT m.user_id, au.email FROM memberships m JOIN auth_users au ON au.id = m.user_id
+        WHERE m.tenant_id = $1 AND m.role = 'admin' AND m.active = TRUE AND m.deleted_at IS NULL`,
+      [t.id]
+    );
+    const target = admins.rows.find((r) => r.user_id === userId);
+    if (!target) throw new NotFoundError('not an admin of this tenant');
+    if ((admins.rowCount ?? 0) <= 1) throw new ConflictError('cannot remove the last admin', 'LAST_ADMIN');
+    await adminPool.query(
+      `UPDATE memberships SET active = FALSE, deleted_at = now() WHERE tenant_id = $1 AND user_id = $2`,
+      [t.id, userId]
+    );
+    invalidateMembershipCache(userId);
+    await logPartnershipAudit({
+      actorUserId: p.userId,
+      actorRole: p.role,
+      action: 'tenant.remove_admin',
+      targetType: 'tenant',
+      targetId: t.id,
+      targetLabel: t.ragione_sociale,
+      after: { email: target.email },
+      ...auditCtx(req),
+    });
+    ok(res, { user_id: userId, removed: true });
+  })
+);
+
+// Reinvite a SPECIFIC admin (set-password / recovery email).
+partnershipRouter.post(
+  '/tenants/:id/admins/:userId/reinvite',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const userId = String(req.params.userId);
+    if (!UUID_RE.test(userId)) throw new ValidationError('invalid user id');
+    const t = await loadOwnedTenant(p, String(req.params.id));
+    const r = await adminPool.query(
+      `SELECT au.email FROM memberships m JOIN auth_users au ON au.id = m.user_id
+        WHERE m.tenant_id = $1 AND m.user_id = $2 AND m.role = 'admin'
+          AND m.active = TRUE AND m.deleted_at IS NULL`,
+      [t.id, userId]
+    );
+    if (r.rowCount === 0) throw new NotFoundError('not an admin of this tenant');
+    const email = r.rows[0].email as string;
+    await triggerRecovery(email);
+    await logPartnershipAudit({
+      actorUserId: p.userId,
+      actorRole: p.role,
+      action: 'tenant.admin_reinvite',
+      targetType: 'tenant',
+      targetId: t.id,
+      targetLabel: t.ragione_sociale,
+      after: { email },
+      ...auditCtx(req),
+    });
+    ok(res, { user_id: userId, email });
   })
 );
 

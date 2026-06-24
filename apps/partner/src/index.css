@@ -114,6 +114,16 @@ select.input { background-color: white; }
 .modal-body { padding: 1.25rem; display: flex; flex-direction: column; gap: 0.875rem; }
 .modal-foot { padding: 1rem 1.25rem; border-top: 1px solid var(--color-surface-variant); display: flex; justify-content: flex-end; gap: 0.5rem; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.875rem; }
+.muted { font-size: 0.8125rem; color: var(--color-on-surface-variant); }
+
+/* Manage-admins list */
+.admin-list { display: flex; flex-direction: column; border: 1px solid var(--color-surface-variant); border-radius: 0.5rem; overflow: hidden; }
+.admin-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.5rem 0.75rem; }
+.admin-row + .admin-row { border-top: 1px solid var(--color-surface-variant); }
+.admin-row-email { font-size: 0.875rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-row-actions { display: flex; gap: 0.375rem; flex-shrink: 0; }
+.admin-add { display: flex; gap: 0.5rem; }
+.admin-add .input { flex: 1; }
 .form-err { background: var(--color-error-tint, #fde8e8); color: var(--color-error); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.8125rem; }
 
 /* Toasts ---------------------------------------------------------------- */

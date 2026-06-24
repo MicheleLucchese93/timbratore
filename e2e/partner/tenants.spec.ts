@@ -16,7 +16,7 @@ function row(page: Page, name: string) {
 test.describe('partner admin · tenants', () => {
   test.skip(!ENABLED, 'set E2E_MUTATING=1 (runs against a local backend)');
 
-  test('create tenant, edit limits, suspend/resume, re-invite admin', async ({ page }) => {
+  test('create tenant, edit limits, suspend/resume', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('heading', { name: /Aziende|Companies/ })).toBeVisible();
 
@@ -33,15 +33,12 @@ test.describe('partner admin · tenants', () => {
     await expect(row(page, tenantName)).toContainText('1/15');
     await expect(row(page, tenantName)).toContainText(adminEmail);
 
-    // --- edit limits + change admin email ---
-    const newAdminEmail = `e2e-tadmin2-${suffix}@e2e.local`;
+    // --- edit limits ---
     await row(page, tenantName).getByRole('button', { name: /Modifica|Edit/ }).click();
     await page.locator('input#e-users').fill('25');
-    await page.locator('input#e-admin-email').fill(newAdminEmail);
     await page.getByTestId('edit-limits-submit').click();
     await expect(page.getByText(/Limiti aggiornati|Limits updated/)).toBeVisible();
     await expect(row(page, tenantName)).toContainText('1/25');
-    await expect(row(page, tenantName)).toContainText(newAdminEmail);
 
     // --- suspend (in-app confirm dialog) ---
     await row(page, tenantName).getByTestId('suspend').click();
@@ -54,9 +51,5 @@ test.describe('partner admin · tenants', () => {
     await page.getByTestId('confirm-ok').click();
     await expect(page.getByText(/Azienda riattivata|Company resumed/)).toBeVisible();
     await expect(row(page, tenantName)).toContainText(/Attiva|Active/);
-
-    // --- re-invite admin ---
-    await row(page, tenantName).getByRole('button', { name: /Reinvita|Re-invite/ }).click();
-    await expect(page.getByText(/Email di accesso inviata|Access email sent/)).toBeVisible();
   });
 });

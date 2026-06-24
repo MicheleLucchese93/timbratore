@@ -5,6 +5,21 @@
   "role": { "admin": "Amministratore", "partner": "Partner" },
   "profile": { "title": "Profilo", "email": "Email", "first_name": "Nome", "last_name": "Cognome", "saved": "Profilo aggiornato." },
   "confirm": { "title": "Conferma" },
+  "admins": {
+    "label": "Admin",
+    "title": "Amministratori",
+    "count": "{{count}}/{{max}} amministratori",
+    "add": "Aggiungi",
+    "add_placeholder": "Email nuovo amministratore",
+    "reinvite": "Reinvita",
+    "reinvited": "Invito inviato a {{email}}.",
+    "remove": "Rimuovi",
+    "remove_confirm": "Rimuovere {{email}} dagli amministratori?",
+    "removed": "Amministratore rimosso.",
+    "added": "Amministratore aggiunto. Invito inviato.",
+    "added_existing": "Amministratore aggiunto.",
+    "limit_reached": "Limite amministratori raggiunto."
+  },
   "actions": {
     "save": "Salva", "cancel": "Annulla", "create": "Crea", "edit": "Modifica",
     "close": "Chiudi", "confirm": "Conferma", "search": "Cerca", "refresh": "Aggiorna"
@@ -97,6 +112,8 @@
       "tenant.resume": "Azienda riattivata",
       "tenant.admin_reinvite": "Admin reinvitato",
       "tenant.change_admin": "Email admin modificata",
+      "tenant.add_admin": "Admin aggiunto",
+      "tenant.remove_admin": "Admin rimosso",
       "partner.create": "Partner creato",
       "partner.update_caps": "Limiti partner modificati",
       "partner.activate": "Partner attivato",
@@ -110,6 +127,8 @@
     "BELOW_USAGE": "Il limite non può scendere sotto l'utilizzo attuale.",
     "ALREADY_ADMIN": "L'utente è già un amministratore di piattaforma.",
     "EMAIL_IN_USE": "Email già usata da un altro account.",
+    "ADMIN_LIMIT": "Numero massimo di amministratori raggiunto per questa azienda.",
+    "LAST_ADMIN": "Non puoi rimuovere l'ultimo amministratore.",
     "TENANT_NOT_OWNED": "Questa azienda non è tua.",
     "default": "Operazione non riuscita. Riprova."
   }

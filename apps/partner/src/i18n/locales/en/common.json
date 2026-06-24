@@ -5,6 +5,21 @@
   "role": { "admin": "Administrator", "partner": "Partner" },
   "profile": { "title": "Profile", "email": "Email", "first_name": "First name", "last_name": "Last name", "saved": "Profile updated." },
   "confirm": { "title": "Confirm" },
+  "admins": {
+    "label": "Admins",
+    "title": "Administrators",
+    "count": "{{count}}/{{max}} administrators",
+    "add": "Add",
+    "add_placeholder": "New admin email",
+    "reinvite": "Resend",
+    "reinvited": "Invite sent to {{email}}.",
+    "remove": "Remove",
+    "remove_confirm": "Remove {{email}} from administrators?",
+    "removed": "Administrator removed.",
+    "added": "Administrator added. Invite sent.",
+    "added_existing": "Administrator added.",
+    "limit_reached": "Administrator limit reached."
+  },
   "actions": {
     "save": "Save", "cancel": "Cancel", "create": "Create", "edit": "Edit",
     "close": "Close", "confirm": "Confirm", "search": "Search", "refresh": "Refresh"
@@ -97,6 +112,8 @@
       "tenant.resume": "Company resumed",
       "tenant.admin_reinvite": "Admin re-invited",
       "tenant.change_admin": "Admin email changed",
+      "tenant.add_admin": "Admin added",
+      "tenant.remove_admin": "Admin removed",
       "partner.create": "Partner created",
       "partner.update_caps": "Partner caps changed",
       "partner.activate": "Partner activated",
@@ -110,6 +127,8 @@
     "BELOW_USAGE": "The limit cannot drop below current usage.",
     "ALREADY_ADMIN": "The user is already a platform administrator.",
     "EMAIL_IN_USE": "Email already used by another account.",
+    "ADMIN_LIMIT": "Maximum number of administrators reached for this company.",
+    "LAST_ADMIN": "You can't remove the last administrator.",
     "TENANT_NOT_OWNED": "This company is not yours.",
     "default": "Operation failed. Try again."
   }
