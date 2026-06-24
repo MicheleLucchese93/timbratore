@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useSession } from '../store/session.ts';
 import { Login } from '../pages/Login.tsx';
+import { ForgotPassword } from '../pages/ForgotPassword.tsx';
 import { Layout } from './Layout.tsx';
 import { Tenants } from '../pages/Tenants.tsx';
 import { Partners } from '../pages/Partners.tsx';
@@ -27,6 +28,7 @@ export function App() {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );

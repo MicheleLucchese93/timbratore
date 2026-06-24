@@ -231,6 +231,7 @@ export function Tenants() {
         <EditLimits
           tenant={editing}
           caps={caps}
+          isAdmin={isAdmin}
           onClose={() => setEditing(null)}
           onDone={async () => {
             setEditing(null);
@@ -355,11 +356,13 @@ function CreateTenant({
 function EditLimits({
   tenant,
   caps,
+  isAdmin,
   onClose,
   onDone,
 }: {
   tenant: TenantRow;
   caps: PartnerCaps | undefined;
+  isAdmin: boolean;
   onClose: () => void;
   onDone: () => Promise<void>;
 }) {
@@ -369,8 +372,18 @@ function EditLimits({
   const [maxAdmins, setMaxAdmins] = useState(tenant.max_admins);
   const [maxDoc, setMaxDoc] = useState(tenant.max_documentali);
   const [maxBranches, setMaxBranches] = useState(tenant.max_branches);
+  // Admin-only: which partner owns/manages this tenant ('' = Piattaforma).
+  const [ownerPartner, setOwnerPartner] = useState(tenant.created_by_partner ?? '');
+  const [partners, setPartners] = useState<Array<{ user_id: string; email: string }>>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    void api<{ partners: Array<{ user_id: string; email: string }> }>('/api/v1/partnership/partners')
+      .then((r) => setPartners(r.partners))
+      .catch(() => {});
+  }, [isAdmin]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -381,6 +394,13 @@ function EditLimits({
         method: 'PATCH',
         json: { max_users: maxUsers, max_admins: maxAdmins, max_documentali: maxDoc, max_branches: maxBranches },
       });
+      // Reassign owning partner if the admin changed it.
+      if (isAdmin && ownerPartner !== (tenant.created_by_partner ?? '')) {
+        await api(`/api/v1/partnership/tenants/${tenant.id}/owner`, {
+          method: 'PATCH',
+          json: { partner_user_id: ownerPartner || null },
+        });
+      }
       toast(t('tenants.edit.saved'));
       await onDone();
     } catch (e2) {
@@ -394,6 +414,23 @@ function EditLimits({
     <Modal title={`${t('tenants.edit.title')} · ${tenant.ragione_sociale}`} onClose={onClose}>
       <form onSubmit={submit}>
         <div className="modal-body">
+          {isAdmin && (
+            <div>
+              <label className="label" htmlFor="e-owner">{t('tenants.edit.owner')}</label>
+              <select
+                id="e-owner"
+                className="input"
+                data-testid="owner-select"
+                value={ownerPartner}
+                onChange={(ev) => setOwnerPartner(ev.target.value)}
+              >
+                <option value="">{t('tenants.platform')}</option>
+                {partners.map((pp) => (
+                  <option key={pp.user_id} value={pp.user_id}>{pp.email}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="grid-2">
             <NumField id="e-users" label={t('tenants.create.max_users')} value={maxUsers} max={caps?.cap_users_per_tenant} min={tenant.used_members} onChange={setMaxUsers} />
             <NumField id="e-admins" label={t('tenants.create.max_admins')} value={maxAdmins} max={caps?.cap_admins_per_tenant} min={Math.max(1, tenant.used_admins)} onChange={setMaxAdmins} />

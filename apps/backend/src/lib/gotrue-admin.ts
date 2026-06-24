@@ -86,12 +86,18 @@ export async function updateUserEmail(id: string, email: string): Promise<void> 
   }
 }
 
-export async function triggerRecovery(email: string): Promise<void> {
+export async function triggerRecovery(email: string, redirectTo?: string): Promise<void> {
   // Local dev has no GoTrue instance — skip the call (it would only DNS-fail and
   // stall). Prod (DEV_AUTH_ENABLED=false) is unchanged.
   if (env.DEV_AUTH_ENABLED) return;
   try {
-    const r = await fetch(`${env.GOTRUE_URL}/recover`, {
+    // redirect_to is surfaced to the email template as `.RedirectTo` so the
+    // set-password page can send the user back to the app that asked for the
+    // reset (e.g. the partner console) instead of the default web app. GoTrue
+    // validates it against GOTRUE_URI_ALLOW_LIST and ignores anything not listed.
+    const url = new URL(`${env.GOTRUE_URL}/recover`);
+    if (redirectTo) url.searchParams.set('redirect_to', redirectTo);
+    const r = await fetch(url.toString(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),

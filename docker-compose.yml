@@ -48,7 +48,13 @@ services:
       GOTRUE_DB_DRIVER: "postgres"
       # gotrue_superadmin role owns the `auth` schema in sonoqui DB (pg-init).
       GOTRUE_DB_DATABASE_URL: "postgres://gotrue_superadmin:${GOTRUE_PG_PASS}@postgres:5432/sonoqui?sslmode=disable"
-      GOTRUE_SITE_URL: "https://api-sonoqui.xdevapp.it"
+      # sonoqui.pro cutover: SiteURL is the base for email links
+      # ({{ .SiteURL }}/reset-password.html, /confirm-email.html). api.sonoqui.pro
+      # serves the same backend (health/reset-password.html/templates/api verified
+      # live), so recovery/invite/confirmation mails now link to the .pro host.
+      # JWT issuer + API_EXTERNAL_URL stay on auth-sonoqui.xdevapp.it (token
+      # validation is pinned to that issuer — do NOT change here).
+      GOTRUE_SITE_URL: "https://api.sonoqui.pro"
       # sonoqui.pro cutover (2026-06-22): the .pro entries are ADDITIVE — the
       # xdevapp hosts stay so already-installed mobile builds and the old web
       # origin keep working. app.sonoqui.pro is the same-origin web app.

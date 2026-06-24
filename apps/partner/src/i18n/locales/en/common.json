@@ -33,12 +33,22 @@
     "email": "Email", "password": "Password",
     "emailPlaceholder": "you@company.com",
     "signIn": "Sign in", "signingIn": "Signing in…",
+    "forgot": "Forgot password?",
     "errors": {
       "invalid_credentials": "Invalid email or password.",
       "NOT_PARTNERSHIP_MEMBER": "This account has no access to the partner console.",
       "PARTNERSHIP_INACTIVE": "Partner access disabled. Contact the administrator.",
       "default": "Sign-in failed. Try again."
     }
+  },
+  "forgotPassword": {
+    "tagline": "Reset password",
+    "instructions": "Enter your email. We'll send you a link to reset your password.",
+    "email": "Email",
+    "submit": "Send reset link",
+    "sending": "Sending…",
+    "sent": "If an account exists for that email, we've sent a link to reset the password. Check your inbox.",
+    "backToLogin": "Back to sign in"
   },
   "tenants": {
     "title": "Companies", "subtitle_admin": "All platform companies",
@@ -65,7 +75,7 @@
       "created": "Company created. Admin invite sent.",
       "created_existing": "Company created. The admin already had an account."
     },
-    "edit": { "title": "Edit limits", "submit": "Save limits", "saved": "Limits updated." },
+    "edit": { "title": "Edit limits", "submit": "Save limits", "saved": "Limits updated.", "owner": "Assigned partner" },
     "suspend": { "label": "Suspend", "confirm": "Suspend this company? Its users will no longer be able to sign in.", "done": "Company suspended." },
     "resume": { "label": "Resume", "confirm": "Resume this company? Its users will be able to sign in again.", "done": "Company resumed." },
     "reinvite": { "label": "Re-invite admin", "done": "Access email sent to {{email}}." }
@@ -114,6 +124,7 @@
       "tenant.change_admin": "Admin email changed",
       "tenant.add_admin": "Admin added",
       "tenant.remove_admin": "Admin removed",
+      "tenant.assign_partner": "Tenant assigned to partner",
       "partner.create": "Partner created",
       "partner.update_caps": "Partner caps changed",
       "partner.activate": "Partner activated",
@@ -128,6 +139,7 @@
     "ALREADY_ADMIN": "The user is already a platform administrator.",
     "EMAIL_IN_USE": "Email already used by another account.",
     "ADMIN_LIMIT": "Maximum number of administrators reached for this company.",
+    "INVALID_PARTNER": "Invalid partner.",
     "LAST_ADMIN": "You can't remove the last administrator.",
     "TENANT_NOT_OWNED": "This company is not yours.",
     "default": "Operation failed. Try again."

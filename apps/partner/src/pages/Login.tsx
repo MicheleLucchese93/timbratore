@@ -1,4 +1,5 @@
 import { type FormEvent, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { isAuthConfigured, loginWithDevToken, loginWithPassword } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
@@ -82,6 +83,11 @@ export function Login() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
             />
+            <div style={{ textAlign: 'right', marginTop: '0.375rem' }}>
+              <Link to="/forgot-password" className="text-xs font-medium" style={{ color: 'var(--color-primary)' }}>
+                {t('login.forgot')}
+              </Link>
+            </div>
           </div>
 
           {shownError && <div className="form-err">{shownError}</div>}

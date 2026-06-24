@@ -648,6 +648,47 @@ partnershipRouter.patch(
   })
 );
 
+// ---- PATCH /tenants/:id/owner — assign the tenant to a partner (admin) ------
+// partner_user_id = a partner's user id (that partner then sees/manages it), or
+// null = platform-owned (visible only to admins).
+const AssignOwner = z.object({ partner_user_id: z.string().uuid().nullable() });
+partnershipRouter.patch(
+  '/tenants/:id/owner',
+  requirePartnershipAdmin,
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const parse = AssignOwner.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const ownerId = parse.data.partner_user_id;
+    const t = await loadOwnedTenant(p, String(req.params.id)); // admin → any tenant
+    if (ownerId) {
+      const pm = await adminPool.query(
+        `SELECT 1 FROM partnership_members WHERE user_id = $1 AND role = 'partner' AND active = TRUE`,
+        [ownerId]
+      );
+      if (pm.rowCount === 0) throw new ConflictError('not an active partner', 'INVALID_PARTNER');
+    }
+    await adminPool.query(`UPDATE tenants SET created_by_partner = $2 WHERE id = $1`, [t.id, ownerId]);
+    let label = 'Piattaforma';
+    if (ownerId) {
+      const e = await adminPool.query(`SELECT email FROM auth_users WHERE id = $1`, [ownerId]);
+      label = e.rows[0]?.email ?? ownerId;
+    }
+    await logPartnershipAudit({
+      actorUserId: p.userId,
+      actorRole: p.role,
+      action: 'tenant.assign_partner',
+      targetType: 'tenant',
+      targetId: t.id,
+      targetLabel: t.ragione_sociale,
+      before: { created_by_partner: t.created_by_partner },
+      after: { created_by_partner: ownerId, partner: label },
+      ...auditCtx(req),
+    });
+    ok(res, { tenant_id: t.id, created_by_partner: ownerId });
+  })
+);
+
 // ===== Partner management (platform admin only) =============================
 
 const CapsSchema = {

@@ -14,7 +14,7 @@ export function ForgotPassword() {
     e.preventDefault();
     setBusy(true);
     try {
-      await api('/api/v1/auth/recover', { method: 'POST', json: { email: email.trim().toLowerCase() } });
+      await api('/api/v1/auth/recover', { method: 'POST', json: { email: email.trim().toLowerCase(), redirect_to: `${window.location.origin}/login` } });
     } catch { /* ignore — server returns 200 regardless */ }
     setDone(true);
     setBusy(false);

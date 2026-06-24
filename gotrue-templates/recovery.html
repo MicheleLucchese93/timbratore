@@ -5,11 +5,11 @@
 {{ if eq (.Data.language) "it" }}
 <h2 style="color:#b25500">Reimposta la password</h2>
 <p>Utilizza il link qui sotto per reimpostare la tua password.</p>
-<p><a style="display:inline-block;background:#b25500;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px" href="{{ .SiteURL }}/reset-password.html?token_hash={{ .TokenHash }}&type=recovery">Reimposta la password</a></p>
+<p><a style="display:inline-block;background:#b25500;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px" href="{{ .SiteURL }}/reset-password.html?token_hash={{ .TokenHash }}&type=recovery&redirect_to={{ .RedirectTo }}">Reimposta la password</a></p>
 {{ else }}
 <h2 style="color:#b25500">Reset your password</h2>
 <p>Use the link below to reset your password.</p>
-<p><a style="display:inline-block;background:#b25500;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px" href="{{ .SiteURL }}/reset-password.html?token_hash={{ .TokenHash }}&type=recovery">Reset password</a></p>
+<p><a style="display:inline-block;background:#b25500;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px" href="{{ .SiteURL }}/reset-password.html?token_hash={{ .TokenHash }}&type=recovery&redirect_to={{ .RedirectTo }}">Reset password</a></p>
 {{ end }}
 </body>
 </html>

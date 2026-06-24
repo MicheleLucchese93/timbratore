@@ -10,7 +10,35 @@ import { triggerRecovery, updatePassword, verifyTokenHash } from '../lib/gotrue-
 
 export const authRouter = Router();
 
-const Recover = z.object({ email: z.string().email() });
+// App origins allowed as a post-reset landing target. The set-password page
+// sends the user back here after they choose a new password, so it must be an
+// app we own. Anything else is dropped and the page falls back to the default
+// web app. GoTrue re-validates against GOTRUE_URI_ALLOW_LIST as a second gate.
+const REDIRECT_ALLOW = new Set([
+  'https://app.sonoqui.pro',
+  'https://partners.sonoqui.pro',
+  'https://app-sonoqui.xdevapp.it',
+]);
+
+function safeRedirectTo(raw?: string): string | undefined {
+  if (!raw) return undefined;
+  try {
+    const u = new URL(raw);
+    if (!REDIRECT_ALLOW.has(u.origin)) return undefined;
+    // Forward origin + path (drop query/hash). A path is required so the URL
+    // matches GoTrue's `<origin>/**` allow-list glob — a bare origin would be
+    // rejected and silently fall back to the default SiteURL.
+    const path = u.pathname === '/' ? '/login' : u.pathname;
+    return `${u.origin}${path}`;
+  } catch {
+    return undefined;
+  }
+}
+
+const Recover = z.object({
+  email: z.string().email(),
+  redirect_to: z.string().url().optional(),
+});
 
 authRouter.post(
   '/recover',
@@ -18,7 +46,7 @@ authRouter.post(
     const parse = Recover.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     // Always 200 — never leak whether the email is registered.
-    await triggerRecovery(parse.data.email);
+    await triggerRecovery(parse.data.email, safeRedirectTo(parse.data.redirect_to));
     ok(res, { sent: true });
   })
 );
