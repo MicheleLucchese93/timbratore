@@ -43,7 +43,11 @@ test.describe('mobile — Notifications bell tap', () => {
     await expect(
       page
         .getByText(/Aggiornamenti su richieste.*qui\.|Nessuna notifica/i)
-        .or(page.getByText(/Nuova richiesta|Correzione|Assenza|Documento/).first()),
+        .or(page.getByText(/Nuova richiesta|Correzione|Assenza|Documento/).first())
+        // The empty state renders BOTH the "Aggiornamenti su richieste…" heading
+        // and "Nessuna notifica", so the union can match >1 element. We only need
+        // one visible — `.first()` keeps it strict-mode-safe.
+        .first(),
     ).toBeVisible({ timeout: 10_000 });
   });
 });

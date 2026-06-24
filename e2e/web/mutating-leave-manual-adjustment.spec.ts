@@ -66,7 +66,10 @@ test.describe('web — Manual leave-quota adjustment + audit (mutating)', () => 
     await page.goto('/leaves');
     await page.getByRole('button', { name: 'Quote', exact: true }).click();
 
-    const row = page.getByRole('row').filter({ hasText: 'test2@test.it' });
+    // The Quote grid renders the "Utente" column by display NAME (which other
+    // mutating specs rename), not email — so match the row by its stable
+    // DataGrid id instead. getRowId is the user_id (Leaves.tsx QuotaRow grid).
+    const row = page.locator(`.MuiDataGrid-row[data-id="${targetUserId}"]`);
     await expect(row).toBeVisible({ timeout: 15_000 });
     // The balance button shows the current residual. Prior runs leave manual
     // ledger rows on the shared tenant (afterEach closes the assignment but the
