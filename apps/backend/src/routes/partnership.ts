@@ -5,14 +5,19 @@ import { adminPool } from '../lib/admin-db.js';
 import { ok } from '../lib/api-response.js';
 import { asyncHandler } from '../lib/route-helpers.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
-import { authenticatePartner, requirePartnershipAdmin } from '../middleware/partnership-auth.js';
+import {
+  authenticatePartner,
+  requirePartnershipAdmin,
+  requireSuperAdmin,
+  isSuperAdmin,
+} from '../middleware/partnership-auth.js';
 import type { PartnerContext } from '../middleware/partnership-auth.js';
 import { invalidateMembershipCache } from '../middleware/auth.js';
 import { env } from '../env.js';
 import { provisionTenant } from '../lib/provision-tenant.js';
 import { ensureAuthUser } from '../lib/auth-users.js';
 import { logPartnershipAudit } from '../lib/partnership-audit.js';
-import { triggerRecovery, updateUserEmail } from '../lib/gotrue-admin.js';
+import { triggerRecovery, updateUserEmail, deleteUser } from '../lib/gotrue-admin.js';
 import { createLogger } from '../lib/logger.js';
 
 const logger = createLogger('partnership');
@@ -68,6 +73,9 @@ partnershipRouter.get(
       last_name: row.last_name ?? null,
       display_name: row.display_name ?? null,
       role: p.role,
+      // Lets the console reveal the super-user-only "delete tenant" action
+      // without hardcoding the email client-side (the gate stays server-side).
+      is_super: isSuperAdmin(p.email ?? row.email ?? null),
       caps: {
         cap_tenants: p.capTenants,
         cap_users_per_tenant: p.capUsersPerTenant,
@@ -443,6 +451,119 @@ partnershipRouter.post(
       ...auditCtx(req),
     });
     ok(res, { tenant_id: t.id, suspended: false });
+  })
+);
+
+// ---- DELETE /tenants/:id  (super-user only) --------------------------------
+// Permanently delete a tenant. SOFT-deletes the tenant row (it vanishes from
+// the console and every member is force-logged-out) and DELETES the GoTrue login
+// account of every member who belongs to NO other company and is not a partner
+// ("orphans"). Members shared with another company keep their account and are
+// only unlinked from this one. Irreversible — gated by requireSuperAdmin AND a
+// typed-name confirmation that must match the company's ragione sociale.
+const DeleteTenant = z.object({ confirm_name: z.string() });
+partnershipRouter.delete(
+  '/tenants/:id',
+  requireSuperAdmin,
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const parse = DeleteTenant.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const t = await loadOwnedTenant(p, String(req.params.id));
+
+    // Defence-in-depth: the typed name must match exactly (the UI enforces this
+    // too, but never trust the client for an irreversible action).
+    if (parse.data.confirm_name.trim() !== t.ragione_sociale) {
+      throw new ConflictError('confirmation name does not match', 'NAME_MISMATCH');
+    }
+
+    // Split this tenant's current members into orphans (delete their account) and
+    // protected users (another active company OR a partner → keep the account).
+    const split = await adminPool.query<{ user_id: string; orphan: boolean }>(
+      `SELECT m.user_id,
+              NOT (
+                EXISTS (
+                  SELECT 1 FROM memberships m2
+                    JOIN tenants t2 ON t2.id = m2.tenant_id
+                   WHERE m2.user_id = m.user_id AND m2.tenant_id <> $1
+                     AND m2.deleted_at IS NULL AND t2.deleted_at IS NULL
+                )
+                OR EXISTS (SELECT 1 FROM partnership_members pm WHERE pm.user_id = m.user_id)
+              ) AS orphan
+         FROM (SELECT DISTINCT user_id FROM memberships
+                WHERE tenant_id = $1 AND deleted_at IS NULL) m`,
+      [t.id]
+    );
+    const allMembers = split.rows.map((r) => r.user_id);
+    const orphans = split.rows.filter((r) => r.orphan).map((r) => r.user_id);
+
+    const client = await adminPool.connect();
+    try {
+      await client.query('BEGIN');
+      // Unlink every member from this tenant.
+      await client.query(
+        `UPDATE memberships SET active = FALSE, deleted_at = now()
+          WHERE tenant_id = $1 AND deleted_at IS NULL`,
+        [t.id]
+      );
+      // Soft-delete the tenant (auth middleware filters deleted_at → forced logout).
+      await client.query(`UPDATE tenants SET deleted_at = now() WHERE id = $1`, [t.id]);
+      // Remove the mirror row for orphaned accounts (frees the email, drops PII).
+      // FK-safe: orphans are never partners and hold no other membership, so no
+      // partnership_members / tenants.created_by_partner / audit FK points at them.
+      if (orphans.length > 0) {
+        await client.query(`DELETE FROM auth_users WHERE id = ANY($1::uuid[])`, [orphans]);
+      }
+      await logPartnershipAudit(
+        {
+          actorUserId: p.userId,
+          actorRole: p.role,
+          action: 'tenant.delete',
+          targetType: 'tenant',
+          targetId: t.id,
+          targetLabel: t.ragione_sociale,
+          after: { deleted_users: orphans.length, unlinked_users: allMembers.length - orphans.length },
+          ...auditCtx(req),
+        },
+        client
+      );
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+
+    // Force every member's next request to re-resolve membership → 403 → logout.
+    for (const userId of allMembers) invalidateMembershipCache(userId);
+
+    // Delete the orphans' GoTrue login accounts. Outside the PG transaction (the
+    // admin API can't enlist in it). Best-effort: a failure here leaves a GoTrue
+    // account whose mirror + memberships are already gone, so it can no longer
+    // resolve a tenant and is effectively dead — its id is logged for cleanup.
+    if (!env.DEV_AUTH_ENABLED) {
+      for (const userId of orphans) {
+        try {
+          await deleteUser(userId);
+        } catch (e) {
+          logger.error(
+            { user_id: userId, tenant_id: t.id, err: (e as Error).message },
+            'GoTrue user delete failed after tenant delete — orphan login account left behind, clean up manually'
+          );
+        }
+      }
+    }
+
+    logger.info(
+      { tenant_id: t.id, deleted_users: orphans.length, unlinked_users: allMembers.length - orphans.length },
+      'tenant deleted'
+    );
+    ok(res, {
+      tenant_id: t.id,
+      deleted_users: orphans.length,
+      unlinked_users: allMembers.length - orphans.length,
+    });
   })
 );
 

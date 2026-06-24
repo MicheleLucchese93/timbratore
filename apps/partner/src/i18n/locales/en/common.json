@@ -79,7 +79,15 @@
     "edit": { "title": "Edit limits", "submit": "Save limits", "saved": "Limits updated.", "owner": "Assigned partner", "note": "Note" },
     "suspend": { "label": "Suspend", "confirm": "Suspend this company? Its users will no longer be able to sign in.", "done": "Company suspended." },
     "resume": { "label": "Resume", "confirm": "Resume this company? Its users will be able to sign in again.", "done": "Company resumed." },
-    "reinvite": { "label": "Re-invite admin", "done": "Access email sent to {{email}}." }
+    "reinvite": { "label": "Re-invite admin", "done": "Access email sent to {{email}}." },
+    "delete": {
+      "label": "Delete",
+      "title": "Delete company",
+      "warning": "Irreversible. The company will be deleted and the accounts of users who don't belong to any other company will be permanently removed.",
+      "confirm_prompt": "To confirm, type the exact company name: {{name}}",
+      "submit": "Delete permanently",
+      "done": "Company deleted. Users removed: {{deleted}}, unlinked: {{unlinked}}."
+    }
   },
   "partners": {
     "title": "Partners", "subtitle": "Resellers and their caps",
@@ -129,6 +137,7 @@
       "tenant.remove_admin": "Admin removed",
       "tenant.assign_partner": "Tenant assigned to partner",
       "tenant.update_note": "Company note changed",
+      "tenant.delete": "Company deleted",
       "partner.create": "Partner created",
       "partner.update_caps": "Partner caps changed",
       "partner.update_profile": "Partner profile changed",
@@ -147,6 +156,8 @@
     "INVALID_PARTNER": "Invalid partner.",
     "LAST_ADMIN": "You can't remove the last administrator.",
     "TENANT_NOT_OWNED": "This company is not yours.",
+    "SUPER_ADMIN_REQUIRED": "Only the super-user can delete a company.",
+    "NAME_MISMATCH": "The company name you typed doesn't match.",
     "default": "Operation failed. Try again."
   }
 }

@@ -32,6 +32,11 @@ const Env = z.object({
   GOTRUE_JWT_AUDIENCE: z.string().optional(),
   GOTRUE_URL: z.string().min(1),
   GOTRUE_SERVICE_ROLE_KEY: z.string().min(1),
+  // Email of the single platform super-user allowed to PERMANENTLY delete a
+  // tenant (soft-deletes the tenant + deletes its orphaned members' accounts).
+  // Matches the first-admin seed in migration 044. Override in env to point the
+  // capability at a different account (or at the e2e admin for the partner suite).
+  SUPER_ADMIN_EMAIL: z.string().email().default('michele.lucchese@outlook.it'),
   CORS_ORIGINS: z.string().min(1),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60_000),
   RATE_LIMIT_MAX: z.coerce.number().default(1000),

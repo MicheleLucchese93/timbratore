@@ -86,6 +86,22 @@ export async function updateUserEmail(id: string, email: string): Promise<void> 
   }
 }
 
+// Permanently delete a GoTrue user (admin API). Used only by the super-user
+// tenant-delete flow to remove an orphaned member's login account. A 404 is
+// treated as success — the account is already gone, which is the desired end
+// state. Caller skips this in dev (no GoTrue) and deletes only the mirror row.
+export async function deleteUser(id: string): Promise<void> {
+  const jwt = await serviceRoleJwt();
+  const r = await fetch(`${env.GOTRUE_URL}/admin/users/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${jwt}` },
+  });
+  if (!r.ok && r.status !== 404) {
+    const text = await r.text();
+    throw new Error(`GoTrue DELETE /admin/users ${r.status}: ${text}`);
+  }
+}
+
 export async function triggerRecovery(email: string, redirectTo?: string): Promise<void> {
   // Local dev has no GoTrue instance — skip the call (it would only DNS-fail and
   // stall). Prod (DEV_AUTH_ENABLED=false) is unchanged.

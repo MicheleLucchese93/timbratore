@@ -1,7 +1,14 @@
 import type { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../lib/jwt.js';
 import { adminPool } from '../lib/admin-db.js';
+import { env } from '../env.js';
 import { ForbiddenError, UnauthorizedError } from '../errors/index.js';
+
+// The lone platform super-user. Gates the irreversible tenant-delete capability
+// (env-configurable; defaults to the migration-044 first-admin seed).
+export function isSuperAdmin(email: string | null | undefined): boolean {
+  return !!email && email.trim().toLowerCase() === env.SUPER_ADMIN_EMAIL.trim().toLowerCase();
+}
 
 export interface PartnerCaps {
   // null on any cap = unlimited for that dimension. All caps are ignored for
@@ -85,6 +92,17 @@ export function requirePartnershipAdmin(req: Request, _res: Response, next: Next
   if (!req.partner) return next(new UnauthorizedError());
   if (req.partner.role !== 'admin') {
     return next(new ForbiddenError('Platform admin required', 'PARTNERSHIP_ADMIN_REQUIRED'));
+  }
+  next();
+}
+
+// Gate for the irreversible super-user-only operation: permanently deleting a
+// tenant. Strictly tighter than requirePartnershipAdmin — even other platform
+// admins are refused. Identity comes from the verified JWT email claim.
+export function requireSuperAdmin(req: Request, _res: Response, next: NextFunction): void {
+  if (!req.partner) return next(new UnauthorizedError());
+  if (!isSuperAdmin(req.partner.email)) {
+    return next(new ForbiddenError('Super admin required', 'SUPER_ADMIN_REQUIRED'));
   }
   next();
 }

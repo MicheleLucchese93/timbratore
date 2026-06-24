@@ -55,4 +55,32 @@ test.describe('partner admin · tenants', () => {
     await expect(page.getByText(/Azienda riattivata|Company resumed/)).toBeVisible();
     await expect(row(page, tenantName)).toContainText(/Attiva|Active/);
   });
+
+  // The Delete action is super-user-only (SUPER_ADMIN_EMAIL). It's shown only
+  // when the logged-in admin IS that user, so this auto-skips unless the partner
+  // backend is run with SUPER_ADMIN_EMAIL set to the e2e admin email.
+  test('super-user deletes a tenant (type-name confirm)', async ({ page }) => {
+    const delName = `e2e-tenant-del-${Date.now()}`;
+    await page.goto('/');
+    await page.getByTestId('new-tenant').click();
+    await page.locator('input#t-ragione').fill(delName);
+    await page.locator('input#t-email').fill(`e2e-del-${Date.now()}@e2e.local`);
+    await page.getByTestId('create-tenant-submit').click();
+    await expect(row(page, delName)).toBeVisible({ timeout: 15_000 });
+
+    const canDelete = await row(page, delName)
+      .getByTestId('delete-tenant')
+      .isVisible()
+      .catch(() => false);
+    test.skip(!canDelete, 'logged-in admin is not the configured SUPER_ADMIN_EMAIL');
+
+    await row(page, delName).getByTestId('delete-tenant').click();
+    // Submit stays disabled until the exact name is typed.
+    await expect(page.getByTestId('delete-tenant-submit')).toBeDisabled();
+    await page.getByTestId('delete-confirm-name').fill(delName);
+    await page.getByTestId('delete-tenant-submit').click();
+
+    await expect(page.getByText(/Azienda eliminata|Company deleted/)).toBeVisible();
+    await expect(row(page, delName)).toHaveCount(0);
+  });
 });

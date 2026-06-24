@@ -16,6 +16,8 @@ export interface PartnerMe {
   last_name: string | null;
   display_name: string | null;
   role: 'admin' | 'partner';
+  /** True only for the lone super-user — reveals the delete-tenant action. */
+  is_super: boolean;
   caps: PartnerCaps;
 }
 

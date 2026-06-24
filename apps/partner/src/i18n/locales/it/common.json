@@ -79,7 +79,15 @@
     "edit": { "title": "Modifica limiti", "submit": "Salva limiti", "saved": "Limiti aggiornati.", "owner": "Partner assegnato", "note": "Note" },
     "suspend": { "label": "Sospendi", "confirm": "Sospendere questa azienda? Gli utenti non potranno più accedere.", "done": "Azienda sospesa." },
     "resume": { "label": "Riattiva", "confirm": "Riattivare questa azienda? Gli utenti potranno nuovamente accedere.", "done": "Azienda riattivata." },
-    "reinvite": { "label": "Reinvita admin", "done": "Email di accesso inviata a {{email}}." }
+    "reinvite": { "label": "Reinvita admin", "done": "Email di accesso inviata a {{email}}." },
+    "delete": {
+      "label": "Elimina",
+      "title": "Elimina azienda",
+      "warning": "Operazione irreversibile. L'azienda verrà eliminata e gli account degli utenti che non appartengono ad altre aziende verranno cancellati definitivamente.",
+      "confirm_prompt": "Per confermare, digita la ragione sociale esatta: {{name}}",
+      "submit": "Elimina definitivamente",
+      "done": "Azienda eliminata. Utenti cancellati: {{deleted}}, scollegati: {{unlinked}}."
+    }
   },
   "partners": {
     "title": "Partner", "subtitle": "Rivenditori e relativi limiti",
@@ -129,6 +137,7 @@
       "tenant.remove_admin": "Admin rimosso",
       "tenant.assign_partner": "Azienda assegnata a partner",
       "tenant.update_note": "Note azienda modificate",
+      "tenant.delete": "Azienda eliminata",
       "partner.create": "Partner creato",
       "partner.update_caps": "Limiti partner modificati",
       "partner.update_profile": "Anagrafica partner modificata",
@@ -147,6 +156,8 @@
     "INVALID_PARTNER": "Partner non valido.",
     "LAST_ADMIN": "Non puoi rimuovere l'ultimo amministratore.",
     "TENANT_NOT_OWNED": "Questa azienda non è tua.",
+    "SUPER_ADMIN_REQUIRED": "Solo il super-utente può eliminare un'azienda.",
+    "NAME_MISMATCH": "La ragione sociale digitata non corrisponde.",
     "default": "Operazione non riuscita. Riprova."
   }
 }

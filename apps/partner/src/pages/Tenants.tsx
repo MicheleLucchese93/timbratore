@@ -41,6 +41,7 @@ export function Tenants() {
   const toast = useToast();
   const confirm = useConfirm();
   const isAdmin = me?.role === 'admin';
+  const isSuper = me?.is_super === true;
   const caps = me?.caps;
 
   const [rows, setRows] = useState<TenantRow[]>([]);
@@ -48,6 +49,7 @@ export function Tenants() {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<TenantRow | null>(null);
   const [managingAdmins, setManagingAdmins] = useState<TenantRow | null>(null);
+  const [deleting, setDeleting] = useState<TenantRow | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -164,7 +166,7 @@ export function Tenants() {
     {
       field: 'actions',
       headerName: t('tenants.col.actions'),
-      width: 320,
+      width: isSuper ? 410 : 320,
       sortable: false,
       filterable: false,
       renderCell: (p) => (
@@ -205,6 +207,15 @@ export function Tenants() {
           <button className="btn btn-ghost btn-sm" data-testid="manage-admins" onClick={() => setManagingAdmins(p.row)}>
             {t('admins.label')}
           </button>
+          {isSuper && (
+            <button
+              className="btn btn-danger btn-sm"
+              data-testid="delete-tenant"
+              onClick={() => setDeleting(p.row)}
+            >
+              {t('tenants.delete.label')}
+            </button>
+          )}
         </div>
       ),
     },
@@ -264,7 +275,92 @@ export function Tenants() {
           onChanged={load}
         />
       )}
+      {deleting && (
+        <DeleteTenant
+          tenant={deleting}
+          onClose={() => setDeleting(null)}
+          onDone={async () => {
+            setDeleting(null);
+            await load();
+          }}
+        />
+      )}
     </>
+  );
+}
+
+// Super-user-only, irreversible. Requires typing the exact ragione sociale to
+// arm the Delete button — the same name is re-checked server-side.
+function DeleteTenant({
+  tenant,
+  onClose,
+  onDone,
+}: {
+  tenant: TenantRow;
+  onClose: () => void;
+  onDone: () => Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const [confirmName, setConfirmName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const armed = confirmName.trim() === tenant.ragione_sociale;
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!armed) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await api<{ deleted_users: number; unlinked_users: number }>(
+        `/api/v1/partnership/tenants/${tenant.id}`,
+        { method: 'DELETE', json: { confirm_name: confirmName.trim() } }
+      );
+      toast(t('tenants.delete.done', { deleted: res.deleted_users, unlinked: res.unlinked_users }));
+      await onDone();
+    } catch (e2) {
+      setErr(errMsg(t, e2));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title={`${t('tenants.delete.title')} · ${tenant.ragione_sociale}`} onClose={onClose}>
+      <form onSubmit={submit}>
+        <div className="modal-body">
+          <div className="form-err">{t('tenants.delete.warning')}</div>
+          <div>
+            <label className="label" htmlFor="del-confirm">
+              {t('tenants.delete.confirm_prompt', { name: tenant.ragione_sociale })}
+            </label>
+            <input
+              id="del-confirm"
+              className="input"
+              autoComplete="off"
+              value={confirmName}
+              onChange={(e) => setConfirmName(e.target.value)}
+              data-testid="delete-confirm-name"
+            />
+          </div>
+          {err && <div className="form-err">{err}</div>}
+        </div>
+        <div className="modal-foot">
+          <button type="button" className="btn btn-ghost" onClick={onClose}>
+            {t('actions.cancel')}
+          </button>
+          <button
+            type="submit"
+            className="btn btn-danger"
+            disabled={busy || !armed}
+            data-testid="delete-tenant-submit"
+          >
+            {busy ? t('common.saving') : t('tenants.delete.submit')}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
