@@ -49,3 +49,24 @@ export const EVENT_TYPES: StampEventType[] = [
   'lunch_start',
   'lunch_end',
 ];
+
+// Stamp origin/source values, in the order shown in the Origine filter.
+export const STAMP_SOURCES = [
+  'employee_app',
+  'employee_correction',
+  'admin_manual',
+  'system_auto',
+] as const;
+
+/** Localized label for a stamp source. Mirrors the list-page badge mapping. */
+export function sourceLabel(s: string, t: (k: string) => string): string {
+  return s === 'employee_app'
+    ? t('common:origin.app')
+    : s === 'employee_correction'
+      ? t('common:origin.correction')
+      : s === 'admin_manual'
+        ? t('common:origin.admin')
+        : s === 'system_auto'
+          ? t('origin.auto')
+          : s;
+}

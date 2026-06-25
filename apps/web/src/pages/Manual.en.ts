@@ -295,7 +295,7 @@ export const MAIN_EN = `
           <li>Employees are in <strong>columns</strong> and days in <strong>rows</strong>; the <strong>Swap rows/columns</strong> button flips the axes.</li>
           <li>Colours flag the cell status: <em>weekend</em> and <em>public holidays</em> in grey/blue, <em>open shift</em> (missing clock-out on a past day) in amber.</li>
           <li>Each employee header shows <strong>first and last name</strong>, <strong>email</strong> and the optional <strong>unique identifier</strong>.</li>
-          <li>Filter by <strong>employee</strong> (search by name, email or unique identifier) or by <strong>branch</strong>. The <strong>totals</strong> depend on the orientation: with employees in columns, the last column shows the total hours of <em>all</em> employees for each day and a final <strong>Month total</strong> row shows each employee's total plus a grand total; after swapping the axes, the last column becomes each employee's <strong>monthly total</strong> and the final row shows per-day totals.</li>
+          <li>Filter by <strong>employee</strong> (search by name, email or unique identifier), <strong>branch</strong>, <strong>event</strong> or <strong>source</strong> (the event/source filters hide non-matching punches in each cell and recompute its totals). The <strong>totals</strong> depend on the orientation: with employees in columns, the last column shows the total hours of <em>all</em> employees for each day and a final <strong>Month total</strong> row shows each employee's total plus a grand total; after swapping the axes, the last column becomes each employee's <strong>monthly total</strong> and the final row shows per-day totals.</li>
           <li>Each cell shows the <em>clock-in–clock-out</em> pairs (e.g. <em>08:30–12:30</em>); an open shift shows a red <strong>·</strong> in place of the clock-out. A <strong>☕</strong> icon flags breaks/lunch and the day's worked total appears below. Empty cells show a <strong>+</strong> and stay clickable to add stamps.</li>
           <li>The grid loads up to <strong>1000 stamps</strong> per month: if the limit is reached the warning "Too many stamps in this range: narrow it with a filter" appears — filter by employee or branch to see complete data.</li>
           <li><strong>Click a cell</strong> to open the day editor: add, edit or delete the individual stamps (clock-in/out, breaks). The <strong>reason</strong> is pre-filled and editable; every action is recorded in the audit log exactly as in the List view.</li>
@@ -304,7 +304,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>The table</h3>
-        <p>At the top, the same filters as the Monthly grid: a <strong>Search employee</strong> box (by email, first name, last name or unique identifier) and an <strong>All branches</strong> menu to filter by branch.</p>
+        <p>At the top, the filters: a <strong>date range</strong> (From / To, which sets the loaded period), <strong>Search employee</strong> (by email, first name, last name or unique identifier), <strong>branch</strong>, <strong>event</strong> and <strong>source</strong>.</p>
         <p>Available columns:</p>
         <ul class="tidy">
           <li><strong>When</strong> — date and time in Italian format.</li>

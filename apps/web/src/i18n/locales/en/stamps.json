@@ -30,7 +30,11 @@
   },
   "filters": {
     "search": "Search employee",
-    "allBranches": "All branches"
+    "allBranches": "All branches",
+    "allEvents": "All events",
+    "allSources": "All sources",
+    "from": "From",
+    "to": "To"
   },
   "badge": {
     "mock": "mock",

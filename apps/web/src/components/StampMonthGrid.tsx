@@ -10,7 +10,15 @@ import { computeDayTotals, formatDuration, italianHolidays, type DayStamp } from
 import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { api } from '../lib/api.ts';
 import { fmtDate } from '../i18n/format.ts';
-import { type Stamp, type Branch, type UserRow, userLabel, EVENT_TYPES } from '../lib/stamp-types.ts';
+import {
+  type Stamp,
+  type Branch,
+  type UserRow,
+  userLabel,
+  EVENT_TYPES,
+  STAMP_SOURCES,
+  sourceLabel,
+} from '../lib/stamp-types.ts';
 
 /* ---------------- date helpers (local time) ---------------- */
 function pad2(n: number): string {
@@ -85,6 +93,8 @@ export function StampMonthGrid({ users, branches }: { users: UserRow[]; branches
   const [pivot, setPivot] = useState(false);
   const [search, setSearch] = useState('');
   const [branchId, setBranchId] = useState('');
+  const [eventType, setEventType] = useState('');
+  const [source, setSource] = useState('');
   const [stamps, setStamps] = useState<Stamp[]>([]);
   const [loading, setLoading] = useState(false);
   const [capped, setCapped] = useState(false);
@@ -116,10 +126,19 @@ export function StampMonthGrid({ users, branches }: { users: UserRow[]; branches
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromIso, toIso, branchId]);
 
+  // Event-type / source filters narrow which punches the grid shows and counts.
+  const filteredStamps = useMemo(
+    () =>
+      stamps.filter(
+        (s) => (!eventType || s.event_type === eventType) && (!source || s.source === source),
+      ),
+    [stamps, eventType, source],
+  );
+
   // userId → dateIso → stamps (local-day bucketed).
   const index = useMemo(() => {
     const m = new Map<string, Map<string, Stamp[]>>();
-    for (const s of stamps) {
+    for (const s of filteredStamps) {
       const dIso = isoLocalDate(new Date(s.occurred_at));
       let byDay = m.get(s.user_id);
       if (!byDay) {
@@ -131,7 +150,7 @@ export function StampMonthGrid({ users, branches }: { users: UserRow[]; branches
       else byDay.set(dIso, [s]);
     }
     return m;
-  }, [stamps]);
+  }, [filteredStamps]);
 
   const holidays = useMemo(() => {
     const map = new Map<string, string>();
@@ -234,11 +253,27 @@ export function StampMonthGrid({ users, branches }: { users: UserRow[]; branches
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <select className="input" style={{ width: 170 }} value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+          <select className="input" style={{ width: 160 }} value={branchId} onChange={(e) => setBranchId(e.target.value)}>
             <option value="">{t('grid.allBranches')}</option>
             {branches.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
+              </option>
+            ))}
+          </select>
+          <select className="input" style={{ width: 150 }} value={eventType} onChange={(e) => setEventType(e.target.value)}>
+            <option value="">{t('filters.allEvents')}</option>
+            {EVENT_TYPES.map((ev) => (
+              <option key={ev} value={ev}>
+                {t(`common:stampEvent.${ev}`)}
+              </option>
+            ))}
+          </select>
+          <select className="input" style={{ width: 150 }} value={source} onChange={(e) => setSource(e.target.value)}>
+            <option value="">{t('filters.allSources')}</option>
+            {STAMP_SOURCES.map((s) => (
+              <option key={s} value={s}>
+                {sourceLabel(s, t)}
               </option>
             ))}
           </select>

@@ -32,16 +32,34 @@ test.describe('web — Timbrature (admin stamps)', () => {
     await expect(page.locator('.MuiDataGrid-row')).toHaveCount(0, { timeout: 10_000 });
   });
 
+  test('list has date-range + event + source filters', async ({ page }) => {
+    await expect(page.locator('.MuiDataGrid-root')).toBeVisible({ timeout: 15_000 });
+    // Two date pickers (Da / A) drive the loaded window.
+    await expect(page.locator('input[type="date"]')).toHaveCount(2);
+    // Event + source toolbar selects (their "all" options are unique to the list toolbar).
+    await expect(page.locator('option', { hasText: 'Tutti gli eventi' })).toHaveCount(1);
+    await expect(page.locator('option', { hasText: 'Tutte le origini' })).toHaveCount(1);
+  });
+
+  test('monthly grid has event + source filters', async ({ page }) => {
+    await expect(page.locator('.MuiDataGrid-root')).toBeVisible({ timeout: 15_000 });
+    await page.getByRole('tab', { name: 'Griglia mensile' }).click();
+    await expect(page.getByTestId('stamp-grid')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('option', { hasText: 'Tutti gli eventi' })).toHaveCount(1);
+    await expect(page.locator('option', { hasText: 'Tutte le origini' })).toHaveCount(1);
+  });
+
   test('opens the create-stamp modal', async ({ page }) => {
     await page.getByRole('button', { name: /Nuova timbratura/i }).click();
     // Custom overlay (not a real <dialog>): fixed-position card with the
     // "Nuova timbratura" heading and selects with localized option labels.
     await expect(page.getByRole('heading', { name: 'Nuova timbratura' })).toBeVisible();
-    // The Evento <select> contains the six event types — use that as the
-    // disambiguating signal (avoids collision with the DataGrid column menu).
+    // The Evento <select> contains the six event types. Scope to the modal form
+    // (the list toolbar now also has an Evento filter with the same options).
     // Anchor 'Inizio pausa' with regex so the substring of 'Inizio pausa pranzo' doesn't double-match.
-    await expect(page.locator('option', { hasText: /^Inizio pausa$/ })).toHaveCount(1);
-    await expect(page.locator('option', { hasText: /^Inizio pausa pranzo$/ })).toHaveCount(1);
+    const modal = page.locator('form').filter({ has: page.getByRole('heading', { name: 'Nuova timbratura' }) });
+    await expect(modal.locator('option', { hasText: /^Inizio pausa$/ })).toHaveCount(1);
+    await expect(modal.locator('option', { hasText: /^Inizio pausa pranzo$/ })).toHaveCount(1);
   });
 
   test('switches to the monthly grid view and back', async ({ page }) => {

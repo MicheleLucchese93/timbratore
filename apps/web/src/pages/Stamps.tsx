@@ -7,7 +7,14 @@ import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { fmtDateTime } from '../i18n/format.ts';
 import { StampMonthGrid } from '../components/StampMonthGrid.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
-import { type Stamp, type Branch, type UserRow } from '../lib/stamp-types.ts';
+import {
+  type Stamp,
+  type Branch,
+  type UserRow,
+  EVENT_TYPES,
+  STAMP_SOURCES,
+  sourceLabel,
+} from '../lib/stamp-types.ts';
 
 export function Stamps() {
   const { t } = useTranslation(['stamps', 'common']);
@@ -17,10 +24,15 @@ export function Stamps() {
   const [editing, setEditing] = useState<Stamp | null>(null);
   const [creating, setCreating] = useState(false);
   const [view, setView] = useState<'list' | 'grid'>('list');
-  // List-view filters, mirroring the monthly grid: free-text employee search
-  // (matches email / name / unique id) + branch select. Applied client-side.
+  // List-view filters, mirroring the monthly grid plus a date range. Employee
+  // search (email / name / unique id), branch, event type and source are
+  // applied client-side; the date range (da/a) drives the server fetch.
   const [search, setSearch] = useState('');
   const [branchId, setBranchId] = useState('');
+  const [eventType, setEventType] = useState('');
+  const [source, setSource] = useState('');
+  const [from, setFrom] = useState(() => isoNDaysAgo(90));
+  const [to, setTo] = useState(() => isoToday());
 
   const userById = useMemo(
     () => new Map(users.map((u) => [u.user_id, u])),
@@ -31,6 +43,8 @@ export function Stamps() {
     const q = search.trim().toLowerCase();
     return list.filter((s) => {
       if (branchId && s.branch_id !== branchId) return false;
+      if (eventType && s.event_type !== eventType) return false;
+      if (source && s.source !== source) return false;
       if (!q) return true;
       const u = userById.get(s.user_id);
       const hay = [s.user_email, u?.first_name, u?.last_name, u?.display_name, u?.external_id]
@@ -39,30 +53,36 @@ export function Stamps() {
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [list, branchId, search, userById]);
+  }, [list, branchId, eventType, source, search, userById]);
 
-  async function load() {
+  async function loadStamps() {
     const params = new URLSearchParams();
-    params.set('from', isoNDaysAgo(90));
-    params.set('to', isoToday());
-    const [s, b, u] = await Promise.all([
-      api<Stamp[]>(`/api/v1/stamps?${params}`),
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    params.set('limit', '1000');
+    setList(await api<Stamp[]>(`/api/v1/stamps?${params}`));
+  }
+  async function loadAux() {
+    const [b, u] = await Promise.all([
       api<Branch[]>('/api/v1/branches'),
       api<UserRow[]>('/api/v1/users'),
     ]);
-    setList(s);
     setBranches(b);
     setUsers(u);
   }
   useEffect(() => {
-    load().catch(() => {});
+    loadAux().catch(() => {});
   }, []);
+  useEffect(() => {
+    loadStamps().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [from, to]);
 
   async function remove(id: string) {
     const reason = prompt(t('deletePrompt'));
     if (!reason) return;
     await api(`/api/v1/admin/stamps/${id}`, { method: 'DELETE', json: { deletion_reason: reason } });
-    await load();
+    await loadStamps();
   }
 
   return (
@@ -100,23 +120,67 @@ export function Stamps() {
 
       {view === 'list' ? (
         <>
-          <div className="flex items-center gap-2 flex-wrap justify-end">
+          <div className="flex items-end gap-2 flex-wrap justify-end">
+            <label className="flex flex-col gap-1 text-xs">
+              <span className="muted">{t('filters.from')}</span>
+              <input
+                type="date"
+                className="input"
+                style={{ width: 150 }}
+                value={from}
+                max={to || undefined}
+                onChange={(e) => setFrom(e.target.value)}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs">
+              <span className="muted">{t('filters.to')}</span>
+              <input
+                type="date"
+                className="input"
+                style={{ width: 150 }}
+                value={to}
+                min={from || undefined}
+                onChange={(e) => setTo(e.target.value)}
+              />
+            </label>
             <input
               className="input"
-              style={{ width: 200 }}
+              style={{ width: 180 }}
               placeholder={t('filters.search')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
             <select
               className="input"
-              style={{ width: 180 }}
+              style={{ width: 160 }}
               value={branchId}
               onChange={(e) => setBranchId(e.target.value)}
             >
               <option value="">{t('filters.allBranches')}</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+            <select
+              className="input"
+              style={{ width: 160 }}
+              value={eventType}
+              onChange={(e) => setEventType(e.target.value)}
+            >
+              <option value="">{t('filters.allEvents')}</option>
+              {EVENT_TYPES.map((ev) => (
+                <option key={ev} value={ev}>{t(`common:stampEvent.${ev}`)}</option>
+              ))}
+            </select>
+            <select
+              className="input"
+              style={{ width: 160 }}
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+            >
+              <option value="">{t('filters.allSources')}</option>
+              {STAMP_SOURCES.map((s) => (
+                <option key={s} value={s}>{sourceLabel(s, t)}</option>
               ))}
             </select>
           </div>
@@ -135,10 +199,10 @@ export function Stamps() {
       )}
 
       {creating && (
-        <StampForm branches={branches} users={users} onClose={() => setCreating(false)} onSaved={async () => { setCreating(false); await load(); }} />
+        <StampForm branches={branches} users={users} onClose={() => setCreating(false)} onSaved={async () => { setCreating(false); await loadStamps(); }} />
       )}
       {editing && (
-        <StampForm stamp={editing} branches={branches} users={users} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await load(); }} />
+        <StampForm stamp={editing} branches={branches} users={users} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await loadStamps(); }} />
       )}
     </div>
   );
@@ -160,18 +224,6 @@ function EventBadge({ event }: { event: Stamp['event_type'] }) {
 function SourceBadge({ source }: { source: string }) {
   const { t } = useTranslation(['stamps', 'common']);
   return <span className="badge badge-muted">{sourceLabel(source, t)}</span>;
-}
-
-function sourceLabel(s: string, t: (k: string) => string): string {
-  return s === 'employee_app'
-    ? t('common:origin.app')
-    : s === 'employee_correction'
-      ? t('common:origin.correction')
-      : s === 'admin_manual'
-        ? t('common:origin.admin')
-        : s === 'system_auto'
-          ? t('origin.auto')
-          : s;
 }
 
 function StampIconButton({

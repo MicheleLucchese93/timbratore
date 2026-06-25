@@ -30,7 +30,11 @@
   },
   "filters": {
     "search": "Cerca dipendente",
-    "allBranches": "Tutte le sedi"
+    "allBranches": "Tutte le sedi",
+    "allEvents": "Tutti gli eventi",
+    "allSources": "Tutte le origini",
+    "from": "Da",
+    "to": "A"
   },
   "badge": {
     "mock": "mock",
