@@ -48,4 +48,38 @@ test.describe('web — Impostazioni (admin)', () => {
     await switchLabel.click({ force: true });
     await expect(page.getByText(/Preferenza salvata\./i)).toBeVisible({ timeout: 10_000 });
   });
+
+  // Non-mutating: exercises the live complexity checklist + submit gating only.
+  // Never clicks "Aggiorna password" — that would attempt a real password change
+  // on the shared test account.
+  test('Sicurezza: i requisiti password si attivano e abilitano il submit', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: /Sicurezza/i })).toBeVisible({ timeout: 10_000 });
+
+    const current = page.getByLabel('Password attuale', { exact: true });
+    const next = page.getByLabel('Nuova password', { exact: true });
+    const confirm = page.getByLabel('Conferma nuova password', { exact: true });
+    const submit = page.getByRole('button', { name: 'Aggiorna password' });
+
+    await expect(page.locator('.pw-requirements li')).toHaveCount(5);
+    await expect(submit).toBeDisabled();
+
+    // Weak password: not every rule lights up, submit stays disabled.
+    await next.fill('weak');
+    await expect(page.locator('.pw-requirements li.valid')).not.toHaveCount(5);
+    await expect(submit).toBeDisabled();
+
+    // Strong password: all five rules turn valid (green check).
+    await next.fill('NewPass1!');
+    await expect(page.locator('.pw-requirements li.valid')).toHaveCount(5);
+
+    // Mismatched confirmation surfaces the hint and keeps submit disabled.
+    await confirm.fill('Different1!');
+    await expect(page.getByText('Le password non coincidono.')).toBeVisible();
+    await expect(submit).toBeDisabled();
+
+    // Current password + matching confirmation → submit becomes enabled.
+    await confirm.fill('NewPass1!');
+    await current.fill('whatever-current');
+    await expect(submit).toBeEnabled();
+  });
 });

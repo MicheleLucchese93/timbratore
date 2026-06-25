@@ -5,6 +5,8 @@ import { asyncHandler, tenantHandler } from '../lib/route-helpers.js';
 import { adminPool } from '../lib/admin-db.js';
 import { ok } from '../lib/api-response.js';
 import { ValidationError } from '../errors/index.js';
+import { changePassword } from '../lib/gotrue-admin.js';
+import { passwordSchema } from '../lib/password.js';
 
 // Keep in sync with migrations 021_push_notification_prefs.sql,
 // 030_leave_reminders_and_email_prefs.sql and 041_documents.sql. Push keys
@@ -219,6 +221,27 @@ meRouter.patch(
         defaultsJson,
       ]
     );
+    ok(res, { updated: true });
+  })
+);
+
+// Change the caller's own password. Auth-only (no tenant context needed), so a
+// user with several companies can change it from any of them. The current
+// password is verified server-side (re-auth) before the new one is set; the new
+// password must satisfy the shared complexity rules.
+const ChangePassword = z.object({
+  current_password: z.string().min(1),
+  new_password: passwordSchema,
+});
+
+meRouter.post(
+  '/change-password',
+  asyncHandler(async (req, res) => {
+    const parse = ChangePassword.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const email = req.user!.email;
+    if (!email) throw new ValidationError('account has no email on file');
+    await changePassword(email, parse.data.current_password, parse.data.new_password);
     ok(res, { updated: true });
   })
 );

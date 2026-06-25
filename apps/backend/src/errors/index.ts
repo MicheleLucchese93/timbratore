@@ -20,6 +20,14 @@ export class UnauthorizedError extends AppError {
     super({ status: 401, code, message });
   }
 }
+// The logged-in user supplied the wrong CURRENT password when changing it. A
+// distinct code (not plain VALIDATION) so the client can map it to a specific
+// "current password is incorrect" message instead of a generic body error.
+export class InvalidCurrentPasswordError extends AppError {
+  constructor() {
+    super({ status: 400, code: 'INVALID_CURRENT_PASSWORD', message: 'Current password is incorrect' });
+  }
+}
 export class ForbiddenError extends AppError {
   constructor(message = 'Forbidden', code = 'FORBIDDEN') {
     super({ status: 403, code, message });

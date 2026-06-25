@@ -130,6 +130,31 @@ select.input { background-color: white; }
 .admin-add { display: flex; gap: 0.5rem; }
 .admin-add .input { flex: 1; }
 .form-err { background: var(--color-error-tint, #fde8e8); color: var(--color-error); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.8125rem; }
+.form-ok { background: color-mix(in oklab, var(--color-success) 14%, transparent); color: var(--color-success); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.8125rem; }
+
+/* Password input with show/hide toggle ---------------------------------- */
+.pw-wrap { position: relative; }
+.pw-wrap .input { padding-right: 2.5rem; }
+.pw-toggle {
+  position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);
+  background: transparent; border: 0; padding: 0.25rem; border-radius: 6px;
+  color: var(--color-on-surface-variant); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.pw-toggle:hover { color: var(--color-primary); background: var(--color-surface-variant); }
+.pw-toggle:focus { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+
+/* Live password-complexity checklist ------------------------------------ */
+.pw-requirements {
+  list-style: none; margin: 0.6rem 0 0; padding: 0.6rem 0.85rem;
+  border: 1px solid color-mix(in oklab, var(--color-primary) 22%, transparent);
+  border-radius: 0.5rem; background: color-mix(in oklab, var(--color-primary) 5%, transparent);
+  font-size: 0.8rem;
+}
+.pw-requirements li { display: flex; align-items: center; gap: 0.5rem; padding: 0.1rem 0; color: var(--color-on-surface-variant); transition: color 180ms ease; }
+.pw-requirements li::before { content: "\25CB"; font-size: 0.7rem; color: var(--color-outline); transition: color 180ms ease, transform 180ms ease; }
+.pw-requirements li.valid { color: var(--color-success); }
+.pw-requirements li.valid::before { content: "\2713"; color: var(--color-success); transform: scale(1.15); }
 
 /* Toasts ---------------------------------------------------------------- */
 .toast-stack { position: fixed; bottom: 1rem; right: 1rem; display: flex; flex-direction: column; gap: 0.5rem; z-index: 60; }

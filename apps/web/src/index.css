@@ -198,6 +198,37 @@ select.input { background-color: white; }
 .pw-toggle:hover { color: var(--color-primary); background: var(--color-surface-variant); }
 .pw-toggle:focus { outline: 2px solid var(--color-primary); outline-offset: 1px; }
 
+/* Live password-complexity checklist (change-password / reset-password) ----- */
+.pw-requirements {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid color-mix(in oklab, var(--color-primary) 22%, transparent);
+  border-radius: 0.5rem;
+  background: color-mix(in oklab, var(--color-primary) 5%, transparent);
+  font-size: 0.8rem;
+}
+.pw-requirements li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.1rem 0;
+  color: var(--color-on-surface-variant);
+  transition: color 180ms ease;
+}
+.pw-requirements li::before {
+  content: "\25CB"; /* hollow circle */
+  font-size: 0.7rem;
+  color: var(--color-outline);
+  transition: color 180ms ease, transform 180ms ease;
+}
+.pw-requirements li.valid { color: var(--color-success); }
+.pw-requirements li.valid::before {
+  content: "\2713"; /* checkmark */
+  color: var(--color-success);
+  transform: scale(1.15);
+}
+
 /* Layout helpers ------------------------------------------------------- */
 .section-title { @apply text-lg font-semibold; color: var(--color-on-surface); }
 .page-title { @apply text-2xl font-bold tracking-tight; }

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { ChangePasswordForm } from '../components/ChangePasswordForm.tsx';
 import { LANGS, setLanguage, currentLang, type Lang } from '../i18n/index.ts';
 
 const LABELS: Record<Lang, string> = { it: 'Italiano', en: 'English' };
@@ -27,6 +28,12 @@ export function Settings() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="card" style={{ padding: '1.25rem', maxWidth: 460, marginTop: '1rem' }}>
+        <div className="label">{t('settings.security')}</div>
+        <p className="muted" style={{ margin: '0.25rem 0 1rem' }}>{t('settings.securityDesc')}</p>
+        <ChangePasswordForm />
       </div>
     </>
   );

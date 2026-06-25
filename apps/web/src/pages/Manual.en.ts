@@ -187,6 +187,20 @@ export const MAIN_EN = `
       </div>
 
       <div class="feature">
+        <h3>Change your password (while signed in)</h3>
+        <p>If you know your current password you can change it without any email, straight from the app:</p>
+        <ol class="steps">
+          <li>On the <strong>Web</strong> go to <strong>Settings → Security</strong>.</li>
+          <li>Enter your <strong>current password</strong>.</li>
+          <li>Choose the <strong>new password</strong>: the requirements list ticks green as your password satisfies each one (at least 8 characters, one lowercase, one uppercase, one number and one symbol).</li>
+          <li>Repeat the new password in <strong>Confirm</strong> and press <strong>Update password</strong>.</li>
+        </ol>
+        <div class="callout callout-info">
+          The same feature is available in the <strong>partner console</strong> (sonoQui Partner) under <strong>Settings → Security</strong>.
+        </div>
+      </div>
+
+      <div class="feature">
         <h3>Do not have an account yet?</h3>
         <p>Only your company's administrator can create your account. When they start the access procedure you will receive an email to set your password and sign in.</p>
       </div>
@@ -1583,7 +1597,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>How do I change my password?</h3>
-        <p>Go to the login page (both Web and Mobile), press <strong>Forgot password?</strong>, enter your email and follow the link you receive by email.</p>
+        <p>If you are already signed in, on the <strong>Web</strong> go to <strong>Settings → Security</strong>, enter your current password and the new one (with confirmation). If instead you can't sign in, on the login page press <strong>Forgot password?</strong>, enter your email and follow the link you receive by email.</p>
       </div>
 
       <div class="feature">

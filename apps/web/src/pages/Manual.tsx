@@ -194,6 +194,20 @@ const MAIN_IT = `
       </div>
 
       <div class="feature">
+        <h3>Cambiare la password (da loggato)</h3>
+        <p>Se conosci la password attuale puoi cambiarla senza email, direttamente dall'app:</p>
+        <ol class="steps">
+          <li>Sul <strong>Web</strong> vai su <strong>Impostazioni → Sicurezza</strong>.</li>
+          <li>Inserisci la <strong>password attuale</strong>.</li>
+          <li>Scegli la <strong>nuova password</strong>: l'elenco dei requisiti si spunta in verde man mano che la password li soddisfa (almeno 8 caratteri, una minuscola, una maiuscola, un numero e un simbolo).</li>
+          <li>Ripeti la nuova password in <strong>Conferma</strong> e premi <strong>Aggiorna password</strong>.</li>
+        </ol>
+        <div class="callout callout-info">
+          La stessa funzione è disponibile nella <strong>console partner</strong> (sonoQui Partner) in <strong>Impostazioni → Sicurezza</strong>.
+        </div>
+      </div>
+
+      <div class="feature">
         <h3>Non hai ancora un account?</h3>
         <p>Solo l'amministratore della tua azienda può crearti l'utenza. Quando avvia la procedura di accesso riceverai un'email per impostare la password ed entrare.</p>
       </div>
@@ -1599,7 +1613,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Come cambio password?</h3>
-        <p>Vai sulla pagina di login (sia Web sia Mobile), premi <strong>Password dimenticata?</strong>, inserisci la tua email e segui il link che ricevi via mail.</p>
+        <p>Se sei già dentro, dal <strong>Web</strong> vai su <strong>Impostazioni → Sicurezza</strong>, inserisci la password attuale e la nuova (con conferma). Se invece non riesci ad accedere, dalla pagina di login premi <strong>Password dimenticata?</strong>, inserisci la tua email e segui il link che ricevi via mail.</p>
       </div>
 
       <div class="feature">

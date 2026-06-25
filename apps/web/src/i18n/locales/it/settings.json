@@ -8,7 +8,28 @@
     "emailNotif": "Notifiche email",
     "emailNotifDesc": "Le notifiche push sull'app mobile sono sempre attive (gestibili dall'app). Qui scegli, per categoria, quali notifiche ricevere anche via email. Disattivate di default.",
     "centroPaghe": "Centro Paghe (export LUL)",
-    "centroPagheDesc": "Configurazione del tracciato ORARIO per l'import delle presenze in Centro Paghe. Il codice ditta e i codici giustificativo devono coincidere con l'anagrafica paghe."
+    "centroPagheDesc": "Configurazione del tracciato ORARIO per l'import delle presenze in Centro Paghe. Il codice ditta e i codici giustificativo devono coincidere con l'anagrafica paghe.",
+    "security": "Sicurezza",
+    "securityDesc": "Cambia la password del tuo account: inserisci quella attuale e scegline una nuova rispettando i requisiti di sicurezza."
+  },
+  "password": {
+    "current": "Password attuale",
+    "new": "Nuova password",
+    "confirm": "Conferma nuova password",
+    "requirementsTitle": "La password deve contenere:",
+    "rule": {
+      "length": "Almeno 8 caratteri",
+      "lower": "Almeno una lettera minuscola (a-z)",
+      "upper": "Almeno una lettera maiuscola (A-Z)",
+      "digit": "Almeno un numero (0-9)",
+      "symbol": "Almeno un simbolo (!@#$%^&* ecc.)"
+    },
+    "mismatch": "Le password non coincidono.",
+    "submit": "Aggiorna password",
+    "submitting": "Aggiornamento…",
+    "success": "Password aggiornata.",
+    "errWrongCurrent": "La password attuale non è corretta.",
+    "errGeneric": "Aggiornamento non riuscito. Riprova."
   },
   "ragioneSociale": "Ragione sociale",
   "partitaIva": "Partita IVA",

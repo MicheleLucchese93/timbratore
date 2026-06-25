@@ -8,7 +8,28 @@
     "emailNotif": "Email notifications",
     "emailNotifDesc": "Push notifications on the mobile app are always on (managed from the app). Here you choose, per category, which notifications to also receive by email. Off by default.",
     "centroPaghe": "Centro Paghe (LUL export)",
-    "centroPagheDesc": "ORARIO tracciato configuration for importing attendance into Centro Paghe. The company code and giustificativo codes must match the payroll register."
+    "centroPagheDesc": "ORARIO tracciato configuration for importing attendance into Centro Paghe. The company code and giustificativo codes must match the payroll register.",
+    "security": "Security",
+    "securityDesc": "Change your account password: enter your current one and choose a new one that meets the security requirements."
+  },
+  "password": {
+    "current": "Current password",
+    "new": "New password",
+    "confirm": "Confirm new password",
+    "requirementsTitle": "The password must contain:",
+    "rule": {
+      "length": "At least 8 characters",
+      "lower": "At least one lowercase letter (a-z)",
+      "upper": "At least one uppercase letter (A-Z)",
+      "digit": "At least one number (0-9)",
+      "symbol": "At least one symbol (!@#$%^&* etc.)"
+    },
+    "mismatch": "The passwords don't match.",
+    "submit": "Update password",
+    "submitting": "Updating…",
+    "success": "Password updated.",
+    "errWrongCurrent": "The current password is incorrect.",
+    "errGeneric": "Update failed. Try again."
   },
   "ragioneSociale": "Legal name",
   "partitaIva": "VAT number",

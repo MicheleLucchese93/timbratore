@@ -17,7 +17,8 @@ import { env } from '../env.js';
 import { provisionTenant } from '../lib/provision-tenant.js';
 import { ensureAuthUser } from '../lib/auth-users.js';
 import { logPartnershipAudit } from '../lib/partnership-audit.js';
-import { triggerRecovery, updateUserEmail, deleteUser } from '../lib/gotrue-admin.js';
+import { triggerRecovery, updateUserEmail, deleteUser, changePassword } from '../lib/gotrue-admin.js';
+import { passwordSchema } from '../lib/password.js';
 import { createLogger } from '../lib/logger.js';
 
 const logger = createLogger('partnership');
@@ -115,6 +116,31 @@ partnershipRouter.patch(
       [p.userId, first, last, display]
     );
     ok(res, { first_name: first, last_name: last, display_name: display });
+  })
+);
+
+// ---- POST /change-password — change own console password -------------------
+// Verifies the current password (re-auth) before setting the new one. Email is
+// taken from the JWT, falling back to the auth_users mirror (mirrors GET /me).
+const ChangePassword = z.object({
+  current_password: z.string().min(1),
+  new_password: passwordSchema,
+});
+
+partnershipRouter.post(
+  '/change-password',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const parse = ChangePassword.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    let email = p.email;
+    if (!email) {
+      const u = await adminPool.query(`SELECT email FROM auth_users WHERE id = $1`, [p.userId]);
+      email = (u.rows[0]?.email as string | null) ?? null;
+    }
+    if (!email) throw new ValidationError('account has no email on file');
+    await changePassword(email, parse.data.current_password, parse.data.new_password);
+    ok(res, { updated: true });
   })
 );
 

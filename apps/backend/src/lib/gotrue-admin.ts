@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { SignJWT } from 'jose';
 import { env } from '../env.js';
+import { InvalidCurrentPasswordError } from '../errors/index.js';
 
 const secret = new TextEncoder().encode(env.GOTRUE_JWT_SECRET);
 
@@ -128,6 +129,43 @@ export async function triggerRecovery(email: string, redirectTo?: string): Promi
     // eslint-disable-next-line no-console
     console.warn('GoTrue /recover network error', (err as Error).message);
   }
+}
+
+// Re-authenticate a user against GoTrue's password grant to PROVE they know a
+// given password, returning a fresh session access_token. Used to verify the
+// CURRENT password before changing it — GoTrue's PUT /user takes only the new
+// password and never checks the old one. Throws on bad credentials.
+async function passwordGrant(email: string, password: string): Promise<string> {
+  const r = await fetch(`${env.GOTRUE_URL}/token?grant_type=password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  const j = (await r.json().catch(() => ({}))) as { access_token?: string };
+  if (!r.ok || !j.access_token) {
+    throw new Error('password grant failed');
+  }
+  return j.access_token;
+}
+
+// Change a logged-in user's password: verify the current one (re-auth), then set
+// the new one on that fresh session. Throws InvalidCurrentPasswordError when the
+// current password is wrong so the API maps it to a specific message. Local dev
+// has no GoTrue — short-circuit to a no-op success (mirrors triggerRecovery) so
+// the change-password UI stays exercisable without a real auth backend.
+export async function changePassword(
+  email: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  if (env.DEV_AUTH_ENABLED) return;
+  let accessToken: string;
+  try {
+    accessToken = await passwordGrant(email, currentPassword);
+  } catch {
+    throw new InvalidCurrentPasswordError();
+  }
+  await updatePassword(accessToken, newPassword);
 }
 
 export async function updatePassword(accessToken: string, password: string): Promise<void> {

@@ -1,7 +1,28 @@
 {
   "app": { "name": "sonoQui", "suffix": "Partner", "subtitle": "Gestione tenant rivenditori" },
   "nav": { "tenants": "Aziende", "partners": "Partner", "audit": "Registro attività", "settings": "Impostazioni", "logout": "Esci" },
-  "settings": { "title": "Impostazioni", "subtitle": "Preferenze della console", "language": "Lingua" },
+  "settings": { "title": "Impostazioni", "subtitle": "Preferenze della console", "language": "Lingua", "security": "Sicurezza", "securityDesc": "Cambia la password del tuo account: inserisci quella attuale e scegline una nuova rispettando i requisiti di sicurezza." },
+  "password": {
+    "current": "Password attuale",
+    "new": "Nuova password",
+    "confirm": "Conferma nuova password",
+    "requirementsTitle": "La password deve contenere:",
+    "rule": {
+      "length": "Almeno 8 caratteri",
+      "lower": "Almeno una lettera minuscola (a-z)",
+      "upper": "Almeno una lettera maiuscola (A-Z)",
+      "digit": "Almeno un numero (0-9)",
+      "symbol": "Almeno un simbolo (!@#$%^&* ecc.)"
+    },
+    "mismatch": "Le password non coincidono.",
+    "submit": "Aggiorna password",
+    "submitting": "Aggiornamento…",
+    "success": "Password aggiornata.",
+    "errWrongCurrent": "La password attuale non è corretta.",
+    "errGeneric": "Aggiornamento non riuscito. Riprova.",
+    "show": "Mostra password",
+    "hide": "Nascondi password"
+  },
   "role": { "admin": "Amministratore", "partner": "Partner" },
   "profile": { "title": "Profilo", "email": "Email", "first_name": "Nome", "last_name": "Cognome", "saved": "Profilo aggiornato." },
   "confirm": { "title": "Conferma" },

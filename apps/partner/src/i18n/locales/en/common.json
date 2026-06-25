@@ -1,7 +1,28 @@
 {
   "app": { "name": "sonoQui", "suffix": "Partner", "subtitle": "Reseller tenant management" },
   "nav": { "tenants": "Companies", "partners": "Partners", "audit": "Activity log", "settings": "Settings", "logout": "Sign out" },
-  "settings": { "title": "Settings", "subtitle": "Console preferences", "language": "Language" },
+  "settings": { "title": "Settings", "subtitle": "Console preferences", "language": "Language", "security": "Security", "securityDesc": "Change your account password: enter your current one and choose a new one that meets the security requirements." },
+  "password": {
+    "current": "Current password",
+    "new": "New password",
+    "confirm": "Confirm new password",
+    "requirementsTitle": "The password must contain:",
+    "rule": {
+      "length": "At least 8 characters",
+      "lower": "At least one lowercase letter (a-z)",
+      "upper": "At least one uppercase letter (A-Z)",
+      "digit": "At least one number (0-9)",
+      "symbol": "At least one symbol (!@#$%^&* etc.)"
+    },
+    "mismatch": "The passwords don't match.",
+    "submit": "Update password",
+    "submitting": "Updating…",
+    "success": "Password updated.",
+    "errWrongCurrent": "The current password is incorrect.",
+    "errGeneric": "Update failed. Try again.",
+    "show": "Show password",
+    "hide": "Hide password"
+  },
   "role": { "admin": "Administrator", "partner": "Partner" },
   "profile": { "title": "Profile", "email": "Email", "first_name": "First name", "last_name": "Last name", "saved": "Profile updated." },
   "confirm": { "title": "Confirm" },
