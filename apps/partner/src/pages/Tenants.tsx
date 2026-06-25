@@ -106,10 +106,45 @@ export function Tenants() {
       ? [{
           field: 'owner_name',
           headerName: t('tenants.col.owner'),
-          flex: 1,
-          minWidth: 150,
+          flex: 1.2,
+          minWidth: 200,
           valueGetter: (_v: unknown, row: TenantRow) =>
             row.owner_name || row.owner_email || t('tenants.platform'),
+          renderCell: (p) =>
+            p.row.owner_name || p.row.owner_email ? (
+              <span
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  height: '100%',
+                  lineHeight: 1.25,
+                  overflow: 'hidden',
+                }}
+              >
+                {p.row.owner_name && (
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {p.row.owner_name}
+                  </span>
+                )}
+                {p.row.owner_email && (
+                  <span
+                    title={p.row.owner_email}
+                    style={{
+                      color: 'var(--color-on-surface-variant)',
+                      fontSize: '0.85em',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {p.row.owner_email}
+                  </span>
+                )}
+              </span>
+            ) : (
+              t('tenants.platform')
+            ),
         } as GridColDef<TenantRow>]
       : []),
     {
@@ -228,6 +263,7 @@ export function Tenants() {
           disableRowSelectionOnClick
           disableVirtualization
           density="compact"
+          {...(isAdmin ? { rowHeight: 48 } : {})}
           initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
           pageSizeOptions={[25, 50, 100]}
           sx={{ border: 0 }}
@@ -477,13 +513,13 @@ function EditLimits({
   const [note, setNote] = useState(tenant.note ?? '');
   // Admin-only: which partner owns/manages this tenant ('' = Piattaforma).
   const [ownerPartner, setOwnerPartner] = useState(tenant.created_by_partner ?? '');
-  const [partners, setPartners] = useState<Array<{ user_id: string; email: string }>>([]);
+  const [partners, setPartners] = useState<Array<{ user_id: string; email: string; partner_name: string | null }>>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAdmin) return;
-    void api<{ partners: Array<{ user_id: string; email: string }> }>('/api/v1/partnership/partners')
+    void api<{ partners: Array<{ user_id: string; email: string; partner_name: string | null }> }>('/api/v1/partnership/partners')
       .then((r) => setPartners(r.partners))
       .catch(() => {});
   }, [isAdmin]);
@@ -536,7 +572,9 @@ function EditLimits({
               >
                 <option value="">{t('tenants.platform')}</option>
                 {partners.map((pp) => (
-                  <option key={pp.user_id} value={pp.user_id}>{pp.email}</option>
+                  <option key={pp.user_id} value={pp.user_id}>
+                    {pp.partner_name ? `${pp.partner_name} — ${pp.email}` : pp.email}
+                  </option>
                 ))}
               </select>
             </div>

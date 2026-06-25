@@ -34,7 +34,7 @@ test.describe('partner admin · assign tenant to a partner', () => {
     await row(page, tname).getByRole('button', { name: /Modifica|Edit/ }).click();
     await page.getByTestId('owner-select').selectOption({ label: ownerPartner });
     await page.getByTestId('edit-limits-submit').click();
-    await expect(page.getByText(/Limiti aggiornati|Limits updated/)).toBeVisible();
+    await expect(page.getByText(/Azienda aggiornata|Company updated/)).toBeVisible();
 
     // The tenant's Partner column now shows the assigned partner.
     await expect(row(page, tname)).toContainText(ownerPartner);

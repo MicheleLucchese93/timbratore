@@ -76,7 +76,7 @@
       "created": "Company created. Admin invite sent.",
       "created_existing": "Company created. The admin already had an account."
     },
-    "edit": { "title": "Edit limits", "submit": "Save limits", "saved": "Limits updated.", "owner": "Assigned partner", "note": "Note" },
+    "edit": { "title": "Edit company", "submit": "Save", "saved": "Company updated.", "owner": "Assigned partner", "note": "Note" },
     "suspend": { "label": "Suspend", "confirm": "Suspend this company? Its users will no longer be able to sign in.", "done": "Company suspended." },
     "resume": { "label": "Resume", "confirm": "Resume this company? Its users will be able to sign in again.", "done": "Company resumed." },
     "reinvite": { "label": "Re-invite admin", "done": "Access email sent to {{email}}." },

@@ -39,7 +39,7 @@ test.describe('partner admin · tenants', () => {
     await page.locator('input#e-users').fill('25');
     await page.getByTestId('tenant-note').fill(tenantNote);
     await page.getByTestId('edit-limits-submit').click();
-    await expect(page.getByText(/Limiti aggiornati|Limits updated/)).toBeVisible();
+    await expect(page.getByText(/Azienda aggiornata|Company updated/)).toBeVisible();
     await expect(row(page, tenantName)).toContainText('1/25');
     await expect(row(page, tenantName)).toContainText(tenantNote);
 

@@ -76,7 +76,7 @@
       "created": "Azienda creata. Invito amministratore inviato.",
       "created_existing": "Azienda creata. L'amministratore aveva già un account."
     },
-    "edit": { "title": "Modifica limiti", "submit": "Salva limiti", "saved": "Limiti aggiornati.", "owner": "Partner assegnato", "note": "Note" },
+    "edit": { "title": "Modifica azienda", "submit": "Salva", "saved": "Azienda aggiornata.", "owner": "Partner assegnato", "note": "Note" },
     "suspend": { "label": "Sospendi", "confirm": "Sospendere questa azienda? Gli utenti non potranno più accedere.", "done": "Azienda sospesa." },
     "resume": { "label": "Riattiva", "confirm": "Riattivare questa azienda? Gli utenti potranno nuovamente accedere.", "done": "Azienda riattivata." },
     "reinvite": { "label": "Reinvita admin", "done": "Email di accesso inviata a {{email}}." },
