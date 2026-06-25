@@ -11,6 +11,8 @@
  * another stack.
  */
 
+import { romeWallClockISO } from './time';
+
 const AUTH_BASE = process.env.E2E_AUTH_URL ?? 'https://auth-sonoqui.xdevapp.it';
 const API_BASE = process.env.E2E_API_URL ?? 'https://api-sonoqui.xdevapp.it';
 
@@ -235,8 +237,8 @@ export async function listStampsAdmin(
  * defaults to the last 30 days, so this is the window we keep populated.
  *
  * Idempotent: no-ops when the user already has any stamp inside the 30-day
- * window. Otherwise seeds the last 3 weekdays with a 09:00–17:00 Rome
- * (07:00–15:00Z = 8h) pair each via POST /admin/stamps. The e2e purge is scoped
+ * window. Otherwise seeds the last 3 weekdays with a 09:00–17:00 Rome-local
+ * (= 8h, DST-correct) pair each via POST /admin/stamps. The e2e purge is scoped
  * to role='user', so these admin-baseline stamps survive teardown and only need
  * re-seeding when they age out of the window. Replaces the one-off manual prod
  * seed so the baseline is reproducible after a tenant reset. Returns the number
@@ -264,16 +266,17 @@ export async function ensureRecentAdminStorico(adminToken: string, userId: strin
 
   let seeded = 0;
   for (const day of days) {
+    const base = new Date(`${day}T12:00:00.000Z`); // noon UTC → unambiguous day
     const ci = await apiPost(adminToken, '/api/v1/admin/stamps', {
       user_id: userId,
       event_type: 'clock_in',
-      occurred_at: `${day}T07:00:00.000Z`,
+      occurred_at: romeWallClockISO(base, 9).iso, // 09:00 Rome
       justification: 'QA baseline storico',
     });
     const co = await apiPost(adminToken, '/api/v1/admin/stamps', {
       user_id: userId,
       event_type: 'clock_out',
-      occurred_at: `${day}T15:00:00.000Z`,
+      occurred_at: romeWallClockISO(base, 17).iso, // 17:00 Rome (8h)
       justification: 'QA baseline storico',
     });
     if (ci.status === 201 && co.status === 201) seeded += 1;

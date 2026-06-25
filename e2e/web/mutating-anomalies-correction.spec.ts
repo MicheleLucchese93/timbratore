@@ -13,6 +13,7 @@ import {
   resolveDisplayName,
   type ApiHandle,
 } from '../fixtures/api-client';
+import { romeWallClockISO } from '../fixtures/time';
 
 // Exercises the "Correggi" menu on the Anomalie page end-to-end: each typical
 // correction resolves the anomaly it targets (per apps/backend/src/routes/shifts.ts
@@ -47,8 +48,9 @@ function nthWeekdayBack(n: number, hour: number, minute: number): { iso: string;
     const dow = d.getUTCDay();
     if (dow !== 0 && dow !== 6) count += 1;
   }
-  d.setUTCHours(hour, minute, 0, 0);
-  return { iso: d.toISOString(), date: d.toISOString().slice(0, 10) };
+  // Rome-local wall-clock: matches how the backend reads schedule slot times,
+  // so the "Timbratura standard" correction inserts at the right expected times.
+  return romeWallClockISO(d, hour, minute);
 }
 
 test.describe.serial('web — Anomalie Correggi menu resolves anomalies (mutating)', () => {

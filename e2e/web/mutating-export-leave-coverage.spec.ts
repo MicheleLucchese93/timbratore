@@ -16,6 +16,7 @@ import {
   loadHandleFromStorage,
   type ApiHandle,
 } from '../fixtures/api-client';
+import { romeWallClockISO } from '../fixtures/time';
 
 // Regression for leave-covered breach deductions (apps/backend/src/services/
 // export-service.ts). An employee who clocks out early but has an approved
@@ -46,11 +47,9 @@ function seedDays(startDaysAgo: number, count: number) {
   while (out.length < count) {
     const dow = d.getUTCDay();
     if (dow !== 0 && dow !== 6) {
-      const at = (h: number) => {
-        const x = new Date(d);
-        x.setUTCHours(h, 0, 0, 0);
-        return x.toISOString();
-      };
+      // Rome-local wall-clock so 09:00→15:00 is a true 6h with a 2h early exit
+      // against the 09:00–17:00 slot, regardless of CET/CEST.
+      const at = (h: number) => romeWallClockISO(d, h).iso;
       out.push({ date: isoDay(d), in9: at(9), out15: at(15), end17: at(17) });
     }
     d.setUTCDate(d.getUTCDate() - 1);

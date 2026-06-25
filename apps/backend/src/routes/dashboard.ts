@@ -3,6 +3,7 @@ import { authenticate, requireAdmin } from '../middleware/auth.js';
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { computeAnomalies, type AnomalyRow, type Anomaly } from './shifts.js';
+import { DEFAULT_TZ } from '../lib/tz.js';
 
 export const dashboardRouter = Router();
 dashboardRouter.use(authenticate);
@@ -45,6 +46,12 @@ dashboardRouter.get(
 dashboardRouter.get(
   '/summary',
   tenantHandler(async (_req, res, client) => {
+    // Tenant timezone for the anomaly badges: schedule slot times are wall-clock
+    // in this zone; mirrors GET /shifts/anomalies. Defaults to Europe/Rome.
+    const tzPromise = client.query<{ timezone: string }>(
+      `SELECT timezone FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid`
+    );
+
     const usagePromise = client.query(
       `SELECT
          (SELECT COUNT(*) FROM memberships
@@ -195,16 +202,17 @@ dashboardRouter.get(
         ORDER BY r.d, m.email`
     );
 
-    const [u, p, pen, absent, upcoming, anomalyRows] = await Promise.all([
+    const [u, p, pen, absent, upcoming, anomalyRows, tz] = await Promise.all([
       usagePromise,
       presencePromise,
       pendingPromise,
       absentNowPromise,
       upcomingPromise,
       anomaliesPromise,
+      tzPromise,
     ]);
 
-    const anomalies = computeAnomalies(anomalyRows.rows);
+    const anomalies = computeAnomalies(anomalyRows.rows, tz.rows[0]?.timezone || DEFAULT_TZ);
     const byKind: Record<Anomaly['kind'], number> = {
       missing_clock_in: 0,
       missing_clock_out: 0,

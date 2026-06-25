@@ -9,6 +9,7 @@ import {
   loadHandleFromStorage,
   type ApiHandle,
 } from '../fixtures/api-client';
+import { romeWallClockISO } from '../fixtures/time';
 
 // Seed a real `late_clock_in` anomaly so the Anomalie page renders the
 // `Entrata in ritardo` KIND_LABEL. Recipe (per
@@ -29,8 +30,8 @@ function lastWeekdayISOAt(hour: number, minute: number): { iso: string; date: st
   while (d.getUTCDay() === 0 || d.getUTCDay() === 6) {
     d.setUTCDate(d.getUTCDate() - 1);
   }
-  d.setUTCHours(hour, minute, 0, 0);
-  return { iso: d.toISOString(), date: d.toISOString().slice(0, 10) };
+  // Rome-local wall-clock so 09:30 here is genuinely 30 min past the 09:00 slot.
+  return romeWallClockISO(d, hour, minute);
 }
 
 test.describe('web — Anomalie KIND_LABEL via seeded late clock-in (mutating)', () => {

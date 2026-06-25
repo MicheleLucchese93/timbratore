@@ -5,6 +5,13 @@ import { authenticate, requireAdmin } from '../middleware/auth.js';
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { ConflictError, NotFoundError, ValidationError } from '../errors/index.js';
+import {
+  DEFAULT_TZ,
+  zonedWallClock,
+  startOfZonedDayUtcMs,
+  nextIsoDate,
+  hhmmInZone,
+} from '../lib/tz.js';
 
 export const shiftsRouter = Router();
 shiftsRouter.use(authenticate);
@@ -636,6 +643,9 @@ shiftsRouter.get(
                  FROM stamps s
                 WHERE s.user_id = m.user_id
                   AND s.deleted_at IS NULL
+                  -- Day bucketing stays UTC-based (DB session tz is UTC) while
+                  -- expected slot times resolve in the tenant zone. Safe because
+                  -- no schedule places punches in the 00:00–00:59 local window.
                   AND s.occurred_at >= r.d::timestamptz
                   AND s.occurred_at <  (r.d + INTERVAL '1 day')::timestamptz),
                 '[]'::json
@@ -664,7 +674,14 @@ shiftsRouter.get(
       user_id ? [from, to, user_id] : [from, to]
     );
 
-    const anomalies = computeAnomalies(r.rows);
+    // Schedule slot times are wall-clock in the tenant's timezone; resolve them
+    // against stamps (UTC) using that zone so expected windows are correct
+    // year-round (CET/CEST). Defaults to Europe/Rome.
+    const tzRow = await client.query<{ timezone: string }>(
+      `SELECT timezone FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid`
+    );
+    const timeZone = tzRow.rows[0]?.timezone || DEFAULT_TZ;
+    const anomalies = computeAnomalies(r.rows, timeZone);
 
     // Attach note-only justifications, keyed by (user, day, kind).
     const jq = await client.query(
@@ -813,10 +830,11 @@ function isoDow(d: Date): number {
   return dow === 0 ? 7 : dow;
 }
 
-function combineDateTime(dateStr: string, hhmm: string): Date {
-  const [h, m] = hhmm.split(':').map(Number) as [number, number];
-  const [y, mo, d] = dateStr.split('-').map(Number) as [number, number, number];
-  return new Date(Date.UTC(y, mo - 1, d, h, m, 0));
+// Resolve a schedule wall-clock (slot start/end time) on `dateStr` into the
+// correct UTC instant for the tenant's timezone, so it can be compared against
+// stamps (timestamptz / true UTC). DST-aware — see lib/tz.ts.
+function combineDateTime(dateStr: string, hhmm: string, timeZone: string): Date {
+  return zonedWallClock(dateStr, hhmm, timeZone);
 }
 
 // Minutes of approved leave overlapping a [startMs, endMs] window. Lets the
@@ -839,7 +857,7 @@ function leaveOverlapMin(
   return covered;
 }
 
-export function computeAnomalies(rows: AnomalyRow[]): Anomaly[] {
+export function computeAnomalies(rows: AnomalyRow[], timeZone: string = DEFAULT_TZ): Anomaly[] {
   const out: Anomaly[] = [];
   for (const row of rows) {
     const date = row.day.slice(0, 10);
@@ -878,8 +896,8 @@ export function computeAnomalies(rows: AnomalyRow[]): Anomaly[] {
     }
     if (!hasAny) continue;
 
-    const expectedStart = combineDateTime(date, slots[0]!.start_time);
-    const expectedEnd = combineDateTime(date, slots[slots.length - 1]!.end_time);
+    const expectedStart = combineDateTime(date, slots[0]!.start_time, timeZone);
+    const expectedEnd = combineDateTime(date, slots[slots.length - 1]!.end_time, timeZone);
 
     const firstIn = stamps.find((s) => s.event_type === 'clock_in');
     const lastOut = [...stamps].reverse().find((s) => s.event_type === 'clock_out');
@@ -1001,16 +1019,12 @@ export function computeAnomalies(rows: AnomalyRow[]): Anomaly[] {
 
     if (firstIn && lastOut) {
       const expectedMin = slots.reduce((sum, sl) => {
-        const start = combineDateTime(date, sl.start_time).getTime();
-        const end = combineDateTime(date, sl.end_time).getTime();
+        const start = combineDateTime(date, sl.start_time, timeZone).getTime();
+        const end = combineDateTime(date, sl.end_time, timeZone).getTime();
         return sum + Math.max(0, Math.round((end - start) / 60000));
       }, 0);
-      const dayStart = Date.UTC(
-        Number(date.slice(0, 4)),
-        Number(date.slice(5, 7)) - 1,
-        Number(date.slice(8, 10))
-      );
-      const dayEnd = dayStart + 24 * 60 * 60 * 1000;
+      const dayStart = startOfZonedDayUtcMs(date, timeZone);
+      const dayEnd = startOfZonedDayUtcMs(nextIsoDate(date), timeZone);
       const leaveCoveredMin = (row.leaves ?? []).reduce((sum, lv) => {
         const from = new Date(lv.from_ts).getTime();
         const to = new Date(lv.to_ts).getTime();
@@ -1133,8 +1147,8 @@ export function computeAnomalies(rows: AnomalyRow[]): Anomaly[] {
       let gapEnd = '';
       let bestGap = -1;
       for (let k = 0; k < slots.length - 1; k++) {
-        const e = combineDateTime(date, slots[k]!.end_time).getTime();
-        const s2 = combineDateTime(date, slots[k + 1]!.start_time).getTime();
+        const e = combineDateTime(date, slots[k]!.end_time, timeZone).getTime();
+        const s2 = combineDateTime(date, slots[k + 1]!.start_time, timeZone).getTime();
         if (s2 - e > bestGap) {
           bestGap = s2 - e;
           gapStart = slots[k]!.end_time;
@@ -1143,9 +1157,11 @@ export function computeAnomalies(rows: AnomalyRow[]): Anomaly[] {
       }
       if (gapStart && gapEnd) {
         const winStart =
-          combineDateTime(date, gapStart).getTime() - (row.flex_lunch_before_min ?? 0) * 60000;
+          combineDateTime(date, gapStart, timeZone).getTime() -
+          (row.flex_lunch_before_min ?? 0) * 60000;
         const winEnd =
-          combineDateTime(date, gapEnd).getTime() + (row.flex_lunch_after_min ?? 0) * 60000;
+          combineDateTime(date, gapEnd, timeZone).getTime() +
+          (row.flex_lunch_after_min ?? 0) * 60000;
         if (firstLunchStartMs < winStart || lastLunchEndMs > winEnd) {
           const a = buildAnomaly(
             row,
@@ -1157,8 +1173,8 @@ export function computeAnomalies(rows: AnomalyRow[]): Anomaly[] {
           );
           a.lunch_total_min = lunchTotal;
           a.details =
-            `Pausa pranzo ${hhmmUtc(firstLunchStartMs)}–${hhmmUtc(lastLunchEndMs)} fuori dalla finestra consentita ` +
-            `${hhmmUtc(winStart)}–${hhmmUtc(winEnd)} (pausa prevista ${gapStart}–${gapEnd}, flessibilità ` +
+            `Pausa pranzo ${hhmmInZone(firstLunchStartMs, timeZone)}–${hhmmInZone(lastLunchEndMs, timeZone)} fuori dalla finestra consentita ` +
+            `${hhmmInZone(winStart, timeZone)}–${hhmmInZone(winEnd, timeZone)} (pausa prevista ${gapStart}–${gapEnd}, flessibilità ` +
             `${row.flex_lunch_before_min ?? 0}/${row.flex_lunch_after_min ?? 0} min)`;
           out.push(a);
         }
@@ -1166,13 +1182,6 @@ export function computeAnomalies(rows: AnomalyRow[]): Anomaly[] {
     }
   }
   return out;
-}
-
-// Wall-clock HH:MM of an absolute timestamp, read in UTC to match
-// combineDateTime (which builds expected times via Date.UTC).
-function hhmmUtc(ms: number): string {
-  const d = new Date(ms);
-  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
 }
 
 function buildAnomaly(

@@ -12,6 +12,7 @@ import {
   loadHandleFromStorage,
   type ApiHandle,
 } from '../fixtures/api-client';
+import { romeWallClockISO } from '../fixtures/time';
 
 // Full-stack checks for orario flessibile (flextime), the flex lunch window and
 // the per-weekday auto-deduct lunch. Seeds a template + assignment + stamps on a
@@ -28,8 +29,8 @@ function lastWeekdayAt(hour: number, minute: number): { iso: string; date: strin
   const d = new Date();
   d.setUTCDate(d.getUTCDate() - 1);
   while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() - 1);
-  d.setUTCHours(hour, minute, 0, 0);
-  return { iso: d.toISOString(), date: d.toISOString().slice(0, 10) };
+  // Rome-local wall-clock: slot times are interpreted in the tenant timezone.
+  return romeWallClockISO(d, hour, minute);
 }
 
 function flatSlots(start: string, end: string) {

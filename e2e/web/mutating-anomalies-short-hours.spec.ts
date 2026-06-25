@@ -11,6 +11,7 @@ import {
   loadHandleFromStorage,
   type ApiHandle,
 } from '../fixtures/api-client';
+import { romeWallClockISO } from '../fixtures/time';
 
 // Seed a real `short_hours` anomaly so the Anomalie page renders the
 // "Ore giornaliere insufficienti" KIND_LABEL plus the Correggi menu.
@@ -29,8 +30,8 @@ function lastWeekdayISOAt(hour: number, minute: number): { iso: string; date: st
   while (d.getUTCDay() === 0 || d.getUTCDay() === 6) {
     d.setUTCDate(d.getUTCDate() - 1);
   }
-  d.setUTCHours(hour, minute, 0, 0);
-  return { iso: d.toISOString(), date: d.toISOString().slice(0, 10) };
+  // Rome-local wall-clock so 09:00→13:00 is exactly 4h against the 09:00–17:00 slot.
+  return romeWallClockISO(d, hour, minute);
 }
 
 test.describe('web — Anomalie short_hours via seeded under-worked day (mutating)', () => {

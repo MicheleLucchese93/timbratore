@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import ExcelJS from 'exceljs';
 import { putObject, getObject, deleteObject } from '../lib/storage.js';
+import { DEFAULT_TZ, zonedWallClock } from '../lib/tz.js';
 import { effectiveCentroPagheMap, centroPagheKeyForLeave } from '@sonoqui/shared';
 import { env } from '../env.js';
 import {
@@ -103,6 +104,14 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
      ORDER BY s.user_id, s.occurred_at`,
     [job.tenant_id, job.period_from, job.period_to]
   );
+
+  // Tenant timezone for resolving schedule wall-clock times against stamps in
+  // the late/early breach deductions below (defaults to Europe/Rome).
+  const tzRow = await adminPool.query<{ timezone: string }>(
+    `SELECT timezone FROM tenants WHERE id = $1`,
+    [job.tenant_id]
+  );
+  const timeZone = tzRow.rows[0]?.timezone || DEFAULT_TZ;
 
   const shiftByUser = await loadShiftConfigs(job);
   const leavesByUserDay = await loadLeavesPerDay(job);
@@ -218,11 +227,12 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
       if (!cfg) continue;
       const dowSlots = cfg.slotsByDow.get(isoDowUtc(day.day));
       if (!dowSlots || dowSlots.length === 0) continue;
-      const expectedStart = combineDateTime(day.day, dowSlots[0]!.start);
-      const expectedEnd = combineDateTime(day.day, dowSlots[dowSlots.length - 1]!.end);
+      const expectedStart = combineDateTime(day.day, dowSlots[0]!.start, timeZone);
+      const expectedEnd = combineDateTime(day.day, dowSlots[dowSlots.length - 1]!.end, timeZone);
       const expectedDurationMin = dowSlots.reduce(
         (acc, s) =>
-          acc + diffMin(combineDateTime(day.day, s.start), combineDateTime(day.day, s.end)),
+          acc +
+          diffMin(combineDateTime(day.day, s.start, timeZone), combineDateTime(day.day, s.end, timeZone)),
         0
       );
       const userLeaves = leaveIntervalsByUser.get(userId);
@@ -527,10 +537,12 @@ function leaveOverlapMin(
   return covered;
 }
 
-function combineDateTime(dateStr: string, hhmm: string): Date {
-  const [h, m] = hhmm.split(':').map(Number) as [number, number];
-  const [y, mo, d] = dateStr.split('-').map(Number) as [number, number, number];
-  return new Date(Date.UTC(y, mo - 1, d, h, m, 0));
+// Schedule wall-clock (slot time) on `dateStr` → UTC instant in `timeZone`, so
+// it lines up with stamps (timestamptz / true UTC). DST-aware — see lib/tz.ts.
+// Scheduled-duration sums (end−start) are timezone-invariant; the timezone
+// matters for late-in / early-out breach comparisons against real stamps.
+function combineDateTime(dateStr: string, hhmm: string, timeZone: string = DEFAULT_TZ): Date {
+  return zonedWallClock(dateStr, hhmm, timeZone);
 }
 
 function isoDowUtc(dateStr: string): number {
