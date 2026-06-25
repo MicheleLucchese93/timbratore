@@ -589,8 +589,8 @@ const MAIN_IT = `
         <table>
           <thead><tr><th>Tipo</th><th>Quando viene rilevata</th></tr></thead>
           <tbody>
-            <tr><td><span class="pill pill-err">Entrata mancante</span></td><td>Nessuna timbratura ingresso in un giorno lavorativo previsto.</td></tr>
-            <tr><td><span class="pill pill-err">Uscita mancante</span></td><td>Nessuna timbratura uscita dopo un ingresso.</td></tr>
+            <tr><td><span class="pill pill-err">Entrata mancante</span></td><td>Nessuna timbratura ingresso in un giorno lavorativo previsto, una volta passato l'orario di inizio. Il turno in corso non viene segnalato prima dell'orario d'ingresso.</td></tr>
+            <tr><td><span class="pill pill-err">Uscita mancante</span></td><td>Nessuna timbratura uscita dopo che è passato l'orario di fine previsto. Durante il turno in corso (prima dell'orario di uscita) non è un'anomalia.</td></tr>
             <tr><td><span class="pill pill-warn">Entrata in ritardo</span></td><td>Ingresso oltre la tolleranza configurata, salvo permesso/ferie approvati che coprono il ritardo.</td></tr>
             <tr><td><span class="pill pill-warn">Uscita anticipata</span></td><td>Uscita prima della tolleranza configurata, salvo permesso/ferie approvati che coprono l'anticipo.</td></tr>
             <tr><td><span class="pill pill-warn">Ore insufficienti</span></td><td>Ore lavorate inferiori all'orario atteso.</td></tr>

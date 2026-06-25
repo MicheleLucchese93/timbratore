@@ -179,6 +179,40 @@ test('winter (CET): clock-in at the scheduled wall-clock is on time, expected wi
   assert.equal(late!.delta_minutes, 30);
 });
 
+/* ──────────── In-progress shift: don't flag missing in/out prematurely ────────────
+ * missing_clock_in / missing_clock_out are gated on the current time vs the
+ * scheduled anchors. A shift still running (now before the scheduled end) must
+ * NOT raise missing_clock_out; an entry isn't "missing" before its start time. */
+
+function fulldayRow(stamps: AnomalyRow['stamps']): AnomalyRow {
+  return makeRowOn(MON_SUMMER, {
+    slots: [{ day_of_week: 1, start_time: '08:00', end_time: '18:00' }],
+    stamps,
+  });
+}
+const at = (hhmm: string) => zonedWallClock(MON_SUMMER, hhmm).getTime();
+
+test('in-progress shift: no missing_clock_out before the scheduled end', () => {
+  const row = fulldayRow([stampAt(MON_SUMMER, 'clock_in', '08:00')]); // still working
+  const k = computeAnomalies([row], 'Europe/Rome', at('11:00')).map((a) => a.kind);
+  assert.ok(!k.includes('missing_clock_out'), `unexpected missing_clock_out: ${k.join(',')}`);
+});
+
+test('after the scheduled end: missing_clock_out fires when no exit was stamped', () => {
+  const row = fulldayRow([stampAt(MON_SUMMER, 'clock_in', '08:00')]);
+  const k = computeAnomalies([row], 'Europe/Rome', at('19:00')).map((a) => a.kind);
+  assert.ok(k.includes('missing_clock_out'));
+});
+
+test('missing_clock_in only after the scheduled start', () => {
+  const before = computeAnomalies([fulldayRow([])], 'Europe/Rome', at('07:00')).map((a) => a.kind);
+  assert.ok(!before.includes('missing_clock_in'), `premature missing_clock_in: ${before.join(',')}`);
+  const after = computeAnomalies([fulldayRow([])], 'Europe/Rome', at('11:00')).map((a) => a.kind);
+  assert.ok(after.includes('missing_clock_in'));
+  // Exit not yet due at 11:00 → no missing_clock_out alongside it.
+  assert.ok(!after.includes('missing_clock_out'), `premature missing_clock_out: ${after.join(',')}`);
+});
+
 test('Adige Carta regression: clock-out 2 min after the scheduled end is NOT uscita anticipata (summer)', () => {
   // Part-time 08:00–13:00; stamps 07:55–13:02 Rome. Pre-fix this fired a 118-min
   // early_clock_out because expected end 13:00 was read as 13:00Z (= 15:00 Rome).

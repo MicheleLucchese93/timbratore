@@ -857,7 +857,11 @@ function leaveOverlapMin(
   return covered;
 }
 
-export function computeAnomalies(rows: AnomalyRow[], timeZone: string = DEFAULT_TZ): Anomaly[] {
+export function computeAnomalies(
+  rows: AnomalyRow[],
+  timeZone: string = DEFAULT_TZ,
+  now: number = Date.now()
+): Anomaly[] {
   const out: Anomaly[] = [];
   for (const row of rows) {
     const date = row.day.slice(0, 10);
@@ -924,7 +928,9 @@ export function computeAnomalies(rows: AnomalyRow[], timeZone: string = DEFAULT_
       fullExpectedMin > 0 && leaveOverlapMin(row.leaves, expStartMs, expEndMs) + 1 >= fullExpectedMin;
 
     if (!firstIn) {
-      if (!fullyCoveredByLeave) {
+      // Don't flag a missing entry before the shift has even started (e.g. today
+      // queried mid-morning). On past days expStartMs is already behind `now`.
+      if (!fullyCoveredByLeave && now >= expStartMs) {
         out.push(
           buildAnomaly(
             row,
@@ -960,7 +966,9 @@ export function computeAnomalies(rows: AnomalyRow[], timeZone: string = DEFAULT_
     }
 
     if (!lastOut) {
-      if (!fullyCoveredByLeave) {
+      // Don't flag a missing exit until the scheduled end has passed — during an
+      // in-progress shift the employee simply hasn't clocked out yet.
+      if (!fullyCoveredByLeave && now >= expEndMs) {
         out.push(
           buildAnomaly(
             row,
