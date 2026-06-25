@@ -18,11 +18,19 @@
   "col": {
     "when": "Quando",
     "user": "Utente",
+    "email": "Email",
+    "firstName": "Nome",
+    "lastName": "Cognome",
+    "externalId": "Identificativo univoco",
     "event": "Evento",
     "origin": "Origine",
     "branch": "Sede",
     "notes": "Note",
     "actions": "Azioni"
+  },
+  "filters": {
+    "search": "Cerca dipendente",
+    "allBranches": "Tutte le sedi"
   },
   "badge": {
     "mock": "mock",
@@ -52,6 +60,7 @@
     "reason": "Motivazione",
     "reasonDefault": "Modifica da griglia presenze",
     "noStamps": "Nessuna timbratura per questo giorno.",
-    "addEvent": "Aggiungi"
+    "addEvent": "Aggiungi",
+    "idPrefix": "ID:"
   }
 }

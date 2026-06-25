@@ -17,6 +17,29 @@ export function Stamps() {
   const [editing, setEditing] = useState<Stamp | null>(null);
   const [creating, setCreating] = useState(false);
   const [view, setView] = useState<'list' | 'grid'>('list');
+  // List-view filters, mirroring the monthly grid: free-text employee search
+  // (matches email / name / unique id) + branch select. Applied client-side.
+  const [search, setSearch] = useState('');
+  const [branchId, setBranchId] = useState('');
+
+  const userById = useMemo(
+    () => new Map(users.map((u) => [u.user_id, u])),
+    [users]
+  );
+
+  const filteredList = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return list.filter((s) => {
+      if (branchId && s.branch_id !== branchId) return false;
+      if (!q) return true;
+      const u = userById.get(s.user_id);
+      const hay = [s.user_email, u?.first_name, u?.last_name, u?.display_name, u?.external_id]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [list, branchId, search, userById]);
 
   async function load() {
     const params = new URLSearchParams();
@@ -76,14 +99,37 @@ export function Stamps() {
       />
 
       {view === 'list' ? (
-        <div className="card" style={{ padding: 0 }}>
-          <StampsDataGrid
-            list={list}
-            branches={branches}
-            onEdit={setEditing}
-            onDelete={remove}
-          />
-        </div>
+        <>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <input
+              className="input"
+              style={{ width: 200 }}
+              placeholder={t('filters.search')}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <select
+              className="input"
+              style={{ width: 180 }}
+              value={branchId}
+              onChange={(e) => setBranchId(e.target.value)}
+            >
+              <option value="">{t('filters.allBranches')}</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="card" style={{ padding: 0 }}>
+            <StampsDataGrid
+              list={filteredList}
+              branches={branches}
+              userById={userById}
+              onEdit={setEditing}
+              onDelete={remove}
+            />
+          </div>
+        </>
       ) : (
         <StampMonthGrid users={users} branches={branches} />
       )}
@@ -273,11 +319,13 @@ function StampForm({
 function StampsDataGrid({
   list,
   branches,
+  userById,
   onEdit,
   onDelete,
 }: {
   list: Stamp[];
   branches: Branch[];
+  userById: Map<string, UserRow>;
   onEdit: (s: Stamp) => void;
   onDelete: (id: string) => void;
 }) {
@@ -292,7 +340,35 @@ function StampsDataGrid({
         valueGetter: (_v, row) => new Date(row.occurred_at),
         renderCell: (p) => <span className="num text-xs">{fmtDateTime(p.row.occurred_at, DATETIME_OPTS)}</span>,
       },
-      { field: 'user_email', headerName: t('col.user'), flex: 1.2, minWidth: 180 },
+      {
+        field: 'user_email',
+        headerName: t('col.email'),
+        flex: 1.2,
+        minWidth: 180,
+        valueGetter: (_v, row) => userById.get(row.user_id)?.email ?? row.user_email,
+      },
+      {
+        field: 'first_name',
+        headerName: t('col.firstName'),
+        flex: 0.7,
+        minWidth: 110,
+        valueGetter: (_v, row) => userById.get(row.user_id)?.first_name ?? '',
+      },
+      {
+        field: 'last_name',
+        headerName: t('col.lastName'),
+        flex: 0.8,
+        minWidth: 120,
+        valueGetter: (_v, row) => userById.get(row.user_id)?.last_name ?? '',
+      },
+      {
+        field: 'external_id',
+        headerName: t('col.externalId'),
+        flex: 0.8,
+        minWidth: 140,
+        valueGetter: (_v, row) => userById.get(row.user_id)?.external_id ?? '',
+        renderCell: (p) => <span className="num text-xs">{p.value || '—'}</span>,
+      },
       {
         field: 'event_type',
         headerName: t('col.event'),
@@ -374,7 +450,7 @@ function StampsDataGrid({
         ),
       },
     ],
-    [branches, onEdit, onDelete, t]
+    [branches, userById, onEdit, onDelete, t]
   );
 
   return (

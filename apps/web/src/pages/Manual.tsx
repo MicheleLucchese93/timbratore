@@ -301,7 +301,8 @@ const MAIN_IT = `
           <li>Naviga tra i mesi con le frecce <strong>‹ ›</strong> o torna al mese corrente con <strong>Oggi</strong>.</li>
           <li>I dipendenti sono in <strong>colonna</strong> e i giorni in <strong>riga</strong>; il pulsante <strong>Inverti righe/colonne</strong> scambia gli assi.</li>
           <li>I colori segnalano lo stato della cella: <em>weekend</em> e <em>festività</em> in grigio/azzurro, <em>turno aperto</em> (uscita mancante in un giorno passato) in ambra.</li>
-          <li>Filtra per <strong>dipendente</strong> (ricerca per nome o email) o per <strong>sede</strong>. I <strong>totali</strong> dipendono dall'orientamento: con i dipendenti in colonna, l'ultima colonna riporta il totale ore di <em>tutti</em> i dipendenti per ogni giorno e una riga finale <strong>Totale mese</strong> mostra il totale di ogni dipendente più il totale generale; invertendo gli assi, l'ultima colonna diventa il <strong>totale mese per dipendente</strong> e la riga finale i totali per giorno.</li>
+          <li>Ogni intestazione dipendente mostra <strong>nome e cognome</strong>, <strong>email</strong> e l'eventuale <strong>identificativo univoco</strong>.</li>
+          <li>Filtra per <strong>dipendente</strong> (ricerca per nome, email o identificativo univoco) o per <strong>sede</strong>. I <strong>totali</strong> dipendono dall'orientamento: con i dipendenti in colonna, l'ultima colonna riporta il totale ore di <em>tutti</em> i dipendenti per ogni giorno e una riga finale <strong>Totale mese</strong> mostra il totale di ogni dipendente più il totale generale; invertendo gli assi, l'ultima colonna diventa il <strong>totale mese per dipendente</strong> e la riga finale i totali per giorno.</li>
           <li>Ogni cella mostra le coppie <em>ingresso–uscita</em> (es. <em>08:30–12:30</em>); un turno aperto mostra un <strong>·</strong> rosso al posto dell'uscita. Un'icona <strong>☕</strong> segnala la presenza di pause/pranzo e sotto compare il totale ore lavorate del giorno. Le celle vuote mostrano un <strong>+</strong> e restano cliccabili per inserire timbrature.</li>
           <li>La griglia carica fino a <strong>1000 timbrature</strong> per mese: se il limite viene raggiunto compare l'avviso «Troppe timbrature nel periodo: restringi con un filtro» — filtra per dipendente o sede per vedere il dato completo.</li>
           <li><strong>Clicca una cella</strong> per aprire l'editor del giorno: aggiungi, modifica o elimina le singole timbrature (ingresso/uscita/pause). La <strong>motivazione</strong> è precompilata e modificabile; ogni intervento resta tracciato in audit log esattamente come nella vista Lista.</li>
@@ -310,10 +311,11 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>La tabella</h3>
+        <p>In alto, gli stessi filtri della Griglia mensile: una casella <strong>Cerca dipendente</strong> (per email, nome, cognome o identificativo univoco) e un menu <strong>Tutte le sedi</strong> per filtrare per sede.</p>
         <p>Colonne disponibili:</p>
         <ul class="tidy">
           <li><strong>Quando</strong> — data e ora in formato italiano.</li>
-          <li><strong>Utente</strong> — email del dipendente.</li>
+          <li><strong>Email</strong>, <strong>Nome</strong>, <strong>Cognome</strong> e <strong>Identificativo univoco</strong> del dipendente.</li>
           <li><strong>Evento</strong> — badge colorato (Ingresso, Uscita, Inizio/Fine pausa, Inizio/Fine pausa pranzo).</li>
           <li><strong>Origine</strong> — <em>app</em> (mobile), <em>correz.</em> (correzione approvata), <em>admin</em> (inserimento manuale) o <em>auto</em> (generata dal sistema, es. chiusura automatica oltre 15h).</li>
           <li><strong>Sede</strong> — la filiale registrata, o "—" se nessuna.</li>
@@ -418,6 +420,7 @@ const MAIN_IT = `
           <li>Facoltativo: spunta <strong>Documentale</strong> per attribuire all'utente la capacità di caricare e consultare i documenti di <em>tutti</em> i dipendenti (vedi capitolo <em>Documenti</em>). È una capacità aggiuntiva, indipendente dal ruolo, assegnabile sia a un Admin sia a un dipendente. È limitata a <strong>1 Documentale per azienda</strong> (configurabile): se il tetto è già raggiunto la casella appare disabilitata.</li>
           <li>Scegli la <strong>lingua</strong> (Italiano o English): determina la lingua delle email che riceverà (reset password, notifiche). Preimpostata sulla lingua dell'interfaccia.</li>
           <li>Seleziona una o più <strong>sedi</strong> di assegnazione.</li>
+          <li>Facoltativo: assegna un <strong>identificativo univoco</strong> al dipendente (es. badge o matricola interna). È un codice libero che gestisci tu; compare nelle Timbrature (Lista e Griglia mensile) ed è ricercabile.</li>
           <li>Facoltativo: compila i <strong>dati paghe (Centro Paghe)</strong> — <em>codice fiscale</em>, <em>matricola</em> ed eventuali INAIL/qualifica. Puoi sempre aggiungerli o modificarli dopo dalla tabella utenti.</li>
           <li>Lascia spuntata <strong>Invia subito l'email per impostare la password</strong> (preimpostata) per dare accesso immediato: l'utente riceverà l'email e potrà accedere senza altri passaggi. Togli la spunta se preferisci crearlo ora e inviargli l'email più tardi.</li>
           <li>Premi <strong>Invita</strong>.</li>
@@ -436,7 +439,7 @@ const MAIN_IT = `
           <li>Modificare le <strong>sedi</strong> assegnate (multi-select).</li>
           <li>Assegnare un <strong>orario di lavoro</strong> (template + data inizio validità).</li>
           <li>Configurare gli <strong>approvatori</strong> per Correzioni, Ferie, Permessi, Malattia.</li>
-          <li>Modificare nome e cognome.</li>
+          <li>Modificare nome, cognome e <strong>identificativo univoco</strong>.</li>
           <li>Compilare i <strong>dati paghe (Centro Paghe)</strong>: <em>codice fiscale</em>, <em>matricola</em> e, se servono, <em>INAIL</em> e <em>qualifica</em>. Servono per l'export Centro Paghe (LUL) e devono coincidere con l'anagrafica dipendente in paghe.</li>
           <li><strong>Reimpostare la password</strong> (icona a forma di chiave) — invia all'utente un'email per scegliere una nuova password. Serve a dare il <strong>primo accesso</strong> a un utente appena creato, o se ha smarrito le credenziali / dimenticato la password.</li>
           <li>Disattivare o eliminare definitivamente l'utente.</li>

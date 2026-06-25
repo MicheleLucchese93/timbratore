@@ -515,6 +515,7 @@ export async function inviteUser(
     first_name?: string;
     last_name?: string;
     branch_ids?: string[];
+    external_id?: string;
     codice_fiscale?: string;
     matricola?: string;
     inail?: string;

@@ -112,6 +112,7 @@
     "emailHint": "{{email}} — l'email non è modificabile.",
     "firstName": "Nome",
     "lastName": "Cognome",
+    "externalId": "Identificativo univoco",
     "isDocumentale": "Documentale",
     "anagraficaHint": "Dati paghe (Centro Paghe). Devono coincidere con l'anagrafica dipendente in paghe.",
     "codiceFiscale": "Codice fiscale",
@@ -120,6 +121,7 @@
     "qualifica": "Qualifica",
     "qualifica2": "Qualifica 2",
     "tips": {
+      "externalId": "Identificativo univoco facoltativo del dipendente (es. badge, matricola interna). Lo gestisci tu: assicurati che sia unico in azienda.",
       "codiceFiscale": "16 caratteri. Deve coincidere con il codice fiscale registrato in Centro Paghe. Usato anche per abbinare i documenti caricati.",
       "matricola": "Numero di matricola del dipendente (max 4 cifre), come in Centro Paghe.",
       "inail": "Codice posizione assicurativa territoriale INAIL (1 carattere).",

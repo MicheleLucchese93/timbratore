@@ -65,6 +65,7 @@ usersRouter.get(
       `SELECT m.id AS membership_id, m.user_id, m.role, m.active, m.created_at,
               m.stamp_modes, m.is_documentale,
               m.codice_fiscale, m.matricola, m.inail, m.qualifica, m.qualifica2,
+              m.external_id,
               COALESCE(au.email, m.user_id::text) AS email,
               au.first_name, au.last_name, au.display_name,
               (SELECT MAX(occurred_at) FROM stamps s
@@ -110,13 +111,16 @@ const MatricolaField = z
   .transform((v) => (v.length === 0 ? null : v))
   .nullable();
 
-// Centro Paghe payroll anagrafica columns stored on the membership row.
+// Anagrafica columns stored on the membership row. The Centro Paghe payroll
+// fields (migration 040) plus the optional free-text "Identificativo univoco"
+// (external_id, migration 050).
 const MEMBERSHIP_ANAGRAFICA = [
   'codice_fiscale',
   'matricola',
   'inail',
   'qualifica',
   'qualifica2',
+  'external_id',
 ] as const;
 
 // Shared anagrafica shape — settable at invite and patchable later.
@@ -126,6 +130,9 @@ const anagraficaShape = {
   inail: AnagraficaField(1).optional(),
   qualifica: AnagraficaField(1).optional(),
   qualifica2: AnagraficaField(1).optional(),
+  // Optional unique identifier (badge / internal code). Free text, up to 64
+  // chars; not forced uppercase (unlike the payroll codes).
+  external_id: AnagraficaField(64).optional(),
 };
 
 const Invite = z.object({
@@ -159,6 +166,7 @@ interface InviteInput {
   inail?: string | null;
   qualifica?: string | null;
   qualifica2?: string | null;
+  external_id?: string | null;
 }
 
 interface InviteOutcome {
@@ -278,7 +286,8 @@ async function performInvite(client: PoolClient, inv: InviteInput): Promise<Invi
              matricola = COALESCE($4, matricola),
              inail = COALESCE($5, inail),
              qualifica = COALESCE($6, qualifica),
-             qualifica2 = COALESCE($7, qualifica2)
+             qualifica2 = COALESCE($7, qualifica2),
+             external_id = COALESCE($9, external_id)
          WHERE id = $2 RETURNING *`,
         [
           inv.role,
@@ -289,6 +298,7 @@ async function performInvite(client: PoolClient, inv: InviteInput): Promise<Invi
           inv.qualifica ?? null,
           inv.qualifica2 ?? null,
           inv.is_documentale ?? false,
+          inv.external_id ?? null,
         ]
       );
       membership = upd.rows[0];
@@ -296,8 +306,8 @@ async function performInvite(client: PoolClient, inv: InviteInput): Promise<Invi
     }
   } else {
     const ins = await client.query(
-      `INSERT INTO memberships(tenant_id, user_id, role, is_documentale, codice_fiscale, matricola, inail, qualifica, qualifica2)
-       VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO memberships(tenant_id, user_id, role, is_documentale, codice_fiscale, matricola, inail, qualifica, qualifica2, external_id)
+       VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
       [
         userId,
@@ -308,6 +318,7 @@ async function performInvite(client: PoolClient, inv: InviteInput): Promise<Invi
         inv.inail ?? null,
         inv.qualifica ?? null,
         inv.qualifica2 ?? null,
+        inv.external_id ?? null,
       ]
     );
     membership = ins.rows[0];

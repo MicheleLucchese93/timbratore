@@ -112,6 +112,7 @@
     "emailHint": "{{email}} — the email cannot be changed.",
     "firstName": "First name",
     "lastName": "Last name",
+    "externalId": "Unique identifier",
     "isDocumentale": "Documentale",
     "anagraficaHint": "Payroll data (Centro Paghe). Must match the employee record in payroll.",
     "codiceFiscale": "Tax code",
@@ -120,6 +121,7 @@
     "qualifica": "Qualification",
     "qualifica2": "Qualification 2",
     "tips": {
+      "externalId": "Optional unique employee identifier (e.g. badge or internal code). You manage it: make sure it is unique within the company.",
       "codiceFiscale": "16 characters. Must match the tax code registered in Centro Paghe. Also used to match uploaded documents.",
       "matricola": "Employee payroll number (max 4 digits), as in Centro Paghe.",
       "inail": "INAIL territorial insurance position code (1 character).",

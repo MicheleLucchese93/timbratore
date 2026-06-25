@@ -32,6 +32,8 @@ interface UserRow {
   inail: string | null;
   qualifica: string | null;
   qualifica2: string | null;
+  // Optional per-employee unique identifier (migration 050).
+  external_id: string | null;
 }
 
 interface UserPatch {
@@ -43,6 +45,7 @@ interface UserPatch {
   inail?: string | null;
   qualifica?: string | null;
   qualifica2?: string | null;
+  external_id?: string | null;
 }
 
 interface Usage {
@@ -1036,6 +1039,7 @@ function UserEditor({
   useEscapeKey(onClose);
   const [firstName, setFirstName] = useState(user.first_name ?? '');
   const [lastName, setLastName] = useState(user.last_name ?? '');
+  const [externalId, setExternalId] = useState(user.external_id ?? '');
   const [isDocumentale, setIsDocumentale] = useState(user.is_documentale);
   const [codiceFiscale, setCodiceFiscale] = useState(user.codice_fiscale ?? '');
   const [matricola, setMatricola] = useState(user.matricola ?? '');
@@ -1051,6 +1055,7 @@ function UserEditor({
       await onSave({
         first_name: firstName.trim() || null,
         last_name: lastName.trim() || null,
+        external_id: externalId.trim() || null,
         is_documentale: isDocumentale,
         codice_fiscale: codiceFiscale.trim().toUpperCase() || null,
         matricola: matricola.trim() || null,
@@ -1094,6 +1099,20 @@ function UserEditor({
               maxLength={80}
             />
           </div>
+        </div>
+
+        <div>
+          <label className="label flex items-center gap-1">
+            {t('userEditor.externalId')}
+            <InfoTip text={t('userEditor.tips.externalId')} />
+          </label>
+          <input
+            type="text"
+            className="input"
+            value={externalId}
+            onChange={(e) => setExternalId(e.target.value)}
+            maxLength={64}
+          />
         </div>
 
         <div>
@@ -1738,6 +1757,7 @@ function InviteForm({
   // creates the user silently — the admin sends access later via the key icon.
   const [sendResetEmail, setSendResetEmail] = useState(true);
   const [branchIds, setBranchIds] = useState<Set<string>>(new Set());
+  const [externalId, setExternalId] = useState('');
   const [codiceFiscale, setCodiceFiscale] = useState('');
   const [matricola, setMatricola] = useState('');
   const [inail, setInail] = useState('');
@@ -1771,6 +1791,7 @@ function InviteForm({
           first_name: firstName.trim() || undefined,
           last_name: lastName.trim() || undefined,
           branch_ids: Array.from(branchIds),
+          external_id: externalId.trim() || undefined,
           codice_fiscale: codiceFiscale.trim().toUpperCase() || undefined,
           matricola: matricola.trim() || undefined,
           inail: inail.trim().toUpperCase() || undefined,
@@ -1814,6 +1835,19 @@ function InviteForm({
               maxLength={80}
             />
           </div>
+        </div>
+        <div>
+          <label className="label flex items-center gap-1">
+            {t('userEditor.externalId')} <span className="muted">{t('invite.optional')}</span>
+            <InfoTip text={t('userEditor.tips.externalId')} />
+          </label>
+          <input
+            type="text"
+            className="input"
+            value={externalId}
+            onChange={(e) => setExternalId(e.target.value)}
+            maxLength={64}
+          />
         </div>
         <div>
           <label className="label">{t('invite.email')}</label>

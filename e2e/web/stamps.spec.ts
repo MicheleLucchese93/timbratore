@@ -12,6 +12,26 @@ test.describe('web — Timbrature (admin stamps)', () => {
     await expect(page.locator('.MuiDataGrid-root')).toBeVisible({ timeout: 15_000 });
   });
 
+  test('list shows email / nome / cognome / identificativo columns', async ({ page }) => {
+    await expect(page.locator('.MuiDataGrid-root')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('columnheader', { name: 'Email', exact: true })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Nome', exact: true })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Cognome', exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('columnheader', { name: 'Identificativo univoco', exact: true })
+    ).toBeVisible();
+  });
+
+  test('list has the same filters as the monthly grid (search + branch)', async ({ page }) => {
+    await expect(page.locator('.MuiDataGrid-root')).toBeVisible({ timeout: 15_000 });
+    // Free-text employee search + "Tutte le sedi" branch select, mirroring the grid.
+    await expect(page.getByPlaceholder('Cerca dipendente')).toBeVisible();
+    await expect(page.locator('option', { hasText: 'Tutte le sedi' })).toHaveCount(1);
+    // Filtering by a non-matching query empties the grid (no rows).
+    await page.getByPlaceholder('Cerca dipendente').fill('zzz-no-such-user-zzz');
+    await expect(page.locator('.MuiDataGrid-row')).toHaveCount(0, { timeout: 10_000 });
+  });
+
   test('opens the create-stamp modal', async ({ page }) => {
     await page.getByRole('button', { name: /Nuova timbratura/i }).click();
     // Custom overlay (not a real <dialog>): fixed-position card with the

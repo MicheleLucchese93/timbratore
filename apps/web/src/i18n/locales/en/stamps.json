@@ -18,11 +18,19 @@
   "col": {
     "when": "When",
     "user": "Employee",
+    "email": "Email",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "externalId": "Unique identifier",
     "event": "Event",
     "origin": "Source",
     "branch": "Branch",
     "notes": "Notes",
     "actions": "Actions"
+  },
+  "filters": {
+    "search": "Search employee",
+    "allBranches": "All branches"
   },
   "badge": {
     "mock": "mock",
@@ -52,6 +60,7 @@
     "reason": "Reason",
     "reasonDefault": "Edited from attendance grid",
     "noStamps": "No stamps for this day.",
-    "addEvent": "Add"
+    "addEvent": "Add",
+    "idPrefix": "ID:"
   }
 }

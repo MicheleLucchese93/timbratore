@@ -29,6 +29,8 @@ export interface UserRow {
   first_name?: string | null;
   last_name?: string | null;
   display_name?: string | null;
+  // Optional per-employee unique identifier ("Identificativo univoco").
+  external_id?: string | null;
 }
 
 /** Best human label for a user: display name, then "First Last", then email. */

@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { CREDS, STORAGE } from '../fixtures/test-data';
 import {
   apiGet,
+  apiPatch,
   apiPost,
   deleteUser,
   inviteUser,
@@ -112,9 +113,10 @@ test.describe('web — Utenti CRUD (mutating)', () => {
     ).toBeVisible({ timeout: 10_000 });
   });
 
-  test('invite persists anagrafica (codice fiscale + matricola) and it round-trips', async () => {
+  test('invite persists anagrafica (codice fiscale + matricola + identificativo) and it round-trips', async () => {
     const cfEmail = `e2e-cf-${Date.now()}@e2e.local`;
     const cf = 'RSSMRA80A01H501U';
+    const extId = `BADGE-${Date.now()}`;
     const u = await inviteUser(admin.token, {
       email: cfEmail,
       role: 'user',
@@ -122,17 +124,34 @@ test.describe('web — Utenti CRUD (mutating)', () => {
       last_name: 'Test',
       codice_fiscale: cf,
       matricola: '0042',
+      external_id: extId,
     });
     try {
       const rows = await apiGet<
-        Array<{ user_id: string; codice_fiscale: string | null; matricola: string | null }>
+        Array<{
+          user_id: string;
+          codice_fiscale: string | null;
+          matricola: string | null;
+          external_id: string | null;
+        }>
       >(admin.token, '/api/v1/users');
       const row = rows.find((r) => r.user_id === u.user_id);
       expect(row?.codice_fiscale).toBe(cf);
       expect(row?.matricola).toBe('0042');
+      expect(row?.external_id).toBe(extId);
     } finally {
       await deleteUser(admin.token, u.user_id).catch(() => {});
     }
+  });
+
+  test('PATCH updates the identificativo univoco and it round-trips', async () => {
+    const extId = `ID-${Date.now()}`;
+    await apiPatch(admin.token, `/api/v1/users/${createdUserId}`, { external_id: extId });
+    const rows = await apiGet<Array<{ user_id: string; external_id: string | null }>>(
+      admin.token,
+      '/api/v1/users'
+    );
+    expect(rows.find((r) => r.user_id === createdUserId)?.external_id).toBe(extId);
   });
 
   test('hard-deleted user is removed from the visible list', async ({ page }) => {

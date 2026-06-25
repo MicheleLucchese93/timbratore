@@ -142,7 +142,12 @@ export function StampMonthGrid({ users, branches }: { users: UserRow[]; branches
   const shownUsers = useMemo(() => {
     const q = search.trim().toLowerCase();
     const filtered = q
-      ? users.filter((u) => userLabel(u).toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+      ? users.filter(
+          (u) =>
+            userLabel(u).toLowerCase().includes(q) ||
+            u.email.toLowerCase().includes(q) ||
+            (u.external_id ?? '').toLowerCase().includes(q)
+        )
       : users;
     return [...filtered].sort((a, b) => userLabel(a).localeCompare(b ? userLabel(b) : ''));
   }, [users, search]);
@@ -268,7 +273,7 @@ export function StampMonthGrid({ users, branches }: { users: UserRow[]; branches
                     })
                   : shownUsers.map((u) => (
                       <th key={u.user_id} style={headCellStyle} title={u.email}>
-                        {userLabel(u)}
+                        <UserHead u={u} t={t} />
                       </th>
                     ))}
                 <th style={{ ...headCellStyle, ...stickyRightStyle }}>{t('grid.total')}</th>
@@ -279,7 +284,7 @@ export function StampMonthGrid({ users, branches }: { users: UserRow[]; branches
                 ? shownUsers.map((u) => (
                     <tr key={u.user_id}>
                       <th style={rowHeadStyle} title={u.email}>
-                        {userLabel(u)}
+                        <UserHead u={u} t={t} />
                       </th>
                       {days.map((d) => {
                         const iso = isoLocalDate(d);
@@ -392,6 +397,29 @@ export function StampMonthGrid({ users, branches }: { users: UserRow[]; branches
           onChanged={() => load()}
           onClose={() => setEditor(null)}
         />
+      )}
+    </div>
+  );
+}
+
+/* ---------------- user header ---------------- */
+// The employee axis header shows, per the requirement, the full identity:
+// name (display / first+last), email and the optional unique id. Rendered in
+// both orientations (column header default, row header when pivoted).
+function UserHead({ u, t }: { u: UserRow; t: (k: string) => string }) {
+  const label = userLabel(u);
+  const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ').trim();
+  const nameLine = fullName || label;
+  return (
+    <div className="flex flex-col" style={{ textTransform: 'none', letterSpacing: 0, lineHeight: 1.3 }}>
+      <span style={{ fontWeight: 600 }}>{nameLine}</span>
+      {u.email !== nameLine && (
+        <span style={{ fontSize: '0.68rem', opacity: 0.65, fontWeight: 400 }}>{u.email}</span>
+      )}
+      {u.external_id && (
+        <span className="num" style={{ fontSize: '0.68rem', opacity: 0.65, fontWeight: 400 }}>
+          {t('grid.idPrefix')} {u.external_id}
+        </span>
       )}
     </div>
   );
