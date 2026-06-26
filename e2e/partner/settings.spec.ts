@@ -27,6 +27,9 @@ test.describe('partner · settings', () => {
     await page.getByTestId('lang-it').click(); // deterministic Italian labels
     await expect(page.getByText('Sicurezza')).toBeVisible();
 
+    // The form now lives in a modal opened by the "Cambia password" button.
+    await page.getByRole('button', { name: 'Cambia password' }).click();
+
     const current = page.getByLabel('Password attuale', { exact: true });
     const next = page.getByLabel('Nuova password', { exact: true });
     const confirm = page.getByLabel('Conferma nuova password', { exact: true });

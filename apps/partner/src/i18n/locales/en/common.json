@@ -3,6 +3,7 @@
   "nav": { "tenants": "Companies", "partners": "Partners", "audit": "Activity log", "settings": "Settings", "logout": "Sign out" },
   "settings": { "title": "Settings", "subtitle": "Console preferences", "language": "Language", "security": "Security", "securityDesc": "Change your account password: enter your current one and choose a new one that meets the security requirements." },
   "password": {
+    "title": "Change password",
     "current": "Current password",
     "new": "New password",
     "confirm": "Confirm new password",

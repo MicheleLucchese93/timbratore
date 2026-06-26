@@ -9,7 +9,7 @@ import { api } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
 import { LanguageSelect } from '../components/LanguageSwitcher.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
-import { ChangePasswordForm } from '../components/ChangePasswordForm.tsx';
+import { ChangePasswordModal } from '../components/ChangePasswordModal.tsx';
 
 interface TenantSettings {
   id: string;
@@ -77,6 +77,7 @@ export function Settings() {
   const activeTenantId = useSession((st) => st.activeTenantId);
   const chooseTenant = useSession((st) => st.chooseTenant);
   const [switching, setSwitching] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
   const isAdmin = tenants.find((tn) => tn.tenant_id === activeTenantId)?.role === 'admin';
 
   async function onSwitchTenant(id: string) {
@@ -181,6 +182,7 @@ export function Settings() {
   }
 
   return (
+    <>
     <form onSubmit={onFormSubmit} className="max-w-7xl">
       <PageHeader title={t('title')} />
 
@@ -317,7 +319,9 @@ export function Settings() {
         title={t('section.security')}
         description={t('section.securityDesc')}
       >
-        <ChangePasswordForm />
+        <button type="button" className="btn btn-primary" onClick={() => setPwOpen(true)}>
+          {t('password.title')}
+        </button>
       </SettingsRow>
 
       {toast && (
@@ -327,6 +331,16 @@ export function Settings() {
         </div>
       )}
     </form>
+    {pwOpen && (
+      <ChangePasswordModal
+        onClose={() => setPwOpen(false)}
+        onDone={() => {
+          setPwOpen(false);
+          setToast({ kind: 'ok', text: t('password.success') });
+        }}
+      />
+    )}
+    </>
   );
 }
 

@@ -197,7 +197,7 @@ const MAIN_IT = `
         <h3>Cambiare la password (da loggato)</h3>
         <p>Se conosci la password attuale puoi cambiarla senza email, direttamente dall'app:</p>
         <ol class="steps">
-          <li>Sul <strong>Web</strong> vai su <strong>Impostazioni → Sicurezza</strong>.</li>
+          <li>Sul <strong>Web</strong> vai su <strong>Impostazioni → Sicurezza</strong> e premi <strong>Cambia password</strong>: si apre una finestra.</li>
           <li>Inserisci la <strong>password attuale</strong>.</li>
           <li>Scegli la <strong>nuova password</strong>: l'elenco dei requisiti si spunta in verde man mano che la password li soddisfa (almeno 8 caratteri, una minuscola, una maiuscola, un numero e un simbolo).</li>
           <li>Ripeti la nuova password in <strong>Conferma</strong> e premi <strong>Aggiorna password</strong>.</li>

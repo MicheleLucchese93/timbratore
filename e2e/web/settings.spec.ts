@@ -55,6 +55,9 @@ test.describe('web — Impostazioni (admin)', () => {
   test('Sicurezza: i requisiti password si attivano e abilitano il submit', async ({ page }) => {
     await expect(page.getByRole('heading', { name: /Sicurezza/i })).toBeVisible({ timeout: 10_000 });
 
+    // The form now lives in a modal opened by the "Cambia password" button.
+    await page.getByRole('button', { name: 'Cambia password' }).click();
+
     const current = page.getByLabel('Password attuale', { exact: true });
     const next = page.getByLabel('Nuova password', { exact: true });
     const confirm = page.getByLabel('Conferma nuova password', { exact: true });

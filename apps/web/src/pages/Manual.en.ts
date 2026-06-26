@@ -190,7 +190,7 @@ export const MAIN_EN = `
         <h3>Change your password (while signed in)</h3>
         <p>If you know your current password you can change it without any email, straight from the app:</p>
         <ol class="steps">
-          <li>On the <strong>Web</strong> go to <strong>Settings → Security</strong>.</li>
+          <li>On the <strong>Web</strong> go to <strong>Settings → Security</strong> and press <strong>Change password</strong>: a dialog opens.</li>
           <li>Enter your <strong>current password</strong>.</li>
           <li>Choose the <strong>new password</strong>: the requirements list ticks green as your password satisfies each one (at least 8 characters, one lowercase, one uppercase, one number and one symbol).</li>
           <li>Repeat the new password in <strong>Confirm</strong> and press <strong>Update password</strong>.</li>

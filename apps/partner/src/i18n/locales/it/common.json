@@ -3,6 +3,7 @@
   "nav": { "tenants": "Aziende", "partners": "Partner", "audit": "Registro attività", "settings": "Impostazioni", "logout": "Esci" },
   "settings": { "title": "Impostazioni", "subtitle": "Preferenze della console", "language": "Lingua", "security": "Sicurezza", "securityDesc": "Cambia la password del tuo account: inserisci quella attuale e scegline una nuova rispettando i requisiti di sicurezza." },
   "password": {
+    "title": "Cambia password",
     "current": "Password attuale",
     "new": "Nuova password",
     "confirm": "Conferma nuova password",
