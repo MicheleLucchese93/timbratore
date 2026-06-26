@@ -20,6 +20,17 @@ export const homeMeta: Record<Lang, { title: string; description: string }> = {
   },
 };
 
+// Standalone, indexable partner-program landing page (/it/partner/). The reseller
+// console itself (partners.sonoqui.pro) stays noindex; this page is the public,
+// search-discoverable entry point for the partner program.
+export const partnerMeta: Record<Lang, { title: string; description: string }> = {
+  it: {
+    title: 'Diventa partner sonoQui | Rivendi la rilevazione presenze',
+    description:
+      "Programma partner sonoQui per commercialisti, consulenti del lavoro e software house: gestisci le aziende dei tuoi clienti da un'unica console, con margine ricorrente. Pensiamo noi a prodotto, infrastruttura e assistenza.",
+  },
+};
+
 // Per-page meta descriptions for the legal pages, so each indexable URL gets a
 // unique description instead of inheriting the BaseLayout default (duplicate meta).
 export const legalMeta: Record<string, { it: string }> = {
@@ -100,6 +111,36 @@ export const homeFaq: Record<Lang, FaqItem[]> = {
       question: "Come iniziamo a usare sonoQui?",
       answer:
         "Non c'è registrazione pubblica: attiviamo noi l'azienda e creiamo il primo account amministratore. Da lì inviti i dipendenti, configuri sedi e orari e sei operativo. Compila il modulo di contatto qui sotto e ti rispondiamo al più presto, in genere entro 1-2 giorni lavorativi.",
+    },
+  ],
+};
+
+export const partnerFaq: Record<Lang, FaqItem[]> = {
+  it: [
+    {
+      question: "Chi può diventare partner sonoQui?",
+      answer:
+        "Il programma è pensato per commercialisti, consulenti del lavoro, software house, agenzie IT e system integrator che seguono piccole e medie imprese italiane e vogliono offrire loro la rilevazione presenze come servizio, mantenendo il proprio rapporto commerciale con il cliente.",
+    },
+    {
+      question: "Come funzionano margine e fatturazione?",
+      answer:
+        "Fatturiamo a te il servizio a un prezzo riservato ai partner; tu fatturi il cliente finale al prezzo che decidi. Il margine è ricorrente e cresce con i volumi grazie a uno sconto incrementale a scaglioni.",
+    },
+    {
+      question: "Devo occuparmi io di infrastruttura e assistenza tecnica?",
+      answer:
+        "No. Infrastruttura, aggiornamenti, sicurezza e backup restano a carico nostro. Tu segui la relazione con il cliente e la configurazione iniziale; alla piattaforma pensiamo noi.",
+    },
+    {
+      question: "Come gestisco le aziende dei miei clienti?",
+      answer:
+        "Da una console dedicata su partners.sonoqui.pro: crei nuovi account azienda, imposti i limiti, sospendi e riattivi i servizi in autonomia, senza dover passare da noi per ogni operazione.",
+    },
+    {
+      question: "Come divento partner sonoQui?",
+      answer:
+        "Compila il modulo di contatto qui sotto indicando la tua attività e quante aziende gestisci. Ti ricontattiamo, di norma entro 1-2 giorni lavorativi, e attiviamo il tuo accesso alla console partner.",
     },
   ],
 };
@@ -189,17 +230,48 @@ export function buildHomeSchema(lang: Lang) {
 
 // FAQPage JSON-LD. Google retired FAQ rich results (May 2026), so this carries
 // no SERP feature — it is kept for GEO / AI-answer-engine citability.
-export function buildFaqSchema(lang: Lang) {
+function faqPageSchema(items: FaqItem[]) {
   return {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
     inLanguage: 'it-IT',
-    mainEntity: homeFaq[lang].map((item) => ({
+    mainEntity: items.map((item) => ({
       '@type': 'Question',
       name: item.question,
       acceptedAnswer: { '@type': 'Answer', text: item.answer },
     })),
   };
+}
+
+export function buildFaqSchema(lang: Lang) {
+  return faqPageSchema(homeFaq[lang]);
+}
+
+// All structured-data nodes for the standalone partner page. WebPage + breadcrumb
+// + Organization for entity consistency, plus the partner FAQ for GEO citability.
+export function buildPartnerSchemas(lang: Lang) {
+  const meta = partnerMeta[lang];
+  const url = `${SITE_URL}/it/partner/`;
+  const webPage = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: meta.title,
+    description: meta.description,
+    url,
+    inLanguage: 'it-IT',
+    isPartOf: { '@type': 'WebSite', name: 'sonoQui', url: SITE_URL },
+    about: buildOrganizationSchema(),
+    primaryImageOfPage: { '@type': 'ImageObject', url: `${SITE_URL}${DEFAULT_IMAGE}` },
+  };
+  const breadcrumb = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/it/` },
+      { '@type': 'ListItem', position: 2, name: 'Programma partner', item: url },
+    ],
+  };
+  return [webPage, breadcrumb, buildOrganizationSchema(), faqPageSchema(partnerFaq[lang])];
 }
 
 // All structured-data nodes for the homepage, emitted as separate JSON-LD blocks.

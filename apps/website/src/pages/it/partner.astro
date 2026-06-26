@@ -1,0 +1,66 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Partner from "../../components/Partner.astro";
+import { getLangFromUrl, useTranslations } from "../../i18n/utils";
+import { partnerMeta, partnerFaq, buildPartnerSchemas, PARTNER_APP_URL } from "../../data/seo";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const meta = partnerMeta[lang];
+const faq = partnerFaq[lang];
+---
+
+<BaseLayout
+  title={meta.title}
+  description={meta.description}
+  alternatePaths={{ it: "/it/partner/" }}
+  schema={buildPartnerSchemas(lang)}
+>
+  <section class="bg-gradient-to-b from-surface to-white pt-28 pb-16 sm:pt-36 sm:pb-20">
+    <div class="mx-auto max-w-4xl px-4 text-center sm:px-6">
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-accent">
+        {t("partner.badge")}
+      </span>
+      <h1 class="mt-4 text-3xl font-extrabold leading-tight tracking-tight text-on-surface text-balance sm:text-5xl">
+        {t("partner.page.title")}
+      </h1>
+      <p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-on-surface-variant">
+        {t("partner.page.lead")}
+      </p>
+      <div class="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <a
+          href="#contact"
+          class="inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 text-base font-semibold text-white hover:bg-primary-container transition-colors"
+        >
+          {t("partner.cta.join")}
+        </a>
+        <a
+          href={PARTNER_APP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center justify-center rounded-full border border-primary px-7 py-3 text-base font-semibold text-primary hover:bg-primary/5 transition-colors"
+        >
+          {t("partner.cta.login")}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <Partner />
+
+  <section class="bg-surface py-20 sm:py-24">
+    <div class="mx-auto max-w-3xl px-4 sm:px-6">
+      <h2 class="text-center text-3xl font-bold tracking-tight text-on-surface sm:text-4xl">
+        {t("partner.page.faq.title")}
+      </h2>
+      <dl class="mt-12 space-y-8">
+        {faq.map((item) => (
+          <div>
+            <dt class="text-lg font-semibold text-on-surface">{item.question}</dt>
+            <dd class="mt-2 text-base leading-relaxed text-on-surface-variant">{item.answer}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  </section>
+</BaseLayout>

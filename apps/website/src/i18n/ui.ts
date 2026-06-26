@@ -134,6 +134,11 @@ export const ui = {
     'partner.cta.join': 'Diventa partner',
     'partner.cta.login': 'Accedi alla console',
     'partner.cta.note': 'Hai già un account partner?',
+    'partner.page.title':
+      'Diventa partner sonoQui: rivendi la rilevazione presenze ai tuoi clienti',
+    'partner.page.lead':
+      "Programma partner per commercialisti, consulenti del lavoro e software house. Attivi e gestisci le aziende dei tuoi clienti da un'unica console, con un margine ricorrente. Al prodotto, all'infrastruttura e all'assistenza pensiamo noi.",
+    'partner.page.faq.title': 'Domande frequenti sul programma partner',
 
     // Contact / Footer
     'contact.title': 'Contattaci',
