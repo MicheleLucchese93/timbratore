@@ -113,34 +113,10 @@ export function Tenants() {
           renderCell: (p) =>
             p.row.owner_name || p.row.owner_email ? (
               <span
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  height: '100%',
-                  lineHeight: 1.25,
-                  overflow: 'hidden',
-                }}
+                title={p.row.owner_name || p.row.owner_email}
+                style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
               >
-                {p.row.owner_name && (
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {p.row.owner_name}
-                  </span>
-                )}
-                {p.row.owner_email && (
-                  <span
-                    title={p.row.owner_email}
-                    style={{
-                      color: 'var(--color-on-surface-variant)',
-                      fontSize: '0.85em',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {p.row.owner_email}
-                  </span>
-                )}
+                {p.row.owner_name || p.row.owner_email}
               </span>
             ) : (
               t('tenants.platform')
