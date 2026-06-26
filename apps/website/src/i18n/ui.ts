@@ -9,6 +9,7 @@ export const ui = {
     'nav.video': 'Demo',
     'nav.screenshots': 'App',
     'nav.web': 'Dashboard',
+    'nav.pricing': 'Prezzi',
     'nav.faq': 'FAQ',
     'nav.partner': 'Partner',
     'nav.contact': 'Contatti',

@@ -105,7 +105,7 @@ export const homeFaq: Record<Lang, FaqItem[]> = {
     {
       question: "Quanto costa sonoQui?",
       answer:
-        "Il prezzo dipende dal numero di dipendenti e dalle funzioni attivate. Non c'è una registrazione pubblica con prezzo a listino: ti prepariamo un preventivo su misura per la tua azienda. Compila il modulo di contatto qui sotto indicando quanti dipendenti gestisci e ti rispondiamo con una proposta, in genere entro 1-2 giorni lavorativi.",
+        "sonoQui parte da 24,99 €/mese per le aziende fino a 10 dipendenti (massimo 3 sedi) e 39,99 €/mese fino a 20 dipendenti (massimo 5 sedi). Tutte le funzionalità sono incluse in entrambi i piani, senza moduli a pagamento né costi nascosti. Con la fatturazione annuale hai 1 mese gratis. Oltre i limiti del piano aggiungi singoli dipendenti a 1,99 €/mese e sedi a 2,99 €/mese. Prezzi IVA esclusa; l'app è gratuita da scaricare e l'attivazione del servizio avviene su richiesta.",
     },
     {
       question: "Come iniziamo a usare sonoQui?",
@@ -214,11 +214,31 @@ export function buildHomeSchema(lang: Lang) {
       { '@type': 'ImageObject', url: `${SITE_URL}/screenshots-web/dashboard.png`, caption: 'Dashboard amministratori' },
     ],
     offers: {
-      '@type': 'Offer',
-      price: '0',
+      '@type': 'AggregateOffer',
       priceCurrency: 'EUR',
-      description: 'App gratuita da scaricare; attivazione del servizio su richiesta. Preventivo su misura per la tua azienda.',
-      url: `${SITE_URL}/it/#contact`,
+      lowPrice: '24.99',
+      highPrice: '39.99',
+      offerCount: 2,
+      url: `${SITE_URL}/it/#pricing`,
+      description: 'Due piani in abbonamento mensile, tutte le funzionalità incluse. Fatturazione annuale con 1 mese gratis. Dipendenti aggiuntivi 1,99 €/mese, sedi aggiuntive 2,99 €/mese. Prezzi IVA esclusa.',
+      offers: [
+        {
+          '@type': 'Offer',
+          name: 'Piccola',
+          price: '24.99',
+          priceCurrency: 'EUR',
+          description: 'Fino a 10 dipendenti, massimo 3 sedi. Tutte le funzionalità incluse, al mese.',
+          url: `${SITE_URL}/it/#pricing`,
+        },
+        {
+          '@type': 'Offer',
+          name: 'Media',
+          price: '39.99',
+          priceCurrency: 'EUR',
+          description: 'Fino a 20 dipendenti, massimo 5 sedi. Tutte le funzionalità incluse, al mese.',
+          url: `${SITE_URL}/it/#pricing`,
+        },
+      ],
     },
     publisher: buildOrganizationSchema(),
     audience: {
