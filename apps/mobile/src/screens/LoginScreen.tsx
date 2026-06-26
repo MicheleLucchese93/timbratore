@@ -4,6 +4,7 @@ import {
   Image,
   Keyboard,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -237,9 +238,20 @@ export function LoginScreen() {
           </View>
 
           {!keyboardVisible ? (
-            <Text style={styles.hint}>
-              {t('noAccount')}
-            </Text>
+            <View style={styles.footer}>
+              <Text style={styles.hint}>
+                {t('noAccount')}
+              </Text>
+              <Pressable
+                onPress={() => Linking.openURL('https://sonoqui.pro')}
+                hitSlop={8}
+                accessibilityRole="link"
+                accessibilityLabel={t('discoverSite')}
+                style={({ pressed }) => [pressed && styles.forgotPressed]}
+              >
+                <Text style={styles.discoverLink}>{t('discoverSite')} →</Text>
+              </Pressable>
+            </View>
           ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -370,10 +382,20 @@ const styles = StyleSheet.create({
   ctaPressed: { opacity: 0.85 },
   ctaBusy: { opacity: 0.6 },
   ctaText: { fontSize: 16, fontWeight: '600', color: color.onPrimary },
+  footer: {
+    alignItems: 'center',
+    gap: space.s3,
+  },
   hint: {
     fontSize: 13,
     color: color.onSurfaceVariant,
     textAlign: 'center',
     paddingHorizontal: space.s4,
+  },
+  discoverLink: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: color.primary,
+    textAlign: 'center',
   },
 });

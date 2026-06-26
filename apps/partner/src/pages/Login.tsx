@@ -110,6 +110,18 @@ export function Login() {
             <button className="btn btn-primary w-full py-3 text-base" disabled={busy} type="submit">
               {busy ? t('login.signingIn') : t('login.signIn')}
             </button>
+
+            <p className="text-center text-sm">
+              <a
+                href="https://sonoqui.pro"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium underline-offset-4 hover:underline"
+                style={{ color: 'var(--color-primary)' }}
+              >
+                {t('login.discoverSite')} →
+              </a>
+            </p>
           </form>
         </div>
       </div>

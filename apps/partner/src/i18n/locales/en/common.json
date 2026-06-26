@@ -61,6 +61,7 @@
     "emailPlaceholder": "you@company.com",
     "signIn": "Sign in", "signingIn": "Signing in…",
     "forgot": "Forgot password?",
+    "discoverSite": "Discover sonoQui",
     "errors": {
       "invalid_credentials": "Invalid email or password.",
       "NOT_PARTNERSHIP_MEMBER": "This account has no access to the partner console.",

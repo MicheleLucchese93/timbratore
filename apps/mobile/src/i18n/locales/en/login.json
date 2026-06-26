@@ -14,5 +14,6 @@
   "passwordRequired": "Enter your password.",
   "failed": "Sign-in failed",
   "invalidCredentials": "Incorrect email or password.",
-  "noAccount": "Don't have an account? Contact your company administrator."
+  "noAccount": "Don't have an account? Contact your company administrator.",
+  "discoverSite": "Discover sonoQui"
 }

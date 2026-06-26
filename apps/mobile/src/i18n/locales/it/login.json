@@ -14,5 +14,6 @@
   "passwordRequired": "Inserisci la password.",
   "failed": "Accesso fallito",
   "invalidCredentials": "Email o password non corretti.",
-  "noAccount": "Non hai un account? Contatta l'amministratore della tua azienda."
+  "noAccount": "Non hai un account? Contatta l'amministratore della tua azienda.",
+  "discoverSite": "Scopri sonoQui"
 }

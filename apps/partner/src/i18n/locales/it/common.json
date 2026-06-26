@@ -61,6 +61,7 @@
     "emailPlaceholder": "tu@azienda.it",
     "signIn": "Accedi", "signingIn": "Accesso…",
     "forgot": "Password dimenticata?",
+    "discoverSite": "Scopri sonoQui",
     "errors": {
       "invalid_credentials": "Email o password non validi.",
       "NOT_PARTNERSHIP_MEMBER": "Questo account non ha accesso alla console partner.",
