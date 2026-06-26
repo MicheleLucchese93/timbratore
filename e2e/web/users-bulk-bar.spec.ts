@@ -54,7 +54,7 @@ test.describe('web — Utenti bulk bar (admin)', () => {
       'Timbratura',
       'Approvatori ferie',
       'Approvatori correzioni',
-      'Invia reset password',
+      'Invia email di accesso',
     ]) {
       await expect(bar.getByRole('button', { name: action, exact: true })).toBeVisible();
     }
