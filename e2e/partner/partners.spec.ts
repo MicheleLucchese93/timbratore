@@ -30,9 +30,11 @@ test.describe('partner admin · partners', () => {
     await expect(row(page, partnerEmail)).toContainText('5'); // cap_tenants
     await expect(row(page, partnerEmail)).toContainText(partnerName); // reseller name column
 
-    // --- resend invite ---
+    // --- resend invite --- (local DEV backend sends no real mail → 'none' toast)
     await row(page, partnerEmail).getByTestId('resend').click();
-    await expect(page.getByText(/Invito inviato a|Invite sent to/)).toBeVisible();
+    await expect(
+      page.getByText(/Invito inviato a|Invite sent to|Nessuna email inviata|No email sent/)
+    ).toBeVisible();
 
     // --- edit caps + note ---
     await row(page, partnerEmail).getByRole('button', { name: /Modifica|Edit/ }).click();
@@ -66,8 +68,11 @@ test.describe('partner admin · partners', () => {
     await expect(page.getByText(/Nessuna email inviata|No email sent/)).toBeVisible({ timeout: 15_000 });
     await expect(row(page, email)).toBeVisible();
 
-    // Resend to the still-unconfirmed partner → an INVITATION (not a reset).
+    // Resend to the still-unconfirmed partner. Against prod this is an INVITATION;
+    // the local DEV backend sends nothing → 'none' toast. Accept both.
     await row(page, email).getByTestId('resend').click();
-    await expect(page.getByText(/Invito inviato a|Invite sent to/)).toBeVisible();
+    await expect(
+      page.getByText(/Invito inviato a|Invite sent to|Nessuna email inviata|No email sent/)
+    ).toBeVisible();
   });
 });
