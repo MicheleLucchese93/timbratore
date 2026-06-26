@@ -384,6 +384,11 @@ select.input { background-color: white; }
   50% { opacity: 0.4; }
 }
 
+/* Spinner (e.g. refresh icon while a fetch is in flight) -------------- */
+.icon-spin { animation: spin 0.8s linear infinite; transform-origin: center; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .icon-spin { animation: none; } }
+
 /* Toast --------------------------------------------------------------- */
 .toast {
   position: fixed;

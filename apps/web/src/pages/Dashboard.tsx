@@ -125,6 +125,7 @@ export function Dashboard() {
   const [pendingLeaves, setPendingLeaves] = useState<PendingLeave[]>([]);
   const [cancellationLeaves, setCancellationLeaves] = useState<PendingLeave[]>([]);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const [groupMode, setGroupMode] = useState<GroupMode>('list');
   const [inboxTab, setInboxTab] = useState<InboxTab>('corrections');
   const [err, setErr] = useState<string | null>(null);
@@ -167,6 +168,17 @@ export function Dashboard() {
   }, [load, refreshTick]);
 
   useRealtimePolling(() => setRefreshTick((t) => t + 1));
+
+  // Manual refresh: same fetch as the effect, but with a visible in-flight
+  // state so the click gives feedback even when the data is unchanged.
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await load();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [load]);
 
   async function approveCorrection(r: PendingCorrection) {
     setErr(null);
@@ -211,8 +223,8 @@ export function Dashboard() {
       <PageHeader
         title={t('title')}
         actions={
-          <button className="btn btn-secondary" onClick={load}>
-            <IconRefresh /> {t('common:btn.refresh')}
+          <button className="btn btn-secondary" onClick={handleRefresh} disabled={refreshing}>
+            <IconRefresh spinning={refreshing} /> {t('common:btn.refresh')}
           </button>
         }
       />
@@ -990,9 +1002,9 @@ function IconInbox() {
     </svg>
   );
 }
-function IconRefresh() {
+function IconRefresh({ spinning }: { spinning?: boolean }) {
   return (
-    <svg {...I} width={16} height={16}>
+    <svg {...I} width={16} height={16} className={spinning ? 'icon-spin' : undefined}>
       <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
       <path d="M21 3v5h-5" />
       <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />

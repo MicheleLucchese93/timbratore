@@ -5,6 +5,11 @@ import { api } from '../lib/api.ts';
 // Production swaps this for a Centrifuge websocket client.
 export function useRealtimePolling(onEvent: (payload: unknown) => void): void {
   const lastIdRef = useRef<number>(0);
+  // Keep the latest callback in a ref so callers can pass an inline arrow
+  // (new identity each render) without tearing down and re-arming the 3s
+  // interval on every render. The effect runs once on mount.
+  const onEventRef = useRef(onEvent);
+  onEventRef.current = onEvent;
   useEffect(() => {
     let cancelled = false;
     const tick = async () => {
@@ -15,7 +20,7 @@ export function useRealtimePolling(onEvent: (payload: unknown) => void): void {
         );
         if (r.last_id > lastIdRef.current) {
           lastIdRef.current = r.last_id;
-          for (const ev of r.events) onEvent(ev.payload);
+          for (const ev of r.events) onEventRef.current(ev.payload);
         }
       } catch {
         // ignore transient errors
@@ -27,5 +32,5 @@ export function useRealtimePolling(onEvent: (payload: unknown) => void): void {
       cancelled = true;
       clearInterval(id);
     };
-  }, [onEvent]);
+  }, []);
 }
