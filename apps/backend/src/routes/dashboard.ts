@@ -37,6 +37,7 @@ dashboardRouter.get(
        LEFT JOIN last_stamp ls ON ls.user_id = m.user_id
        LEFT JOIN branches b ON b.id = ls.branch_id
        WHERE m.active AND m.deleted_at IS NULL
+         AND cardinality(m.stamp_modes) > 0
        ORDER BY m.role DESC, email`
     );
     ok(res, r.rows);
@@ -82,7 +83,8 @@ dashboardRouter.get(
          COUNT(*) FILTER (WHERE ls.event_type IS NULL OR ls.event_type = 'clock_out') AS off
        FROM memberships m
        LEFT JOIN last_stamp ls ON ls.user_id = m.user_id
-       WHERE m.active AND m.deleted_at IS NULL`
+       WHERE m.active AND m.deleted_at IS NULL
+         AND cardinality(m.stamp_modes) > 0`
     );
 
     const pendingPromise = client.query(
@@ -138,6 +140,7 @@ dashboardRouter.get(
            FROM memberships m
            LEFT JOIN auth_users au ON au.id = m.user_id
           WHERE m.deleted_at IS NULL AND m.active = TRUE
+            AND cardinality(m.stamp_modes) > 0
        )
        SELECT r.d AS day,
               m.user_id, m.email, m.display_name,
