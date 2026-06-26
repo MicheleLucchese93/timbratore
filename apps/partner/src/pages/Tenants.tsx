@@ -408,6 +408,7 @@ function CreateTenant({
   const [first, setFirst] = useState('');
   const [last, setLast] = useState('');
   const [language, setLanguage] = useState<'it' | 'en'>('it');
+  const [sendInvite, setSendInvite] = useState(true);
   const [maxUsers, setMaxUsers] = useState(clampDefault(20, caps?.cap_users_per_tenant));
   const [maxAdmins, setMaxAdmins] = useState(clampDefault(2, caps?.cap_admins_per_tenant));
   const [maxDoc, setMaxDoc] = useState(clampDefault(1, caps?.cap_documentali_per_tenant));
@@ -420,21 +421,25 @@ function CreateTenant({
     setBusy(true);
     setErr(null);
     try {
-      const res = await api<{ invited: boolean }>('/api/v1/partnership/tenants', {
-        method: 'POST',
-        json: {
-          ragione_sociale: ragione.trim(),
-          admin_email: email.trim().toLowerCase(),
-          admin_first_name: first.trim() || undefined,
-          admin_last_name: last.trim() || undefined,
-          language,
-          max_users: maxUsers,
-          max_admins: maxAdmins,
-          max_documentali: maxDoc,
-          max_branches: maxBranches,
-        },
-      });
-      toast(t(res.invited ? 'tenants.create.created' : 'tenants.create.created_existing'));
+      const res = await api<{ email_type: 'invite' | 'recovery' | 'none' }>(
+        '/api/v1/partnership/tenants',
+        {
+          method: 'POST',
+          json: {
+            ragione_sociale: ragione.trim(),
+            admin_email: email.trim().toLowerCase(),
+            admin_first_name: first.trim() || undefined,
+            admin_last_name: last.trim() || undefined,
+            language,
+            send_invite: sendInvite,
+            max_users: maxUsers,
+            max_admins: maxAdmins,
+            max_documentali: maxDoc,
+            max_branches: maxBranches,
+          },
+        }
+      );
+      toast(t(`tenants.create.done_${res.email_type}`));
       await onDone();
     } catch (e2) {
       setErr(errMsg(t, e2));
@@ -472,6 +477,20 @@ function CreateTenant({
               <option value="en">English</option>
             </select>
           </div>
+          <label className="checkbox-row" style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+            <input
+              type="checkbox"
+              data-testid="tenant-send-invite"
+              checked={sendInvite}
+              onChange={(e) => setSendInvite(e.target.checked)}
+            />
+            <span>
+              {t('tenants.create.send_invite')}
+              <span className="muted" style={{ display: 'block', fontWeight: 400 }}>
+                {t('tenants.create.send_invite_hint')}
+              </span>
+            </span>
+          </label>
           <div className="grid-2">
             <NumField id="t-users" label={t('tenants.create.max_users')} value={maxUsers} max={caps?.cap_users_per_tenant} onChange={setMaxUsers} min={1} />
             <NumField id="t-admins" label={t('tenants.create.max_admins')} value={maxAdmins} max={caps?.cap_admins_per_tenant} onChange={setMaxAdmins} min={1} />
@@ -624,6 +643,7 @@ function ManageAdmins({
   const [maxAdmins, setMaxAdmins] = useState(tenant.max_admins);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState('');
+  const [sendInvite, setSendInvite] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -653,11 +673,14 @@ function ManageAdmins({
     setBusy(true);
     setErr(null);
     try {
-      const res = await api<{ invited: boolean }>(`/api/v1/partnership/tenants/${tenant.id}/admins`, {
-        method: 'POST',
-        json: { email: email.trim().toLowerCase() },
-      });
-      toast(t(res.invited ? 'admins.added' : 'admins.added_existing'));
+      const res = await api<{ email_type: 'invite' | 'recovery' | 'none' }>(
+        `/api/v1/partnership/tenants/${tenant.id}/admins`,
+        {
+          method: 'POST',
+          json: { email: email.trim().toLowerCase(), send_invite: sendInvite },
+        }
+      );
+      toast(t(`admins.add_done_${res.email_type}`));
       setEmail('');
       await load();
       await onChanged();
@@ -670,8 +693,11 @@ function ManageAdmins({
 
   async function reinvite(a: AdminRow) {
     try {
-      await api(`/api/v1/partnership/tenants/${tenant.id}/admins/${a.user_id}/reinvite`, { method: 'POST' });
-      toast(t('admins.reinvited', { email: a.email }));
+      const res = await api<{ email_type: 'invite' | 'recovery' | 'none' }>(
+        `/api/v1/partnership/tenants/${tenant.id}/admins/${a.user_id}/reinvite`,
+        { method: 'POST' }
+      );
+      toast(t(`admins.reinvited_${res.email_type}`, { email: a.email }));
     } catch (e) {
       toast(errMsg(t, e), true);
     }
@@ -727,6 +753,16 @@ function ManageAdmins({
             {t('admins.add')}
           </button>
         </form>
+        <label className="checkbox-row" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
+          <input
+            type="checkbox"
+            data-testid="admin-send-invite"
+            checked={sendInvite}
+            onChange={(e) => setSendInvite(e.target.checked)}
+            disabled={atLimit}
+          />
+          <span>{t('admins.send_invite')}</span>
+        </label>
         {atLimit && <div className="muted">{t('admins.limit_reached')}</div>}
         {err && <div className="form-err">{err}</div>}
       </div>

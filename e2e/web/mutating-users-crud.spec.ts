@@ -68,7 +68,7 @@ test.describe('web — Utenti CRUD (mutating)', () => {
     }
   });
 
-  test('invite with send_reset_email=true reports the email was sent', async () => {
+  test('invite with send_reset_email=true sends an INVITATION to a brand-new member', async () => {
     const u = await inviteUser(admin.token, {
       email: `e2e-mail-${Date.now()}@e2e.local`,
       role: 'user',
@@ -76,15 +76,23 @@ test.describe('web — Utenti CRUD (mutating)', () => {
     });
     try {
       expect(u.email_sent).toBe(true);
+      // Brand-new member has never set a password → invitation, not a reset.
+      expect(u.email_type).toBe('invite');
     } finally {
       await deleteUser(admin.token, u.user_id).catch(() => {});
     }
   });
 
-  test('reset-password endpoint returns 200 for a tenant member', async () => {
-    const r = await apiPost(admin.token, `/api/v1/users/${createdUserId}/reset-password`, {});
+  test('reset-password endpoint invites an unconfirmed member (invite, not reset)', async () => {
+    // createdUserId (beforeEach) was created with send_reset_email=false → it is
+    // unconfirmed, so the access email is an INVITATION.
+    const r = await apiPost<{ sent: boolean; email: string; email_type: string }>(
+      admin.token,
+      `/api/v1/users/${createdUserId}/reset-password`,
+      {}
+    );
     expect(r.status).toBe(200);
-    expect(r.data).toMatchObject({ sent: true, email });
+    expect(r.data).toMatchObject({ sent: true, email, email_type: 'invite' });
   });
 
   test('reset-password action shows a confirmation in the Utenti grid', async ({ page }) => {
@@ -104,12 +112,12 @@ test.describe('web — Utenti CRUD (mutating)', () => {
         el.scrollLeft = el.scrollWidth;
       });
     const resetBtn = row.getByRole('button', {
-      name: 'Invia email per reimpostare la password',
+      name: 'Invia email di accesso',
     });
     await resetBtn.scrollIntoViewIfNeeded();
     await resetBtn.click();
     await expect(
-      page.getByText(`Email per reimpostare la password inviata a ${email}.`)
+      page.getByText(`Email di accesso inviata a ${email}.`)
     ).toBeVisible({ timeout: 10_000 });
   });
 

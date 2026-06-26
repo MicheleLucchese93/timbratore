@@ -7,7 +7,7 @@ import { authenticate, requireAdmin, invalidateMembershipCache } from '../middle
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
-import { createUserSilently, triggerRecovery } from '../lib/gotrue-admin.js';
+import { createUserSilently, sendAccessEmail } from '../lib/gotrue-admin.js';
 import { env } from '../env.js';
 import { createLogger } from '../lib/logger.js';
 
@@ -393,17 +393,24 @@ usersRouter.post(
       email: inv.email,
       role: inv.role,
     });
-    // Optionally give the new member their first access immediately by sending
-    // the GoTrue recovery ("set your password") email. triggerRecovery swallows
-    // its own network errors, so email_sent reflects the attempt — consistent
-    // with the standalone reset-password endpoint.
-    let emailSent = false;
+    // Optionally give the new member their first access immediately. sendAccessEmail
+    // picks the kind by confirmation state: a brand-new member is unconfirmed → an
+    // INVITATION email; a reused/confirmed account → a PASSWORD-RESET. It is the
+    // same call the standalone reset-password button uses.
+    let emailType: 'invite' | 'recovery' | 'none' = 'none';
     if (inv.send_reset_email) {
-      await triggerRecovery(inv.email);
-      await emitAudit(client, 'user.reset_password', outcome.user_id, null, {
+      let lang: 'it' | 'en' = inv.language ?? 'it';
+      if (!inv.language) {
+        const tl = await client.query(
+          `SELECT language FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid`
+        );
+        lang = tl.rows[0]?.language === 'en' ? 'en' : 'it';
+      }
+      emailType = await sendAccessEmail(outcome.user_id, inv.email, lang);
+      await emitAudit(client, 'user.access_email', outcome.user_id, null, {
         email: inv.email,
+        type: emailType,
       });
-      emailSent = true;
     }
     invalidateMembershipCache(outcome.user_id);
     ok(
@@ -412,7 +419,8 @@ usersRouter.post(
         user_id: outcome.user_id,
         email: inv.email,
         membership: outcome.membership,
-        email_sent: emailSent,
+        email_sent: emailType !== 'none',
+        email_type: emailType,
       },
       201
     );
@@ -465,15 +473,18 @@ usersRouter.post(
   })
 );
 
-// Admin-triggered password reset: re-sends the GoTrue recovery email so a
-// member who lost their invite / forgot their password can set a new one.
-// Scoped to the caller's tenant — can only target an existing member.
+// Admin-triggered access email: re-sends the right kind of mail so a member who
+// lost their invite / forgot their password can set one. sendAccessEmail picks
+// by confirmation state — an INVITATION for a member who never set a first
+// password, a PASSWORD-RESET for one who has. Scoped to the caller's tenant.
 usersRouter.post(
   '/:id/reset-password',
   requireAdmin,
   tenantHandler(async (req, res, client) => {
     const r = await client.query(
-      `SELECT au.email
+      `SELECT au.email,
+              (SELECT language FROM tenants
+                WHERE id = current_setting('app.current_tenant_id')::uuid) AS language
          FROM memberships m
          JOIN auth_users au ON au.id = m.user_id
         WHERE m.user_id = $1
@@ -484,9 +495,10 @@ usersRouter.post(
     if (r.rowCount === 0) throw new NotFoundError('user');
     const email = r.rows[0].email as string | null;
     if (!email) throw new ValidationError('user has no email on file');
-    await triggerRecovery(email);
-    await emitAudit(client, 'user.reset_password', String(req.params.id), null, { email });
-    ok(res, { sent: true, email });
+    const lang: 'it' | 'en' = r.rows[0].language === 'en' ? 'en' : 'it';
+    const emailType = await sendAccessEmail(String(req.params.id), email, lang);
+    await emitAudit(client, 'user.access_email', String(req.params.id), null, { email, type: emailType });
+    ok(res, { sent: emailType !== 'none', email, email_type: emailType });
   })
 );
 
@@ -1188,7 +1200,9 @@ usersRouter.post(
     const parse = BulkResetPassword.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     const r = await client.query(
-      `SELECT m.user_id, au.email
+      `SELECT m.user_id, au.email,
+              (SELECT language FROM tenants
+                WHERE id = current_setting('app.current_tenant_id')::uuid) AS language
          FROM memberships m
          JOIN auth_users au ON au.id = m.user_id
         WHERE m.user_id = ANY($1::uuid[])
@@ -1199,14 +1213,16 @@ usersRouter.post(
     let sent = 0;
     for (const row of r.rows) {
       if (!row.email) continue;
-      // Sequential: GoTrue rate-limits /recover. triggerRecovery swallows
-      // network errors so one bad address can't abort the batch.
-      await triggerRecovery(row.email as string);
-      await emitAudit(client, 'user.reset_password', String(row.user_id), null, {
+      const lang: 'it' | 'en' = row.language === 'en' ? 'en' : 'it';
+      // Sequential: GoTrue rate-limits /invite and /recover. sendAccessEmail
+      // falls back to recovery on error so one bad address can't abort the batch.
+      const emailType = await sendAccessEmail(String(row.user_id), row.email as string, lang);
+      await emitAudit(client, 'user.access_email', String(row.user_id), null, {
         email: row.email,
+        type: emailType,
         bulk: true,
       });
-      sent += 1;
+      if (emailType !== 'none') sent += 1;
     }
     ok(res, { sent });
   })

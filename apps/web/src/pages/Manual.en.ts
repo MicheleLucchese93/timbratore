@@ -183,7 +183,7 @@ export const MAIN_EN = `
         <div class="callout callout-info">
           For security reasons the system always shows the same confirmation message, even if the email is not registered. We do not reveal whether an account exists or not.
         </div>
-        <p class="muted">Alternatively, the administrator can resend the password reset email from the <strong>Users</strong> page (key icon on your row).</p>
+        <p class="muted">Alternatively, the administrator can resend the access email from the <strong>Users</strong> page (key icon on your row).</p>
       </div>
 
       <div class="feature">
@@ -429,10 +429,10 @@ export const MAIN_EN = `
           <li>Select one or more <strong>branches</strong> to assign.</li>
           <li>Optional: assign a <strong>unique identifier</strong> to the employee (e.g. a badge or internal code). It is a free-text code you manage; it appears in Stamps (List and Monthly grid) and is searchable.</li>
           <li>Optional: fill in the <strong>payroll data (Centro Paghe)</strong> — <em>tax code</em>, <em>employee number</em> and, if needed, INAIL/qualification. You can always add or change them later from the users table.</li>
-          <li>Leave <strong>Send the password-setup email now</strong> ticked (the default) to give immediate access: the user receives the email and can sign in with no extra steps. Untick it if you'd rather create them now and send the email later.</li>
+          <li>Leave <strong>Send the access email now</strong> ticked (the default) to give immediate access: the user receives an <strong>invitation</strong> to set their password and can sign in with no extra steps. Untick it if you'd rather create them now and send the email later.</li>
           <li>Press <strong>Invite</strong>.</li>
         </ol>
-        <p>With the box ticked the user <strong>receives the email right away</strong> to set their password and sign in. If you unticked it, the user is created without an email: to give them access, press the <strong>reset password</strong> icon (key-shaped) on their row — or select them and use the <strong>Send password reset</strong> bulk action.</p>
+        <p>With the box ticked the user <strong>receives the access email right away</strong> and signs in. The email is automatically the right kind: an <strong>invitation</strong> for someone who hasn't set a password yet, a <strong>password reset</strong> for someone who has. If you unticked it, the user is created without an email: to give them access, press the <strong>access email</strong> icon (key-shaped) on their row — or select them and use the <strong>Send access email</strong> bulk action.</p>
       </div>
 
       <div class="feature">
@@ -448,7 +448,7 @@ export const MAIN_EN = `
           <li>Configure the <strong>approvers</strong> for Corrections, Holiday, Leave, Sick leave.</li>
           <li>Edit first name, last name and <strong>unique identifier</strong>.</li>
           <li>Fill in the <strong>payroll data (Centro Paghe)</strong>: <em>tax code</em>, <em>payroll number</em> and, if needed, <em>INAIL</em> and <em>qualification</em>. Used by the Centro Paghe (LUL) export and must match the employee record in payroll.</li>
-          <li><strong>Reset the password</strong> (key icon) — sends the user an email to choose a new password. Use it to give a freshly-created user their <strong>first access</strong>, or if they lost their credentials / forgot the password.</li>
+          <li><strong>Send access email</strong> (key icon) — sends the user the email to set/change their password. The kind is automatic: an <strong>invitation</strong> if they haven't set a password yet (first access for a freshly-created user), a <strong>password reset</strong> if they have (lost credentials / forgotten password).</li>
           <li>Deactivate or permanently delete the user.</li>
         </ul>
       </div>
@@ -462,7 +462,7 @@ export const MAIN_EN = `
           <li><strong>Assign schedule</strong> — assigns the same work schedule to everyone (replaces the current one).</li>
           <li><strong>Stamping</strong> — sets the same stamping methods (GPS / Remote) on everyone.</li>
           <li><strong>Leave approvers</strong> and <strong>Correction approvers</strong> — set the same approvers on everyone (replacing the current ones).</li>
-          <li><strong>Send password reset</strong> — sends every selected user the email to set their password (handy for giving freshly-created users their first access).</li>
+          <li><strong>Send access email</strong> — sends every selected user the access email (an invitation for those who haven't set a password yet, a reset for the others; handy for giving freshly-created users their first access).</li>
           <li><strong>Cancel</strong> — deselects.</li>
         </ul>
       </div>

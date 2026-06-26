@@ -54,4 +54,20 @@ test.describe('partner admin · partners', () => {
     await expect(page.getByText(/Partner attivato|Partner activated/)).toBeVisible();
     await expect(row(page, partnerEmail)).toContainText(/Attivo|Active/);
   });
+
+  test('create partner with auto-send OFF, then resend sends the invitation', async ({ page }) => {
+    const email = `e2e-pp-noinvite-${suffix}@e2e.local`;
+    await page.goto('/partners');
+    await page.getByTestId('new-partner').click();
+    await page.locator('input#p-email').fill(email);
+    // Auto-send OFF → partner created with no email.
+    await page.getByTestId('partner-send-invite').uncheck();
+    await page.getByTestId('create-partner-submit').click();
+    await expect(page.getByText(/Nessuna email inviata|No email sent/)).toBeVisible({ timeout: 15_000 });
+    await expect(row(page, email)).toBeVisible();
+
+    // Resend to the still-unconfirmed partner → an INVITATION (not a reset).
+    await row(page, email).getByTestId('resend').click();
+    await expect(page.getByText(/Invito inviato a|Invite sent to/)).toBeVisible();
+  });
 });

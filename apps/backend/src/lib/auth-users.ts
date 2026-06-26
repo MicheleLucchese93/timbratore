@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { env } from '../env.js';
-import { inviteUser } from './gotrue-admin.js';
+import { createUserSilently } from './gotrue-admin.js';
 
 export interface EnsureAuthUserParams {
   email: string;
@@ -12,18 +12,19 @@ export interface EnsureAuthUserParams {
 
 export interface EnsureAuthUserResult {
   userId: string;
-  // true → a GoTrue invite email was sent (a brand-new account in prod).
-  invited: boolean;
   // true → a new auth_users mirror row was inserted (vs reused an existing one).
+  // In PROD this also means a new GoTrue account was created, so callers that
+  // run outside a GoTrue transaction use it to clean up orphans on rollback.
   created: boolean;
 }
 
-// Resolve a GoTrue user by email, creating one if needed. Shared by tenant
-// provisioning (first admin) and partner onboarding (invite a brand-new partner).
+// Resolve a GoTrue user by email, creating one (UNCONFIRMED, no email) if needed.
+// Shared by tenant provisioning (first admin), partner onboarding, and adding a
+// tenant admin. Sending the access email is the CALLER's job (sendAccessEmail),
+// so the same flag/logic governs invite-vs-reset everywhere.
 //
-// - Existing email → reuse the account, send nothing.
-// - New email in PROD → GoTrue /invite (sends the set-password email in the
-//   user's language) and mirror into auth_users.
+// - Existing email → reuse the account, create nothing.
+// - New email in PROD → GoTrue silent create (unconfirmed, no email) + mirror.
 // - New email in DEV (DEV_AUTH_ENABLED, no GoTrue instance) → mint a mirror-only
 //   account with a random id; the dev-token shim resolves logins by
 //   auth_users.email, so this is enough locally and never reaches a real GoTrue.
@@ -42,18 +43,15 @@ export async function ensureAuthUser(
 
   const existing = await client.query(`SELECT id FROM auth_users WHERE email = $1`, [email]);
   if (existing.rowCount && existing.rows[0]) {
-    return { userId: existing.rows[0].id as string, invited: false, created: false };
+    return { userId: existing.rows[0].id as string, created: false };
   }
 
   let userId: string;
-  let invited: boolean;
   if (env.DEV_AUTH_ENABLED) {
     userId = randomUUID();
-    invited = false;
   } else {
-    const g = await inviteUser(email, language);
+    const g = await createUserSilently(email, language);
     userId = g.id;
-    invited = true;
   }
   await client.query(
     `INSERT INTO auth_users (id, email, first_name, last_name, display_name, created_at)
@@ -61,5 +59,5 @@ export async function ensureAuthUser(
      ON CONFLICT (id) DO NOTHING`,
     [userId, email, firstName, lastName, display]
   );
-  return { userId, invited, created: true };
+  return { userId, created: true };
 }

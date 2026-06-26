@@ -51,6 +51,32 @@ test.describe('partner admin · tenant admins (multi)', () => {
     await expect(page.getByTestId('admin-add-email')).toBeEnabled();
   });
 
+  test('add admin with auto-send OFF, then reinvite sends the invitation', async ({ page }) => {
+    await page.goto('/');
+    const name = `e2e-noinvite-${suffix}`;
+    await page.getByTestId('new-tenant').click();
+    await page.locator('input#t-ragione').fill(name);
+    await page.locator('input#t-email').fill(`e2e-ni1-${suffix}@e2e.local`);
+    await page.locator('input#t-admins').fill('2');
+    await page.getByTestId('create-tenant-submit').click();
+    await expect(page.getByText(/Azienda creata/)).toBeVisible({ timeout: 15_000 });
+
+    await row(page, name).getByTestId('manage-admins').click();
+    const modal = page.locator('.modal');
+    // Auto-send OFF → the 2nd admin is created with no email.
+    await page.getByTestId('admin-send-invite').uncheck();
+    await page.getByTestId('admin-add-email').fill(`e2e-ni2-${suffix}@e2e.local`);
+    await page.getByTestId('admin-add-submit').click();
+    await expect(page.getByText(/Nessuna email inviata|No email sent/)).toBeVisible();
+
+    // Reinvite that still-unconfirmed admin → an INVITATION (not a reset).
+    await modal
+      .locator('.admin-row', { hasText: `e2e-ni2-${suffix}` })
+      .getByTestId('admin-reinvite')
+      .click();
+    await expect(page.getByText(/Invito inviato a|Invite sent to/)).toBeVisible();
+  });
+
   test('cannot exceed max_admins via API-free UI (3rd add blocked while at cap)', async ({ page }) => {
     // Reuse the tenant from the first test if present, else skip gracefully by
     // creating a fresh capped tenant.

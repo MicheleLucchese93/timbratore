@@ -34,12 +34,16 @@
     "add": "Aggiungi",
     "add_placeholder": "Email nuovo amministratore",
     "reinvite": "Reinvita",
-    "reinvited": "Invito inviato a {{email}}.",
+    "reinvited_invite": "Invito inviato a {{email}}.",
+    "reinvited_recovery": "Email di reset password inviata a {{email}}.",
+    "reinvited_none": "Nessuna email inviata.",
     "remove": "Rimuovi",
     "remove_confirm": "Rimuovere {{email}} dagli amministratori?",
     "removed": "Amministratore rimosso.",
-    "added": "Amministratore aggiunto. Invito inviato.",
-    "added_existing": "Amministratore aggiunto.",
+    "send_invite": "Invia subito l'email di accesso",
+    "add_done_invite": "Amministratore aggiunto. Invito inviato.",
+    "add_done_recovery": "Amministratore aggiunto. Email di reset password inviata.",
+    "add_done_none": "Amministratore aggiunto. Nessuna email inviata.",
     "limit_reached": "Limite amministratori raggiunto."
   },
   "actions": {
@@ -95,8 +99,11 @@
       "max_users": "Max utenti", "max_admins": "Max admin",
       "max_documentali": "Max documentali", "max_branches": "Max sedi",
       "submit": "Crea azienda",
-      "created": "Azienda creata. Invito amministratore inviato.",
-      "created_existing": "Azienda creata. L'amministratore aveva già un account."
+      "send_invite": "Invia subito l'email di accesso all'amministratore",
+      "send_invite_hint": "Consigliato. Se la togli, l'admin viene creato senza email: gliela invii dopo dall'icona busta.",
+      "done_invite": "Azienda creata. Invito amministratore inviato.",
+      "done_recovery": "Azienda creata. Email di reset password inviata all'amministratore.",
+      "done_none": "Azienda creata. Nessuna email inviata."
     },
     "edit": { "title": "Modifica azienda", "submit": "Salva", "saved": "Azienda aggiornata.", "owner": "Partner assegnato", "note": "Note" },
     "suspend": { "label": "Sospendi", "confirm": "Sospendere questa azienda? Gli utenti non potranno più accedere.", "done": "Azienda sospesa." },
@@ -130,13 +137,16 @@
       "caps": "Limiti del partner",
       "caps_hint": "Lascia vuoto per illimitato.",
       "submit": "Crea partner",
-      "created": "Partner creato. Invito inviato.",
-      "created_existing": "Partner creato. L'utente aveva già un account."
+      "send_invite": "Invia subito l'email di accesso al partner",
+      "send_invite_hint": "Consigliato. Se la togli, il partner viene creato senza email: gliela invii dopo dall'icona busta.",
+      "done_invite": "Partner creato. Invito inviato.",
+      "done_recovery": "Partner creato. Email di reset password inviata.",
+      "done_none": "Partner creato. Nessuna email inviata."
     },
     "edit": { "title": "Modifica limiti partner", "submit": "Salva", "saved": "Limiti partner aggiornati." },
     "activate": { "label": "Attiva", "confirm": "Riattivare questo partner? Potrà nuovamente accedere.", "done": "Partner attivato." },
     "deactivate": { "label": "Disattiva", "confirm": "Disattivare questo partner? Non potrà più accedere.", "done": "Partner disattivato." },
-    "resend": { "label": "Reinvita", "done": "Invito inviato a {{email}}." }
+    "resend": { "label": "Reinvita", "done_invite": "Invito inviato a {{email}}.", "done_recovery": "Email di reset password inviata a {{email}}.", "done_none": "Nessuna email inviata." }
   },
   "caps": {
     "cap_tenants": "Max aziende creabili",

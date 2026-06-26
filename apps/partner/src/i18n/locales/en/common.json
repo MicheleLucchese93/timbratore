@@ -34,12 +34,16 @@
     "add": "Add",
     "add_placeholder": "New admin email",
     "reinvite": "Resend",
-    "reinvited": "Invite sent to {{email}}.",
+    "reinvited_invite": "Invite sent to {{email}}.",
+    "reinvited_recovery": "Password reset email sent to {{email}}.",
+    "reinvited_none": "No email sent.",
     "remove": "Remove",
     "remove_confirm": "Remove {{email}} from administrators?",
     "removed": "Administrator removed.",
-    "added": "Administrator added. Invite sent.",
-    "added_existing": "Administrator added.",
+    "send_invite": "Send the access email now",
+    "add_done_invite": "Administrator added. Invite sent.",
+    "add_done_recovery": "Administrator added. Password reset email sent.",
+    "add_done_none": "Administrator added. No email sent.",
     "limit_reached": "Administrator limit reached."
   },
   "actions": {
@@ -95,8 +99,11 @@
       "max_users": "Max users", "max_admins": "Max admins",
       "max_documentali": "Max documentali", "max_branches": "Max branches",
       "submit": "Create company",
-      "created": "Company created. Admin invite sent.",
-      "created_existing": "Company created. The admin already had an account."
+      "send_invite": "Send the admin's access email now",
+      "send_invite_hint": "Recommended. If unchecked, the admin is created with no email — send it later via the envelope icon.",
+      "done_invite": "Company created. Admin invite sent.",
+      "done_recovery": "Company created. Password reset email sent to the admin.",
+      "done_none": "Company created. No email sent."
     },
     "edit": { "title": "Edit company", "submit": "Save", "saved": "Company updated.", "owner": "Assigned partner", "note": "Note" },
     "suspend": { "label": "Suspend", "confirm": "Suspend this company? Its users will no longer be able to sign in.", "done": "Company suspended." },
@@ -130,13 +137,16 @@
       "caps": "Partner caps",
       "caps_hint": "Leave blank for unlimited.",
       "submit": "Create partner",
-      "created": "Partner created. Invite sent.",
-      "created_existing": "Partner created. The user already had an account."
+      "send_invite": "Send the partner's access email now",
+      "send_invite_hint": "Recommended. If unchecked, the partner is created with no email — send it later via the envelope icon.",
+      "done_invite": "Partner created. Invite sent.",
+      "done_recovery": "Partner created. Password reset email sent.",
+      "done_none": "Partner created. No email sent."
     },
     "edit": { "title": "Edit partner caps", "submit": "Save", "saved": "Partner caps updated." },
     "activate": { "label": "Activate", "confirm": "Reactivate this partner? They will be able to sign in again.", "done": "Partner activated." },
     "deactivate": { "label": "Disable", "confirm": "Disable this partner? They will no longer be able to sign in.", "done": "Partner disabled." },
-    "resend": { "label": "Resend", "done": "Invite sent to {{email}}." }
+    "resend": { "label": "Resend", "done_invite": "Invite sent to {{email}}.", "done_recovery": "Password reset email sent to {{email}}.", "done_none": "No email sent." }
   },
   "caps": {
     "cap_tenants": "Max companies they can create",

@@ -29,7 +29,7 @@
     "success": "Importate {{processed}} righe — {{created}} nuove, {{reactivated}} riattivate, {{updated}} aggiornate.",
     "error": "errore import"
   },
-  "resetPasswordSent": "Email per reimpostare la password inviata a {{email}}.",
+  "resetPasswordSent": "Email di accesso inviata a {{email}}.",
   "bulkBranchesAdded_one": "{{count}} sede assegnate a {{users}} utenti.",
   "bulkBranchesAdded_other": "{{count}} sedi assegnate a {{users}} utenti.",
   "bulkBranchesRemoved_one": "{{count}} sede rimosse a {{users}} utenti.",
@@ -44,15 +44,15 @@
     "stampModes": "Timbratura",
     "leaveApprovers": "Approvatori ferie",
     "correctionApprovers": "Approvatori correzioni",
-    "resetPassword": "Invia reset password"
+    "resetPassword": "Invia email di accesso"
   },
   "bulkReset": {
-    "title": "Inviare l'email di reset password?",
-    "message_one": "Verrà inviata a {{count}} utente un'email per impostare la password. Usalo anche per dare il primo accesso agli utenti appena creati.",
-    "message_other": "Verrà inviata a {{count}} utenti un'email per impostare la password. Usalo anche per dare il primo accesso agli utenti appena creati.",
+    "title": "Inviare l'email di accesso?",
+    "message_one": "Verrà inviata a {{count}} utente l'email di accesso (invito per chi non ha ancora impostato la password, reset per gli altri). Usalo anche per dare il primo accesso agli utenti appena creati.",
+    "message_other": "Verrà inviata a {{count}} utenti l'email di accesso (invito per chi non ha ancora impostato la password, reset per gli altri). Usalo anche per dare il primo accesso agli utenti appena creati.",
     "confirm": "Invia email",
-    "done_one": "Email di reset inviata a {{count}} utente.",
-    "done_other": "Email di reset inviata a {{count}} utenti."
+    "done_one": "Email di accesso inviata a {{count}} utente.",
+    "done_other": "Email di accesso inviata a {{count}} utenti."
   },
   "bulkShift": {
     "title": "Assegna orario in massa",
@@ -156,11 +156,11 @@
   },
   "invite": {
     "title": "Invita utente",
-    "subtitle": "Per impostazione predefinita l'utente riceve subito l'email per impostare la password e accedere. Togli la spunta per crearlo senza email e inviargliela più tardi (icona chiave o operazione in massa).",
-    "createdNoEmail": "Utente creato. Nessuna email inviata: usa «Invia reset password» (icona chiave) per dargli il primo accesso.",
-    "createdEmailSent": "Utente creato. Email per impostare la password inviata: potrà accedere subito.",
-    "sendResetEmail": "Invia subito l'email per impostare la password",
-    "sendResetEmailHint": "Consigliato: l'utente riceve l'email e può accedere senza altri passaggi. Se la togli, glielo invii dopo dalla tabella (icona chiave).",
+    "subtitle": "Per impostazione predefinita l'utente riceve subito l'email di accesso (un invito se non ha ancora impostato la password). Togli la spunta per crearlo senza email e inviargliela più tardi (icona chiave o operazione in massa).",
+    "createdNoEmail": "Utente creato. Nessuna email inviata: usa «Invia email di accesso» (icona chiave) per dargli il primo accesso.",
+    "createdEmailSent": "Utente creato. Email di accesso inviata: potrà accedere subito.",
+    "sendResetEmail": "Invia subito l'email di accesso",
+    "sendResetEmailHint": "Consigliato: l'utente riceve un invito a impostare la password e può accedere subito. Se la togli, glielo invii dopo dalla tabella (icona chiave).",
     "firstName": "Nome",
     "lastName": "Cognome",
     "optional": "(facoltativo)",
@@ -221,7 +221,7 @@
   },
   "actions": {
     "editName": "Modifica nome / cognome",
-    "resetPassword": "Invia email per reimpostare la password",
+    "resetPassword": "Invia email di accesso",
     "cannotDeactivateSelf": "Non puoi disattivare il tuo account",
     "deactivate": "Disattiva utente (mantiene posto)",
     "reactivate": "Riattiva utente",

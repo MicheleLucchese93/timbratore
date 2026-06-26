@@ -17,7 +17,7 @@ import { env } from '../env.js';
 import { provisionTenant } from '../lib/provision-tenant.js';
 import { ensureAuthUser } from '../lib/auth-users.js';
 import { logPartnershipAudit } from '../lib/partnership-audit.js';
-import { triggerRecovery, updateUserEmail, deleteUser, changePassword } from '../lib/gotrue-admin.js';
+import { sendAccessEmail, updateUserEmail, deleteUser, changePassword } from '../lib/gotrue-admin.js';
 import { passwordSchema } from '../lib/password.js';
 import { createLogger } from '../lib/logger.js';
 
@@ -199,6 +199,9 @@ const CreateTenant = z.object({
   max_admins: Limits.max_admins.optional(),
   max_documentali: Limits.max_documentali.optional(),
   max_branches: Limits.max_branches.optional(),
+  // Auto-send the admin's access email on create (default on). Off → the admin
+  // is created silently and the partner sends access later via the mail icon.
+  send_invite: z.boolean().default(true),
 });
 
 partnershipRouter.post(
@@ -246,6 +249,12 @@ partnershipRouter.post(
       createdByPartner: p.role === 'partner' ? p.userId : null,
     });
 
+    // Send the admin their access email unless the partner opted out. Type is
+    // chosen by confirmation state: invite (new admin) vs reset (reused account).
+    const emailType = b.send_invite
+      ? await sendAccessEmail(result.admin.userId, result.admin.email, b.language)
+      : 'none';
+
     await logPartnershipAudit({
       actorUserId: p.userId,
       actorRole: p.role,
@@ -255,7 +264,8 @@ partnershipRouter.post(
       targetLabel: result.ragioneSociale,
       after: {
         admin_email: result.admin.email,
-        invited: result.invited,
+        admin_created: result.adminCreated,
+        email_type: emailType,
         limits: result.limits,
       },
       ...auditCtx(req),
@@ -272,7 +282,9 @@ partnershipRouter.post(
           role: result.admin.role,
           membership_id: result.admin.membershipId,
         },
-        invited: result.invited,
+        // email_type: 'invite' | 'recovery' | 'none' drives the UI toast.
+        email_type: emailType,
+        admin_created: result.adminCreated,
         limits: {
           max_admins: result.limits.maxAdmins,
           max_users: result.limits.maxUsers,
@@ -290,6 +302,7 @@ async function loadOwnedTenant(p: PartnerContext, tenantId: string) {
   if (!UUID_RE.test(tenantId)) throw new ValidationError('invalid tenant id');
   const r = await adminPool.query(
     `SELECT t.id, t.ragione_sociale, t.created_by_partner, t.suspended_at, t.partner_note,
+            t.language,
             t.max_admins, t.max_users, t.max_documentali, t.max_branches,
             (SELECT am.user_id FROM memberships am
                WHERE am.tenant_id = t.id AND am.role = 'admin'
@@ -601,7 +614,7 @@ partnershipRouter.post(
     const p = partner(req);
     const t = await loadOwnedTenant(p, String(req.params.id));
     const r = await adminPool.query(
-      `SELECT au.email
+      `SELECT au.id, au.email
          FROM memberships m JOIN auth_users au ON au.id = m.user_id
         WHERE m.tenant_id = $1 AND m.role = 'admin'
           AND m.active = TRUE AND m.deleted_at IS NULL
@@ -611,7 +624,7 @@ partnershipRouter.post(
     );
     if (r.rowCount === 0) throw new NotFoundError('tenant has no active admin');
     const email = r.rows[0].email as string;
-    await triggerRecovery(email);
+    const emailType = await sendAccessEmail(r.rows[0].id as string, email, t.language);
     await logPartnershipAudit({
       actorUserId: p.userId,
       actorRole: p.role,
@@ -619,10 +632,10 @@ partnershipRouter.post(
       targetType: 'tenant',
       targetId: t.id,
       targetLabel: t.ragione_sociale,
-      after: { email },
+      after: { email, email_type: emailType },
       ...auditCtx(req),
     });
-    ok(res, { tenant_id: t.id, email });
+    ok(res, { tenant_id: t.id, email, email_type: emailType });
   })
 );
 
@@ -650,6 +663,9 @@ const AddAdmin = z.object({
   email: z.string().email(),
   first_name: z.string().trim().max(80).optional(),
   last_name: z.string().trim().max(80).optional(),
+  // Auto-send the access email on add (default on). Off → send later via the
+  // per-admin reinvite (mail icon).
+  send_invite: z.boolean().default(true),
 });
 partnershipRouter.post(
   '/tenants/:id/admins',
@@ -700,14 +716,18 @@ partnershipRouter.post(
           targetType: 'tenant',
           targetId: t.id,
           targetLabel: t.ragione_sociale,
-          after: { email, invited: u.invited },
+          after: { email, admin_created: u.created },
           ...auditCtx(req),
         },
         client
       );
       await client.query('COMMIT');
       invalidateMembershipCache(u.userId);
-      ok(res, { user_id: u.userId, email, invited: u.invited }, 201);
+      // Send access email after commit (GoTrue is outside the PG transaction).
+      const emailType = b.send_invite
+        ? await sendAccessEmail(u.userId, email, t.language)
+        : 'none';
+      ok(res, { user_id: u.userId, email, email_type: emailType, admin_created: u.created }, 201);
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;
@@ -768,7 +788,7 @@ partnershipRouter.post(
     );
     if (r.rowCount === 0) throw new NotFoundError('not an admin of this tenant');
     const email = r.rows[0].email as string;
-    await triggerRecovery(email);
+    const emailType = await sendAccessEmail(userId, email, t.language);
     await logPartnershipAudit({
       actorUserId: p.userId,
       actorRole: p.role,
@@ -776,10 +796,10 @@ partnershipRouter.post(
       targetType: 'tenant',
       targetId: t.id,
       targetLabel: t.ragione_sociale,
-      after: { email },
+      after: { email, email_type: emailType },
       ...auditCtx(req),
     });
-    ok(res, { user_id: userId, email });
+    ok(res, { user_id: userId, email, email_type: emailType });
   })
 );
 
@@ -901,6 +921,9 @@ const CreatePartner = z.object({
   last_name: z.string().trim().max(80).optional(),
   partner_name: z.string().trim().max(200).transform(emptyToNull).nullable().optional(),
   note: z.string().trim().max(2000).transform(emptyToNull).nullable().optional(),
+  // Auto-send the partner's access email on create (default on). Off → created
+  // silently; send later via the mail icon.
+  send_invite: z.boolean().default(true),
   ...CapsSchema,
 });
 
@@ -964,7 +987,7 @@ partnershipRouter.post(
           targetId: u.userId,
           targetLabel: email,
           after: {
-            invited: u.invited,
+            partner_created: u.created,
             partner_name: b.partner_name ?? null,
             note: b.note ?? null,
             caps: {
@@ -980,8 +1003,16 @@ partnershipRouter.post(
         client
       );
       await client.query('COMMIT');
-      logger.info({ partner_user_id: u.userId, email, invited: u.invited }, 'partner created');
-      ok(res, { user_id: u.userId, email, invited: u.invited, role: 'partner' }, 201);
+      // Send access email after commit (GoTrue is outside the PG transaction).
+      // Partners have no tenant locale — their language was seeded at create ('it').
+      const emailType = b.send_invite
+        ? await sendAccessEmail(u.userId, email, 'it')
+        : 'none';
+      logger.info(
+        { partner_user_id: u.userId, email, partner_created: u.created, email_type: emailType },
+        'partner created'
+      );
+      ok(res, { user_id: u.userId, email, email_type: emailType, partner_created: u.created, role: 'partner' }, 201);
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;
@@ -1161,7 +1192,7 @@ partnershipRouter.post(
     if (cur.rowCount === 0) throw new NotFoundError('partner not found');
     if (cur.rows[0].role !== 'partner') throw new ConflictError('not a partner', 'NOT_A_PARTNER');
     const email = cur.rows[0].email as string;
-    await triggerRecovery(email);
+    const emailType = await sendAccessEmail(userId, email, 'it');
     await logPartnershipAudit({
       actorUserId: p.userId,
       actorRole: p.role,
@@ -1169,10 +1200,10 @@ partnershipRouter.post(
       targetType: 'partner',
       targetId: userId,
       targetLabel: email,
-      after: { email },
+      after: { email, email_type: emailType },
       ...auditCtx(req),
     });
-    ok(res, { user_id: userId, email });
+    ok(res, { user_id: userId, email, email_type: emailType });
   })
 );
 

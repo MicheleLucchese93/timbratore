@@ -37,11 +37,12 @@ export async function inviteUser(email: string, language: 'it' | 'en' = 'it'): P
 }
 
 // Create a GoTrue user WITHOUT sending any email. Unlike `inviteUser` (which
-// fires the invite/magic-link mail), this provisions the account silently: a
-// throwaway random password is set and the email is marked confirmed so no
-// confirmation mail goes out. The user has no usable password until an admin
-// sends them a recovery (reset-password) email — that is now the only way the
-// initial access mail reaches a newly-created member.
+// fires the invite mail), this provisions the account silently. The account is
+// left UNCONFIRMED (no `email_confirm`): an unconfirmed user has never set a
+// first password, so a later `sendAccessEmail` sends them an INVITE (not a
+// password reset). A throwaway random password is set just so the account is
+// valid; it is unusable (the user never learns it) and is replaced when they
+// follow the invite link.
 export async function createUserSilently(
   email: string,
   language: 'it' | 'en' = 'it'
@@ -54,13 +55,12 @@ export async function createUserSilently(
       Authorization: `Bearer ${jwt}`,
     },
     // user_metadata is what GoTrue exposes as `.Data` in email templates, so
-    // recovery/confirmation mail renders in the member's language (see
-    // gotrue-templates/recovery.html). Without it the templates fall back to
-    // English for every admin-created member.
+    // invite/recovery mail renders in the member's language (see
+    // gotrue-templates/{invite,recovery}.html). Without it the templates fall
+    // back to English for every admin-created member.
     body: JSON.stringify({
       email,
       password: randomUUID(),
-      email_confirm: true,
       user_metadata: { language },
     }),
   });
@@ -69,6 +69,69 @@ export async function createUserSilently(
     throw new Error(`GoTrue POST /admin/users ${r.status}: ${text}`);
   }
   return (await r.json()) as GoTrueUser;
+}
+
+// Has this GoTrue account confirmed its email — i.e. followed an invite/recovery
+// link and set a first password? Used to choose between an invitation email
+// (never confirmed) and a password-reset email (already confirmed). Reads the
+// admin view of the user by id. Throws on any non-2xx so callers can decide a
+// safe default.
+export async function isUserConfirmed(userId: string): Promise<boolean> {
+  const jwt = await serviceRoleJwt();
+  const r = await fetch(`${env.GOTRUE_URL}/admin/users/${userId}`, {
+    headers: { Authorization: `Bearer ${jwt}` },
+  });
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error(`GoTrue GET /admin/users/${userId} ${r.status}: ${text}`);
+  }
+  const u = (await r.json()) as { confirmed_at?: string | null; email_confirmed_at?: string | null };
+  return Boolean(u.confirmed_at || u.email_confirmed_at);
+}
+
+export type AccessEmailType = 'invite' | 'recovery' | 'none';
+
+// Send a member their access email, picking the right kind by confirmation
+// state: an UNCONFIRMED user (never set a first password) gets an INVITATION;
+// a CONFIRMED user gets a PASSWORD-RESET (recovery). This is the single entry
+// point for both the optional auto-send on create and the manual "resend /
+// reset password" buttons, across the web app and the partner console.
+//
+// Robust by design: if the confirmation lookup or the invite call fails, it
+// falls back to recovery (which also creates no leak and works for any existing
+// account) so a member always receives *some* access mail. Local dev has no
+// GoTrue — returns 'none' without touching the network (mirrors triggerRecovery).
+export async function sendAccessEmail(
+  userId: string,
+  email: string,
+  language: 'it' | 'en' = 'it',
+  redirectTo?: string
+): Promise<AccessEmailType> {
+  if (env.DEV_AUTH_ENABLED) return 'none';
+  let confirmed = false;
+  try {
+    confirmed = await isUserConfirmed(userId);
+  } catch (err) {
+    // Lookup failed — default to attempting an invite (correct for the common
+    // brand-new case); the catch below falls back to recovery if that errors.
+    // eslint-disable-next-line no-console
+    console.warn('isUserConfirmed failed; assuming unconfirmed', (err as Error).message);
+    confirmed = false;
+  }
+  if (!confirmed) {
+    try {
+      await inviteUser(email, language);
+      return 'invite';
+    } catch (err) {
+      // e.g. a race where the user confirmed between lookup and invite (GoTrue
+      // rejects inviting an already-registered/confirmed user). Fall through to
+      // a recovery email so the member is never left without access mail.
+      // eslint-disable-next-line no-console
+      console.warn('inviteUser failed; falling back to recovery', (err as Error).message);
+    }
+  }
+  await triggerRecovery(email, redirectTo);
+  return 'recovery';
 }
 
 // Update a GoTrue user's email (admin API). email_confirm so the new address is

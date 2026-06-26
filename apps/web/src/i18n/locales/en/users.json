@@ -29,7 +29,7 @@
     "success": "Imported {{processed}} rows — {{created}} new, {{reactivated}} reactivated, {{updated}} updated.",
     "error": "import error"
   },
-  "resetPasswordSent": "Password reset email sent to {{email}}.",
+  "resetPasswordSent": "Access email sent to {{email}}.",
   "bulkBranchesAdded_one": "{{count}} branch assigned to {{users}} users.",
   "bulkBranchesAdded_other": "{{count}} branches assigned to {{users}} users.",
   "bulkBranchesRemoved_one": "{{count}} branch removed from {{users}} users.",
@@ -44,15 +44,15 @@
     "stampModes": "Stamping",
     "leaveApprovers": "Leave approvers",
     "correctionApprovers": "Correction approvers",
-    "resetPassword": "Send password reset"
+    "resetPassword": "Send access email"
   },
   "bulkReset": {
-    "title": "Send the password reset email?",
-    "message_one": "A set-password email will be sent to {{count}} user. Use this to give freshly-created users their first access too.",
-    "message_other": "A set-password email will be sent to {{count}} users. Use this to give freshly-created users their first access too.",
+    "title": "Send the access email?",
+    "message_one": "The access email will be sent to {{count}} user (an invitation for those who haven't set a password yet, a reset for the others). Use this to give freshly-created users their first access too.",
+    "message_other": "The access email will be sent to {{count}} users (an invitation for those who haven't set a password yet, a reset for the others). Use this to give freshly-created users their first access too.",
     "confirm": "Send email",
-    "done_one": "Reset email sent to {{count}} user.",
-    "done_other": "Reset email sent to {{count}} users."
+    "done_one": "Access email sent to {{count}} user.",
+    "done_other": "Access email sent to {{count}} users."
   },
   "bulkShift": {
     "title": "Assign schedule in bulk",
@@ -156,11 +156,11 @@
   },
   "invite": {
     "title": "Invite user",
-    "subtitle": "By default the user immediately receives the email to set their password and sign in. Uncheck to create them without an email and send it later (key icon or bulk action).",
-    "createdNoEmail": "User created. No email sent: use \"Send password reset\" (key icon) to give them their first access.",
-    "createdEmailSent": "User created. Password-setup email sent: they can sign in right away.",
-    "sendResetEmail": "Send the password-setup email now",
-    "sendResetEmailHint": "Recommended: the user gets the email and can sign in with no extra steps. If you uncheck it, send it later from the table (key icon).",
+    "subtitle": "By default the user immediately receives the access email (an invitation if they haven't set a password yet). Uncheck to create them without an email and send it later (key icon or bulk action).",
+    "createdNoEmail": "User created. No email sent: use \"Send access email\" (key icon) to give them their first access.",
+    "createdEmailSent": "User created. Access email sent: they can sign in right away.",
+    "sendResetEmail": "Send the access email now",
+    "sendResetEmailHint": "Recommended: the user gets an invitation to set a password and can sign in right away. If you uncheck it, send it later from the table (key icon).",
     "firstName": "First name",
     "lastName": "Last name",
     "optional": "(optional)",
@@ -221,7 +221,7 @@
   },
   "actions": {
     "editName": "Edit first / last name",
-    "resetPassword": "Send password reset email",
+    "resetPassword": "Send access email",
     "cannotDeactivateSelf": "You can't deactivate your own account",
     "deactivate": "Deactivate user (keeps seat)",
     "reactivate": "Reactivate user",

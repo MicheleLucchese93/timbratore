@@ -1,4 +1,5 @@
 import { adminPool } from './admin-db.js';
+import { env } from '../env.js';
 import { createLogger } from './logger.js';
 import { ensureAuthUser } from './auth-users.js';
 
@@ -23,8 +24,10 @@ export interface ProvisionTenantResult {
   tenantId: string;
   ragioneSociale: string;
   admin: { userId: string; email: string; role: 'admin'; membershipId: string };
-  // true → an invite email was sent; false → the admin already had an account.
-  invited: boolean;
+  // true → a brand-new GoTrue account was created for the admin; false → the
+  // admin's email already had an account that was reused. Sending the access
+  // email (invite vs reset) is the caller's job via sendAccessEmail.
+  adminCreated: boolean;
   limits: { maxAdmins: number; maxUsers: number; maxBranches: number; maxDocumentali: number };
 }
 
@@ -67,7 +70,9 @@ export async function provisionTenant(p: ProvisionTenantParams): Promise<Provisi
       lastName: p.adminLastName ?? null,
       language,
     });
-    if (u.invited) orphanGoTrueUserId = u.userId;
+    // A brand-new account in PROD means a GoTrue user now exists outside this PG
+    // transaction — track it so a later rollback can flag it for cleanup.
+    if (u.created && !env.DEV_AUTH_ENABLED) orphanGoTrueUserId = u.userId;
 
     const mem = await client.query(
       `INSERT INTO memberships (tenant_id, user_id, role)
@@ -84,7 +89,7 @@ export async function provisionTenant(p: ProvisionTenantParams): Promise<Provisi
         tenant_id: tenantId,
         user_id: u.userId,
         email,
-        invited: u.invited,
+        admin_created: u.created,
         created_by_partner: p.createdByPartner ?? null,
       },
       'tenant provisioned'
@@ -93,7 +98,7 @@ export async function provisionTenant(p: ProvisionTenantParams): Promise<Provisi
       tenantId,
       ragioneSociale: p.ragioneSociale,
       admin: { userId: u.userId, email, role: 'admin', membershipId: mem.rows[0].id },
-      invited: u.invited,
+      adminCreated: u.created,
       limits: {
         maxAdmins: t.rows[0].max_admins,
         maxUsers: t.rows[0].max_users,
@@ -106,7 +111,7 @@ export async function provisionTenant(p: ProvisionTenantParams): Promise<Provisi
     if (orphanGoTrueUserId) {
       logger.error(
         { orphan_gotrue_user_id: orphanGoTrueUserId, email },
-        'provisioning failed after GoTrue /invite — orphan auth user left behind, clean up manually'
+        'provisioning failed after GoTrue user create — orphan auth user left behind, clean up manually'
       );
     }
     throw err;

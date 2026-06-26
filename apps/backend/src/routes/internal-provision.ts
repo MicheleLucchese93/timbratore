@@ -6,6 +6,7 @@ import { ForbiddenError, ValidationError } from '../errors/index.js';
 import { ok } from '../lib/api-response.js';
 import { asyncHandler } from '../lib/route-helpers.js';
 import { provisionTenant } from '../lib/provision-tenant.js';
+import { sendAccessEmail } from '../lib/gotrue-admin.js';
 
 // Constant-time bearer comparison — same guard the internal-e2e router uses.
 function bearerMatches(header: string | undefined, secret: string): boolean {
@@ -80,6 +81,15 @@ internalProvisionRouter.post(
       maxBranches: body.max_branches ?? null,
     });
 
+    // This legacy route's contract is "provision + give the first admin access".
+    // Send the access email (invite for a brand-new account, reset for a reused
+    // one) — provisionTenant itself no longer sends mail.
+    const emailType = await sendAccessEmail(
+      result.admin.userId,
+      result.admin.email,
+      body.language
+    );
+
     ok(
       res,
       {
@@ -91,8 +101,9 @@ internalProvisionRouter.post(
           role: result.admin.role,
           membership_id: result.admin.membershipId,
         },
-        // true → invite email sent; false → admin already had an account.
-        invited: result.invited,
+        // true → an access email was sent (back-compat field).
+        invited: emailType !== 'none',
+        email_type: emailType,
         limits: {
           max_admins: result.limits.maxAdmins,
           max_users: result.limits.maxUsers,

@@ -94,8 +94,11 @@ export function Partners() {
   const resend = useCallback(
     async (row: PartnerRow) => {
       try {
-        await api(`/api/v1/partnership/partners/${row.user_id}/resend`, { method: 'POST' });
-        toast(t('partners.resend.done', { email: row.email }));
+        const res = await api<{ email_type: 'invite' | 'recovery' | 'none' }>(
+          `/api/v1/partnership/partners/${row.user_id}/resend`,
+          { method: 'POST' }
+        );
+        toast(t(`partners.resend.done_${res.email_type}`, { email: row.email }));
       } catch (e) {
         toast(errMsg(t, e), true);
       }
@@ -248,6 +251,7 @@ function CreatePartner({ onClose, onDone }: { onClose: () => void; onDone: () =>
   const [first, setFirst] = useState('');
   const [last, setLast] = useState('');
   const [note, setNote] = useState('');
+  const [sendInvite, setSendInvite] = useState(true);
   const [caps, setCaps] = useState<Caps>({
     cap_tenants: null,
     cap_users_per_tenant: null,
@@ -263,18 +267,22 @@ function CreatePartner({ onClose, onDone }: { onClose: () => void; onDone: () =>
     setBusy(true);
     setErr(null);
     try {
-      const res = await api<{ invited: boolean }>('/api/v1/partnership/partners', {
-        method: 'POST',
-        json: {
-          email: email.trim().toLowerCase(),
-          partner_name: name.trim() || undefined,
-          first_name: first.trim() || undefined,
-          last_name: last.trim() || undefined,
-          note: note.trim() || undefined,
-          ...caps,
-        },
-      });
-      toast(t(res.invited ? 'partners.create.created' : 'partners.create.created_existing'));
+      const res = await api<{ email_type: 'invite' | 'recovery' | 'none' }>(
+        '/api/v1/partnership/partners',
+        {
+          method: 'POST',
+          json: {
+            email: email.trim().toLowerCase(),
+            partner_name: name.trim() || undefined,
+            first_name: first.trim() || undefined,
+            last_name: last.trim() || undefined,
+            note: note.trim() || undefined,
+            send_invite: sendInvite,
+            ...caps,
+          },
+        }
+      );
+      toast(t(`partners.create.done_${res.email_type}`));
       await onDone();
     } catch (e2) {
       setErr(errMsg(t, e2));
@@ -309,6 +317,20 @@ function CreatePartner({ onClose, onDone }: { onClose: () => void; onDone: () =>
             <label className="label" htmlFor="p-note">{t('partners.create.note')}</label>
             <textarea id="p-note" className="input" rows={2} data-testid="partner-note" value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
+          <label className="checkbox-row" style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+            <input
+              type="checkbox"
+              data-testid="partner-send-invite"
+              checked={sendInvite}
+              onChange={(e) => setSendInvite(e.target.checked)}
+            />
+            <span>
+              {t('partners.create.send_invite')}
+              <span className="muted" style={{ display: 'block', fontWeight: 400 }}>
+                {t('partners.create.send_invite_hint')}
+              </span>
+            </span>
+          </label>
           <div className="label" style={{ marginTop: '0.25rem' }}>
             {t('partners.create.caps')} <span style={{ fontWeight: 400 }}>— {t('partners.create.caps_hint')}</span>
           </div>
