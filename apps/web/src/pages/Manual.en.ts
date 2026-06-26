@@ -146,7 +146,7 @@ export const MAIN_EN = `
 
     <section class="chapter" id="accesso">
       <h2><span class="chapter-num">04</span>Access and password</h2>
-      <p class="lead">Same credentials for Web and Mobile. The administrator creates your account and sends you an email to set your password and sign in.</p>
+      <p class="lead">Same credentials for Web and Mobile. The administrator creates your account and sends you an invitation to set your password and sign in.</p>
 
       <div class="feature">
         <h3>Logging in</h3>
@@ -202,7 +202,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>Do not have an account yet?</h3>
-        <p>Only your company's administrator can create your account. When they start the access procedure you will receive an email to set your password and sign in.</p>
+        <p>Only your company's administrator can create your account. When they start the access procedure you will receive an invitation to set your password and sign in (if you later forget your password you'll get a reset email instead).</p>
       </div>
     </section>
 

@@ -153,7 +153,7 @@ const MAIN_IT = `
 
     <section class="chapter" id="accesso">
       <h2><span class="chapter-num">04</span>Accesso e password</h2>
-      <p class="lead">Stesse credenziali per Web e Mobile. L'amministratore crea il tuo account e ti invia l'email per impostare la password e accedere.</p>
+      <p class="lead">Stesse credenziali per Web e Mobile. L'amministratore crea il tuo account e ti invia un invito a impostare la password e accedere.</p>
 
       <div class="feature">
         <h3>Effettuare l'accesso</h3>
@@ -209,7 +209,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Non hai ancora un account?</h3>
-        <p>Solo l'amministratore della tua azienda può crearti l'utenza. Quando avvia la procedura di accesso riceverai un'email per impostare la password ed entrare.</p>
+        <p>Solo l'amministratore della tua azienda può crearti l'utenza. Quando avvia la procedura di accesso riceverai un invito a impostare la password ed entrare (se in seguito dimentichi la password riceverai invece un'email di reset).</p>
       </div>
     </section>
 
