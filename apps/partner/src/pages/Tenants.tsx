@@ -113,7 +113,7 @@ export function Tenants() {
           renderCell: (p) =>
             p.row.owner_name || p.row.owner_email ? (
               <span
-                title={p.row.owner_name || p.row.owner_email}
+                title={p.row.owner_name || p.row.owner_email || undefined}
                 style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
               >
                 {p.row.owner_name || p.row.owner_email}
