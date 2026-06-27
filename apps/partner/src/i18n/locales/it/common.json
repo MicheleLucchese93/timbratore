@@ -1,6 +1,6 @@
 {
   "app": { "name": "sonoQui", "suffix": "Partner", "subtitle": "Gestione tenant rivenditori" },
-  "nav": { "tenants": "Aziende", "partners": "Partner", "audit": "Registro attività", "settings": "Impostazioni", "logout": "Esci", "openMenu": "Apri menu", "closeMenu": "Chiudi menu" },
+  "nav": { "tenants": "Aziende", "partners": "Partner", "audit": "Registro attività", "settings": "Impostazioni", "manual": "Manuale", "logout": "Esci", "openMenu": "Apri menu", "closeMenu": "Chiudi menu" },
   "settings": { "title": "Impostazioni", "subtitle": "Preferenze della console", "language": "Lingua", "security": "Sicurezza", "securityDesc": "Cambia la password del tuo account: inserisci quella attuale e scegline una nuova rispettando i requisiti di sicurezza." },
   "password": {
     "title": "Cambia password",
