@@ -1,0 +1,13 @@
+{
+  "toolbar": "Strumenti manuale",
+  "search": "Cerca nel manuale",
+  "searchPlaceholder": "Cerca nel manuale…",
+  "searchBtn": "Cerca",
+  "prevResult": "Risultato precedente",
+  "nextResult": "Risultato successivo",
+  "closeSearch": "Chiudi ricerca",
+  "downloadPdf": "Scarica PDF",
+  "downloadMarkdown": "Scarica Markdown",
+  "markdownHint": "Caricalo nel tuo LLM preferito, come ChatGPT",
+  "pdfTitle": "sonoQui Partner — Manuale"
+}
