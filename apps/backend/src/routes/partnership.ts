@@ -17,7 +17,13 @@ import { env } from '../env.js';
 import { provisionTenant } from '../lib/provision-tenant.js';
 import { ensureAuthUser } from '../lib/auth-users.js';
 import { logPartnershipAudit } from '../lib/partnership-audit.js';
-import { sendAccessEmail, updateUserEmail, deleteUser, changePassword } from '../lib/gotrue-admin.js';
+import {
+  sendAccessEmail,
+  updateUserEmail,
+  deleteUser,
+  changePassword,
+  type AccessEmailOptions,
+} from '../lib/gotrue-admin.js';
 import { passwordSchema } from '../lib/password.js';
 import { createLogger } from '../lib/logger.js';
 
@@ -29,6 +35,15 @@ export const partnershipRouter = Router();
 partnershipRouter.use(authenticatePartner);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Partners log into the partner console, not the web app — their access emails
+// must use the partner-flavoured invite copy and bounce the set-password page
+// back to partners.sonoqui.pro (allow-listed in GOTRUE_URI_ALLOW_LIST). Customer
+// tenant admins created elsewhere in this router stay on the default web app.
+const PARTNER_ACCESS_EMAIL: AccessEmailOptions = {
+  redirectTo: 'https://partners.sonoqui.pro/',
+  app: 'partner',
+};
 
 function partner(req: Request): PartnerContext {
   if (!req.partner) throw new ForbiddenError('Not a partnership member', 'NOT_PARTNERSHIP_MEMBER');
@@ -1006,7 +1021,7 @@ partnershipRouter.post(
       // Send access email after commit (GoTrue is outside the PG transaction).
       // Partners have no tenant locale — their language was seeded at create ('it').
       const emailType = b.send_invite
-        ? await sendAccessEmail(u.userId, email, 'it')
+        ? await sendAccessEmail(u.userId, email, 'it', PARTNER_ACCESS_EMAIL)
         : 'none';
       logger.info(
         { partner_user_id: u.userId, email, partner_created: u.created, email_type: emailType },
@@ -1192,7 +1207,7 @@ partnershipRouter.post(
     if (cur.rowCount === 0) throw new NotFoundError('partner not found');
     if (cur.rows[0].role !== 'partner') throw new ConflictError('not a partner', 'NOT_A_PARTNER');
     const email = cur.rows[0].email as string;
-    const emailType = await sendAccessEmail(userId, email, 'it');
+    const emailType = await sendAccessEmail(userId, email, 'it', PARTNER_ACCESS_EMAIL);
     await logPartnershipAudit({
       actorUserId: p.userId,
       actorRole: p.role,

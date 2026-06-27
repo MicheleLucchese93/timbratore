@@ -27,6 +27,11 @@
   var url = new URL(window.location.href);
   var tokenHash = url.searchParams.get('token_hash');
   var type = url.searchParams.get('type') || 'invite';
+  // Carried through to reset-password.html, which points the post-set "Accedi"
+  // link at the app that issued the invite (e.g. partners.sonoqui.pro). That
+  // page validates the origin against its own allow-list, so an unexpected value
+  // is harmless — it just keeps the default web app.
+  var redirectTo = url.searchParams.get('redirect_to');
 
   // This page NEVER calls GoTrue /verify. That call consumes the single-use
   // OTP, so firing it on load lets a corporate mail scanner / Microsoft
@@ -46,6 +51,7 @@
 
   var dest = '/reset-password.html?token_hash=' + encodeURIComponent(tokenHash) +
              '&type=' + encodeURIComponent(type);
+  if (redirectTo) dest += '&redirect_to=' + encodeURIComponent(redirectTo);
 
   // Forwarding is a plain same-origin navigation (GET); it does NOT consume the
   // OTP. The visible button is the manual fallback if the auto-redirect is

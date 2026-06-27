@@ -19,15 +19,34 @@ export interface GoTrueUser {
   email: string;
 }
 
-export async function inviteUser(email: string, language: 'it' | 'en' = 'it'): Promise<GoTrueUser> {
+// Per-audience routing for access emails. `app` picks which set-password copy
+// the templates render (web employee vs partner console) and `redirectTo` is
+// where the set-password page sends the user after success — so a partner
+// invitee lands on partners.sonoqui.pro instead of the default web app.
+export interface AccessEmailOptions {
+  redirectTo?: string;
+  app?: 'web' | 'partner';
+}
+
+export async function inviteUser(
+  email: string,
+  language: 'it' | 'en' = 'it',
+  opts: AccessEmailOptions = {}
+): Promise<GoTrueUser> {
   const jwt = await serviceRoleJwt();
-  const r = await fetch(`${env.GOTRUE_URL}/invite`, {
+  // redirect_to is validated by GoTrue against GOTRUE_URI_ALLOW_LIST and surfaced
+  // to invite.html as `.RedirectTo`; `data.app` is exposed as `.Data.app` so the
+  // template renders partner- vs web-flavoured copy (mirrors how `language` drives
+  // the IT/EN branch).
+  const url = new URL(`${env.GOTRUE_URL}/invite`);
+  if (opts.redirectTo) url.searchParams.set('redirect_to', opts.redirectTo);
+  const r = await fetch(url.toString(), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${jwt}`,
     },
-    body: JSON.stringify({ email, data: { language } }),
+    body: JSON.stringify({ email, data: { language, app: opts.app ?? 'web' } }),
   });
   if (!r.ok) {
     const text = await r.text();
@@ -105,7 +124,7 @@ export async function sendAccessEmail(
   userId: string,
   email: string,
   language: 'it' | 'en' = 'it',
-  redirectTo?: string
+  opts: AccessEmailOptions = {}
 ): Promise<AccessEmailType> {
   if (env.DEV_AUTH_ENABLED) return 'none';
   let confirmed = false;
@@ -120,7 +139,7 @@ export async function sendAccessEmail(
   }
   if (!confirmed) {
     try {
-      await inviteUser(email, language);
+      await inviteUser(email, language, opts);
       return 'invite';
     } catch (err) {
       // e.g. a race where the user confirmed between lookup and invite (GoTrue
@@ -130,7 +149,10 @@ export async function sendAccessEmail(
       console.warn('inviteUser failed; falling back to recovery', (err as Error).message);
     }
   }
-  await triggerRecovery(email, redirectTo);
+  // Recovery doesn't carry the audience flag (the recovery template isn't
+  // audience-specific) but still honours redirect_to so a confirmed partner
+  // returning via "reset password" lands back on the partner console.
+  await triggerRecovery(email, opts.redirectTo);
   return 'recovery';
 }
 
