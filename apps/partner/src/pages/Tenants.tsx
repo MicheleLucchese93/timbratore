@@ -1,11 +1,13 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
+import { useMediaQuery } from '@mui/material';
 import { api, type ApiError } from '../lib/api.ts';
 import { useSession, type PartnerCaps } from '../store/session.ts';
 import { useToast } from '../components/Toast.tsx';
 import { useConfirm } from '../components/ConfirmProvider.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { MCard, MCardList } from '../components/MobileCards.tsx';
 import { Modal } from '../components/Modal.tsx';
 import { IconButton } from '../components/IconButton.tsx';
 import { IconEdit, IconPause, IconPlay, IconUsers, IconTrash, IconPlus, IconMail, IconUserMinus } from '../components/icons.tsx';
@@ -42,6 +44,7 @@ export function Tenants() {
   const me = useSession((s) => s.me);
   const toast = useToast();
   const confirm = useConfirm();
+  const isMobile = useMediaQuery('(max-width: 768px)', { noSsr: true });
   const isAdmin = me?.role === 'admin';
   const isSuper = me?.is_super === true;
   const caps = me?.caps;
@@ -80,6 +83,45 @@ export function Tenants() {
       }
     },
     [t, toast, load]
+  );
+
+  // Shared by the DataGrid actions column (desktop) and the mobile card list.
+  const renderActions = (row: TenantRow) => (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', height: '100%' }}>
+      <IconButton label={t('actions.edit')} icon={<IconEdit />} onClick={() => setEditing(row)} />
+      {row.suspended_at ? (
+        <IconButton
+          label={t('tenants.resume.label')}
+          testId="resume"
+          icon={<IconPlay />}
+          onClick={async () => {
+            const okToResume = await confirm({
+              message: t('tenants.resume.confirm'),
+              confirmLabel: t('tenants.resume.label'),
+            });
+            if (okToResume) await act(`/api/v1/partnership/tenants/${row.id}/resume`, 'tenants.resume.done');
+          }}
+        />
+      ) : (
+        <IconButton
+          label={t('tenants.suspend.label')}
+          testId="suspend"
+          icon={<IconPause />}
+          onClick={async () => {
+            const okToSuspend = await confirm({
+              message: t('tenants.suspend.confirm'),
+              confirmLabel: t('tenants.suspend.label'),
+              danger: true,
+            });
+            if (okToSuspend) await act(`/api/v1/partnership/tenants/${row.id}/suspend`, 'tenants.suspend.done');
+          }}
+        />
+      )}
+      <IconButton label={t('admins.label')} testId="manage-admins" icon={<IconUsers />} onClick={() => setManagingAdmins(row)} />
+      {isSuper && (
+        <IconButton label={t('tenants.delete.label')} testId="delete-tenant" danger icon={<IconTrash />} onClick={() => setDeleting(row)} />
+      )}
+    </div>
   );
 
   const columns: GridColDef<TenantRow>[] = [
@@ -182,43 +224,7 @@ export function Tenants() {
       width: isSuper ? 210 : 170,
       sortable: false,
       filterable: false,
-      renderCell: (p) => (
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', height: '100%' }}>
-          <IconButton label={t('actions.edit')} icon={<IconEdit />} onClick={() => setEditing(p.row)} />
-          {p.row.suspended_at ? (
-            <IconButton
-              label={t('tenants.resume.label')}
-              testId="resume"
-              icon={<IconPlay />}
-              onClick={async () => {
-                const okToResume = await confirm({
-                  message: t('tenants.resume.confirm'),
-                  confirmLabel: t('tenants.resume.label'),
-                });
-                if (okToResume) await act(`/api/v1/partnership/tenants/${p.row.id}/resume`, 'tenants.resume.done');
-              }}
-            />
-          ) : (
-            <IconButton
-              label={t('tenants.suspend.label')}
-              testId="suspend"
-              icon={<IconPause />}
-              onClick={async () => {
-                const okToSuspend = await confirm({
-                  message: t('tenants.suspend.confirm'),
-                  confirmLabel: t('tenants.suspend.label'),
-                  danger: true,
-                });
-                if (okToSuspend) await act(`/api/v1/partnership/tenants/${p.row.id}/suspend`, 'tenants.suspend.done');
-              }}
-            />
-          )}
-          <IconButton label={t('admins.label')} testId="manage-admins" icon={<IconUsers />} onClick={() => setManagingAdmins(p.row)} />
-          {isSuper && (
-            <IconButton label={t('tenants.delete.label')} testId="delete-tenant" danger icon={<IconTrash />} onClick={() => setDeleting(p.row)} />
-          )}
-        </div>
-      ),
+      renderCell: (p) => renderActions(p.row),
     },
   ];
 
@@ -231,20 +237,55 @@ export function Tenants() {
           <IconButton label={t('tenants.new')} testId="new-tenant" primary icon={<IconPlus />} onClick={() => setCreating(true)} />
         }
       />
-      <div className="grid-wrap card">
-        <DataGrid
-          rows={rows}
-          columns={columns}
-          loading={loading}
-          disableRowSelectionOnClick
-          disableVirtualization
-          density="compact"
-          {...(isAdmin ? { rowHeight: 48 } : {})}
-          initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
-          pageSizeOptions={[25, 50, 100]}
-          sx={{ border: 0 }}
-        />
-      </div>
+      {isMobile ? (
+        <MCardList loading={loading} empty={!loading && rows.length === 0}>
+          {rows.map((r) => (
+            <MCard
+              key={r.id}
+              title={r.ragione_sociale}
+              badge={
+                r.suspended_at ? (
+                  <span className="badge badge-warn">{t('tenants.status.suspended')}</span>
+                ) : (
+                  <span className="badge badge-ok">{t('tenants.status.active')}</span>
+                )
+              }
+              fields={[
+                {
+                  label: t('tenants.col.admin_email'),
+                  value: r.admin_email
+                    ? `${r.admin_email}${r.admin_count > 1 ? ` +${r.admin_count - 1}` : ''}`
+                    : t('common.none'),
+                },
+                ...(isAdmin
+                  ? [{ label: t('tenants.col.owner'), value: r.owner_name || r.owner_email || t('tenants.platform') }]
+                  : []),
+                { label: t('tenants.col.users'), value: `${r.used_members}/${r.max_users}` },
+                { label: t('tenants.col.admins'), value: `${r.used_admins}/${r.max_admins}` },
+                { label: t('tenants.col.documentali'), value: `${r.used_documentali}/${r.max_documentali}` },
+                { label: t('tenants.col.branches'), value: `${r.used_branches}/${r.max_branches}` },
+                ...(r.note ? [{ label: t('tenants.col.note'), value: r.note }] : []),
+              ]}
+              actions={renderActions(r)}
+            />
+          ))}
+        </MCardList>
+      ) : (
+        <div className="grid-wrap card">
+          <DataGrid
+            rows={rows}
+            columns={columns}
+            loading={loading}
+            disableRowSelectionOnClick
+            disableVirtualization
+            density="compact"
+            {...(isAdmin ? { rowHeight: 48 } : {})}
+            initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
+            pageSizeOptions={[25, 50, 100]}
+            sx={{ border: 0 }}
+          />
+        </div>
+      )}
 
       {creating && (
         <CreateTenant
