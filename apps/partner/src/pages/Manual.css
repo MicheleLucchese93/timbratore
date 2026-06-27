@@ -607,7 +607,8 @@
   /* Match the mobile .main-body padding (3.25rem 1rem 1rem) for clean full-bleed. */
   .manuale-root { margin: -3.25rem -1rem -1rem; }
   .manuale-root .layout { grid-template-columns: 1fr; }
-  .manuale-root aside.toc { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--color-surface-variant); }
+  /* Mobile: hide the table-of-contents recap; search covers navigation. */
+  .manuale-root aside.toc { display: none; }
   .manuale-root main { padding: 1.5rem 1rem 2rem; }
   /* Mobile: drop the PDF/Markdown download block; keep only a compact search. */
   .manuale-root .manual-toolbar { flex-direction: row; align-items: center; gap: 0.5rem; }

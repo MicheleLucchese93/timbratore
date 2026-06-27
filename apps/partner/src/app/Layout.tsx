@@ -1,5 +1,5 @@
-import { type ReactNode, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../store/session.ts';
 import { ProfileModal } from '../components/ProfileModal.tsx';
@@ -36,6 +36,28 @@ export function Layout({ children }: { children: ReactNode }) {
   const isAdmin = me?.role === 'admin';
   const name = me?.display_name?.trim() || me?.email || '';
   const closeMobile = () => setMobileOpen(false);
+
+  // Mobile hamburger shows only at the top of the page; it slides away as soon
+  // as the content scrolls down. The scroll container is .main-body.
+  const location = useLocation();
+  const mainBodyRef = useRef<HTMLDivElement>(null);
+  const [atTop, setAtTop] = useState(true);
+
+  useEffect(() => {
+    const el = mainBodyRef.current;
+    if (!el) return;
+    const onScroll = () => setAtTop(el.scrollTop <= 8);
+    onScroll();
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // New page → scroll back to top so the hamburger is available again.
+  useEffect(() => {
+    const el = mainBodyRef.current;
+    if (el) el.scrollTop = 0;
+    setAtTop(true);
+  }, [location.pathname]);
 
   return (
     <div className="app-shell">
@@ -79,13 +101,13 @@ export function Layout({ children }: { children: ReactNode }) {
       <main className="main">
         <button
           type="button"
-          className="mobile-hamburger"
+          className={`mobile-hamburger${atTop ? '' : ' mobile-hamburger-hidden'}`}
           onClick={() => setMobileOpen(true)}
           aria-label={t('nav.openMenu')}
         >
           <IconMenu />
         </button>
-        <div className="main-body">{children}</div>
+        <div className="main-body" ref={mainBodyRef}>{children}</div>
       </main>
 
       {profileOpen && <ProfileModal onClose={() => setProfileOpen(false)} />}

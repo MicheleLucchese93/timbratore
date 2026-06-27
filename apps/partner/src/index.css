@@ -181,6 +181,9 @@ select.input { background-color: white; }
   color: var(--color-on-surface-variant); cursor: pointer; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 .mobile-hamburger:hover { color: var(--color-on-surface); }
+.mobile-hamburger { transition: opacity 160ms ease, transform 160ms ease; }
+/* Slides away once the page is scrolled; reappears at the top (set by Layout). */
+.mobile-hamburger-hidden { opacity: 0; transform: translateY(-150%); pointer-events: none; }
 
 @media (max-width: 768px) {
   .sidebar {
