@@ -21,11 +21,17 @@ services:
       # partners.sonoqui.pro is the reseller/tenant-management SPA (same-origin
       # build, like app.sonoqui.pro) — its mutating XHRs send Origin:
       # https://partners.sonoqui.pro, so the API must allow it.
+      # api.sonoqui.pro is the backend's own domain (= GOTRUE_SITE_URL): the static
+      # auth pages (confirm-email.html / reset-password.html) are served from there
+      # and POST same-origin to /api/v1/auth/* with Origin: https://api.sonoqui.pro,
+      # so it must be allowed or invite/recovery set-password fails CORS_NOT_ALLOWED.
+      # (BACKEND_URL still points at the xdevapp host and is used elsewhere —
+      # documents.ts raw URLs — so it can't double as this origin.)
       # localhost:5173/8082/5175 = the e2e mutating tier (web/mobile/partner dev
       # SPAs run locally against this prod backend). NODE_ENV=production disables
       # the localhost auto-allow regex in app.ts, so they must be listed
       # explicitly here (they were in .env.production but the pin above shadows it).
-      - CORS_ORIGINS=https://app-sonoqui.xdevapp.it,https://app.sonoqui.pro,https://sonoqui.pro,https://partners.sonoqui.pro,http://localhost:5173,http://localhost:8082,http://localhost:5175
+      - CORS_ORIGINS=https://app-sonoqui.xdevapp.it,https://app.sonoqui.pro,https://sonoqui.pro,https://partners.sonoqui.pro,https://api.sonoqui.pro,http://localhost:5173,http://localhost:8082,http://localhost:5175
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:4000/health"]
       interval: 30s
