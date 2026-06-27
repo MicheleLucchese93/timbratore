@@ -1528,7 +1528,7 @@ const MAIN_IT = `
           Il <strong>promemoria 24h</strong> parte ogni sera per le assenze che iniziano il giorno successivo (escluse le malattie). La malattia, essendo registrata a posteriori, non genera promemoria.
         </div>
         <div class="callout callout-info">
-          Il <strong>promemoria timbrature</strong> si basa sull'<strong>orario assegnato</strong>: per ogni fascia prevista oggi, se superi l'orario di <strong>entrata</strong> o di <strong>uscita</strong> (più la tolleranza dell'orario) senza la timbratura corrispondente, ricevi un avviso. Nei turni spezzati la pausa di metà giornata genera anche il promemoria di <strong>uscita per la pausa pranzo</strong> e di <strong>rientro</strong>. Le <strong>pause brevi</strong> non generano promemoria. Niente avvisi nei giorni di assenza approvata, nei festivi nazionali o se non hai un orario assegnato. Solo push: non viene inviata alcuna email. È attivo per impostazione predefinita.
+          Il <strong>promemoria timbrature</strong> si basa sull'<strong>orario assegnato</strong>: per ogni fascia prevista oggi, se superi l'orario di <strong>entrata</strong> o di <strong>uscita</strong> (più la tolleranza dell'orario) senza la timbratura corrispondente, ricevi un avviso. Nei turni spezzati la pausa di metà giornata genera anche il promemoria di <strong>uscita per la pausa pranzo</strong> e di <strong>rientro</strong>. Le <strong>pause brevi</strong> non generano promemoria. Niente avvisi nei giorni di assenza approvata, nei festivi nazionali o se non hai un orario assegnato. Solo push: non viene inviata alcuna email — e arriva solo sull'<strong>app mobile</strong>, che deve essere installata con le notifiche attive e una modalità di timbratura assegnata (chi timbra solo dal web non lo riceve). Se l'orario previsto è passato da oltre 2 ore, l'avviso non parte più. È attivo per impostazione predefinita.
         </div>
       </div>
 
@@ -1542,7 +1542,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>La campanella in app</h3>
-        <p>Nell'app mobile l'icona a <strong>campanella</strong> (in alto) raccoglie <strong>tutte</strong> le notifiche ricevute — esiti e nuove richieste di ferie/permessi e correzioni, promemoria 24h, eventi aziendali e nuovi documenti — con il numero di non lette in evidenza sul badge. Toccando una notifica si apre la sezione corrispondente. Lo stato di lettura è salvato sul server, quindi resta <strong>sincronizzato su tutti i tuoi dispositivi</strong>. La campanella mostra le notifiche indipendentemente dalle preferenze push: disattivare una push silenzia solo l'avviso del sistema, non l'elenco in app. Le notifiche <strong>già lette</strong> vengono eliminate automaticamente dopo <strong>15 giorni</strong>; quelle non lette restano finché non le apri.</p>
+        <p>Nell'app mobile l'icona a <strong>campanella</strong> (in alto) raccoglie <strong>tutte</strong> le notifiche ricevute — esiti e nuove richieste di ferie/permessi e correzioni, promemoria 24h e timbrature, eventi aziendali e nuovi documenti — con il numero di non lette in evidenza sul badge. Toccando una notifica si apre la sezione corrispondente. Lo stato di lettura è salvato sul server, quindi resta <strong>sincronizzato su tutti i tuoi dispositivi</strong>. La campanella mostra le notifiche indipendentemente dalle preferenze push: disattivare una push silenzia solo l'avviso del sistema, non l'elenco in app. Le notifiche <strong>già lette</strong> vengono eliminate automaticamente dopo <strong>15 giorni</strong>; quelle non lette restano finché non le apri. Fa eccezione la <strong>Bacheca</strong>: i suoi messaggi arrivano come push/email <strong>obbligatorie</strong> (senza possibilità di disattivazione) e <strong>non</strong> compaiono nella campanella — vivono nella sezione Bacheca, che ha un proprio contatore di messaggi da leggere.</p>
       </div>
     </section>
 
@@ -1587,6 +1587,7 @@ const MAIN_IT = `
             <tr><td><strong>Mock location</strong></td><td>Posizione GPS finta generata da app esterne.</td></tr>
             <tr><td><strong>Permesso</strong></td><td>Assenza retribuita a ore, granularità 15 minuti.</td></tr>
             <tr><td><strong>Promemoria 24h</strong></td><td>Notifica (push/email) inviata la sera prima dell'inizio di un'assenza approvata.</td></tr>
+            <tr><td><strong>Promemoria timbrature</strong></td><td>Notifica push inviata quando passa un orario previsto (entrata, uscita o pausa pranzo) senza la timbratura corrispondente. Solo app mobile; disattivabile dal Profilo.</td></tr>
             <tr><td><strong>Quota</strong></td><td>Saldo di ore disponibili per ferie o permessi.</td></tr>
             <tr><td><strong>Revoca</strong></td><td>Annullamento di una ferie già approvata, su iniziativa dell'admin.</td></tr>
             <tr><td><strong>Sede</strong></td><td>Luogo di lavoro, con o senza geofencing. Il raggio può essere disattivato: in tal caso il GPS è registrato ma non confrontato con un'area.</td></tr>
