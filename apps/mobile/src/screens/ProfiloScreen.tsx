@@ -57,6 +57,7 @@ type NotifPrefKey =
   | 'push_correction_submissions'
   | 'push_leave_reminders'
   | 'push_documents'
+  | 'push_stamp_reminders'
   | 'email_documents';
 
 const NOTIF_PREF_DEFAULTS: Record<NotifPrefKey, boolean> = {
@@ -66,6 +67,7 @@ const NOTIF_PREF_DEFAULTS: Record<NotifPrefKey, boolean> = {
   push_correction_submissions: true,
   push_leave_reminders: true,
   push_documents: true,
+  push_stamp_reminders: true,
   email_documents: true,
 };
 
@@ -295,6 +297,14 @@ export function ProfiloScreen() {
               </Text>
             </View>
           </View>
+          <View style={styles.divider} />
+          <PushToggleRow
+            label={tr('notifications.stampReminders')}
+            hint={tr('notifications.stampRemindersHint')}
+            value={pushPrefs.push_stamp_reminders}
+            disabled={!pushEnabled || savingPushKey === 'push_stamp_reminders'}
+            onChange={(v) => togglePushPref('push_stamp_reminders', v)}
+          />
           <View style={styles.divider} />
           <PushToggleRow
             label={tr('notifications.leaveDecisions')}

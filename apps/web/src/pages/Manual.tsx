@@ -15,6 +15,7 @@ const TOC_IT = `
       <h3>Web · Amministratore</h3>
       <a href="#web-admin">Panoramica</a>
       <a href="#web-admin-dashboard" class="sub">Dashboard</a>
+      <a href="#web-admin-bacheca" class="sub">Bacheca</a>
       <a href="#web-admin-timbrature" class="sub">Timbrature</a>
       <a href="#web-admin-correzioni" class="sub">Correzioni</a>
       <a href="#web-admin-utenti" class="sub">Utenti</a>
@@ -299,6 +300,38 @@ const MAIN_IT = `
       </div>
     </section>
 
+    <section class="chapter" id="web-admin-bacheca">
+      <h2><span class="chapter-num">06a</span>Bacheca <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
+      <p class="lead">La Bacheca è lo spazio per le comunicazioni aziendali: l'amministratore pubblica un messaggio e tutti i destinatari lo vedono in Dashboard (web e app) e possono segnarlo come letto.</p>
+
+      <div class="feature">
+        <h3>Creare un messaggio</h3>
+        <p>I messaggi si creano <strong>solo dal web</strong>, dalla voce <strong>Bacheca</strong> nel menu. Premi <strong>Nuovo messaggio</strong> e compila:</p>
+        <ul class="tidy">
+          <li><strong>Titolo</strong>: l'oggetto, usato anche come oggetto dell'email e titolo della notifica push.</li>
+          <li><strong>Messaggio</strong>: editor con formattazione (grassetto, corsivo, elenchi, titoli) e <strong>link</strong> cliccabili.</li>
+          <li><strong>Destinatari</strong>: <strong>Tutti gli utenti</strong> (inclusi quelli che entreranno in azienda in futuro) oppure <strong>Solo alcuni utenti</strong> selezionandoli dall'elenco.</li>
+          <li><strong>Programmazione</strong>: data di <strong>inizio</strong> (lascia vuoto per pubblicare subito) e di <strong>fine</strong> pubblicazione (lascia vuoto per non far scadere mai), scelte dal calendario.</li>
+          <li><strong>Notifiche</strong>: interruttori <strong>email</strong> e <strong>push</strong> (entrambi attivi per impostazione predefinita).</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h3>Chi ha letto</h3>
+        <p>Nell'elenco dei messaggi, accanto a ciascuno trovi il conteggio <strong>letture</strong> (es. "3 di 12 hanno letto"). Premendolo vedi <strong>chi</strong> ha letto e quando, e chi non ha ancora letto.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Modifica ed eliminazione</h3>
+        <p>Puoi <strong>modificare</strong> un messaggio già pubblicato (le letture restano valide, non viene reinviata la notifica) oppure <strong>eliminarlo</strong>: in tal caso sparisce dalla Bacheca dei destinatari.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Come lo vedono i dipendenti</h3>
+        <p>Ogni utente vede la Bacheca nella propria Dashboard (web) e nella scheda <strong>Bacheca</strong> dell'app mobile, con un contatore dei messaggi <strong>da leggere</strong>. Premendo <span class="pill pill-ok">Segna come letto</span> il messaggio risulta letto su tutti i dispositivi.</p>
+      </div>
+    </section>
+
     <section class="chapter" id="web-admin-timbrature">
       <h2><span class="chapter-num">07</span>Timbrature <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
       <p class="lead">L'archivio storico di tutte le timbrature aziendali, per impostazione predefinita gli ultimi 90 giorni.</p>
@@ -431,7 +464,7 @@ const MAIN_IT = `
           <li>Premi <strong>Invita utente</strong>.</li>
           <li>Inserisci email (obbligatorio), nome e cognome (opzionali).</li>
           <li>Scegli il ruolo: <em>Utente</em> o <em>Admin</em>.</li>
-          <li>Facoltativo: spunta <strong>Documentale</strong> per attribuire all'utente la capacità di caricare e consultare i documenti di <em>tutti</em> i dipendenti (vedi capitolo <em>Documenti</em>). È una capacità aggiuntiva, indipendente dal ruolo, assegnabile sia a un Admin sia a un dipendente. È limitata a <strong>1 Documentale per azienda</strong> (configurabile): se il tetto è già raggiunto la casella appare disabilitata.</li>
+          <li>Facoltativo: spunta <strong>Documentale</strong> per attribuire all'utente la capacità di caricare e consultare i documenti di <em>tutti</em> i dipendenti (vedi capitolo <em>Documenti</em>). È una capacità aggiuntiva, indipendente dal ruolo, assegnabile sia a un Admin sia a un dipendente. Il numero massimo di Documentali per azienda è <strong>configurabile</strong>: se il tetto è già raggiunto la casella appare disabilitata.</li>
           <li>Scegli la <strong>lingua</strong> (Italiano o English): determina la lingua delle email che riceverà (reset password, notifiche). Preimpostata sulla lingua dell'interfaccia.</li>
           <li>Seleziona una o più <strong>sedi</strong> di assegnazione.</li>
           <li>Facoltativo: assegna un <strong>identificativo univoco</strong> al dipendente (es. badge o matricola interna). È un codice libero che gestisci tu; compare nelle Timbrature (Lista e Griglia mensile) ed è ricercabile.</li>
@@ -447,7 +480,7 @@ const MAIN_IT = `
         <p>Per ogni riga della tabella puoi:</p>
         <ul class="tidy">
           <li>Cambiare il <strong>ruolo</strong> (Admin / Utente) tramite select. <em>Non puoi cambiare il ruolo del tuo account</em>: la select è disabilitata sulla tua riga, così un admin non può declassarsi a Utente e perdere l'accesso.</li>
-          <li>Attribuire o revocare la capacità <strong>Documentale</strong> con l'apposita spunta. È indipendente dal ruolo (può averla un Admin o un dipendente) e abilita l'utente a caricare e consultare i documenti di tutti i dipendenti (vedi capitolo <em>Documenti</em>). Vale il tetto di <strong>1 Documentale per azienda</strong> (configurabile): se è già occupato, la spunta è disabilitata sugli altri utenti.</li>
+          <li>Attribuire o revocare la capacità <strong>Documentale</strong> con l'apposita spunta. È indipendente dal ruolo (può averla un Admin o un dipendente) e abilita l'utente a caricare e consultare i documenti di tutti i dipendenti (vedi capitolo <em>Documenti</em>). Vale il <strong>limite di Documentali configurato per l'azienda</strong>: se è già occupato, la spunta è disabilitata sugli altri utenti.</li>
           <li>Attivare o disattivare l'utente con il toggle <strong>Attivo</strong>.</li>
           <li>Scegliere i <strong>metodi di timbratura</strong> consentiti (colonna <em>Timbratura</em>): <strong>GPS</strong> (da app mobile, presso la sede) e/o <strong>Da remoto</strong> (da web, senza verifica della posizione). Nessun metodo selezionato = l'utente non può timbrare e l'app non mostra il menu di timbratura.</li>
           <li>Modificare le <strong>sedi</strong> assegnate (multi-select).</li>
@@ -1313,6 +1346,7 @@ const MAIN_IT = `
         <ul class="tidy">
           <li><strong>Esiti ferie e permessi</strong> — quando vengono approvate o rifiutate.</li>
           <li><strong>Esiti correzioni</strong> — decisioni sulle tue correzioni.</li>
+          <li><strong>Promemoria timbrature</strong> — avviso se non timbri entrata, uscita o pausa pranzo all'orario previsto dal tuo turno.</li>
           <li><strong>Promemoria 24h prima</strong> — avviso la sera prima di una tua assenza (es. "domani ferie").</li>
         </ul>
         <p>Se le push sono <strong>non attive</strong>: devi abilitarle nelle impostazioni del telefono.</p>
@@ -1486,11 +1520,15 @@ const MAIN_IT = `
             <tr><td>Nuova richiesta ferie</td><td>All'invio da un dipendente</td><td>Admin / approvatore</td></tr>
             <tr><td>Nuova correzione</td><td>All'invio da un dipendente</td><td>Admin / approvatore</td></tr>
             <tr><td>Promemoria 24h</td><td>La sera prima di una tua assenza approvata (es. "domani ferie")</td><td>Dipendente</td></tr>
+            <tr><td>Promemoria timbrature</td><td>Quando passa un orario previsto (entrata, uscita o pausa pranzo) senza che tu abbia timbrato</td><td>Dipendente</td></tr>
             <tr><td>Evento aziendale</td><td>Quando l'admin inserisce un evento sul tuo calendario</td><td>Dipendente</td></tr>
           </tbody>
         </table>
         <div class="callout callout-info">
           Il <strong>promemoria 24h</strong> parte ogni sera per le assenze che iniziano il giorno successivo (escluse le malattie). La malattia, essendo registrata a posteriori, non genera promemoria.
+        </div>
+        <div class="callout callout-info">
+          Il <strong>promemoria timbrature</strong> si basa sull'<strong>orario assegnato</strong>: per ogni fascia prevista oggi, se superi l'orario di <strong>entrata</strong> o di <strong>uscita</strong> (più la tolleranza dell'orario) senza la timbratura corrispondente, ricevi un avviso. Nei turni spezzati la pausa di metà giornata genera anche il promemoria di <strong>uscita per la pausa pranzo</strong> e di <strong>rientro</strong>. Le <strong>pause brevi</strong> non generano promemoria. Niente avvisi nei giorni di assenza approvata, nei festivi nazionali o se non hai un orario assegnato. Solo push: non viene inviata alcuna email. È attivo per impostazione predefinita.
         </div>
       </div>
 
@@ -1498,7 +1536,7 @@ const MAIN_IT = `
         <h3>Configurare le notifiche</h3>
         <ul class="tidy">
           <li><strong>Email</strong>: nelle Impostazioni (web) puoi attivare/disattivare l'email <em>per categoria</em>, esattamente come le push: esiti richieste, nuove richieste da approvare, esiti correzioni, nuove correzioni e <strong>promemoria 24h</strong>. Disattivate di default.</li>
-          <li><strong>Push</strong>: toggle granulari per ciascun tipo nel Profilo dell'app mobile, incluso il <strong>Promemoria 24h prima</strong>. Le push richiedono il permesso del sistema operativo.</li>
+          <li><strong>Push</strong>: toggle granulari per ciascun tipo nel Profilo dell'app mobile, inclusi il <strong>Promemoria 24h prima</strong> e i <strong>Promemoria timbrature</strong>. Le push richiedono il permesso del sistema operativo. I promemoria timbrature sono solo push (nessuna email).</li>
         </ul>
       </div>
 

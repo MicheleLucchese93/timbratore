@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { color } from '@sonoqui/shared';
 import { useSession } from '../store/session';
+import { useBacheca } from '../store/bacheca';
 
 const TAB_BAR_CONTENT_HEIGHT = 54;
 const TAB_ICON_SIZE = 24;
@@ -15,6 +16,7 @@ const ICON_TO_LABEL_GAP = 3;
 
 const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   dashboard: 'grid-outline',
+  bacheca: 'megaphone-outline',
   timbrature: 'time-outline',
   storico: 'calendar-outline',
   richieste: 'sunny-outline',
@@ -25,6 +27,7 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
   const insets = useSafeAreaInsets();
   const bottomInset = Math.max(insets.bottom, 4);
   const me = useSession((s) => s.me);
+  const bachecaUnread = useBacheca((s) => s.unread);
   const isAdmin = me?.user.role === 'admin';
   const canStamp = (me?.user.stamp_modes ?? []).length > 0;
   const focusedKey = state.routes[state.index]?.key;
@@ -80,12 +83,21 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
                   {isFocused && <View style={styles.activeTabLine} />}
                 </View>
                 <View style={styles.iconLabelWrap}>
-                  <Ionicons
-                    name={iconName}
-                    size={TAB_ICON_SIZE}
-                    color="#FFFFFF"
-                    style={!isFocused ? styles.tabIconInactive : undefined}
-                  />
+                  <View>
+                    <Ionicons
+                      name={iconName}
+                      size={TAB_ICON_SIZE}
+                      color="#FFFFFF"
+                      style={!isFocused ? styles.tabIconInactive : undefined}
+                    />
+                    {route.name === 'bacheca' && bachecaUnread > 0 && (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>
+                          {bachecaUnread > 9 ? '9+' : String(bachecaUnread)}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <Text
                     style={[
                       styles.tabLabel,
@@ -130,6 +142,19 @@ const styles = StyleSheet.create({
   },
   iconLabelWrap: { alignItems: 'center', justifyContent: 'center' },
   tabIconInactive: { opacity: 0.6 },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    backgroundColor: '#ef4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
   tabLabel: {
     fontSize: LABEL_FONT_SIZE,
     fontWeight: '500',

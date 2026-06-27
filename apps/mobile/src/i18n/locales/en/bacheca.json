@@ -1,0 +1,12 @@
+{
+  "title": "Notice board",
+  "empty": "No messages on the notice board.",
+  "emptyUnread": "No unread messages.",
+  "markRead": "Mark as read",
+  "read": "Read",
+  "all": "All",
+  "unreadOnly": "Unread",
+  "unreadCount_one": "{{count}} unread",
+  "unreadCount_other": "{{count}} unread",
+  "publishedOn": "Published on {{date}}"
+}

@@ -1195,3 +1195,148 @@ select.input { background-color: white; }
   border-left-width: 3px;
   border-left-style: solid;
 }
+
+/* ===================== Bacheca (notice board) ===================== */
+/* Member feed cards. Unread messages get an accent rail + dot. */
+.bacheca-card {
+  border-left: 3px solid transparent;
+}
+.bacheca-card-unread {
+  border-left-color: var(--color-primary);
+  background: color-mix(in oklab, var(--color-primary) 5%, var(--color-surface));
+}
+.bacheca-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--color-primary);
+  flex-shrink: 0;
+}
+/* Rendered (server-sanitized) message HTML: readable prose defaults, since the
+   global reset strips list markers / heading sizes. */
+.bacheca-content {
+  color: var(--color-on-surface-variant);
+  line-height: 1.55;
+  word-break: break-word;
+}
+.bacheca-content p { margin: 0 0 0.5rem; }
+.bacheca-content p:last-child { margin-bottom: 0; }
+.bacheca-content h1,
+.bacheca-content h2,
+.bacheca-content h3,
+.bacheca-content h4 {
+  font-weight: 700;
+  color: var(--color-on-surface);
+  margin: 0.5rem 0 0.25rem;
+  font-size: 0.95rem;
+}
+.bacheca-content ul,
+.bacheca-content ol {
+  margin: 0 0 0.5rem;
+  padding-left: 1.25rem;
+}
+.bacheca-content ul { list-style: disc; }
+.bacheca-content ol { list-style: decimal; }
+.bacheca-content li { margin: 0.125rem 0; }
+.bacheca-content a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+.bacheca-content strong { font-weight: 700; }
+.bacheca-content em { font-style: italic; }
+
+/* Admin management list rows. */
+.bacheca-admin-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.bacheca-reads-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-primary);
+  text-decoration: underline;
+  font: inherit;
+}
+.bacheca-recipient-list {
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  max-height: 12rem;
+  overflow-y: auto;
+}
+.bacheca-recipient-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.25rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border-radius: 0.375rem;
+}
+.bacheca-recipient-item:hover {
+  background: var(--color-surface-variant);
+}
+
+/* ===================== Rich-text editor (TipTap) ===================== */
+.rte {
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+.rte-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-variant);
+  flex-wrap: wrap;
+}
+.rte-sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--color-border);
+  margin: 0 0.125rem;
+}
+.rte-btn {
+  min-width: 1.75rem;
+  height: 1.75rem;
+  padding: 0 0.375rem;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--color-on-surface);
+  cursor: pointer;
+  font-size: 0.8125rem;
+  line-height: 1;
+}
+.rte-btn:hover { background: var(--color-surface); }
+.rte-btn-active {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-primary);
+}
+.rte-content {
+  padding: 0.625rem 0.75rem;
+  min-height: 8rem;
+  max-height: 22rem;
+  overflow-y: auto;
+}
+.rte-content .ProseMirror { outline: none; min-height: 6.5rem; }
+.rte-content .ProseMirror p { margin: 0 0 0.5rem; }
+.rte-content .ProseMirror ul { list-style: disc; padding-left: 1.25rem; margin: 0 0 0.5rem; }
+.rte-content .ProseMirror ol { list-style: decimal; padding-left: 1.25rem; margin: 0 0 0.5rem; }
+.rte-content .ProseMirror h3 { font-weight: 700; font-size: 1rem; margin: 0.5rem 0 0.25rem; }
+.rte-content .ProseMirror a { color: var(--color-primary); text-decoration: underline; }
+/* Placeholder when empty (StarterKit doesn't include one; show via attr). */
+.rte-content .ProseMirror.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--color-on-surface-variant);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

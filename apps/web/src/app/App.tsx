@@ -28,6 +28,7 @@ const MyStamps = lazy(() => import('../pages/MyStamps.tsx').then((m) => ({ defau
 const MyLeaves = lazy(() => import('../pages/MyLeaves.tsx').then((m) => ({ default: m.MyLeaves })));
 const MyDashboard = lazy(() => import('../pages/MyDashboard.tsx').then((m) => ({ default: m.MyDashboard })));
 const Documents = lazy(() => import('../pages/Documents.tsx').then((m) => ({ default: m.Documents })));
+const Bacheca = lazy(() => import('../pages/Bacheca.tsx').then((m) => ({ default: m.Bacheca })));
 const MyDocuments = lazy(() => import('../pages/MyDocuments.tsx').then((m) => ({ default: m.MyDocuments })));
 const Manual = lazy(() => import('../pages/Manual.tsx').then((m) => ({ default: m.Manual })));
 
@@ -77,6 +78,7 @@ export function App() {
           <Suspense fallback={<PageSkeleton />}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/bacheca" element={<Bacheca />} />
               <Route path="/branches" element={<Branches />} />
               <Route path="/users" element={<Users />} />
               <Route path="/stamps" element={<Stamps />} />

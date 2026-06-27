@@ -36,6 +36,8 @@
     "leaveDecisionsHint": "Approvazioni e rifiuti delle tue richieste",
     "correctionDecisions": "Esiti correzioni",
     "correctionDecisionsHint": "Approvazioni e rifiuti delle tue correzioni",
+    "stampReminders": "Promemoria timbrature",
+    "stampRemindersHint": "Avviso se non timbri entrata, uscita o pausa pranzo all'orario previsto",
     "leaveReminders": "Promemoria 24h prima",
     "leaveRemindersHint": "Avviso il giorno prima di una tua assenza (es. domani ferie)",
     "leaveSubmissions": "Nuove richieste ferie e permessi",

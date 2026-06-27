@@ -168,7 +168,7 @@
     "role": "Ruolo",
     "roleUser": "Utente",
     "isDocumentale": "Documentale",
-    "isDocumentaleHint": "Può caricare documenti e consultare quelli di tutti i dipendenti (con verifica via codice). Max {{max}} per azienda.",
+    "isDocumentaleHint": "Può caricare documenti e consultare quelli di tutti i dipendenti (con verifica via codice).",
     "language": "Lingua",
     "langItalian": "Italiano",
     "langEnglish": "Inglese",

@@ -583,6 +583,46 @@ export function buildDocumentUploadedMail(p: DocumentUploadedMailPayload): {
   return { subject, text, html };
 }
 
+/* ----- Bacheca (bulletin board) email ----- */
+
+export interface BulletinMailPayload {
+  title: string;
+  /** Pre-sanitized HTML body (allowlist applied at the API boundary). */
+  bodyHtml: string;
+  /** Plain-text flattening of the body, for the text part. */
+  bodyText: string;
+  language?: 'it' | 'en';
+}
+
+function bachecaActionUrl(): string {
+  return env.WEB_PUBLIC_URL.replace(/\/$/, '') + '/bacheca';
+}
+
+/**
+ * Notice sent to a recipient when an admin publishes a new Bacheca message. The
+ * body is admin-authored HTML already sanitized upstream (sanitizeBulletinHtml),
+ * so it is embedded raw inside the shell — never escaped, or formatting would be
+ * lost. The title is escaped (plain text). Inline HTML, no template file.
+ */
+export function buildBulletinMail(p: BulletinMailPayload): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const language = p.language ?? 'it';
+  const subject = `[sonoQui] ${stripHeader(p.title)}`;
+  const cta = language === 'it' ? 'Apri sonoQui per leggere il messaggio.' : 'Open sonoQui to read the message.';
+  const text = `${p.title}\n\n${p.bodyText}\n\n${cta}`;
+  const html =
+    `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;padding:24px">` +
+    `<h2 style="color:#0f172a;font-size:18px;margin:0 0 12px">${escapeHtml(p.title)}</h2>` +
+    `<div style="color:#334155;font-size:14px;line-height:1.55">${p.bodyHtml}</div>` +
+    `<p style="margin-top:20px"><a href="${bachecaActionUrl()}" style="color:#15569e">${escapeHtml(cta)}</a></p>` +
+    `<p style="margin-top:16px;color:#94a3b8;font-size:12px">sonoQui</p>` +
+    `</div>`;
+  return { subject, text, html };
+}
+
 /* ----- Documentale OTP email ----- */
 
 export interface DocumentOtpMailPayload {

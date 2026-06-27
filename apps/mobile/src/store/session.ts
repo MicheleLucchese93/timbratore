@@ -39,6 +39,7 @@ export interface Me {
       push_correction_submissions: boolean;
       push_leave_reminders: boolean;
       push_documents?: boolean;
+      push_stamp_reminders?: boolean;
       email_documents?: boolean;
     };
   };

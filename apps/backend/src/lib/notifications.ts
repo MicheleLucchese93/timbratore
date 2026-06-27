@@ -12,10 +12,12 @@ import {
   buildReminderMail,
   buildBulkEventMail,
   buildDocumentUploadedMail,
+  buildBulletinMail,
   sendMail,
   type LeaveMailPayload,
   type CorrectionMailPayload,
 } from './mailer.js';
+import { htmlToPlainText } from './bulletin-sanitize.js';
 import type { DocumentCategory } from '@sonoqui/shared';
 
 const logger = createLogger('notifications');
@@ -28,7 +30,8 @@ type PushPrefKey =
   | 'push_leave_submissions'
   | 'push_correction_submissions'
   | 'push_leave_reminders'
-  | 'push_documents';
+  | 'push_documents'
+  | 'push_stamp_reminders';
 
 // Per-kind email opt-in keys (migration 030). Missing key falls back to the
 // legacy single master switch email_notifications_enabled.
@@ -469,6 +472,38 @@ export async function notifyLeaveReminder(
   );
 }
 
+/** The four shift-boundary reminders a user can receive in a day. */
+export type StampReminderKind = 'entry' | 'lunch_out' | 'lunch_in' | 'exit';
+
+/**
+ * Missed-stamp reminder: the user reached an expected shift boundary (`time`,
+ * wall-clock 'HH:MM') without making the matching stamp. Push + in-app bell only
+ * — no email (the day can fire up to four of these, email would be noise).
+ * Called by the stamp-reminder cron (cross-tenant via adminPool), once per
+ * boundary per day thanks to the stamp_reminder_log dedupe.
+ */
+export async function notifyStampReminder(
+  tenantId: string,
+  userId: string,
+  reminder: { kind: StampReminderKind; time: string }
+): Promise<void> {
+  const [recipient] = await loadRecipients([userId]);
+  if (!recipient) return;
+  const lang = asLang(recipient.language);
+  await deliver(
+    tenantId,
+    recipient,
+    {
+      title: PUSH.stampReminder.title[lang],
+      body: PUSH.stampReminder.body(reminder.kind, reminder.time)[lang],
+      data: { kind: 'stamp_reminder', reminder_kind: reminder.kind, time: reminder.time },
+      prefKey: 'push_stamp_reminders',
+    },
+    null,
+    null
+  );
+}
+
 /**
  * Notice to each user an admin pushed a company event to (bulk insert). Gated
  * under the user-facing leave channel (decisions). adminPool-backed, so it can
@@ -547,6 +582,57 @@ export async function notifyDocumentUploaded(
     'documenti'
   );
   void client;
+}
+
+/* ----- Bacheca (bulletin) notifications ----- */
+
+interface BulletinContext {
+  bulletinId: string;
+  title: string;
+  /** Pre-sanitized HTML body (allowlist applied at the API boundary). */
+  bodyHtml: string;
+  notifyEmail: boolean;
+  notifyPush: boolean;
+}
+
+/**
+ * Notice to each recipient that an admin published a new Bacheca message. Fired
+ * ONCE at publish to the recipients existing then. Channels are admin-controlled
+ * per message (notifyEmail / notifyPush) and MANDATORY for recipients — there is
+ * deliberately no per-user opt-out (company announcement), so this does NOT use
+ * deliver()/the pref gates. Crucially it also writes NO bell row: Bacheca is its
+ * own read-state surface. adminPool-backed (via loadRecipients), so it runs fine
+ * fire-and-forget after the request transaction commits.
+ */
+export async function notifyBulletin(
+  tenantId: string,
+  userIds: string[],
+  ctx: BulletinContext
+): Promise<void> {
+  void tenantId;
+  if (userIds.length === 0) return;
+  if (!ctx.notifyEmail && !ctx.notifyPush) return;
+  const recipients = await loadRecipients(userIds);
+  const pushPreview = htmlToPlainText(ctx.bodyHtml, 140);
+  const fullText = htmlToPlainText(ctx.bodyHtml, 5000);
+  for (const r of recipients) {
+    const lang = asLang(r.language);
+    if (ctx.notifyPush && r.push_token) {
+      await sendExpoPush(r.push_token, ctx.title, pushPreview, {
+        kind: 'bulletin',
+        bulletin_id: ctx.bulletinId,
+      });
+    }
+    if (ctx.notifyEmail && r.email) {
+      const mail = buildBulletinMail({
+        title: ctx.title,
+        bodyHtml: ctx.bodyHtml,
+        bodyText: fullText,
+        language: lang,
+      });
+      await sendMail({ to: r.email, subject: mail.subject, text: mail.text, html: mail.html });
+    }
+  }
 }
 
 /* ----- Correction-request notifications ----- */
@@ -706,6 +792,33 @@ const PUSH = {
   reminder: {
     title: { it: 'Promemoria', en: 'Reminder' },
     body: (label: string) => ({ it: `Domani: ${label}`, en: `Tomorrow: ${label}` }),
+  },
+  stampReminder: {
+    title: { it: 'Promemoria timbratura', en: 'Stamp reminder' },
+    body: (kind: 'entry' | 'lunch_out' | 'lunch_in' | 'exit', time: string): Record<Lang, string> => {
+      switch (kind) {
+        case 'entry':
+          return {
+            it: `Non hai ancora timbrato l'entrata delle ${time}`,
+            en: `You haven't clocked in for ${time} yet`,
+          };
+        case 'lunch_out':
+          return {
+            it: `Ricordati di timbrare la pausa pranzo (${time})`,
+            en: `Remember to stamp your lunch break (${time})`,
+          };
+        case 'lunch_in':
+          return {
+            it: `Ricordati di timbrare il rientro delle ${time}`,
+            en: `Remember to stamp your return at ${time}`,
+          };
+        case 'exit':
+          return {
+            it: `Non hai ancora timbrato l'uscita delle ${time}`,
+            en: `You haven't clocked out for ${time} yet`,
+          };
+      }
+    },
   },
   bulkEvent: {
     title: { it: 'Evento aziendale', en: 'Company event' },

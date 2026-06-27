@@ -168,7 +168,7 @@
     "role": "Role",
     "roleUser": "User",
     "isDocumentale": "Documentale",
-    "isDocumentaleHint": "Can upload documents and view all employees' documents (with code verification). Max {{max}} per company.",
+    "isDocumentaleHint": "Can upload documents and view all employees' documents (with code verification).",
     "language": "Language",
     "langItalian": "Italian",
     "langEnglish": "English",
