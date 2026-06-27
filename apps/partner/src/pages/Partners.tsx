@@ -1,10 +1,12 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
+import { useMediaQuery } from '@mui/material';
 import { api, type ApiError } from '../lib/api.ts';
 import { useToast } from '../components/Toast.tsx';
 import { useConfirm } from '../components/ConfirmProvider.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { MCard, MCardList } from '../components/MobileCards.tsx';
 import { Modal } from '../components/Modal.tsx';
 import { IconButton } from '../components/IconButton.tsx';
 import { IconEdit, IconMail, IconCheck, IconBan, IconPlus } from '../components/icons.tsx';
@@ -50,6 +52,7 @@ export function Partners() {
   const { t } = useTranslation();
   const toast = useToast();
   const confirm = useConfirm();
+  const isMobile = useMediaQuery('(max-width: 768px)', { noSsr: true });
   const [rows, setRows] = useState<PartnerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -93,6 +96,11 @@ export function Partners() {
 
   const resend = useCallback(
     async (row: PartnerRow) => {
+      const ok = await confirm({
+        message: t('partners.resend.confirm', { email: row.email }),
+        confirmLabel: t('partners.resend.label'),
+      });
+      if (!ok) return;
       try {
         const res = await api<{ email_type: 'invite' | 'recovery' | 'none' }>(
           `/api/v1/partnership/partners/${row.user_id}/resend`,
@@ -103,10 +111,23 @@ export function Partners() {
         toast(errMsg(t, e), true);
       }
     },
-    [t, toast]
+    [t, toast, confirm]
   );
 
   const capCell = (v: number | null) => (v == null ? t('common.unlimited') : String(v));
+
+  // Shared by the DataGrid actions column (desktop) and the mobile card list.
+  const renderActions = (row: PartnerRow) => (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', height: '100%' }}>
+      <IconButton label={t('actions.edit')} icon={<IconEdit />} onClick={() => setEditing(row)} />
+      <IconButton label={t('partners.resend.label')} testId="resend" icon={<IconMail />} onClick={() => resend(row)} />
+      {row.active ? (
+        <IconButton label={t('partners.deactivate.label')} testId="deactivate" danger icon={<IconBan />} onClick={() => toggle(row)} />
+      ) : (
+        <IconButton label={t('partners.activate.label')} testId="activate" icon={<IconCheck />} onClick={() => toggle(row)} />
+      )}
+    </div>
+  );
 
   const columns: GridColDef<PartnerRow>[] = [
     {
@@ -159,17 +180,7 @@ export function Partners() {
       width: 150,
       sortable: false,
       filterable: false,
-      renderCell: (p) => (
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', height: '100%' }}>
-          <IconButton label={t('actions.edit')} icon={<IconEdit />} onClick={() => setEditing(p.row)} />
-          <IconButton label={t('partners.resend.label')} testId="resend" icon={<IconMail />} onClick={() => resend(p.row)} />
-          {p.row.active ? (
-            <IconButton label={t('partners.deactivate.label')} testId="deactivate" danger icon={<IconBan />} onClick={() => toggle(p.row)} />
-          ) : (
-            <IconButton label={t('partners.activate.label')} testId="activate" icon={<IconCheck />} onClick={() => toggle(p.row)} />
-          )}
-        </div>
-      ),
+      renderCell: (p) => renderActions(p.row),
     },
   ];
 
@@ -182,20 +193,49 @@ export function Partners() {
           <IconButton label={t('partners.new')} testId="new-partner" primary icon={<IconPlus />} onClick={() => setCreating(true)} />
         }
       />
-      <div className="grid-wrap card">
-        <DataGrid
-          rows={rows}
-          columns={columns}
-          loading={loading}
-          getRowId={(r) => r.user_id}
-          disableRowSelectionOnClick
-          disableVirtualization
-          density="compact"
-          initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
-          pageSizeOptions={[25, 50, 100]}
-          sx={{ border: 0 }}
-        />
-      </div>
+      {isMobile ? (
+        <MCardList loading={loading} empty={!loading && rows.length === 0}>
+          {rows.map((r) => (
+            <MCard
+              key={r.user_id}
+              title={r.partner_name || r.email}
+              badge={
+                r.active ? (
+                  <span className="badge badge-ok">{t('partners.status.active')}</span>
+                ) : (
+                  <span className="badge badge-warn">{t('partners.status.inactive')}</span>
+                )
+              }
+              fields={[
+                ...(r.partner_name ? [{ label: t('partners.col.email'), value: r.email }] : []),
+                { label: t('partners.col.tenants'), value: String(r.tenant_count) },
+                { label: t('partners.col.cap_tenants'), value: capCell(r.cap_tenants) },
+                { label: t('partners.col.cap_users'), value: capCell(r.cap_users_per_tenant) },
+                { label: t('partners.col.cap_admins'), value: capCell(r.cap_admins_per_tenant) },
+                { label: t('partners.col.cap_documentali'), value: capCell(r.cap_documentali_per_tenant) },
+                { label: t('partners.col.cap_branches'), value: capCell(r.cap_branches_per_tenant) },
+                ...(r.note ? [{ label: t('partners.col.note'), value: r.note }] : []),
+              ]}
+              actions={renderActions(r)}
+            />
+          ))}
+        </MCardList>
+      ) : (
+        <div className="grid-wrap card">
+          <DataGrid
+            rows={rows}
+            columns={columns}
+            loading={loading}
+            getRowId={(r) => r.user_id}
+            disableRowSelectionOnClick
+            disableVirtualization
+            density="compact"
+            initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
+            pageSizeOptions={[25, 50, 100]}
+            sx={{ border: 0 }}
+          />
+        </div>
+      )}
 
       {creating && (
         <CreatePartner

@@ -1,6 +1,6 @@
 {
   "app": { "name": "sonoQui", "suffix": "Partner", "subtitle": "Reseller tenant management" },
-  "nav": { "tenants": "Companies", "partners": "Partners", "audit": "Activity log", "settings": "Settings", "logout": "Sign out" },
+  "nav": { "tenants": "Companies", "partners": "Partners", "audit": "Activity log", "settings": "Settings", "logout": "Sign out", "openMenu": "Open menu", "closeMenu": "Close menu" },
   "settings": { "title": "Settings", "subtitle": "Console preferences", "language": "Language", "security": "Security", "securityDesc": "Change your account password: enter your current one and choose a new one that meets the security requirements." },
   "password": {
     "title": "Change password",
@@ -147,7 +147,7 @@
     "edit": { "title": "Edit partner caps", "submit": "Save", "saved": "Partner caps updated." },
     "activate": { "label": "Activate", "confirm": "Reactivate this partner? They will be able to sign in again.", "done": "Partner activated." },
     "deactivate": { "label": "Disable", "confirm": "Disable this partner? They will no longer be able to sign in.", "done": "Partner disabled." },
-    "resend": { "label": "Resend", "done_invite": "Invite sent to {{email}}.", "done_recovery": "Password reset email sent to {{email}}.", "done_none": "No email sent." }
+    "resend": { "label": "Resend", "confirm": "Resend the access email to {{email}}?", "done_invite": "Invite sent to {{email}}.", "done_recovery": "Password reset email sent to {{email}}.", "done_none": "No email sent." }
   },
   "caps": {
     "cap_tenants": "Max companies they can create",
