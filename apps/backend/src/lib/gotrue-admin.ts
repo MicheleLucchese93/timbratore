@@ -90,6 +90,28 @@ export async function createUserSilently(
   return (await r.json()) as GoTrueUser;
 }
 
+// Overwrite a GoTrue account's user_metadata (admin API). GoTrue exposes
+// user_metadata as `.Data` in email templates, so this is how we persist the
+// audience (`app`) and language that the invite template branches on. Required
+// because our accounts are always pre-created (createUserSilently) and GoTrue's
+// /invite does NOT update metadata for an already-existing user — without this
+// the template falls back to the default web copy. Merges at the key level.
+export async function updateUserMetadata(
+  userId: string,
+  metadata: Record<string, unknown>
+): Promise<void> {
+  const jwt = await serviceRoleJwt();
+  const r = await fetch(`${env.GOTRUE_URL}/admin/users/${userId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt}` },
+    body: JSON.stringify({ user_metadata: metadata }),
+  });
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error(`GoTrue PUT /admin/users/${userId} (metadata) ${r.status}: ${text}`);
+  }
+}
+
 // Has this GoTrue account confirmed its email — i.e. followed an invite/recovery
 // link and set a first password? Used to choose between an invitation email
 // (never confirmed) and a password-reset email (already confirmed). Reads the
@@ -139,6 +161,19 @@ export async function sendAccessEmail(
   }
   if (!confirmed) {
     try {
+      // The invitee was pre-created (createUserSilently), so GoTrue treats this
+      // as a re-invite and will NOT apply the `data` payload to user_metadata.
+      // Persist the audience first so invite.html renders the right branch
+      // (`.Data.app`). Keep language in sync too. Best-effort: a metadata-update
+      // failure shouldn't block the invite.
+      if (opts.app) {
+        try {
+          await updateUserMetadata(userId, { language, app: opts.app });
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.warn('updateUserMetadata before invite failed', (err as Error).message);
+        }
+      }
       await inviteUser(email, language, opts);
       return 'invite';
     } catch (err) {
