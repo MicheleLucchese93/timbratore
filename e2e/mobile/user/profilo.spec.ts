@@ -30,6 +30,12 @@ test.describe('mobile — Profilo screen (employee)', () => {
     await expect(page.getByText('Promemoria 24h prima', { exact: true })).toBeVisible({ timeout: 15_000 });
   });
 
+  test('notification settings include the stamp reminders toggle', async ({ page }) => {
+    // The "Promemoria timbrature" push toggle governs the server-sent
+    // missed-stamp reminders (migration 052 / push_stamp_reminders).
+    await expect(page.getByText('Promemoria timbrature', { exact: true })).toBeVisible({ timeout: 15_000 });
+  });
+
   test('Sicurezza section exposes the biometric login toggle', async ({ page }) => {
     // Native biometric auth (expo-local-authentication) can't be exercised in
     // the RN-Web harness; assert the opt-in row is present. Web has no

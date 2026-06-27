@@ -7,6 +7,7 @@ import { useRealtimePolling } from '../hooks/useRealtimePolling.ts';
 import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { IconButton } from '../components/IconButton.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { BachecaSection } from '../components/BachecaSection.tsx';
 import { fmtDate, fmtDateTime, fmtTime, fmtNumber, localeTag } from '../i18n/format.ts';
 
 interface Usage {
@@ -270,6 +271,8 @@ export function Dashboard() {
           icon={<IconMapPin />}
         />
       </section>
+
+      <BachecaSection manageHref="/bacheca" />
 
       <section>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">

@@ -975,6 +975,103 @@ export async function downloadDocumentRaw(
   return { status: r.status, code: parsed.error?.code, url: parsed.data?.url };
 }
 
+/* ---------------- Bacheca (bulletin) helpers ---------------- */
+
+export interface BulletinRecord {
+  id: string;
+  tenant_id: string;
+  title: string;
+  body_html: string;
+  target_all: boolean;
+  start_at: string | null;
+  end_at: string | null;
+  notify_email: boolean;
+  notify_push: boolean;
+  created_at: string;
+}
+
+export interface BulletinAdminItem extends BulletinRecord {
+  recipient_count: number;
+  read_count: number;
+}
+
+export interface BulletinFeedItem {
+  id: string;
+  title: string;
+  body_html: string;
+  start_at: string | null;
+  end_at: string | null;
+  created_at: string;
+  read: boolean;
+  read_at: string | null;
+}
+
+export interface BulletinReader {
+  user_id: string;
+  email: string | null;
+  display_name: string | null;
+  read_at: string | null;
+}
+
+/**
+ * Admin publishes a Bacheca message. Notifications default OFF here so the e2e
+ * suite never fires real emails/pushes at the test tenant's members. Titles MUST
+ * stay 'e2e-'-prefixed and callers must delete what they create (bulletins are
+ * not swept by the fixture purge).
+ */
+export async function createBulletin(
+  adminToken: string,
+  body: {
+    title: string;
+    body_html: string;
+    target_all?: boolean;
+    user_ids?: string[];
+    start_at?: string | null;
+    end_at?: string | null;
+    notify_email?: boolean;
+    notify_push?: boolean;
+  },
+): Promise<BulletinRecord> {
+  const r = await apiPost<BulletinRecord>(adminToken, '/api/v1/bulletins', {
+    notify_email: false,
+    notify_push: false,
+    ...body,
+  });
+  if (r.status !== 201 || !r.data) {
+    throw new Error(`createBulletin failed: ${r.status} ${r.code ?? ''} ${r.message ?? ''}`.trim());
+  }
+  return r.data;
+}
+
+export async function updateBulletin(
+  adminToken: string,
+  id: string,
+  body: Record<string, unknown>,
+): Promise<BulletinRecord> {
+  return apiPatch<BulletinRecord>(adminToken, `/api/v1/bulletins/${id}`, body);
+}
+
+export async function listBulletinsAdmin(adminToken: string): Promise<BulletinAdminItem[]> {
+  return apiGet<BulletinAdminItem[]>(adminToken, '/api/v1/bulletins');
+}
+
+export async function listMyBulletins(token: string): Promise<BulletinFeedItem[]> {
+  return apiGet<BulletinFeedItem[]>(token, '/api/v1/bulletins/me');
+}
+
+export async function markBulletinRead(token: string, id: string): Promise<void> {
+  const r = await apiPost(token, `/api/v1/bulletins/${id}/read`, {});
+  if (r.status !== 200) throw new Error(`markBulletinRead failed: ${r.status} ${r.code ?? ''}`);
+}
+
+export async function getBulletinReads(adminToken: string, id: string): Promise<BulletinReader[]> {
+  return apiGet<BulletinReader[]>(adminToken, `/api/v1/bulletins/${id}/reads`);
+}
+
+export async function deleteBulletin(token: string, id: string): Promise<void> {
+  await apiDelete(token, `/api/v1/bulletins/${id}`);
+}
+
 /* Approver-assignment helpers */
 
 export async function setLeaveApprovers(

@@ -6,6 +6,7 @@ import { useSession } from '../store/session.ts';
 import { fmtDateTime } from '../i18n/format.ts';
 import { StampPanel } from '../components/StampPanel.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { BachecaSection } from '../components/BachecaSection.tsx';
 
 interface Stamp {
   id: string;
@@ -31,6 +32,8 @@ export function MyDashboard() {
   return (
     <div className="space-y-4">
       <PageHeader title={t('greeting', { name: me.user.email.split('@')[0] })} />
+
+      <BachecaSection />
 
       <StampPanel onStamped={() => loadRecent().catch(() => {})} />
 

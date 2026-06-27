@@ -1,0 +1,12 @@
+{
+  "title": "Bacheca",
+  "empty": "Nessun messaggio in bacheca.",
+  "emptyUnread": "Nessun messaggio da leggere.",
+  "markRead": "Segna come letto",
+  "read": "Letto",
+  "all": "Tutti",
+  "unreadOnly": "Da leggere",
+  "unreadCount_one": "{{count}} da leggere",
+  "unreadCount_other": "{{count}} da leggere",
+  "publishedOn": "Pubblicato il {{date}}"
+}

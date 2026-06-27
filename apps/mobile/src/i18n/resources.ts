@@ -7,6 +7,7 @@ import itLock from './locales/it/lock.json';
 import itForgotPassword from './locales/it/forgotPassword.json';
 import itTimbrature from './locales/it/timbrature.json';
 import itDashboard from './locales/it/dashboard.json';
+import itBacheca from './locales/it/bacheca.json';
 import itStorico from './locales/it/storico.json';
 import itCorrezioni from './locales/it/correzioni.json';
 import itRichieste from './locales/it/richieste.json';
@@ -21,6 +22,7 @@ import enLock from './locales/en/lock.json';
 import enForgotPassword from './locales/en/forgotPassword.json';
 import enTimbrature from './locales/en/timbrature.json';
 import enDashboard from './locales/en/dashboard.json';
+import enBacheca from './locales/en/bacheca.json';
 import enStorico from './locales/en/storico.json';
 import enCorrezioni from './locales/en/correzioni.json';
 import enRichieste from './locales/en/richieste.json';
@@ -37,6 +39,7 @@ export const resources = {
     forgotPassword: itForgotPassword,
     timbrature: itTimbrature,
     dashboard: itDashboard,
+    bacheca: itBacheca,
     storico: itStorico,
     correzioni: itCorrezioni,
     richieste: itRichieste,
@@ -52,6 +55,7 @@ export const resources = {
     forgotPassword: enForgotPassword,
     timbrature: enTimbrature,
     dashboard: enDashboard,
+    bacheca: enBacheca,
     storico: enStorico,
     correzioni: enCorrezioni,
     richieste: enRichieste,

@@ -9,8 +9,10 @@ import { autoClockout } from './jobs/auto-clockout.js';
 import { retentionEnforcement } from './jobs/retention-enforcement.js';
 import { leaveDailyAccrual } from './jobs/leave-daily-accrual.js';
 import { leaveReminder } from './jobs/leave-reminder.js';
+import { stampReminder } from './jobs/stamp-reminder.js';
 import { documentsRetention } from './jobs/documents-retention.js';
 import { cleanupReadNotifications } from './jobs/cleanup-read-notifications.js';
+import { bulletinActivation } from './jobs/bulletin-activation.js';
 
 const logger = createLogger('scheduler');
 
@@ -88,6 +90,26 @@ class SchedulerService {
         { timezone: 'Europe/Rome' }
       )
     );
+    // Every 5 min, gated to local 04:00–23:00 Europe/Rome — schedule-aware
+    // missed-stamp reminders (expected clock-in/out boundary passed unstamped).
+    // The per-user logic self-gates on each slot time + tolerance; the hour gate
+    // just skips the dead overnight window for the cross-tenant scan.
+    this.jobs.push(
+      cron.schedule(
+        '*/5 * * * *',
+        () => {
+          const h = Number(
+            new Intl.DateTimeFormat('en-GB', {
+              timeZone: 'Europe/Rome',
+              hour: '2-digit',
+              hour12: false,
+            }).format(new Date())
+          );
+          if (h >= 4 && h <= 23) safeRun('stamp_reminder', stampReminder);
+        },
+        { timezone: 'Europe/Rome' }
+      )
+    );
     // Daily at 03:15 Europe/Rome — hard-delete documents past their 36-month
     // retention horizon (R2 object + DB row + cascaded view rows).
     this.jobs.push(
@@ -105,6 +127,11 @@ class SchedulerService {
         () => safeRun('cleanup_read_notifications', cleanupReadNotifications),
         { timezone: 'Europe/Rome' }
       )
+    );
+    // Every 5 min — publish notifications for Bacheca messages whose scheduled
+    // start_at has passed (immediate posts are notified inline at create).
+    this.jobs.push(
+      cron.schedule('*/5 * * * *', () => safeRun('bulletin_activation', bulletinActivation))
     );
     logger.info({ jobs: this.jobs.length }, 'scheduler started');
   }

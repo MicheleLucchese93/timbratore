@@ -9,6 +9,7 @@ export const TOC_EN = `
       <h3>Web · Administrator</h3>
       <a href="#web-admin">Overview</a>
       <a href="#web-admin-dashboard" class="sub">Dashboard</a>
+      <a href="#web-admin-bacheca" class="sub">Notice board</a>
       <a href="#web-admin-timbrature" class="sub">Stamps</a>
       <a href="#web-admin-correzioni" class="sub">Corrections</a>
       <a href="#web-admin-utenti" class="sub">Users</a>
@@ -292,6 +293,38 @@ export const MAIN_EN = `
       </div>
     </section>
 
+    <section class="chapter" id="web-admin-bacheca">
+      <h2><span class="chapter-num">06a</span>Notice board <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
+      <p class="lead">The notice board is the space for company announcements: an admin publishes a message and every recipient sees it on their Dashboard (web and app) and can mark it as read.</p>
+
+      <div class="feature">
+        <h3>Creating a message</h3>
+        <p>Messages are created <strong>from the web only</strong>, from the <strong>Notice board</strong> menu entry. Press <strong>New message</strong> and fill in:</p>
+        <ul class="tidy">
+          <li><strong>Title</strong>: the subject, also used as the email subject and push notification title.</li>
+          <li><strong>Message</strong>: an editor with formatting (bold, italic, lists, headings) and clickable <strong>links</strong>.</li>
+          <li><strong>Recipients</strong>: <strong>All users</strong> (including those who join the company later) or <strong>Only some users</strong> picked from the list.</li>
+          <li><strong>Scheduling</strong>: a <strong>start</strong> date (leave empty to publish now) and an <strong>end</strong> date (leave empty to never expire), chosen from the calendar.</li>
+          <li><strong>Notifications</strong>: <strong>email</strong> and <strong>push</strong> toggles (both on by default).</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h3>Who has read</h3>
+        <p>In the message list, each message shows a <strong>reads</strong> count (e.g. "3 of 12 have read"). Tap it to see <strong>who</strong> read it and when, and who has not read it yet.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Editing and deleting</h3>
+        <p>You can <strong>edit</strong> a published message (read receipts are kept and the notification is not re-sent) or <strong>delete</strong> it: it then disappears from recipients' notice board.</p>
+      </div>
+
+      <div class="feature">
+        <h3>How employees see it</h3>
+        <p>Every user sees the notice board on their Dashboard (web) and in the <strong>Notice board</strong> tab of the mobile app, with a count of <strong>unread</strong> messages. Tapping <span class="pill pill-ok">Mark as read</span> marks the message read across all devices.</p>
+      </div>
+    </section>
+
     <section class="chapter" id="web-admin-timbrature">
       <h2><span class="chapter-num">07</span>Stamps <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
       <p class="lead">The historical archive of all the company's stamps, by default the last 90 days.</p>
@@ -424,7 +457,7 @@ export const MAIN_EN = `
           <li>Press <strong>Invite user</strong>.</li>
           <li>Enter email (required), first and last name (optional).</li>
           <li>Choose the role: <em>User</em> or <em>Admin</em>.</li>
-          <li>Optional: tick <strong>Document manager</strong> (<em>Documentale</em>) to grant the user the ability to upload and view <em>every</em> employee's documents (see the <em>Documents</em> chapter). It is an additive capability, independent of the role, assignable to either an Admin or an employee. It is capped at <strong>1 document manager per company</strong> (configurable): if the cap is already reached the box appears disabled.</li>
+          <li>Optional: tick <strong>Document manager</strong> (<em>Documentale</em>) to grant the user the ability to upload and view <em>every</em> employee's documents (see the <em>Documents</em> chapter). It is an additive capability, independent of the role, assignable to either an Admin or an employee. The maximum number of document managers per company is <strong>configurable</strong>: if the cap is already reached the box appears disabled.</li>
           <li>Choose the <strong>language</strong> (Italian or English): it sets the language of the emails they receive (password reset, notifications). Defaults to the interface language.</li>
           <li>Select one or more <strong>branches</strong> to assign.</li>
           <li>Optional: assign a <strong>unique identifier</strong> to the employee (e.g. a badge or internal code). It is a free-text code you manage; it appears in Stamps (List and Monthly grid) and is searchable.</li>
@@ -440,7 +473,7 @@ export const MAIN_EN = `
         <p>For each row of the table you can:</p>
         <ul class="tidy">
           <li>Change the <strong>role</strong> (Admin / User) via a select. <em>You can't change your own account's role</em>: the select is disabled on your own row, so an admin can't demote themselves to User and lose access.</li>
-          <li>Grant or revoke the <strong>Document manager</strong> (<em>Documentale</em>) capability with its checkbox. It is independent of the role (an Admin or an employee can hold it) and lets the user upload and view every employee's documents (see the <em>Documents</em> chapter). The cap of <strong>1 document manager per company</strong> applies (configurable): if it is already taken, the checkbox is disabled on the other users.</li>
+          <li>Grant or revoke the <strong>Document manager</strong> (<em>Documentale</em>) capability with its checkbox. It is independent of the role (an Admin or an employee can hold it) and lets the user upload and view every employee's documents (see the <em>Documents</em> chapter). The <strong>document-manager cap configured for the company</strong> applies: if it is already taken, the checkbox is disabled on the other users.</li>
           <li>Activate or deactivate the user with the <strong>Active</strong> toggle.</li>
           <li>Choose the allowed <strong>stamping methods</strong> (the <em>Stamping</em> column): <strong>GPS</strong> (from the mobile app, at the branch) and/or <strong>Remote</strong> (from the web, without location verification). No method selected = the user cannot stamp and the app does not show the stamping menu.</li>
           <li>Edit the assigned <strong>branches</strong> (multi-select).</li>
@@ -1302,6 +1335,7 @@ export const MAIN_EN = `
         <ul class="tidy">
           <li><strong>Holiday and leave outcomes</strong> — when they are approved or rejected.</li>
           <li><strong>Correction outcomes</strong> — decisions on your corrections.</li>
+          <li><strong>Stamp reminders</strong> — alert if you don't clock in, out or for lunch at the time set by your shift.</li>
           <li><strong>24h reminder</strong> — notice the evening before one of your absences (e.g. "holiday tomorrow").</li>
         </ul>
         <p>If push is <strong>not active</strong>: you must enable it in the phone settings.</p>
@@ -1470,11 +1504,15 @@ export const MAIN_EN = `
             <tr><td>New holiday request</td><td>On submission by an employee</td><td>Admin / approver</td></tr>
             <tr><td>New correction</td><td>On submission by an employee</td><td>Admin / approver</td></tr>
             <tr><td>24h reminder</td><td>The evening before one of your approved absences (e.g. "holiday tomorrow")</td><td>Employee</td></tr>
+            <tr><td>Stamp reminders</td><td>When a scheduled time (clock-in, clock-out or lunch) passes without you stamping</td><td>Employee</td></tr>
             <tr><td>Company event</td><td>When the admin inserts an event on your calendar</td><td>Employee</td></tr>
           </tbody>
         </table>
         <div class="callout callout-info">
           The <strong>24h reminder</strong> goes out every evening for the absences that start the following day (sick leave excluded). Sick leave, being recorded after the fact, does not generate a reminder.
+        </div>
+        <div class="callout callout-info">
+          <strong>Stamp reminders</strong> are based on your <strong>assigned schedule</strong>: for each shift block expected today, if you pass the <strong>clock-in</strong> or <strong>clock-out</strong> time (plus the schedule's tolerance) without the matching stamp, you get an alert. On split shifts the midday break also triggers a <strong>leave-for-lunch</strong> and a <strong>return</strong> reminder. Short <strong>breaks</strong> do not trigger reminders. No alerts on approved-absence days, national public holidays, or if you have no assigned schedule. Push only — no email is sent. On by default.
         </div>
       </div>
 
@@ -1482,7 +1520,7 @@ export const MAIN_EN = `
         <h3>Configuring notifications</h3>
         <ul class="tidy">
           <li><strong>Email</strong>: in the Settings (web) you can enable/disable email <em>by category</em>, exactly like push: request outcomes, new requests to approve, correction outcomes, new corrections and the <strong>24h reminder</strong>. Disabled by default.</li>
-          <li><strong>Push</strong>: granular toggles for each type in the Profile of the mobile app, including the <strong>24h reminder</strong>. Push requires the operating system's permission.</li>
+          <li><strong>Push</strong>: granular toggles for each type in the Profile of the mobile app, including the <strong>24h reminder</strong> and <strong>Stamp reminders</strong>. Push requires the operating system's permission. Stamp reminders are push only (no email).</li>
         </ul>
       </div>
 

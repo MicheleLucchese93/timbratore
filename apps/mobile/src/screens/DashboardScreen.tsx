@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { color, space } from '@sonoqui/shared';
 import { api } from '../lib/api';
 import { AppHeader } from '../components/AppHeader';
+import { BachecaFeed } from '../components/BachecaFeed';
 import { fmtDate } from '../i18n/format';
 import type { TFunction } from 'i18next';
 
@@ -190,6 +191,10 @@ export function DashboardScreen() {
                 icon="calendar-outline"
                 warn={!!summary && summary.absent_now.length > 0}
               />
+            </View>
+
+            <View style={styles.bachecaWrap}>
+              <BachecaFeed title={t('bacheca:title')} />
             </View>
 
             <View style={styles.sectionHeaderRow}>
@@ -501,6 +506,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: space.s2,
   },
+  bachecaWrap: { marginTop: space.s4 },
   statCard: {
     flexGrow: 1,
     flexBasis: '30%',

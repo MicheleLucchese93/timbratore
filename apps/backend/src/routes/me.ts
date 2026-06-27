@@ -9,10 +9,11 @@ import { changePassword } from '../lib/gotrue-admin.js';
 import { passwordSchema } from '../lib/password.js';
 
 // Keep in sync with migrations 021_push_notification_prefs.sql,
-// 030_leave_reminders_and_email_prefs.sql and 041_documents.sql. Push keys
-// default ON (opt-out), email keys default OFF (opt-in) — EXCEPT email_documents
-// which defaults ON by product decision (a new HR document is important enough
-// to email unless the employee explicitly opts out).
+// 030_leave_reminders_and_email_prefs.sql, 041_documents.sql and
+// 052_stamp_reminders.sql. Push keys default ON (opt-out), email keys default
+// OFF (opt-in) — EXCEPT email_documents which defaults ON by product decision
+// (a new HR document is important enough to email unless the employee explicitly
+// opts out). push_stamp_reminders is push-only (no email counterpart).
 const NOTIF_PREF_DEFAULTS = {
   push_leave_decisions: true,
   push_correction_decisions: true,
@@ -20,6 +21,7 @@ const NOTIF_PREF_DEFAULTS = {
   push_correction_submissions: true,
   push_leave_reminders: true,
   push_documents: true,
+  push_stamp_reminders: true,
   email_leave_decisions: false,
   email_correction_decisions: false,
   email_leave_submissions: false,
@@ -153,6 +155,7 @@ const NotificationPrefsPatch = z
     push_correction_submissions: z.boolean().optional(),
     push_leave_reminders: z.boolean().optional(),
     push_documents: z.boolean().optional(),
+    push_stamp_reminders: z.boolean().optional(),
     email_leave_decisions: z.boolean().optional(),
     email_correction_decisions: z.boolean().optional(),
     email_leave_submissions: z.boolean().optional(),

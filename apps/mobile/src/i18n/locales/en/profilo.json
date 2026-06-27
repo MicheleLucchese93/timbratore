@@ -36,6 +36,8 @@
     "leaveDecisionsHint": "Approvals and rejections of your requests",
     "correctionDecisions": "Correction outcomes",
     "correctionDecisionsHint": "Approvals and rejections of your corrections",
+    "stampReminders": "Stamp reminders",
+    "stampRemindersHint": "Alert if you don't clock in, out or for lunch at the scheduled time",
     "leaveReminders": "Reminder 24h before",
     "leaveRemindersHint": "Alert the day before an absence of yours (e.g. holiday tomorrow)",
     "leaveSubmissions": "New holiday & leave requests",

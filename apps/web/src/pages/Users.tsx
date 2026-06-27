@@ -1127,7 +1127,7 @@ function UserEditor({
             <span>{t('userEditor.isDocumentale')}</span>
           </label>
           <p className="text-xs muted mt-1">
-            {t('invite.isDocumentaleHint', { max: maxDocumentali })}
+            {t('invite.isDocumentaleHint')}
           </p>
         </div>
 
@@ -1872,7 +1872,7 @@ function InviteForm({
             <span>{t('invite.isDocumentale')}</span>
           </label>
           <p className="text-xs muted mt-1">
-            {t('invite.isDocumentaleHint', { max: maxDocumentali })}
+            {t('invite.isDocumentaleHint')}
           </p>
         </div>
         <div>

@@ -11,6 +11,7 @@ interface NavItem { to: string; key: string; icon: ReactNode }
 // which injects the "/documents" management entry below (see buildNav).
 const adminNav: NavItem[] = [
   { to: '/', key: 'dashboard', icon: <IconHome /> },
+  { to: '/bacheca', key: 'bacheca', icon: <IconMegaphone /> },
   { to: '/stamps', key: 'stamps', icon: <IconStamp /> },
   { to: '/corrections', key: 'corrections', icon: <IconEdit /> },
   { to: '/anomalies', key: 'anomalies', icon: <IconAlert /> },
@@ -287,6 +288,14 @@ function IconHome() {
     <svg {...ICON_PROPS}>
       <path d="M3 11 12 3l9 8" />
       <path d="M5 10v10h14V10" />
+    </svg>
+  );
+}
+function IconMegaphone() {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="m3 11 18-5v12L3 13v-2z" />
+      <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
     </svg>
   );
 }
