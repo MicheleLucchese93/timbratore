@@ -97,9 +97,9 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
       </div>
     </div>
 
-    <div class="mx-auto mt-12 grid max-w-4xl gap-6 lg:grid-cols-2">
+    <div id="pricing-scroller" class="mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pt-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] lg:mx-auto lg:grid lg:max-w-4xl lg:grid-cols-2 lg:gap-6 lg:overflow-visible lg:px-0 lg:pt-0 lg:pb-0">
       {plans.map((p) => (
-        <div class={`relative flex flex-col rounded-3xl bg-white p-8 ${p.recommended ? "border-2 border-primary shadow-xl lg:scale-[1.02]" : "border border-gray-200 shadow-sm"}`}>
+        <div data-plan-card class={`relative flex w-[82%] shrink-0 snap-center flex-col rounded-3xl bg-white p-8 sm:w-[58%] lg:w-auto ${p.recommended ? "border-2 border-primary shadow-xl lg:scale-[1.02]" : "border border-gray-200 shadow-sm"}`}>
           {p.recommended && (
             <span class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-xs font-semibold uppercase tracking-wide text-white shadow">
               Consigliato
@@ -161,6 +161,13 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
       ))}
     </div>
 
+    <div id="pricing-dots" class="mt-5 flex items-center justify-center gap-2 lg:hidden">
+      {plans.map((_, i) => (
+        <button type="button" data-dot={i} aria-label={`Mostra piano ${i + 1}`}
+          class="h-2 w-2 rounded-full bg-gray-300 transition-all duration-200"></button>
+      ))}
+    </div>
+
     <div class="mx-auto mt-8 max-w-4xl rounded-3xl border border-gray-200 bg-white p-6 sm:p-8">
       <div class="text-center">
         <h3 class="text-lg font-semibold text-on-surface">Cresci oltre i limiti del piano</h3>
@@ -190,7 +197,51 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
   </div>
 </section>
 
+<style>
+  #pricing-scroller::-webkit-scrollbar { display: none; }
+</style>
+
 <script>
+  function initPricingCarousel() {
+    const scroller = document.getElementById("pricing-scroller");
+    const dotsWrap = document.getElementById("pricing-dots");
+    if (!scroller || !dotsWrap) return;
+    const cards = Array.from(scroller.querySelectorAll<HTMLElement>("[data-plan-card]"));
+    const dots = Array.from(dotsWrap.querySelectorAll<HTMLButtonElement>("[data-dot]"));
+    if (!cards.length) return;
+
+    function setActive(i: number) {
+      dots.forEach((d, j) => {
+        const on = j === i;
+        d.classList.toggle("bg-primary", on);
+        d.classList.toggle("w-5", on);
+        d.classList.toggle("bg-gray-300", !on);
+        d.classList.toggle("w-2", !on);
+      });
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            const i = cards.indexOf(e.target as HTMLElement);
+            if (i >= 0) setActive(i);
+          }
+        });
+      },
+      { root: scroller, threshold: 0.6 }
+    );
+    cards.forEach((c) => io.observe(c));
+
+    dots.forEach((d, i) =>
+      d.addEventListener("click", () => {
+        cards[i].scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      })
+    );
+
+    setActive(0);
+  }
+
   function initPricingToggle() {
     const toggle = document.getElementById("billing-toggle");
     if (!toggle) return;
@@ -215,5 +266,9 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
   }
 
   initPricingToggle();
-  document.addEventListener("astro:page-load", initPricingToggle);
+  initPricingCarousel();
+  document.addEventListener("astro:page-load", () => {
+    initPricingToggle();
+    initPricingCarousel();
+  });
 </script>
