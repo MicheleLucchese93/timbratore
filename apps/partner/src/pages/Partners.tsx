@@ -96,6 +96,11 @@ export function Partners() {
 
   const resend = useCallback(
     async (row: PartnerRow) => {
+      const ok = await confirm({
+        message: t('partners.resend.confirm', { email: row.email }),
+        confirmLabel: t('partners.resend.label'),
+      });
+      if (!ok) return;
       try {
         const res = await api<{ email_type: 'invite' | 'recovery' | 'none' }>(
           `/api/v1/partnership/partners/${row.user_id}/resend`,
@@ -106,7 +111,7 @@ export function Partners() {
         toast(errMsg(t, e), true);
       }
     },
-    [t, toast]
+    [t, toast, confirm]
   );
 
   const capCell = (v: number | null) => (v == null ? t('common.unlimited') : String(v));

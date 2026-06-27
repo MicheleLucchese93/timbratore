@@ -147,7 +147,7 @@
     "edit": { "title": "Modifica limiti partner", "submit": "Salva", "saved": "Limiti partner aggiornati." },
     "activate": { "label": "Attiva", "confirm": "Riattivare questo partner? Potrà nuovamente accedere.", "done": "Partner attivato." },
     "deactivate": { "label": "Disattiva", "confirm": "Disattivare questo partner? Non potrà più accedere.", "done": "Partner disattivato." },
-    "resend": { "label": "Reinvita", "done_invite": "Invito inviato a {{email}}.", "done_recovery": "Email di reset password inviata a {{email}}.", "done_none": "Nessuna email inviata." }
+    "resend": { "label": "Reinvita", "confirm": "Reinviare l'email di accesso a {{email}}?", "done_invite": "Invito inviato a {{email}}.", "done_recovery": "Email di reset password inviata a {{email}}.", "done_none": "Nessuna email inviata." }
   },
   "caps": {
     "cap_tenants": "Max aziende creabili",
