@@ -220,26 +220,49 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
       });
     }
 
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            const i = cards.indexOf(e.target as HTMLElement);
-            if (i >= 0) setActive(i);
-          }
+    // Active index = the card whose centre is closest to the scroller's centre.
+    // (IntersectionObserver with a scroll-container root proved unreliable here.)
+    function nearestIndex() {
+      const sRect = scroller!.getBoundingClientRect();
+      const mid = sRect.left + sRect.width / 2;
+      let best = 0;
+      let bestDist = Infinity;
+      cards.forEach((c, i) => {
+        const r = c.getBoundingClientRect();
+        const dist = Math.abs(r.left + r.width / 2 - mid);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = i;
+        }
+      });
+      return best;
+    }
+
+    let raf = 0;
+    scroller.addEventListener(
+      "scroll",
+      () => {
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          raf = 0;
+          setActive(nearestIndex());
         });
       },
-      { root: scroller, threshold: 0.6 }
+      { passive: true }
     );
-    cards.forEach((c) => io.observe(c));
 
     dots.forEach((d, i) =>
       d.addEventListener("click", () => {
-        cards[i].scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+        const card = cards[i];
+        const target =
+          scroller!.scrollLeft +
+          (card.getBoundingClientRect().left - scroller!.getBoundingClientRect().left) -
+          (scroller!.clientWidth - card.clientWidth) / 2;
+        scroller!.scrollTo({ left: target, behavior: "smooth" });
       })
     );
 
-    setActive(0);
+    setActive(nearestIndex());
   }
 
   function initPricingToggle() {
