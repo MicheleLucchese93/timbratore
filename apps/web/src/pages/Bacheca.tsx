@@ -8,6 +8,7 @@ import type {
 import { BULLETIN_TITLE_MAX } from '@sonoqui/shared';
 import { api } from '../lib/api.ts';
 import { useEscapeKey } from '../hooks/useEscapeKey.ts';
+import { useConfirm } from '../components/ConfirmDialog.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
 import { RichTextEditor } from '../components/RichTextEditor.tsx';
 import { fmtDate, fmtDateTime } from '../i18n/format.ts';
@@ -23,6 +24,7 @@ function statusOf(b: { start_at: string | null; end_at: string | null }): Bullet
 
 export function Bacheca() {
   const { t } = useTranslation(['bacheca', 'common']);
+  const confirm = useConfirm();
   const [items, setItems] = useState<BulletinAdminItem[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [editing, setEditing] = useState<BulletinAdminItem | null>(null);
@@ -43,7 +45,13 @@ export function Bacheca() {
   }, [load]);
 
   async function remove(b: BulletinAdminItem) {
-    if (!window.confirm(t('deleteConfirm'))) return;
+    const ok = await confirm({
+      title: t('delete'),
+      message: t('deleteConfirm'),
+      confirmLabel: t('delete'),
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await api(`/api/v1/bulletins/${b.id}`, { method: 'DELETE' });
       await load();

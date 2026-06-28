@@ -59,7 +59,8 @@
     "heading": "Heading",
     "link": "Insert link",
     "unlink": "Remove link",
-    "linkPrompt": "Link address (https://…)"
+    "linkTitle": "Insert link",
+    "linkPrompt": "Link address"
   },
   "reads": {
     "title": "Reads",

@@ -59,7 +59,8 @@
     "heading": "Titolo",
     "link": "Inserisci link",
     "unlink": "Rimuovi link",
-    "linkPrompt": "Indirizzo del link (https://…)"
+    "linkTitle": "Inserisci link",
+    "linkPrompt": "Indirizzo del link"
   },
   "reads": {
     "title": "Letture",
