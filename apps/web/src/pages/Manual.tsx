@@ -314,6 +314,9 @@ const MAIN_IT = `
           <li><strong>Programmazione</strong>: data di <strong>inizio</strong> (lascia vuoto per pubblicare subito) e di <strong>fine</strong> pubblicazione (lascia vuoto per non far scadere mai), scelte dal calendario.</li>
           <li><strong>Notifiche</strong>: interruttori <strong>email</strong> e <strong>push</strong> (entrambi attivi per impostazione predefinita).</li>
         </ul>
+        <div class="callout callout-info">
+          Le notifiche partono <strong>una sola volta</strong>: per un messaggio immediato all'atto della pubblicazione; per un messaggio <strong>programmato</strong>, solo quando arriva la data di inizio (controllata ogni 5 minuti) — così l'avviso non precede mai la comparsa del messaggio. I destinatari di <strong>Tutti gli utenti</strong> sono calcolati in quel momento, quindi includono anche chi è entrato in azienda nel frattempo.
+        </div>
       </div>
 
       <div class="feature">
@@ -323,7 +326,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Modifica ed eliminazione</h3>
-        <p>Puoi <strong>modificare</strong> un messaggio già pubblicato (le letture restano valide, non viene reinviata la notifica) oppure <strong>eliminarlo</strong>: in tal caso sparisce dalla Bacheca dei destinatari.</p>
+        <p>Puoi <strong>modificare</strong> un messaggio già pubblicato — testo, destinatari e programmazione. Cambiando i destinatari l'elenco viene <strong>ricostruito</strong>; le letture già registrate <strong>restano valide</strong> e <strong>non</strong> viene reinviata alcuna notifica. Oppure puoi <strong>eliminarlo</strong>: in tal caso sparisce dalla Bacheca dei destinatari.</p>
       </div>
 
       <div class="feature">

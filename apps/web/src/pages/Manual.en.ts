@@ -307,6 +307,9 @@ export const MAIN_EN = `
           <li><strong>Scheduling</strong>: a <strong>start</strong> date (leave empty to publish now) and an <strong>end</strong> date (leave empty to never expire), chosen from the calendar.</li>
           <li><strong>Notifications</strong>: <strong>email</strong> and <strong>push</strong> toggles (both on by default).</li>
         </ul>
+        <div class="callout callout-info">
+          Notifications are sent <strong>once</strong>: for an immediate message at publish time; for a <strong>scheduled</strong> message, only when its start date arrives (checked every 5 minutes) — so the alert never precedes the message appearing. <strong>All users</strong> recipients are resolved at that moment, so they include anyone who joined the company in the meantime.
+        </div>
       </div>
 
       <div class="feature">
@@ -316,7 +319,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>Editing and deleting</h3>
-        <p>You can <strong>edit</strong> a published message (read receipts are kept and the notification is not re-sent) or <strong>delete</strong> it: it then disappears from recipients' notice board.</p>
+        <p>You can <strong>edit</strong> a published message — text, recipients and scheduling. Changing the recipients <strong>rebuilds</strong> the list; read receipts already recorded <strong>are kept</strong> and <strong>no</strong> notification is re-sent. Or you can <strong>delete</strong> it: it then disappears from recipients' notice board.</p>
       </div>
 
       <div class="feature">
