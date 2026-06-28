@@ -5,6 +5,7 @@ import { isAuthConfigured, loginWithDevToken, loginWithPassword } from '../lib/a
 import { useSession } from '../store/session.ts';
 import { LanguageToggle } from '../components/LanguageToggle.tsx';
 import { PartnerHero } from '../components/PartnerHero.tsx';
+import { PasswordField } from '../components/PasswordField.tsx';
 
 export function Login() {
   const { t } = useTranslation();
@@ -93,11 +94,10 @@ export function Login() {
                   {t('login.forgot')}
                 </Link>
               </div>
-              <input
+              <PasswordField
                 id="password"
-                type="password"
                 autoComplete="current-password"
-                className="input h-12 text-base"
+                className="h-12 text-base"
                 required={isAuthConfigured()}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
