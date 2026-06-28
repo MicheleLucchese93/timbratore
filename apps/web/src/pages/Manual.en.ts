@@ -302,7 +302,7 @@ export const MAIN_EN = `
         <p>Messages are created <strong>from the web only</strong>, from the <strong>Notice board</strong> menu entry. Press <strong>New message</strong> and fill in:</p>
         <ul class="tidy">
           <li><strong>Title</strong>: the subject, also used as the email subject and push notification title.</li>
-          <li><strong>Message</strong>: an editor with formatting (bold, italic, lists, headings) and clickable <strong>links</strong>.</li>
+          <li><strong>Message</strong>: a full editor with bold, italic, underline, strikethrough, code, headings (H1–H3), bullet and numbered lists, quotes, clickable <strong>links</strong>, plus undo/redo and clear-formatting.</li>
           <li><strong>Recipients</strong>: <strong>All users</strong> (including those who join the company later) or <strong>Only some users</strong> picked from the list.</li>
           <li><strong>Scheduling</strong>: a <strong>start</strong> date (leave empty to publish now) and an <strong>end</strong> date (leave empty to never expire), chosen from the calendar.</li>
           <li><strong>Notifications</strong>: <strong>email</strong> and <strong>push</strong> toggles (both on by default).</li>

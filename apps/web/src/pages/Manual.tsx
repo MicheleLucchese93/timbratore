@@ -309,7 +309,7 @@ const MAIN_IT = `
         <p>I messaggi si creano <strong>solo dal web</strong>, dalla voce <strong>Bacheca</strong> nel menu. Premi <strong>Nuovo messaggio</strong> e compila:</p>
         <ul class="tidy">
           <li><strong>Titolo</strong>: l'oggetto, usato anche come oggetto dell'email e titolo della notifica push.</li>
-          <li><strong>Messaggio</strong>: editor con formattazione (grassetto, corsivo, elenchi, titoli) e <strong>link</strong> cliccabili.</li>
+          <li><strong>Messaggio</strong>: editor completo con grassetto, corsivo, sottolineato, barrato, codice, titoli (H1–H3), elenchi puntati e numerati, citazioni, <strong>link</strong> cliccabili, oltre ad annulla/ripeti e rimozione formattazione.</li>
           <li><strong>Destinatari</strong>: <strong>Tutti gli utenti</strong> (inclusi quelli che entreranno in azienda in futuro) oppure <strong>Solo alcuni utenti</strong> selezionandoli dall'elenco.</li>
           <li><strong>Programmazione</strong>: data di <strong>inizio</strong> (lascia vuoto per pubblicare subito) e di <strong>fine</strong> pubblicazione (lascia vuoto per non far scadere mai), scelte dal calendario.</li>
           <li><strong>Notifiche</strong>: interruttori <strong>email</strong> e <strong>push</strong> (entrambi attivi per impostazione predefinita).</li>
