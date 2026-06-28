@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
@@ -147,17 +147,23 @@ function LinkDialog({
   const { t } = useTranslation(['bacheca', 'common']);
   useEscapeKey(onCancel);
 
-  function submit(e: FormEvent) {
-    e.preventDefault();
-    onSubmit(value);
+  // NOT a <form>: this dialog renders inside the compose-modal <form>, and a
+  // nested form's submit button reloads the page. Confirm is a plain button;
+  // Enter in the input confirms.
+  function onKey(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      onSubmit(value);
+    }
   }
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50" onClick={onCancel}>
-      <form
+      <div
         className="card w-full max-w-md space-y-3"
+        role="dialog"
+        aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        onSubmit={submit}
       >
         <h2 className="section-title">{t('editor.linkTitle')}</h2>
         <div>
@@ -169,6 +175,7 @@ function LinkDialog({
             placeholder="https://…"
             value={value}
             onChange={(e) => onChange(e.target.value)}
+            onKeyDown={onKey}
             autoFocus
           />
         </div>
@@ -184,12 +191,12 @@ function LinkDialog({
             <button type="button" className="btn btn-secondary" onClick={onCancel}>
               {t('common:btn.cancel')}
             </button>
-            <button type="submit" className="btn btn-primary">
+            <button type="button" className="btn btn-primary" onClick={() => onSubmit(value)}>
               {t('common:btn.confirm')}
             </button>
           </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
