@@ -71,7 +71,7 @@ export const MAIN_EN = `
             <tr><td><strong>Caps (partner)</strong></td><td>A partner's caps: how many companies they can create and the maximum limits they can assign to each. Blank = unlimited.</td></tr>
             <tr><td><strong>Documentale</strong></td><td>An extra capability of a company user: it lets them upload and view every employee's documents. Here you only set its maximum per company.</td></tr>
             <tr><td><strong>Branch</strong></td><td>A company workplace. Here you only set the maximum allowed.</td></tr>
-            <tr><td><strong>Access email</strong></td><td>The email that grants a user access. It's an <em>invite</em> to set the password for someone who never did, a <em>password reset</em> for someone who already has one.</td></tr>
+            <tr><td><strong>Access email</strong></td><td>The email that grants a user access. It's an <em>invite</em> to set the password for someone who never did, a <em>company access</em> notice (with a sign-in link) for someone who already has an account, or a <em>password reset</em> when you resend access.</td></tr>
           </tbody>
         </table>
       </div>
@@ -212,7 +212,7 @@ export const MAIN_EN = `
           <li>Set the <strong>limits</strong>: max users, max admins, max documentali, max branches. Each limit is bound to your cap: when a cap is set, the field shows <em>(max N)</em>.</li>
           <li>Press <strong>Create company</strong>.</li>
         </ol>
-        <p>When done you get a confirmation that also states which email was sent to the admin: <strong>invite</strong> (password not set yet), <strong>password reset</strong> (already set) or <strong>no email</strong>.</p>
+        <p>When done you get a confirmation that also states which email was sent to the admin: <strong>invite</strong> (password not set yet), <strong>company access</strong> (existing account: a notice with a sign-in link, no reset) or <strong>no email</strong>.</p>
         <div class="callout callout-warn">
           If you've reached your maximum number of companies (cap), creation is blocked with the message "You have reached your maximum number of created companies". Ask the administrator to raise your cap.
         </div>
@@ -368,7 +368,7 @@ export const MAIN_EN = `
             <tr><td><strong>Limits</strong></td><td>A company's maximums: users, admins, documentali, branches.</td></tr>
             <tr><td><strong>Caps</strong></td><td>A partner's maximums: companies they can create and ceilings for their companies' limits. Blank = unlimited.</td></tr>
             <tr><td><strong>Documentale</strong></td><td>Company capability to view all employees' documents; here you set its maximum.</td></tr>
-            <tr><td><strong>Access email</strong></td><td>Invite (first password) or password reset (password already set).</td></tr>
+            <tr><td><strong>Access email</strong></td><td>Invite (first password), company access (existing account) or password reset (on resend).</td></tr>
             <tr><td><strong>Suspension</strong></td><td>Temporary block of a company's users' access; the data remains.</td></tr>
           </tbody>
         </table>
@@ -380,8 +380,8 @@ export const MAIN_EN = `
       <p class="lead">The most common situations.</p>
 
       <div class="feature">
-        <h3>What's the difference between invite and password reset?</h3>
-        <p>The <strong>invite</strong> goes to someone who never set a password (first access) and is used to create one. The <strong>password reset</strong> goes to someone who already had one and lost their credentials. The console picks the right type automatically: it confirms which one in the message after sending.</p>
+        <h3>What's the difference between invite, company access and password reset?</h3>
+        <p>The <strong>invite</strong> goes to someone who never set a password (first access) and is used to create one. When you add a user who <strong>already has an account</strong> to a company, they instead get a <strong>company access</strong> email with a sign-in link — no password reset needed. The <strong>password reset</strong> is used when you resend access (envelope icon) to someone who lost their credentials. The console picks the right type automatically and confirms which one in the message after sending.</p>
       </div>
 
       <div class="feature">

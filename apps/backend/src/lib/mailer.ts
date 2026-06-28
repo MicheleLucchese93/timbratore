@@ -583,6 +583,59 @@ export function buildDocumentUploadedMail(p: DocumentUploadedMailPayload): {
   return { subject, text, html };
 }
 
+/* ----- "Added to a company" email ----- */
+
+export interface MembershipAddedMailPayload {
+  /** Company the user was granted access to (ragione sociale). */
+  companyName: string;
+  /** Role granted in that company. */
+  role?: 'admin' | 'user';
+  language?: 'it' | 'en';
+}
+
+function loginActionUrl(): string {
+  return env.WEB_PUBLIC_URL.replace(/\/$/, '') + '/login';
+}
+
+const ROLE_LABEL: Record<'admin' | 'user', { it: string; en: string }> = {
+  admin: { it: 'amministratore', en: 'administrator' },
+  user: { it: 'utente', en: 'user' },
+};
+
+/**
+ * Notice sent when an ALREADY-EXISTING (confirmed) user is granted access to a
+ * new company — they already have a password, so a generic "reset password"
+ * mail would be confusing. This tells them which company + role they got and
+ * links to the web app login. New/unconfirmed users get the invite flow instead.
+ */
+export function buildMembershipAddedMail(p: MembershipAddedMailPayload): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const language = p.language ?? 'it';
+  const roleLabel = ROLE_LABEL[p.role ?? 'admin'][language];
+  const subject =
+    language === 'it'
+      ? `[sonoQui] Sei stato aggiunto a ${p.companyName}`
+      : `[sonoQui] You've been added to ${p.companyName}`;
+  const text =
+    language === 'it'
+      ? `Ti è stato dato accesso all'azienda ${p.companyName} su sonoQui come ${roleLabel}.\n\n` +
+        `Accedi con le tue credenziali abituali:\n${loginActionUrl()}\n\n` +
+        `Non serve reimpostare la password: il tuo account esiste già. Se l'hai dimenticata, usa "Password dimenticata?" nella pagina di accesso.`
+      : `You've been granted access to ${p.companyName} on sonoQui as ${roleLabel}.\n\n` +
+        `Sign in with your usual credentials:\n${loginActionUrl()}\n\n` +
+        `No password reset needed — your account already exists. If you forgot it, use "Forgot password?" on the sign-in page.`;
+  const html = renderTemplate('membership-added.html', {
+    language,
+    CompanyName: p.companyName,
+    RoleLabel: roleLabel,
+    ActionUrl: loginActionUrl(),
+  });
+  return { subject, text, html };
+}
+
 /* ----- Bacheca (bulletin board) email ----- */
 
 export interface BulletinMailPayload {

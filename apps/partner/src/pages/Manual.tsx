@@ -74,7 +74,7 @@ const MAIN_IT = `
             <tr><td><strong>Caps (partner)</strong></td><td>I massimali di un partner: quante aziende può creare e quali limiti massimi può assegnare a ciascuna. Vuoto = illimitato.</td></tr>
             <tr><td><strong>Documentale</strong></td><td>Capacità aggiuntiva di un utente dell'azienda: gli permette di caricare e consultare i documenti di tutti i dipendenti. Qui se ne imposta solo il numero massimo per azienda.</td></tr>
             <tr><td><strong>Sede</strong></td><td>Luogo di lavoro di un'azienda. Qui se ne imposta solo il numero massimo consentito.</td></tr>
-            <tr><td><strong>Email di accesso</strong></td><td>L'email che dà a un utente l'accesso. È un <em>invito</em> a impostare la password per chi non l'ha mai fatto, un <em>reset password</em> per chi l'ha già impostata.</td></tr>
+            <tr><td><strong>Email di accesso</strong></td><td>L'email che dà a un utente l'accesso. È un <em>invito</em> a impostare la password per chi non l'ha mai fatto, un avviso di <em>accesso all'azienda</em> (con link per accedere) per chi ha già un account, o un <em>reset password</em> quando reinvii l'accesso.</td></tr>
           </tbody>
         </table>
       </div>
@@ -215,7 +215,7 @@ const MAIN_IT = `
           <li>Imposta i <strong>limiti</strong>: max utenti, max admin, max documentali, max sedi. Ogni limite è vincolato al tuo massimale (caps): se è impostato un tetto, il campo mostra <em>(max N)</em>.</li>
           <li>Premi <strong>Crea azienda</strong>.</li>
         </ol>
-        <p>Al termine ricevi una conferma che indica anche il tipo di email inviata all'admin: <strong>invito</strong> (non ha ancora impostato la password), <strong>reset password</strong> (l'aveva già fatto) o <strong>nessuna email</strong>.</p>
+        <p>Al termine ricevi una conferma che indica anche il tipo di email inviata all'admin: <strong>invito</strong> (non ha ancora impostato la password), <strong>accesso all'azienda</strong> (account già esistente: riceve un avviso con il link per accedere, senza reset) o <strong>nessuna email</strong>.</p>
         <div class="callout callout-warn">
           Se hai raggiunto il numero massimo di aziende creabili (cap), la creazione viene bloccata con il messaggio «Hai raggiunto il numero massimo di aziende create». Chiedi all'amministratore di alzare il tuo cap.
         </div>
@@ -371,7 +371,7 @@ const MAIN_IT = `
             <tr><td><strong>Limiti</strong></td><td>Massimali di un'azienda: utenti, admin, documentali, sedi.</td></tr>
             <tr><td><strong>Caps</strong></td><td>Massimali di un partner: aziende creabili e tetti per i limiti delle sue aziende. Vuoto = illimitato.</td></tr>
             <tr><td><strong>Documentale</strong></td><td>Capacità d'azienda per consultare i documenti di tutti i dipendenti; qui se ne fissa il numero massimo.</td></tr>
-            <tr><td><strong>Email di accesso</strong></td><td>Invito (prima password) o reset password (password già impostata).</td></tr>
+            <tr><td><strong>Email di accesso</strong></td><td>Invito (prima password), accesso all'azienda (account già esistente) o reset password (al reinvio).</td></tr>
             <tr><td><strong>Sospensione</strong></td><td>Blocco temporaneo dell'accesso degli utenti di un'azienda; i dati restano.</td></tr>
           </tbody>
         </table>
@@ -383,8 +383,8 @@ const MAIN_IT = `
       <p class="lead">Le situazioni più comuni.</p>
 
       <div class="feature">
-        <h3>Qual è la differenza tra invito e reset password?</h3>
-        <p>L'<strong>invito</strong> va a chi non ha mai impostato una password (primo accesso) e serve a crearla. Il <strong>reset password</strong> va a chi l'aveva già impostata e ha smarrito le credenziali. La console sceglie automaticamente il tipo giusto: te lo conferma nel messaggio dopo l'invio.</p>
+        <h3>Qual è la differenza tra invito, accesso all'azienda e reset password?</h3>
+        <p>L'<strong>invito</strong> va a chi non ha mai impostato una password (primo accesso) e serve a crearla. Quando aggiungi a un'azienda un utente che <strong>ha già un account</strong>, riceve invece un'email di <strong>accesso all'azienda</strong> con il link per accedere: non serve reimpostare la password. Il <strong>reset password</strong> si usa quando reinvii l'accesso (icona busta) a chi ha smarrito le credenziali. La console sceglie automaticamente il tipo giusto e te lo conferma nel messaggio dopo l'invio.</p>
       </div>
 
       <div class="feature">

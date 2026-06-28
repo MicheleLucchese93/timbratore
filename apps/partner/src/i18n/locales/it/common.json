@@ -43,6 +43,7 @@
     "send_invite": "Invia subito l'email di accesso",
     "add_done_invite": "Amministratore aggiunto. Invito inviato.",
     "add_done_recovery": "Amministratore aggiunto. Email di reset password inviata.",
+    "add_done_membership": "Amministratore aggiunto. Email di accesso all'azienda inviata (account già esistente).",
     "add_done_none": "Amministratore aggiunto. Nessuna email inviata.",
     "limit_reached": "Limite amministratori raggiunto."
   },
@@ -104,6 +105,7 @@
       "send_invite_hint": "Consigliato. Se la togli, l'admin viene creato senza email: gliela invii dopo dall'icona busta.",
       "done_invite": "Azienda creata. Invito amministratore inviato.",
       "done_recovery": "Azienda creata. Email di reset password inviata all'amministratore.",
+      "done_membership": "Azienda creata. All'amministratore esistente è stata inviata l'email di accesso all'azienda.",
       "done_none": "Azienda creata. Nessuna email inviata."
     },
     "edit": { "title": "Modifica azienda", "submit": "Salva", "saved": "Azienda aggiornata.", "owner": "Partner assegnato", "note": "Note" },

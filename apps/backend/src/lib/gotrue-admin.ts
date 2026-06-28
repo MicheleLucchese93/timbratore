@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { SignJWT } from 'jose';
 import { env } from '../env.js';
 import { InvalidCurrentPasswordError } from '../errors/index.js';
+import { buildMembershipAddedMail, sendMail } from './mailer.js';
 
 const secret = new TextEncoder().encode(env.GOTRUE_JWT_SECRET);
 
@@ -132,6 +133,10 @@ export async function isUserConfirmed(userId: string): Promise<boolean> {
 
 export type AccessEmailType = 'invite' | 'recovery' | 'none';
 
+// sendTenantAccessEmail can additionally report that an existing confirmed user
+// was simply told they were added to a company (no invite/reset).
+export type TenantAccessEmailType = AccessEmailType | 'membership';
+
 // Send a member their access email, picking the right kind by confirmation
 // state: an UNCONFIRMED user (never set a first password) gets an INVITATION;
 // a CONFIRMED user gets a PASSWORD-RESET (recovery). This is the single entry
@@ -189,6 +194,58 @@ export async function sendAccessEmail(
   // returning via "reset password" lands back on the partner console.
   await triggerRecovery(email, opts.redirectTo);
   return 'recovery';
+}
+
+// Access email for granting a user access to a TENANT (company). Unlike a bare
+// resend, this is context-aware:
+//   • brand-new / never-confirmed account → INVITATION (set first password),
+//     falling back to recovery if the invite call fails (mirrors sendAccessEmail);
+//   • already-CONFIRMED account → a "you've been added to <company>" email with a
+//     web-app login link, NOT a password reset they never asked for (they already
+//     have a password). Returns 'membership'.
+// Tenant admins/users belong to the employee web app, so the web audience/login
+// link is correct. Local dev has no GoTrue / SMTP — returns 'none'.
+export async function sendTenantAccessEmail(args: {
+  userId: string;
+  email: string;
+  companyName: string;
+  role?: 'admin' | 'user';
+  language?: 'it' | 'en';
+}): Promise<TenantAccessEmailType> {
+  const language = args.language ?? 'it';
+  if (env.DEV_AUTH_ENABLED) return 'none';
+  let confirmed = false;
+  try {
+    confirmed = await isUserConfirmed(args.userId);
+  } catch (err) {
+    // Lookup failed — treat as brand-new and attempt an invite (the invite
+    // catch below falls back to recovery if that errors too).
+    // eslint-disable-next-line no-console
+    console.warn('isUserConfirmed failed; assuming unconfirmed', (err as Error).message);
+    confirmed = false;
+  }
+  if (!confirmed) {
+    try {
+      await inviteUser(args.email, language);
+      return 'invite';
+    } catch (err) {
+      // e.g. a race where the account confirmed between lookup and invite.
+      // eslint-disable-next-line no-console
+      console.warn('inviteUser failed; falling back to recovery', (err as Error).message);
+      await triggerRecovery(args.email);
+      return 'recovery';
+    }
+  }
+  // Confirmed user → contextual "added to a company" email instead of a reset.
+  const mail = buildMembershipAddedMail({
+    companyName: args.companyName,
+    role: args.role ?? 'admin',
+    language,
+  });
+  const sent = await sendMail({ to: args.email, subject: mail.subject, text: mail.text, html: mail.html });
+  // Be honest in the toast: if SMTP is unconfigured / the send failed, report
+  // 'none' so the partner knows to resend rather than seeing a false success.
+  return sent ? 'membership' : 'none';
 }
 
 // Update a GoTrue user's email (admin API). email_confirm so the new address is

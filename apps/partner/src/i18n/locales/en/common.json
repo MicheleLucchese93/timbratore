@@ -43,6 +43,7 @@
     "send_invite": "Send the access email now",
     "add_done_invite": "Administrator added. Invite sent.",
     "add_done_recovery": "Administrator added. Password reset email sent.",
+    "add_done_membership": "Administrator added. Access-to-company email sent (existing account).",
     "add_done_none": "Administrator added. No email sent.",
     "limit_reached": "Administrator limit reached."
   },
@@ -104,6 +105,7 @@
       "send_invite_hint": "Recommended. If unchecked, the admin is created with no email — send it later via the envelope icon.",
       "done_invite": "Company created. Admin invite sent.",
       "done_recovery": "Company created. Password reset email sent to the admin.",
+      "done_membership": "Company created. Access-to-company email sent to the existing admin.",
       "done_none": "Company created. No email sent."
     },
     "edit": { "title": "Edit company", "submit": "Save", "saved": "Company updated.", "owner": "Assigned partner", "note": "Note" },

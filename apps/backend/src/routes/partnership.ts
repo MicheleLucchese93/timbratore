@@ -19,6 +19,7 @@ import { ensureAuthUser } from '../lib/auth-users.js';
 import { logPartnershipAudit } from '../lib/partnership-audit.js';
 import {
   sendAccessEmail,
+  sendTenantAccessEmail,
   updateUserEmail,
   deleteUser,
   changePassword,
@@ -265,9 +266,17 @@ partnershipRouter.post(
     });
 
     // Send the admin their access email unless the partner opted out. Type is
-    // chosen by confirmation state: invite (new admin) vs reset (reused account).
+    // chosen by confirmation state: invite (brand-new admin) vs a contextual
+    // "added to <company>" mail for an already-existing confirmed account (which
+    // already has a password, so a bare reset would be confusing).
     const emailType = b.send_invite
-      ? await sendAccessEmail(result.admin.userId, result.admin.email, b.language)
+      ? await sendTenantAccessEmail({
+          userId: result.admin.userId,
+          email: result.admin.email,
+          companyName: result.ragioneSociale,
+          role: 'admin',
+          language: b.language,
+        })
       : 'none';
 
     await logPartnershipAudit({
@@ -297,7 +306,7 @@ partnershipRouter.post(
           role: result.admin.role,
           membership_id: result.admin.membershipId,
         },
-        // email_type: 'invite' | 'recovery' | 'none' drives the UI toast.
+        // email_type: 'invite' | 'recovery' | 'membership' | 'none' drives the toast.
         email_type: emailType,
         admin_created: result.adminCreated,
         limits: {
@@ -739,8 +748,15 @@ partnershipRouter.post(
       await client.query('COMMIT');
       invalidateMembershipCache(u.userId);
       // Send access email after commit (GoTrue is outside the PG transaction).
+      // New account → invite; existing confirmed account → "added to <company>".
       const emailType = b.send_invite
-        ? await sendAccessEmail(u.userId, email, t.language)
+        ? await sendTenantAccessEmail({
+            userId: u.userId,
+            email,
+            companyName: t.ragione_sociale,
+            role: 'admin',
+            language: t.language,
+          })
         : 'none';
       ok(res, { user_id: u.userId, email, email_type: emailType, admin_created: u.created }, 201);
     } catch (err) {

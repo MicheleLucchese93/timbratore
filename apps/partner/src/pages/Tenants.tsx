@@ -438,7 +438,7 @@ function CreateTenant({
     setBusy(true);
     setErr(null);
     try {
-      const res = await api<{ email_type: 'invite' | 'recovery' | 'none' }>(
+      const res = await api<{ email_type: 'invite' | 'recovery' | 'membership' | 'none' }>(
         '/api/v1/partnership/tenants',
         {
           method: 'POST',
@@ -690,7 +690,7 @@ function ManageAdmins({
     setBusy(true);
     setErr(null);
     try {
-      const res = await api<{ email_type: 'invite' | 'recovery' | 'none' }>(
+      const res = await api<{ email_type: 'invite' | 'recovery' | 'membership' | 'none' }>(
         `/api/v1/partnership/tenants/${tenant.id}/admins`,
         {
           method: 'POST',
