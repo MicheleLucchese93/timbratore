@@ -13,13 +13,25 @@ const TAGS_STYLES: MixedStyleRecord = {
   strong: { fontWeight: '700' },
   b: { fontWeight: '700' },
   em: { fontStyle: 'italic' },
+  u: { textDecorationLine: 'underline' },
+  s: { textDecorationLine: 'line-through' },
+  strike: { textDecorationLine: 'line-through' },
   ul: { marginTop: 0, marginBottom: 8 },
   ol: { marginTop: 0, marginBottom: 8 },
   li: { marginBottom: 2 },
-  h1: { fontSize: 17, fontWeight: '700', marginTop: 4, marginBottom: 4 },
-  h2: { fontSize: 16, fontWeight: '700', marginTop: 4, marginBottom: 4 },
+  h1: { fontSize: 19, fontWeight: '700', marginTop: 6, marginBottom: 4 },
+  h2: { fontSize: 17, fontWeight: '700', marginTop: 5, marginBottom: 4 },
   h3: { fontSize: 15, fontWeight: '700', marginTop: 4, marginBottom: 4 },
   h4: { fontSize: 14, fontWeight: '700', marginTop: 4, marginBottom: 4 },
+  blockquote: {
+    borderLeftWidth: 3,
+    borderLeftColor: color.surfaceVariant,
+    paddingLeft: 10,
+    marginBottom: 8,
+    color: color.onSurfaceVariant,
+  },
+  code: { backgroundColor: color.surfaceVariant, borderRadius: 4, paddingHorizontal: 4 },
+  pre: { backgroundColor: color.surfaceVariant, borderRadius: 6, padding: 10, marginBottom: 8 },
 };
 
 const RENDERERS_PROPS = {

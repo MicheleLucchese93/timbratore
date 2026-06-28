@@ -1244,6 +1244,29 @@ select.input { background-color: white; }
 }
 .bacheca-content strong { font-weight: 700; }
 .bacheca-content em { font-style: italic; }
+.bacheca-content u { text-decoration: underline; }
+.bacheca-content s,
+.bacheca-content strike { text-decoration: line-through; }
+.bacheca-content blockquote {
+  border-left: 3px solid var(--color-border);
+  margin: 0 0 0.5rem;
+  padding-left: 0.75rem;
+  color: var(--color-on-surface-variant);
+}
+.bacheca-content code {
+  background: var(--color-surface-variant);
+  padding: 0.05rem 0.3rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+.bacheca-content pre {
+  background: var(--color-surface-variant);
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.375rem;
+  overflow-x: auto;
+  margin: 0 0 0.5rem;
+}
+.bacheca-content pre code { background: none; padding: 0; }
 
 /* Admin management list rows. */
 .bacheca-admin-row {
@@ -1283,16 +1306,22 @@ select.input { background-color: white; }
 
 /* ===================== Rich-text editor (TipTap) ===================== */
 .rte {
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-outline, var(--color-border));
   border-radius: 0.5rem;
   overflow: hidden;
+  background: var(--color-surface);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.rte:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 18%, transparent);
 }
 .rte-toolbar {
   display: flex;
   align-items: center;
   gap: 0.25rem;
   padding: 0.375rem 0.5rem;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-outline, var(--color-border));
   background: var(--color-surface-variant);
   flex-wrap: wrap;
 }
@@ -1314,7 +1343,8 @@ select.input { background-color: white; }
   font-size: 0.8125rem;
   line-height: 1;
 }
-.rte-btn:hover { background: var(--color-surface); }
+.rte-btn:hover:not(:disabled) { background: var(--color-surface); }
+.rte-btn:disabled { opacity: 0.4; cursor: default; }
 .rte-btn-active {
   background: var(--color-surface);
   border-color: var(--color-border);
@@ -1330,8 +1360,30 @@ select.input { background-color: white; }
 .rte-content .ProseMirror p { margin: 0 0 0.5rem; }
 .rte-content .ProseMirror ul { list-style: disc; padding-left: 1.25rem; margin: 0 0 0.5rem; }
 .rte-content .ProseMirror ol { list-style: decimal; padding-left: 1.25rem; margin: 0 0 0.5rem; }
+.rte-content .ProseMirror h1 { font-weight: 700; font-size: 1.35rem; margin: 0.6rem 0 0.3rem; }
+.rte-content .ProseMirror h2 { font-weight: 700; font-size: 1.15rem; margin: 0.55rem 0 0.3rem; }
 .rte-content .ProseMirror h3 { font-weight: 700; font-size: 1rem; margin: 0.5rem 0 0.25rem; }
 .rte-content .ProseMirror a { color: var(--color-primary); text-decoration: underline; }
+.rte-content .ProseMirror blockquote {
+  border-left: 3px solid var(--color-border);
+  margin: 0 0 0.5rem;
+  padding-left: 0.75rem;
+  color: var(--color-on-surface-variant);
+}
+.rte-content .ProseMirror code {
+  background: var(--color-surface-variant);
+  padding: 0.05rem 0.3rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+.rte-content .ProseMirror pre {
+  background: var(--color-surface-variant);
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.375rem;
+  overflow-x: auto;
+  margin: 0 0 0.5rem;
+}
+.rte-content .ProseMirror pre code { background: none; padding: 0; }
 /* Placeholder when empty (StarterKit doesn't include one; show via attr). */
 .rte-content .ProseMirror.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
