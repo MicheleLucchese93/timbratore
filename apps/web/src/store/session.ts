@@ -80,9 +80,17 @@ export const useSession = create<SessionState>((set, get) => ({
         noTenant: true,
       });
       if (tenants.length === 0) {
-        // Valid token but no active membership — nothing to show; sign out.
+        // Valid token but no active membership — nothing to show; sign out and
+        // surface a generic, non-enumerating error so the login screen explains
+        // why instead of silently returning to it.
         await logoutAuth();
-        set({ loading: false, me: null, tenants: [], activeTenantId: null });
+        set({
+          loading: false,
+          me: null,
+          tenants: [],
+          activeTenantId: null,
+          error: 'invalid_credentials',
+        });
         return;
       }
       // Honour a previous choice; auto-pick when there's only one company.
@@ -99,9 +107,20 @@ export const useSession = create<SessionState>((set, get) => ({
       const me = await api<MeResponse>('/api/v1/me');
       set({ loading: false, me, tenants, activeTenantId: active });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'failed';
+      // A valid GoTrue token that resolves no company (403 NO_ACTIVE_TENANT /
+      // TENANT_NOT_ALLOWED — e.g. a partner not assigned to any tenant, or a
+      // suspended company) is "signed in but no access": show the SAME generic
+      // message as a wrong password (never reveal it → no account enumeration).
+      // Anything else (network, 5xx) is transient → generic retry. The code
+      // lives in the store so it survives the AppShellSkeleton remount the login
+      // screen goes through while `loading` flips.
+      const code = (err as { code?: string } | null)?.code;
+      const error =
+        code === 'NO_ACTIVE_TENANT' || code === 'TENANT_NOT_ALLOWED'
+          ? 'invalid_credentials'
+          : 'default';
       await logoutAuth();
-      set({ loading: false, me: null, tenants: [], activeTenantId: null, error: msg });
+      set({ loading: false, me: null, tenants: [], activeTenantId: null, error });
     }
   },
   async chooseTenant(tenantId) {

@@ -14,6 +14,10 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const refresh = useSession((s) => s.refresh);
+  // Set by refresh() when a valid login resolves no usable company (no
+  // membership / suspended). Lives in the store so it survives the app-shell
+  // remount that happens while `loading` flips — a local setErr would be lost.
+  const sessionError = useSession((s) => s.error);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -27,16 +31,13 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
         await loginWithDevToken(email.trim().toLowerCase());
       }
       await refresh();
-      // Credentials were valid but the user has no active company — e.g. their
-      // company was suspended, or they have no membership. Show the SAME generic
-      // error as a wrong password (never reveal suspension → no account
-      // enumeration). The multi-company chooser (tenants.length > 1) is a valid
-      // state and must not trip this.
-      const s = useSession.getState();
-      if (!s.me && s.tenants.length === 0) {
-        setErr(t('errors.invalid_credentials', { defaultValue: t('errors.default') }));
-        return;
-      }
+      // If no company resolved, refresh() has either put a localized error code
+      // in the store (no membership / suspended → shown below) or surfaced the
+      // multi-company chooser (tenants.length > 1, a valid state with no error).
+      // Either way there's no `me` yet — stop here; only navigate once a company
+      // is active. (This runs on the pre-remount instance, so a local setErr
+      // would be lost — that's why the message comes from the store.)
+      if (!useSession.getState().me) return;
       onLoggedIn();
     } catch (err) {
       // Map GoTrue's machine error code to a localized message; fall back to a
@@ -47,6 +48,12 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
       setBusy(false);
     }
   }
+
+  // A GoTrue throw is caught locally (err); a valid login with no usable company
+  // is reported via the store (sessionError) so it survives the app-shell remount.
+  const shownError =
+    err ??
+    (sessionError ? t(`errors.${sessionError}`, { defaultValue: t('errors.default') }) : null);
 
   return (
     <main className="relative h-screen overflow-hidden">
@@ -116,9 +123,9 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
               />
             </div>
 
-            {err && (
+            {shownError && (
               <div className="rounded-md px-3 py-2 text-sm" style={{ background: 'var(--color-error-tint)', color: 'var(--color-error)' }}>
-                {err}
+                {shownError}
               </div>
             )}
 
