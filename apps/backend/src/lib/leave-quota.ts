@@ -99,13 +99,12 @@ export async function getQuotaSummary(
 /**
  * Compute duration in hours for a leave request.
  *
- * - permessi: the clipped (to_ts − from_ts) span per day, capped at the hours
- *   the user is scheduled that day — so an all-day permesso equals the shift
- *   length and a permesso on a non-working day counts 0.
- * - ferie / malattia / assenza: sum of expected work hours from the user's
- *   shift template over the day range. Days without an assigned template
- *   default to 8h per weekday, 0 on weekends — a conservative fallback so
- *   quota math never crashes.
+ * All types: the clipped (to_ts − from_ts) span per day, capped at the hours
+ * the user is scheduled that day. An all-day request (00:00–23:59) collapses
+ * to the shift length; a partial-day request (ferie/permessi "Orario
+ * specifico") counts only the selected window; a non-working day counts 0.
+ * Days without an assigned template default to 8h per weekday, 0 on weekends —
+ * a conservative fallback so quota math never crashes.
  */
 export async function computeDurationHours(
   client: PoolClient,
@@ -124,14 +123,12 @@ export async function computeDurationHours(
  * For each Europe/Rome calendar day touched by [from_ts, to_ts), return the
  * hours that a leave request of the given type would claim on that day.
  *
- * - permessi: clipped (to − from) intersection within the day, capped at the
- *   shift-template hours for that weekday — so an all-day permesso (00:00–23:59)
- *   collapses to the scheduled day length and a permesso on a non-working day
- *   counts 0.
- * - ferie / malattia / assenza: shift-template hours for that weekday.
- *
- * Both use the same Mon–Fri 8h / weekend 0 fallback when no template is
- * assigned. Powers both the total duration computation and the per-day cap.
+ * All types: clipped (to − from) intersection within the day, capped at the
+ * shift-template hours for that weekday — so an all-day request (00:00–23:59)
+ * collapses to the scheduled day length, a partial-day window counts only its
+ * overlap, and a non-working day counts 0. Uses the Mon–Fri 8h / weekend 0
+ * fallback when no template is assigned. Powers both the total duration
+ * computation and the per-day cap.
  */
 export async function computeHoursPerDay(
   client: PoolClient,
@@ -150,21 +147,14 @@ export async function computeHoursPerDay(
   const scheduledHours = (dow: number): number =>
     hoursByDow.size > 0 ? hoursByDow.get(dow) ?? 0 : dow >= 1 && dow <= 5 ? 8 : 0;
 
-  if (type === 'permessi') {
-    for (const d of days) {
-      const dayStart = romeStartOfDayMs(d.iso);
-      const dayEnd = romeStartOfDayMs(addOneDay(d.iso));
-      const startMs = Math.max(from.getTime(), dayStart);
-      const endMs = Math.min(to.getTime(), dayEnd);
-      const clipped = Math.max(0, (endMs - startMs) / 3_600_000);
-      const hours = Math.min(clipped, scheduledHours(d.dow));
-      out.set(d.iso, Math.round(hours * 100) / 100);
-    }
-    return out;
-  }
-
   for (const d of days) {
-    out.set(d.iso, scheduledHours(d.dow));
+    const dayStart = romeStartOfDayMs(d.iso);
+    const dayEnd = romeStartOfDayMs(addOneDay(d.iso));
+    const startMs = Math.max(from.getTime(), dayStart);
+    const endMs = Math.min(to.getTime(), dayEnd);
+    const clipped = Math.max(0, (endMs - startMs) / 3_600_000);
+    const hours = Math.min(clipped, scheduledHours(d.dow));
+    out.set(d.iso, Math.round(hours * 100) / 100);
   }
   return out;
 }

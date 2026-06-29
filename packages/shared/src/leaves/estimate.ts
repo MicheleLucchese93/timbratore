@@ -3,11 +3,12 @@
 // request will claim before submitting. The backend stays authoritative — this
 // is only a hint.
 //
-//  - permessi: clipped (to − from) per day, capped at that day's scheduled
-//    hours (so an all-day permesso = the shift length, a non-working day = 0).
-//  - ferie / malattia / assenza: shift-template hours for each weekday.
+// All types: clipped (to − from) per day, capped at that day's scheduled
+// hours. An all-day request spans 00:00–23:59 so it collapses to the shift
+// length; a partial-day request (ferie/permessi "Orario specifico") counts
+// only the selected window; a non-working day counts 0.
 //
-// Both use an 8h Mon–Fri / 0 weekend fallback when no template is assigned.
+// Uses an 8h Mon–Fri / 0 weekend fallback when no template is assigned.
 // Days are bucketed by the local calendar, which equals the backend's
 // Europe/Rome day grid on the Italian devices/browsers this app targets.
 
@@ -30,19 +31,13 @@ export function estimateLeaveHours(
   const scheduledHours = (dow: number): number =>
     hoursByDow.size > 0 ? hoursByDow.get(dow) ?? 0 : dow >= 1 && dow <= 5 ? 8 : 0;
 
-  if (type === 'permessi') {
-    let total = 0;
-    for (const d of days) {
-      const startMs = Math.max(from.getTime(), d.startMs);
-      const endMs = Math.min(to.getTime(), d.endMs);
-      const clipped = Math.max(0, (endMs - startMs) / 3_600_000);
-      total += Math.round(Math.min(clipped, scheduledHours(d.dow)) * 100) / 100;
-    }
-    return Math.round(total * 100) / 100;
-  }
-
   let total = 0;
-  for (const d of days) total += scheduledHours(d.dow);
+  for (const d of days) {
+    const startMs = Math.max(from.getTime(), d.startMs);
+    const endMs = Math.min(to.getTime(), d.endMs);
+    const clipped = Math.max(0, (endMs - startMs) / 3_600_000);
+    total += Math.min(clipped, scheduledHours(d.dow));
+  }
   return Math.round(total * 100) / 100;
 }
 
