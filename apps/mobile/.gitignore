@@ -32,6 +32,11 @@ yarn-error.*
 # macOS
 .DS_Store
 *.pem
+# …except the PUBLIC OTA code-signing cert: it is referenced by
+# app.json > updates.codeSigningCertificate and bundled into the binary, so it
+# must be committed. The private + public keys stay ignored — they live only on
+# the OTA server under /opt/sonoqui/ota/keys/.
+!credentials/certificate.pem
 
 # local env files
 .env*.local

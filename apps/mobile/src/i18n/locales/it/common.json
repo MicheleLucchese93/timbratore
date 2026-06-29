@@ -87,6 +87,9 @@
     "it": "Italiano",
     "en": "English"
   },
+  "updateGate": {
+    "applying": "Aggiornamento in corso…"
+  },
   "errors": {
     "INVALID_TRANSITION": "Stato non valido per questa azione",
     "DUPLICATE_TOO_FAST": "Hai già timbrato pochi secondi fa",

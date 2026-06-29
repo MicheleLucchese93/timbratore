@@ -11,7 +11,10 @@
     "lint": "expo lint",
     "prebuild": "expo prebuild --clean",
     "build:aab": "./scripts/build-android-aab.sh",
-    "install:aab": "./scripts/install-aab-on-device.sh"
+    "install:aab": "./scripts/install-aab-on-device.sh",
+    "ota:publish": "./scripts/publish-ota.sh",
+    "ota:publish:prod": "./scripts/publish-ota.sh --production",
+    "ota:seed-fingerprint": "./scripts/publish-ota.sh --seed"
   },
   "dependencies": {
     "@expo/ui": "~56.0.13",
@@ -35,6 +38,7 @@
     "expo-status-bar": "~56.0.4",
     "expo-symbols": "~56.0.5",
     "expo-system-ui": "~56.0.5",
+    "expo-updates": "~56.0.19",
     "expo-web-browser": "~56.0.5",
     "i18next": "^24.2.3",
     "react": "19.2.3",

@@ -8,6 +8,8 @@ import { useSession } from '../store/session';
 import { LockScreen } from '../screens/LockScreen';
 import { setupBadgeSync } from '../lib/badgeSync';
 import { i18nReady, applyServerLanguage } from '../i18n';
+import { useUpdateGate } from '../hooks/useUpdateGate';
+import { UpdateGateScreen } from '../components/UpdateGateScreen';
 
 /**
  * Biometric app-lock gate. Lives at the root layout so it stays mounted
@@ -74,6 +76,11 @@ export default function RootLayout() {
   const [i18nDone, setI18nDone] = useState(false);
   const me = useSession((s) => s.me);
 
+  // Cold-start / warm-foreground OTA check+apply lifecycle. No-ops in dev and
+  // when updates are disabled; only flips shouldBlockUI once a new bundle has
+  // actually been fetched and a reload is imminent.
+  const { shouldBlockUI } = useUpdateGate();
+
   useEffect(() => {
     void i18nReady.then(() => setI18nDone(true));
   }, []);
@@ -82,6 +89,17 @@ export default function RootLayout() {
   useEffect(() => {
     applyServerLanguage(me?.preferences?.language);
   }, [me?.preferences?.language]);
+
+  // Applying an OTA update: show the gate above everything, even before i18n
+  // hydration finishes (UpdateGateScreen carries an Italian fallback string).
+  if (shouldBlockUI) {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <UpdateGateScreen />
+      </SafeAreaProvider>
+    );
+  }
 
   if (!i18nDone) {
     return (

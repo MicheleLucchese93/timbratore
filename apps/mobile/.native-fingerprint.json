@@ -1,0 +1,6 @@
+{
+  "hash": "23b0491f866c7a30fc88d28f3384eda13c8dc31d",
+  "runtimeVersion": "1",
+  "updatedAt": "2026-06-29T00:00:00Z",
+  "_note": "Advisory baseline for the OTA publish gate (scripts/publish-ota.sh). It records the @expo/fingerprint hash of the project at the last native build. If the live fingerprint differs, the project's native layer changed and an OTA bundle would be incompatible with shipped binaries — rebuild natively, bump app.json > runtimeVersion, and re-seed this file (scripts/publish-ota.sh --seed). RE-SEED REQUIRED after the FIRST expo-updates-enabled native build: this baseline was captured before that build's `expo prebuild` wired expo-updates into ios/android, so the hash will change once."
+}

@@ -2,15 +2,29 @@
   "expo": {
     "name": "sonoQui",
     "slug": "traduttore",
-    "version": "11.0.0",
+    "version": "12.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "sonoqui",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "runtimeVersion": "1",
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0,
+      "url": "https://ota.sonoqui.pro/api/manifest",
+      "codeSigningCertificate": "./credentials/certificate.pem",
+      "codeSigningMetadata": {
+        "keyid": "main",
+        "alg": "rsa-v1_5-sha256"
+      },
+      "requestHeaders": {
+        "expo-channel-name": "production"
+      }
+    },
     "ios": {
       "bundleIdentifier": "app.cisono.cisono",
-      "buildNumber": "4",
+      "buildNumber": "5",
       "supportsTablet": false,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "sonoQui usa la posizione SOLO al momento della timbratura per verificare che tu sia presso la sede di lavoro. La posizione NON viene mai tracciata in background. sonoQui uses your location ONLY at clock-in to verify you are at the work site. Location is NEVER tracked in the background.",

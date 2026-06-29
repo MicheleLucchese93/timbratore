@@ -241,8 +241,47 @@ services:
           memory: 64M
           cpus: '0.10'
 
+  # Self-hosted Expo OTA server (expo-open-ota). Lets us ship JS/TS-only
+  # changes to the sonoQui mobile app without a store review. Published to via
+  # apps/mobile/scripts/publish-ota.sh (eoas). Reverse-proxied at
+  # https://ota.sonoqui.pro by the shared /opt/infra Caddy gateway. STORAGE_MODE
+  # local → bundles live in the sonoqui_ota_data volume; signing keys are mounted
+  # read-only from ./ota/keys (generated locally, scp'd to the server, NOT in git).
+  # EXPO_ACCESS_TOKEN authorises the server to resolve channel → branch against
+  # Expo's API for project 729f39a2-… (owner micheel93-2).
+  ota-sonoqui:
+    image: ghcr.io/axelmarciano/expo-open-ota:v2.3.19
+    container_name: ota-sonoqui
+    platform: linux/amd64
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+      BASE_URL: "https://ota.sonoqui.pro"
+      EXPO_APP_ID: "729f39a2-86a4-4bb6-ae03-21dad1922c34"
+      EXPO_ACCESS_TOKEN: "${EXPO_ACCESS_TOKEN}"
+      JWT_SECRET: "${OTA_JWT_SECRET}"
+      ADMIN_PASSWORD: "${OTA_ADMIN_PASSWORD}"
+      USE_DASHBOARD: "true"
+      STORAGE_MODE: "local"
+      LOCAL_BUCKET_BASE_PATH: "/data/updates"
+      CACHE_MODE: "local"
+      KEYS_STORAGE_TYPE: "local"
+      PUBLIC_LOCAL_EXPO_KEY_PATH: "/data/keys/public-key.pem"
+      PRIVATE_LOCAL_EXPO_KEY_PATH: "/data/keys/private-key.pem"
+    volumes:
+      - sonoqui_ota_data:/data/updates
+      - ./ota/keys:/data/keys:ro
+    networks:
+      - gateway
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+
 volumes:
   sonoqui_export_data:
+  sonoqui_ota_data:
 
 networks:
   gateway:

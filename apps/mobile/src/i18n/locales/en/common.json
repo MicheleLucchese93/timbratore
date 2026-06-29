@@ -87,6 +87,9 @@
     "it": "Italiano",
     "en": "English"
   },
+  "updateGate": {
+    "applying": "Updating…"
+  },
   "errors": {
     "INVALID_TRANSITION": "Invalid state for this action",
     "DUPLICATE_TOO_FAST": "You just stamped a moment ago",
