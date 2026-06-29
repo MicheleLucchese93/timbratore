@@ -772,7 +772,7 @@ export const MAIN_EN = `
         <h3>Generating an export</h3>
         <ol class="steps">
           <li>Set <strong>From</strong> and <strong>To</strong>.</li>
-          <li>Choose the <strong>format</strong>: <em>XLSX (accountant)</em>, <em>JSON</em> or <em>Centro Paghe (LUL)</em>.</li>
+          <li>Choose the <strong>format</strong>: <em>XLSX (accountant)</em> or <em>JSON</em>. The <em>Centro Paghe (LUL)</em> format appears only after you set the <strong>company code</strong> under <strong>Settings → Centro Paghe</strong>.</li>
           <li>Press <strong>Generate</strong>.</li>
         </ol>
         <p>The job enters the queue and is processed in the background.</p>

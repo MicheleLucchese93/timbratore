@@ -779,7 +779,7 @@ const MAIN_IT = `
         <h3>Generare un'esportazione</h3>
         <ol class="steps">
           <li>Imposta <strong>Dal</strong> e <strong>Al</strong>.</li>
-          <li>Scegli il <strong>formato</strong>: <em>XLSX (commercialista)</em>, <em>JSON</em> oppure <em>Centro Paghe (LUL)</em>.</li>
+          <li>Scegli il <strong>formato</strong>: <em>XLSX (commercialista)</em> o <em>JSON</em>. Il formato <em>Centro Paghe (LUL)</em> compare solo dopo aver impostato il <strong>codice ditta</strong> in <strong>Impostazioni → Centro Paghe</strong>.</li>
           <li>Premi <strong>Genera</strong>.</li>
         </ol>
         <p>Il job entra in coda e si elabora in background.</p>

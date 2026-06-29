@@ -1,7 +1,7 @@
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef, type GridRowSelectionModel } from '@mui/x-data-grid';
-import { api, apiUrl, getToken, type ApiError } from '../lib/api.ts';
+import { api, apiUrl, getToken, getTenantId, type ApiError } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { useSession } from '../store/session.ts';
 import { IconButton } from '../components/IconButton.tsx';
@@ -363,9 +363,10 @@ export function Users() {
     setErr(null);
     setInfo(null);
     try {
-      const r = await fetch(apiUrl('/api/v1/users/export.xlsx'), {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const headers: Record<string, string> = { Authorization: `Bearer ${getToken()}` };
+      const tid = getTenantId();
+      if (tid) headers['X-Tenant-Id'] = tid;
+      const r = await fetch(apiUrl('/api/v1/users/export.xlsx'), { headers });
       if (!r.ok) throw new Error(t('export.failed'));
       const blob = await r.blob();
       const url = URL.createObjectURL(blob);
@@ -387,12 +388,15 @@ export function Users() {
     if (!file) return;
     setImporting(true);
     try {
+      const importHeaders: Record<string, string> = {
+        Authorization: `Bearer ${getToken()}`,
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      };
+      const importTid = getTenantId();
+      if (importTid) importHeaders['X-Tenant-Id'] = importTid;
       const r = await fetch(apiUrl('/api/v1/users/import'), {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        },
+        headers: importHeaders,
         body: file,
       });
       const text = await r.text();

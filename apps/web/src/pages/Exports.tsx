@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
-import { api, getToken, apiUrl } from '../lib/api.ts';
+import { api, getToken, getTenantId, apiUrl } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { fmtDateTime } from '../i18n/format.ts';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
@@ -28,6 +28,10 @@ export function Exports() {
   const [to, setTo] = useState(() => lastOfPrevMonth());
   const [format, setFormat] = useState<ExportFormat>('xlsx');
   const [busy, setBusy] = useState(false);
+  // Centro Paghe is opt-in: only tenants that configured a codice ditta
+  // (Impostazioni → Centro Paghe) get the format option. Avoids generating a
+  // payroll file with no company code — which only ever errored.
+  const [centroEnabled, setCentroEnabled] = useState(false);
   const confirm = useConfirm();
 
   // Centro Paghe = one whole calendar month. Snap the range to month bounds when
@@ -58,6 +62,11 @@ export function Exports() {
     const id = setInterval(() => load().catch(() => {}), 2000);
     return () => clearInterval(id);
   }, []);
+  useEffect(() => {
+    api<{ codice_ditta: string | null }>('/api/v1/settings')
+      .then((s) => setCentroEnabled(Boolean(s.codice_ditta?.trim())))
+      .catch(() => {});
+  }, []);
 
   async function enqueue(e: FormEvent) {
     e.preventDefault();
@@ -73,9 +82,10 @@ export function Exports() {
   }
 
   async function download(j: ExportJob) {
-    const r = await fetch(apiUrl(`/api/v1/exports/${j.id}/download`), {
-      headers: { Authorization: `Bearer ${getToken()}` },
-    });
+    const headers: Record<string, string> = { Authorization: `Bearer ${getToken()}` };
+    const tid = getTenantId();
+    if (tid) headers['X-Tenant-Id'] = tid;
+    const r = await fetch(apiUrl(`/api/v1/exports/${j.id}/download`), { headers });
     if (!r.ok) { alert(t('downloadFailed')); return; }
     const blob = await r.blob();
     const url = URL.createObjectURL(blob);
@@ -120,7 +130,7 @@ export function Exports() {
           <select className="input" value={format} onChange={(e) => onFormatChange(e.target.value as ExportFormat)}>
             <option value="xlsx">{t('formatXlsx')}</option>
             <option value="json">JSON</option>
-            <option value="centro">{t('formatCentro')}</option>
+            {centroEnabled && <option value="centro">{t('formatCentro')}</option>}
           </select>
           {format === 'centro' && <p className="field-hint">{t('centroMonthHint')}</p>}
         </div>
