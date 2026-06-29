@@ -9,6 +9,7 @@
     "worked": "Worked {{value}}"
   },
   "empty": "No stamps in this period.",
+  "emptySub": "Pick another period to see stamps.",
   "today": "Today",
   "yesterday": "Yesterday",
   "breaks": "Breaks {{value}}",

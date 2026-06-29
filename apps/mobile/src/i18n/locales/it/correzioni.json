@@ -2,7 +2,9 @@
   "newRequest": "Nuova richiesta",
   "empty": {
     "admin": "Nessuna richiesta da gestire.",
-    "user": "Non hai richieste."
+    "adminSub": "Le richieste di correzione dei dipendenti compariranno qui.",
+    "user": "Non hai richieste.",
+    "userSub": "Invia una richiesta per correggere una timbratura errata."
   },
   "diff": {
     "current": "Attuale",

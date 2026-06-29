@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import type { StampEventType } from '@sonoqui/shared';
 import { color, space } from '@sonoqui/shared';
 import { api } from '../lib/api';
+import { EmptyState } from './EmptyState';
 import { useSession } from '../store/session';
 import { useNotifications, type CorrectionRow } from '../lib/notifications';
 import { DateField } from './DateField';
@@ -176,10 +177,11 @@ export function CorrectionsListPage({
         </View>
       )}
       {!isLoading && data.length === 0 && (
-        <View style={styles.emptyCard}>
-          <Ionicons name="document-text-outline" size={32} color={color.onSurfaceVariant} />
-          <Text style={styles.empty}>{isAdmin ? t('empty.admin') : t('empty.user')}</Text>
-        </View>
+        <EmptyState
+          icon="document-text-outline"
+          title={isAdmin ? t('empty.admin') : t('empty.user')}
+          subtitle={isAdmin ? t('empty.adminSub') : t('empty.userSub')}
+        />
       )}
       {data.map((r) => (
         <CorrectionCard

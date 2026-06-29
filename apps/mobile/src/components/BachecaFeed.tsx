@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,10 @@ import { api } from '../lib/api';
 import { fmtDate } from '../i18n/format';
 import { useBacheca } from '../store/bacheca';
 import { BulletinHtml } from './BulletinHtml';
+import { EmptyState } from './EmptyState';
+
+/** Imperative handle so the host screen's pull-to-refresh can re-fetch the feed. */
+export type BachecaFeedHandle = { refresh: () => Promise<void> };
 
 /**
  * Member-facing Bacheca feed. Used standalone on the Bacheca tab and embedded in
@@ -17,7 +21,10 @@ import { BulletinHtml } from './BulletinHtml';
  * is server-sanitized so it renders safely. Keeps the tab-bar unread badge in
  * sync via the bacheca store.
  */
-export function BachecaFeed({ title }: { title?: string }) {
+export const BachecaFeed = forwardRef<BachecaFeedHandle, { title?: string }>(function BachecaFeed(
+  { title },
+  ref
+) {
   const { t } = useTranslation(['bacheca', 'common']);
   const setUnread = useBacheca((s) => s.setUnread);
   const [items, setItems] = useState<BulletinFeedItem[]>([]);
@@ -35,6 +42,8 @@ export function BachecaFeed({ title }: { title?: string }) {
       setLoading(false);
     }
   }, [setUnread]);
+
+  useImperativeHandle(ref, () => ({ refresh: load }), [load]);
 
   useFocusEffect(
     useCallback(() => {
@@ -94,16 +103,17 @@ export function BachecaFeed({ title }: { title?: string }) {
           <ActivityIndicator color={color.primary} />
         </View>
       ) : visible.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Ionicons name="megaphone-outline" size={28} color={color.onSurfaceVariant} />
-          <Text style={styles.empty}>{unreadOnly ? t('emptyUnread') : t('empty')}</Text>
-        </View>
+        <EmptyState
+          icon="megaphone-outline"
+          title={unreadOnly ? t('emptyUnreadTitle') : t('emptyTitle')}
+          subtitle={unreadOnly ? t('emptyUnreadSub') : t('emptySub')}
+        />
       ) : (
         visible.map((b) => <BulletinCard key={b.id} item={b} onMarkRead={() => markRead(b.id)} />)
       )}
     </View>
   );
-}
+});
 
 function BulletinCard({
   item,
@@ -208,7 +218,4 @@ const styles = StyleSheet.create({
   markBtnText: { fontSize: 13, fontWeight: '700', color: color.primary },
   readPill: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   readPillText: { fontSize: 12, fontWeight: '700', color: color.success },
-
-  emptyCard: { backgroundColor: '#ffffff', borderRadius: 16, padding: 28, alignItems: 'center', gap: 8 },
-  empty: { color: color.onSurfaceVariant, textAlign: 'center' },
 });

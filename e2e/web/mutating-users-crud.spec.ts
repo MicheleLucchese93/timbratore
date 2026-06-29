@@ -4,6 +4,7 @@ import {
   apiGet,
   apiPatch,
   apiPost,
+  createConfirmedFixtureUser,
   deleteUser,
   inviteUser,
   loadHandleFromStorage,
@@ -80,6 +81,31 @@ test.describe('web — Utenti CRUD (mutating)', () => {
       expect(u.email_type).toBe('invite');
     } finally {
       await deleteUser(admin.token, u.user_id).catch(() => {});
+    }
+  });
+
+  test('add-member of an EXISTING confirmed account sends a membership mail, not a reset', async () => {
+    // Membership branch only exists in prod (DEV_AUTH_ENABLED returns 'none')
+    // and needs the e2e-only create-fixture-user endpoint to mint a CONFIRMED
+    // account (password set → email_confirmed).
+    test.skip(!process.env.E2E_PURGE_SECRET, 'requires E2E_PURGE_SECRET (prod create-fixture-user)');
+    const memberEmail = `e2e-confirmed-${Date.now()}@e2e.local`;
+    const confirmed = await createConfirmedFixtureUser(memberEmail);
+    try {
+      // create-fixture-user enrolls them as an ACTIVE member; deactivate so the
+      // invite flow re-adds the SAME confirmed account → membership branch.
+      await apiPost(admin.token, `/api/v1/users/${confirmed.user_id}/deactivate`, {});
+      const u = await inviteUser(admin.token, {
+        email: memberEmail,
+        role: 'user',
+        send_reset_email: true,
+      });
+      expect(u.email_sent).toBe(true);
+      // Already-confirmed account → contextual "added to <company>" mail, not a
+      // password reset they never asked for.
+      expect(u.email_type).toBe('membership');
+    } finally {
+      await deleteUser(admin.token, confirmed.user_id).catch(() => {});
     }
   });
 

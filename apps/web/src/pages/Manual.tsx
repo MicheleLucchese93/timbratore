@@ -302,7 +302,7 @@ const MAIN_IT = `
 
     <section class="chapter" id="web-admin-bacheca">
       <h2><span class="chapter-num">06a</span>Bacheca <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
-      <p class="lead">La Bacheca è lo spazio per le comunicazioni aziendali: l'amministratore pubblica un messaggio e tutti i destinatari lo vedono in Dashboard (web e app) e possono segnarlo come letto.</p>
+      <p class="lead">La Bacheca è lo spazio per le comunicazioni aziendali: l'amministratore pubblica un messaggio e tutti i destinatari lo vedono in Dashboard (web) e nella scheda Bacheca dell'app e possono segnarlo come letto.</p>
 
       <div class="feature">
         <h3>Creare un messaggio</h3>
@@ -475,7 +475,7 @@ const MAIN_IT = `
           <li>Lascia spuntata <strong>Invia subito l'email di accesso</strong> (preimpostata) per dare accesso immediato: l'utente riceverà un <strong>invito</strong> a impostare la password e potrà accedere senza altri passaggi. Togli la spunta se preferisci crearlo ora e inviargli l'email più tardi.</li>
           <li>Premi <strong>Invita</strong>.</li>
         </ol>
-        <p>Con la spunta attiva l'utente <strong>riceve subito l'email di accesso</strong> ed entra. L'email è automaticamente del tipo giusto: un <strong>invito</strong> a chi non ha ancora impostato la password, un <strong>reset password</strong> a chi l'ha già fatto. Se hai tolto la spunta, l'utente viene creato senza email: per dargli accesso premi poi l'icona <strong>email di accesso</strong> (a forma di chiave) sulla sua riga — oppure selezionalo e usa l'operazione in massa <strong>Invia email di accesso</strong>.</p>
+        <p>Con la spunta attiva l'utente <strong>riceve subito l'email di accesso</strong> ed entra. L'email è automaticamente del tipo giusto: un <strong>invito</strong> a impostare la password a chi non ha ancora un account; chi invece <strong>ha già un account</strong> (perché lavora già in un'altra azienda sulla piattaforma) riceve un'email che lo <strong>avvisa dell'aggiunta alla tua azienda</strong> e accede con la password che usa già — non un reset password che non ha chiesto. Se hai tolto la spunta, l'utente viene creato senza email: per dargli accesso premi poi l'icona <strong>email di accesso</strong> (a forma di chiave) sulla sua riga — oppure selezionalo e usa l'operazione in massa <strong>Invia email di accesso</strong>.</p>
       </div>
 
       <div class="feature">
@@ -698,9 +698,9 @@ const MAIN_IT = `
         <p>Nel modulo <strong>+ Nuova richiesta</strong> scegli prima il <strong>Tipo</strong> (Ferie, Permesso, Malattia, Assenza). Per Ferie e Permessi indichi il periodo in due modi, con <strong>data e orario su campi separati</strong>:</p>
         <ul class="tidy">
           <li><strong>Tutto il giorno</strong> (predefinito) — selezioni un intervallo di date <em>Dal</em> … <em>Al</em>: l'assenza copre l'intera giornata lavorativa di ogni giorno del periodo.</li>
-          <li><strong>Permesso a ore</strong> — togli la spunta da <em>Tutto il giorno</em>: compaiono il campo <em>Giorno</em> e, separati, l'ora di inizio (<em>Dalle ore</em>) e di fine (<em>Alle ore</em>), regolabili a passi di 15 minuti.</li>
+          <li><strong>Orario specifico</strong> — togli la spunta da <em>Tutto il giorno</em>: compaiono il campo <em>Giorno</em> e, separati, l'ora di inizio (<em>Dalle ore</em>) e di fine (<em>Alle ore</em>). Vale sia per i Permessi (a passi di 15 minuti) sia per le Ferie, utile per una mezza giornata.</li>
         </ul>
-        <p>Sotto i campi compare in tempo reale il <strong>Totale richiesto</strong> in ore, già limitato all'orario di lavoro assegnato (un permesso non può valere più della giornata prevista).</p>
+        <p>Sotto i campi compare in tempo reale il <strong>Totale richiesto</strong> in ore. Con <em>Orario specifico</em> conta <strong>solo la finestra selezionata</strong> (es. 09:00–13:00 = 4h, non l'intera giornata), comunque limitata all'orario di lavoro assegnato (una richiesta non può valere più della giornata prevista).</p>
       </div>
 
       <div class="feature">
@@ -1089,17 +1089,17 @@ const MAIN_IT = `
 
     <section class="chapter" id="mob-user">
       <h2><span class="chapter-num">20</span>Panoramica App Mobile</h2>
-      <p class="lead">L'app mobile è disponibile per iOS e Android. La navigazione principale è una barra in basso con le schede Timbrature, Storico, Richieste e Documenti (e Dashboard per gli admin).</p>
+      <p class="lead">L'app mobile è disponibile per iOS e Android. La navigazione principale è una barra in basso con le schede Bacheca, Timbrature, Richieste e Documenti (e Dashboard per gli admin).</p>
 
       <div class="feature">
         <h3>Le schede principali</h3>
         <div class="grid-2">
           <div class="mini-card"><div class="mini-title">⏱ Timbrature</div><div class="mini-desc">Schermata principale per timbrare ingresso, uscita, pause</div></div>
-          <div class="mini-card"><div class="mini-title">📅 Storico</div><div class="mini-desc">Storico delle tue timbrature per giorno</div></div>
+          <div class="mini-card"><div class="mini-title">📣 Bacheca</div><div class="mini-desc">Comunicazioni aziendali da leggere</div></div>
           <div class="mini-card"><div class="mini-title">💼 Richieste</div><div class="mini-desc">Ferie, permessi, malattia</div></div>
           <div class="mini-card"><div class="mini-title">📄 Documenti</div><div class="mini-desc">I tuoi documenti personali condivisi dall'azienda</div></div>
         </div>
-        <p>Le <strong>correzioni</strong> non sono più una scheda a sé: vivono ora dentro <strong>Timbrature</strong>, nella tab <strong>Correggi</strong>.</p>
+        <p>Le <strong>correzioni</strong> e lo <strong>storico</strong> non sono più schede a sé: vivono ora dentro <strong>Timbrature</strong>, nelle tab <strong>Correggi</strong> e <strong>Storico</strong>.</p>
         <p>In alto a sinistra di ogni schermata trovi il tuo <strong>avatar</strong> (apre il Profilo). In alto a destra c'è la <strong>campanella notifiche</strong> con badge di non lette. La campanella raccoglie gli aggiornamenti su <strong>richieste</strong> (ferie, permessi, assenze) e <strong>correzioni</strong>: le decisioni sulle tue richieste e — per chi approva — quelle in attesa della tua decisione. Toccando una notifica apri direttamente la scheda corrispondente (Richieste o, per le correzioni, la tab Correggi dentro Timbrature).</p>
       </div>
     </section>
@@ -1190,7 +1190,7 @@ const MAIN_IT = `
 
     <section class="chapter" id="mob-user-storico">
       <h2><span class="chapter-num">22</span>Storico timbrature <span class="badge badge-user">user</span> <span class="badge badge-mobile">mobile</span></h2>
-      <p class="lead">Riepilogo delle tue timbrature, raggruppate per giorno.</p>
+      <p class="lead">Riepilogo delle tue timbrature, raggruppate per giorno. Lo apri dalla tab <strong>Storico</strong> dentro Timbrature.</p>
 
       <div class="feature">
         <h3>Filtri rapidi</h3>
@@ -1285,7 +1285,7 @@ const MAIN_IT = `
           <li>Aggiungi una <strong>nota</strong> opzionale (es. "matrimonio fratello", "visita medica"). Per Assenza il campo si chiama <strong>Motivazione</strong> ed è anch'esso facoltativo.</li>
           <li>Premi <strong>Invia richiesta</strong> (per Ferie/Permessi/Assenza) o <strong>Invia segnalazione</strong> (per Malattia).</li>
         </ol>
-        <p><strong>Totale richiesto:</strong> il modulo mostra in tempo reale le ore della richiesta, calcolate dal periodo scelto e dal tuo <strong>orario assegnato</strong>. Un permesso <em>Tutto il giorno</em> vale le ore previste per quel giorno (es. 8h, non 24h) e i giorni non lavorativi contano 0. Una richiesta interamente fuori dal tuo orario (es. ferie solo di domenica) viene bloccata; un intervallo misto (es. lun→dom) conteggia solo i giorni lavorativi.</p>
+        <p><strong>Totale richiesto:</strong> il modulo mostra in tempo reale le ore della richiesta, calcolate dal periodo scelto e dal tuo <strong>orario assegnato</strong>. Con <em>Tutto il giorno</em> vale le ore previste per ciascun giorno (es. 8h, non 24h). Con <em>Orario specifico</em> (Ferie o Permessi) conta solo la finestra selezionata — es. 09:00–13:00 = 4h, non l'intera giornata — comunque limitata alle ore previste quel giorno. I giorni non lavorativi contano 0; una richiesta interamente fuori dal tuo orario (es. ferie solo di domenica) viene bloccata; un intervallo misto (es. lun→dom) conteggia solo i giorni lavorativi.</p>
       </div>
 
       <div class="feature">

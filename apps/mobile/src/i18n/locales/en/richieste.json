@@ -26,7 +26,9 @@
   },
   "empty": {
     "mine": "You have no requests.",
-    "inbox": "No requests to approve."
+    "mineSub": "Requests you submit will appear here.",
+    "inbox": "No requests to approve.",
+    "inboxSub": "When a colleague sends a request, you'll find it here."
   },
   "fab": "New request",
   "card": {

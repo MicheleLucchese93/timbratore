@@ -9,6 +9,7 @@
     "worked": "Lavorate {{value}}"
   },
   "empty": "Nessuna timbratura nel periodo.",
+  "emptySub": "Seleziona un altro periodo per vedere le timbrature.",
   "today": "Oggi",
   "yesterday": "Ieri",
   "breaks": "Pause {{value}}",

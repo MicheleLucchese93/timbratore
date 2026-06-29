@@ -38,11 +38,13 @@ import {
   CorrectionsListPage,
   NewCorrectionModal,
 } from '../components/CorrectionsTab';
+import { StoricoContent } from './StoricoScreen';
 import { fmtTime } from '../i18n/format';
 
 // "Timbra" is the stamping page; "correct" hosts the merged corrections list
-// (formerly the standalone Correzioni tab), pending requests on top.
-type TimbraTab = 'timbra' | 'correct';
+// (formerly the standalone Correzioni tab), pending requests on top; "storico"
+// is the personal stamp history (also reachable as its own tab for non-stampers).
+type TimbraTab = 'timbra' | 'correct' | 'storico';
 
 interface CurrentState {
   state: 'nothing' | 'clocked_in' | 'on_break' | 'on_lunch';
@@ -456,6 +458,8 @@ export function TimbratureScreen() {
     />
   );
 
+  const storicoPage = <StoricoContent />;
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <AppHeader centerSlot={<WorkStateChip state={currentState} />} />
@@ -463,10 +467,11 @@ export function TimbratureScreen() {
         tabs={[
           { id: 'timbra', label: t('tabs.stamp') },
           { id: 'correct', label: t('tabs.correct'), badge: corr.pendingCount },
+          { id: 'storico', label: t('tabs.storico') },
         ]}
         activeId={tab}
         onChange={setTab}>
-        {[stampPage, correctPage]}
+        {[stampPage, correctPage, storicoPage]}
       </SwipeableTabs>
 
       {/* Anyone can file a correction for their own stamps — admins too, so

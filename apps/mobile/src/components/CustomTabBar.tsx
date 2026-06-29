@@ -18,7 +18,6 @@ const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   dashboard: 'grid-outline',
   bacheca: 'megaphone-outline',
   timbrature: 'time-outline',
-  storico: 'calendar-outline',
   richieste: 'sunny-outline',
   documenti: 'document-text-outline',
 };
@@ -32,6 +31,7 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
   const canStamp = (me?.user.stamp_modes ?? []).length > 0;
   const focusedKey = state.routes[state.index]?.key;
   // Dashboard is admin-only; Timbrature hides when no stamp method is enabled.
+  // Storico is not a bottom tab — it lives as a sub-tab inside Timbrature.
   const routes = state.routes.filter((r) => {
     if (r.name === 'dashboard') return isAdmin;
     if (r.name === 'timbrature') return canStamp;

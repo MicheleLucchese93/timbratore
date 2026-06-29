@@ -159,6 +159,7 @@
     "subtitle": "Per impostazione predefinita l'utente riceve subito l'email di accesso (un invito se non ha ancora impostato la password). Togli la spunta per crearlo senza email e inviargliela più tardi (icona chiave o operazione in massa).",
     "createdNoEmail": "Utente creato. Nessuna email inviata: usa «Invia email di accesso» (icona chiave) per dargli il primo accesso.",
     "createdEmailSent": "Utente creato. Email di accesso inviata: potrà accedere subito.",
+    "createdMembership": "Utente aggiunto. Aveva già un account: gli abbiamo inviato un'email che lo avvisa dell'aggiunta all'azienda (accede con la password esistente).",
     "sendResetEmail": "Invia subito l'email di accesso",
     "sendResetEmailHint": "Consigliato: l'utente riceve un invito a impostare la password e può accedere subito. Se la togli, glielo invii dopo dalla tabella (icona chiave).",
     "firstName": "Nome",

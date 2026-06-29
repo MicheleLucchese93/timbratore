@@ -7,7 +7,12 @@ import { authenticate, requireAdmin, invalidateMembershipCache } from '../middle
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
-import { createUserSilently, sendAccessEmail } from '../lib/gotrue-admin.js';
+import {
+  createUserSilently,
+  sendAccessEmail,
+  sendTenantAccessEmail,
+  type TenantAccessEmailType,
+} from '../lib/gotrue-admin.js';
 import { env } from '../env.js';
 import { createLogger } from '../lib/logger.js';
 
@@ -393,20 +398,26 @@ usersRouter.post(
       email: inv.email,
       role: inv.role,
     });
-    // Optionally give the new member their first access immediately. sendAccessEmail
-    // picks the kind by confirmation state: a brand-new member is unconfirmed → an
-    // INVITATION email; a reused/confirmed account → a PASSWORD-RESET. It is the
-    // same call the standalone reset-password button uses.
-    let emailType: 'invite' | 'recovery' | 'none' = 'none';
+    // Optionally give the new member their first access immediately.
+    // sendTenantAccessEmail picks the kind by confirmation state: a brand-new
+    // member is unconfirmed → an INVITATION email; an already-CONFIRMED account
+    // (who already has a password) → a contextual "you've been added to
+    // <company>" mail with a login link, NOT a password-reset they never asked
+    // for. Mirrors the partner console's tenant-create flow.
+    let emailType: TenantAccessEmailType = 'none';
     if (inv.send_reset_email) {
-      let lang: 'it' | 'en' = inv.language ?? 'it';
-      if (!inv.language) {
-        const tl = await client.query(
-          `SELECT language FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid`
-        );
-        lang = tl.rows[0]?.language === 'en' ? 'en' : 'it';
-      }
-      emailType = await sendAccessEmail(outcome.user_id, inv.email, lang);
+      const tl = await client.query(
+        `SELECT ragione_sociale, language FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid`
+      );
+      const companyName = (tl.rows[0]?.ragione_sociale as string | undefined) ?? '';
+      const lang: 'it' | 'en' = inv.language ?? (tl.rows[0]?.language === 'en' ? 'en' : 'it');
+      emailType = await sendTenantAccessEmail({
+        userId: outcome.user_id,
+        email: inv.email,
+        companyName,
+        role: inv.role,
+        language: lang,
+      });
       await emitAudit(client, 'user.access_email', outcome.user_id, null, {
         email: inv.email,
         type: emailType,

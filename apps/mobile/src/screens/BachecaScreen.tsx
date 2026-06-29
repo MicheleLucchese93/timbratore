@@ -1,17 +1,38 @@
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTranslation } from 'react-i18next';
 import { color } from '@sonoqui/shared';
 import { AppHeader } from '../components/AppHeader';
-import { BachecaFeed } from '../components/BachecaFeed';
+import { BachecaFeed, type BachecaFeedHandle } from '../components/BachecaFeed';
 
 export function BachecaScreen() {
-  const { t } = useTranslation('bacheca');
+  const feedRef = useRef<BachecaFeedHandle>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await feedRef.current?.refresh();
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <AppHeader centerSlot={<Text style={styles.headerTitle}>{t('title')}</Text>} />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        <BachecaFeed />
+      <AppHeader />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={color.primary}
+            colors={[color.primary]}
+          />
+        }>
+        <BachecaFeed ref={feedRef} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -19,7 +40,6 @@ export function BachecaScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: color.surface },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: color.onSurface },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 6, paddingTop: 8, paddingBottom: 44 },
 });

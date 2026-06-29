@@ -1,7 +1,9 @@
 {
   "title": "Bacheca",
-  "empty": "Nessun messaggio in bacheca.",
-  "emptyUnread": "Nessun messaggio da leggere.",
+  "emptyTitle": "Nessun messaggio",
+  "emptySub": "Le comunicazioni dell'azienda appariranno qui.",
+  "emptyUnreadTitle": "Tutto letto",
+  "emptyUnreadSub": "Non hai messaggi da leggere.",
   "markRead": "Segna come letto",
   "read": "Letto",
   "all": "Tutti",

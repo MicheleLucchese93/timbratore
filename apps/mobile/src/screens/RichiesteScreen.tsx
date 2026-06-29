@@ -24,6 +24,7 @@ import { api } from '../lib/api';
 import { useNotifications } from '../lib/notifications';
 import { useSession } from '../store/session';
 import { AppHeader } from '../components/AppHeader';
+import { EmptyState } from '../components/EmptyState';
 import { WorkStateChip } from '../components/WorkStateChip';
 import { DateField } from '../components/DateField';
 import { SwipeableTabs } from '../components/SwipeableTabs';
@@ -417,10 +418,7 @@ export function RichiesteScreen() {
         </View>
       )}
       {!loadingMine && mineRows.length === 0 && (
-        <View style={styles.emptyCard}>
-          <Ionicons name="calendar-outline" size={32} color={color.onSurfaceVariant} />
-          <Text style={styles.empty}>{t('empty.mine')}</Text>
-        </View>
+        <EmptyState icon="calendar-outline" title={t('empty.mine')} subtitle={t('empty.mineSub')} />
       )}
       {mineRows.map((r) => (
         <LeaveCard
@@ -458,10 +456,7 @@ export function RichiesteScreen() {
         </View>
       )}
       {!loadingInbox && inboxRows.length === 0 && (
-        <View style={styles.emptyCard}>
-          <Ionicons name="calendar-outline" size={32} color={color.onSurfaceVariant} />
-          <Text style={styles.empty}>{t('empty.inbox')}</Text>
-        </View>
+        <EmptyState icon="calendar-outline" title={t('empty.inbox')} subtitle={t('empty.inboxSub')} />
       )}
       {inboxRows.map((r) => (
         <LeaveCard
@@ -1372,14 +1367,6 @@ const styles = StyleSheet.create({
   subtypeRowTextSel: { fontWeight: '700', color: color.primary },
 
   centered: { paddingVertical: 48, alignItems: 'center' },
-  emptyCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 32,
-    alignItems: 'center',
-    gap: 8,
-  },
-  empty: { color: color.onSurfaceVariant, textAlign: 'center' },
 
   card: {
     backgroundColor: '#ffffff',

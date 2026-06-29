@@ -26,7 +26,9 @@
   },
   "empty": {
     "mine": "Non hai richieste.",
-    "inbox": "Nessuna richiesta da approvare."
+    "mineSub": "Le richieste che invii compariranno qui.",
+    "inbox": "Nessuna richiesta da approvare.",
+    "inboxSub": "Quando un collega invia una richiesta, la troverai qui."
   },
   "fab": "Nuova richiesta",
   "card": {

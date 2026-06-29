@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { color, space } from '@sonoqui/shared';
 import { api } from '../lib/api';
 import { AppHeader } from '../components/AppHeader';
-import { BachecaFeed } from '../components/BachecaFeed';
+import { EmptyState } from '../components/EmptyState';
 import { fmtDate } from '../i18n/format';
 import type { TFunction } from 'i18next';
 
@@ -153,7 +153,7 @@ export function DashboardScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <AppHeader centerSlot={<Text style={styles.headerTitle}>{t('title')}</Text>} />
+      <AppHeader />
 
       <ScrollView
         style={styles.scroll}
@@ -191,10 +191,6 @@ export function DashboardScreen() {
                 icon="calendar-outline"
                 warn={!!summary && summary.absent_now.length > 0}
               />
-            </View>
-
-            <View style={styles.bachecaWrap}>
-              <BachecaFeed title={t('bacheca:title')} />
             </View>
 
             <View style={styles.sectionHeaderRow}>
@@ -319,12 +315,7 @@ function EmptyCard({
   icon: keyof typeof Ionicons.glyphMap;
   text: string;
 }) {
-  return (
-    <View style={styles.emptyCard}>
-      <Ionicons name={icon} size={28} color={color.onSurfaceVariant} />
-      <Text style={styles.empty}>{text}</Text>
-    </View>
-  );
+  return <EmptyState icon={icon} title={text} />;
 }
 
 function Segmented<T extends string>({
@@ -493,7 +484,6 @@ function fmtAbsenceWhen(a: AbsentLeave, t: TFunction): string {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: color.surface },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: color.onSurface },
 
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 6, paddingBottom: 44 },
@@ -506,7 +496,6 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: space.s2,
   },
-  bachecaWrap: { marginTop: space.s4 },
   statCard: {
     flexGrow: 1,
     flexBasis: '30%',
@@ -645,13 +634,4 @@ const styles = StyleSheet.create({
 
   statusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
   statusPillText: { fontSize: 11, fontWeight: '700' },
-
-  emptyCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 28,
-    alignItems: 'center',
-    gap: 8,
-  },
-  empty: { color: color.onSurfaceVariant, textAlign: 'center' },
 });

@@ -10,6 +10,11 @@ import { PageHeader } from '../components/PageHeader.tsx';
 import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { fmtDateTime } from '../i18n/format.ts';
 
+// Mirrors the backend TenantAccessEmailType: invite (brand-new account) /
+// recovery (reset fallback) / membership (contextual "added to <company>" mail
+// for an already-confirmed account) / none (nothing sent — e.g. dev).
+type InviteEmailType = 'invite' | 'recovery' | 'membership' | 'none';
+
 interface UserRow {
   membership_id: string;
   user_id: string;
@@ -610,9 +615,15 @@ export function Users() {
           atDocumentaleLimit={atDocumentaleLimit}
           maxDocumentali={maxDocumentali}
           onClose={() => setShowInvite(false)}
-          onInvited={async (emailSent: boolean) => {
+          onInvited={async (emailType: InviteEmailType) => {
             setShowInvite(false);
-            setInfo(emailSent ? t('invite.createdEmailSent') : t('invite.createdNoEmail'));
+            setInfo(
+              emailType === 'membership'
+                ? t('invite.createdMembership')
+                : emailType !== 'none'
+                  ? t('invite.createdEmailSent')
+                  : t('invite.createdNoEmail')
+            );
             await load();
           }}
         />
@@ -1744,7 +1755,7 @@ function InviteForm({
   atDocumentaleLimit: boolean;
   maxDocumentali: number;
   onClose: () => void;
-  onInvited: (emailSent: boolean) => void;
+  onInvited: (emailType: InviteEmailType) => void;
 }) {
   const { t, i18n } = useTranslation(['users', 'common']);
   useEscapeKey(onClose);
@@ -1784,7 +1795,7 @@ function InviteForm({
     setBusy(true);
     setErr(null);
     try {
-      const out = await api<{ email_sent?: boolean }>('/api/v1/users/invite', {
+      const out = await api<{ email_sent?: boolean; email_type?: InviteEmailType }>('/api/v1/users/invite', {
         method: 'POST',
         json: {
           email,
@@ -1803,7 +1814,7 @@ function InviteForm({
           qualifica2: qualifica2.trim().toUpperCase() || undefined,
         },
       });
-      onInvited(out?.email_sent ?? sendResetEmail);
+      onInvited(out?.email_type ?? (sendResetEmail ? 'recovery' : 'none'));
     } catch (e) {
       setErr(documentaleLimitMessage(e, t, t('errorGeneric')));
     } finally {

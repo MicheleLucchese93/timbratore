@@ -40,6 +40,9 @@ export function WorkStateChip({ state }: WorkStateChipProps) {
     }, [state]),
   );
 
+  // Off-duty has no active stamp — show nothing rather than a "Fuori servizio" pill.
+  if (value === 'nothing') return null;
+
   const meta = stateBadge(value);
   return (
     <View style={[styles.pill, { backgroundColor: meta.bg }]}>

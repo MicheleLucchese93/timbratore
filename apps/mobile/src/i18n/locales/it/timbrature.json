@@ -1,7 +1,8 @@
 {
   "tabs": {
     "stamp": "Timbra",
-    "correct": "Correggi"
+    "correct": "Correggi",
+    "storico": "Storico"
   },
   "hero": {
     "workedHours": "Ore lavorate",

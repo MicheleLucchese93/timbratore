@@ -9,13 +9,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
 import type { StampEventType } from '@sonoqui/shared';
 import { color, space, type as t } from '@sonoqui/shared';
 import { fmtDate, fmtTime } from '../i18n/format';
+import { EmptyState } from '../components/EmptyState';
 import { formatDuration, isoDay, type DayStamp } from '@sonoqui/shared';
 import {
   computeCountedDayClosed,
@@ -23,8 +23,6 @@ import {
   type ActiveAssignment,
   type LeaveInterval,
 } from '@sonoqui/shared';
-import { AppHeader } from '../components/AppHeader';
-import { WorkStateChip } from '../components/WorkStateChip';
 
 const RANGES = [
   { id: 7, labelKey: 'range.7' },
@@ -32,7 +30,9 @@ const RANGES = [
   { id: 90, labelKey: 'range.90' },
 ] as const;
 
-export function StoricoScreen() {
+// History body, rendered as the "Storico" sub-tab inside Timbrature (which
+// already provides the SafeAreaView + AppHeader chrome).
+export function StoricoContent() {
   const { t: tr } = useTranslation(['storico', 'common']);
   const [days, setDays] = useState(30);
   const [stamps, setStamps] = useState<DayStamp[]>([]);
@@ -92,8 +92,7 @@ export function StoricoScreen() {
   }, [byDay, assignment, leaves]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <AppHeader centerSlot={<WorkStateChip />} />
+    <View style={styles.content}>
       <View style={styles.filterRow}>
         {RANGES.map((r) => {
           const sel = r.id === days;
@@ -145,16 +144,13 @@ export function StoricoScreen() {
           </View>
         )}
         {!loading && byDay.length === 0 && (
-          <View style={styles.emptyCard}>
-            <Ionicons name="calendar-outline" size={32} color={color.onSurfaceVariant} />
-            <Text style={styles.empty}>{tr('empty')}</Text>
-          </View>
+          <EmptyState icon="calendar-outline" title={tr('empty')} subtitle={tr('emptySub')} />
         )}
         {byDay.map((d) => (
           <DayCard key={d.day} day={d.day} stamps={d.stamps} assignment={assignment} leaves={leaves} />
         ))}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -294,6 +290,7 @@ function dotFg(e: StampEventType): string {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: color.surface },
+  content: { flex: 1 },
   headerBlock: { paddingHorizontal: 6, paddingTop: space.s2, paddingBottom: space.s3 },
   title: { fontSize: 28, fontWeight: '700', color: color.onSurface, letterSpacing: -0.5 },
   subtle: { color: color.onSurfaceVariant, marginTop: 2, fontSize: t.body.size },
@@ -362,14 +359,6 @@ const styles = StyleSheet.create({
   summaryDaysLabel: { fontSize: 11, fontWeight: '600', color: color.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.5 },
 
   centered: { paddingVertical: 48, alignItems: 'center' },
-  emptyCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 32,
-    alignItems: 'center',
-    gap: 8,
-  },
-  empty: { color: color.onSurfaceVariant, textAlign: 'center' },
 
   card: {
     backgroundColor: '#ffffff',

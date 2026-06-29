@@ -159,6 +159,7 @@
     "subtitle": "By default the user immediately receives the access email (an invitation if they haven't set a password yet). Uncheck to create them without an email and send it later (key icon or bulk action).",
     "createdNoEmail": "User created. No email sent: use \"Send access email\" (key icon) to give them their first access.",
     "createdEmailSent": "User created. Access email sent: they can sign in right away.",
+    "createdMembership": "User added. They already had an account: we emailed them to say they were added to the company (they sign in with their existing password).",
     "sendResetEmail": "Send the access email now",
     "sendResetEmailHint": "Recommended: the user gets an invitation to set a password and can sign in right away. If you uncheck it, send it later from the table (key icon).",
     "firstName": "First name",

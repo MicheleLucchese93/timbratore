@@ -532,7 +532,7 @@ export async function inviteUser(
   user_id: string;
   email: string;
   email_sent?: boolean;
-  email_type?: 'invite' | 'recovery' | 'none';
+  email_type?: 'invite' | 'recovery' | 'membership' | 'none';
 }> {
   const r = await apiPost<{
     user_id: string;
@@ -550,6 +550,28 @@ export async function inviteUser(
 
 export async function deleteUser(adminToken: string, userId: string): Promise<void> {
   await apiDelete(adminToken, `/api/v1/users/${userId}`);
+}
+
+// Provision a CONFIRMED GoTrue account (password set → email_confirmed) enrolled
+// in the test tenant, via the e2e-only /create-fixture-user endpoint. Returns the
+// user_id so callers can manipulate the membership (e.g. deactivate then re-invite
+// to exercise the "existing confirmed user" branch). Requires E2E_PURGE_SECRET
+// (prod-mutating tier only). Email must match the e2e-*@e2e.local pattern.
+export async function createConfirmedFixtureUser(
+  email: string,
+  role: 'admin' | 'user' = 'user',
+): Promise<{ user_id: string; email: string }> {
+  const secret = process.env.E2E_PURGE_SECRET;
+  if (!secret) throw new Error('E2E_PURGE_SECRET is required to create a confirmed fixture user');
+  const r = await fetch(`${API_BASE}/api/v1/_internal/e2e/create-fixture-user`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
+    body: JSON.stringify({ email, password: 'Test123@!', role }),
+  });
+  if (!r.ok) throw new Error(`create-fixture-user ${r.status}: ${await r.text()}`);
+  const body = (await r.json()) as { data?: { user_id: string; email: string } };
+  if (!body.data?.user_id) throw new Error('create-fixture-user returned no user_id');
+  return body.data;
 }
 
 /* Bulk user-attribute helpers */

@@ -1,7 +1,9 @@
 {
   "title": "Notice board",
-  "empty": "No messages on the notice board.",
-  "emptyUnread": "No unread messages.",
+  "emptyTitle": "No messages",
+  "emptySub": "Company announcements will show up here.",
+  "emptyUnreadTitle": "All caught up",
+  "emptyUnreadSub": "You have no unread messages.",
   "markRead": "Mark as read",
   "read": "Read",
   "all": "All",

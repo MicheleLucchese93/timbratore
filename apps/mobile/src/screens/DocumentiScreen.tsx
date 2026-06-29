@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import type { DocumentCategory, DocumentListItem } from '@sonoqui/shared';
 import { color, space, type as ty } from '@sonoqui/shared';
 import { api } from '../lib/api';
+import { EmptyState } from '../components/EmptyState';
 import { authenticate, getBiometricCapability } from '../lib/biometric';
 import { AppHeader } from '../components/AppHeader';
 import { fmtDate } from '../i18n/format';
@@ -215,11 +216,12 @@ export function DocumentiScreen() {
         )}
 
         {!loading && docs.length === 0 && (
-          <View style={styles.emptyCard}>
-            <Ionicons name="folder-open-outline" size={32} color={color.onSurfaceVariant} />
-            <Text style={styles.emptyTitle}>{t('empty.title')}</Text>
-            <Text style={styles.empty}>{t('empty.sub')}</Text>
-          </View>
+          <EmptyState
+            icon="folder-open-outline"
+            title={t('empty.title')}
+            subtitle={t('empty.sub')}
+            style={styles.emptyOffset}
+          />
         )}
 
         {docs.map((doc) => (
@@ -318,16 +320,7 @@ const styles = StyleSheet.create({
   },
 
   centered: { paddingVertical: 48, alignItems: 'center' },
-  emptyCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 32,
-    alignItems: 'center',
-    gap: 8,
-    marginTop: space.s4,
-  },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: color.onSurface },
-  empty: { color: color.onSurfaceVariant, textAlign: 'center' },
+  emptyOffset: { marginTop: space.s4 },
 
   card: {
     flexDirection: 'row',

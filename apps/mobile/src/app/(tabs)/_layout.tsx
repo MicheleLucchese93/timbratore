@@ -28,8 +28,9 @@ export default function TabsLayout() {
   const isAdmin = me.user.role === 'admin';
   const canStamp = (me.user.stamp_modes ?? []).length > 0;
   // Admins open on the Dashboard recap; everyone else on their stamp screen
-  // (or Storico when no stamp method is enabled).
-  const initialRouteName = isAdmin ? 'dashboard' : canStamp ? 'timbrature' : 'storico';
+  // (or Richieste when no stamp method is enabled — those users have no
+  // Timbrature tab, and Storico lives inside it).
+  const initialRouteName = isAdmin ? 'dashboard' : canStamp ? 'timbrature' : 'richieste';
   return (
     <Tabs
       initialRouteName={initialRouteName}
@@ -38,7 +39,6 @@ export default function TabsLayout() {
       <Tabs.Screen name="dashboard" options={{ title: t('tab.dashboard') }} />
       <Tabs.Screen name="bacheca" options={{ title: t('tab.bacheca') }} />
       <Tabs.Screen name="timbrature" options={{ title: t('tab.timbrature') }} />
-      <Tabs.Screen name="storico" options={{ title: t('tab.storico') }} />
       <Tabs.Screen name="richieste" options={{ title: t('tab.richieste') }} />
       <Tabs.Screen name="documenti" options={{ title: t('tab.documenti') }} />
     </Tabs>

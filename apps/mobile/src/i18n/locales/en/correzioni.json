@@ -2,7 +2,9 @@
   "newRequest": "New request",
   "empty": {
     "admin": "No requests to review.",
-    "user": "You have no requests."
+    "adminSub": "Employee stamp-correction requests will appear here.",
+    "user": "You have no requests.",
+    "userSub": "Send a request to fix an incorrect stamp."
   },
   "diff": {
     "current": "Current",

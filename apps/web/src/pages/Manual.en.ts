@@ -295,7 +295,7 @@ export const MAIN_EN = `
 
     <section class="chapter" id="web-admin-bacheca">
       <h2><span class="chapter-num">06a</span>Notice board <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
-      <p class="lead">The notice board is the space for company announcements: an admin publishes a message and every recipient sees it on their Dashboard (web and app) and can mark it as read.</p>
+      <p class="lead">The notice board is the space for company announcements: an admin publishes a message and every recipient sees it on their Dashboard (web) and in the Notice board tab of the app and can mark it as read.</p>
 
       <div class="feature">
         <h3>Creating a message</h3>
@@ -468,7 +468,7 @@ export const MAIN_EN = `
           <li>Leave <strong>Send the access email now</strong> ticked (the default) to give immediate access: the user receives an <strong>invitation</strong> to set their password and can sign in with no extra steps. Untick it if you'd rather create them now and send the email later.</li>
           <li>Press <strong>Invite</strong>.</li>
         </ol>
-        <p>With the box ticked the user <strong>receives the access email right away</strong> and signs in. The email is automatically the right kind: an <strong>invitation</strong> for someone who hasn't set a password yet, a <strong>password reset</strong> for someone who has. If you unticked it, the user is created without an email: to give them access, press the <strong>access email</strong> icon (key-shaped) on their row — or select them and use the <strong>Send access email</strong> bulk action.</p>
+        <p>With the box ticked the user <strong>receives the access email right away</strong> and signs in. The email is automatically the right kind: an <strong>invitation</strong> to set a password for someone who doesn't have an account yet; someone who <strong>already has an account</strong> (because they already work for another company on the platform) instead gets an email letting them know they were <strong>added to your company</strong>, and signs in with the password they already use — not a password reset they never asked for. If you unticked it, the user is created without an email: to give them access, press the <strong>access email</strong> icon (key-shaped) on their row — or select them and use the <strong>Send access email</strong> bulk action.</p>
       </div>
 
       <div class="feature">
@@ -691,9 +691,9 @@ export const MAIN_EN = `
         <p>In the <strong>+ New request</strong> form you first choose the <strong>Type</strong> (Holiday, Leave, Sick leave, Absence). For Holiday and Leave you set the period in two ways, with <strong>date and time on separate fields</strong>:</p>
         <ul class="tidy">
           <li><strong>All day</strong> (default) — you pick a date range <em>From</em> … <em>To</em>: the absence covers the whole working day for every day in the period.</li>
-          <li><strong>Hourly leave</strong> — untick <em>All day</em>: a <em>Day</em> field appears and, separately, the start time (<em>Start time</em>) and end time (<em>End time</em>), adjustable in 15-minute steps.</li>
+          <li><strong>Specific time</strong> — untick <em>All day</em>: a <em>Day</em> field appears and, separately, the start time (<em>Start time</em>) and end time (<em>End time</em>). It applies both to Leave (in 15-minute steps) and to Holiday, handy for a half day.</li>
         </ul>
-        <p>Below the fields the <strong>Total requested</strong> in hours updates in real time, already capped at the assigned work schedule (a leave can never be worth more than the scheduled day).</p>
+        <p>Below the fields the <strong>Total requested</strong> in hours updates in real time. With <em>Specific time</em> it counts <strong>only the selected window</strong> (e.g. 09:00–13:00 = 4h, not the whole day), still capped at the assigned work schedule (a request can never be worth more than the scheduled day).</p>
       </div>
 
       <div class="feature">
@@ -1077,17 +1077,17 @@ export const MAIN_EN = `
 
     <section class="chapter" id="mob-user">
       <h2><span class="chapter-num">20</span>Mobile App Overview</h2>
-      <p class="lead">The mobile app is available for iOS and Android. The main navigation is a bottom bar with the Stamps, History, Requests and Documents tabs (plus Dashboard for admins).</p>
+      <p class="lead">The mobile app is available for iOS and Android. The main navigation is a bottom bar with the Notice board, Stamps, Requests and Documents tabs (plus Dashboard for admins).</p>
 
       <div class="feature">
         <h3>The main tabs</h3>
         <div class="grid-2">
           <div class="mini-card"><div class="mini-title">⏱ Stamps</div><div class="mini-desc">Main screen to clock in, clock out, take breaks</div></div>
-          <div class="mini-card"><div class="mini-title">📅 History</div><div class="mini-desc">History of your stamps by day</div></div>
+          <div class="mini-card"><div class="mini-title">📣 Notice board</div><div class="mini-desc">Company announcements to read</div></div>
           <div class="mini-card"><div class="mini-title">💼 Requests</div><div class="mini-desc">Holiday, leave, sick leave</div></div>
           <div class="mini-card"><div class="mini-title">📄 Documents</div><div class="mini-desc">Your personal documents shared by the company</div></div>
         </div>
-        <p><strong>Corrections</strong> are no longer a separate tab: they now live inside <strong>Stamps</strong>, in the <strong>Corrections</strong> tab.</p>
+        <p><strong>Corrections</strong> and <strong>history</strong> are no longer separate tabs: they now live inside <strong>Stamps</strong>, in the <strong>Corrections</strong> and <strong>History</strong> tabs.</p>
         <p>At the top left of every screen you find your <strong>avatar</strong> (opens the Profile). At the top right there is the <strong>notification bell</strong> with an unread badge. The bell collects updates on <strong>requests</strong> (holiday, leave, absences) and <strong>corrections</strong>: the decisions on your requests and — for approvers — those awaiting your decision. Tapping a notification opens the corresponding tab directly (Requests, or for corrections the Corrections tab inside Stamps).</p>
       </div>
     </section>
@@ -1178,7 +1178,7 @@ export const MAIN_EN = `
 
     <section class="chapter" id="mob-user-storico">
       <h2><span class="chapter-num">22</span>Stamp history <span class="badge badge-user">user</span> <span class="badge badge-mobile">mobile</span></h2>
-      <p class="lead">Summary of your stamps, grouped by day.</p>
+      <p class="lead">Summary of your stamps, grouped by day. Open it from the <strong>History</strong> tab inside Stamps.</p>
 
       <div class="feature">
         <h3>Quick filters</h3>
@@ -1273,7 +1273,7 @@ export const MAIN_EN = `
           <li>Add an optional <strong>note</strong> (e.g. "brother's wedding", "medical appointment"). For Absence the field is called <strong>Reason</strong> and is also optional.</li>
           <li>Press <strong>Submit request</strong> (for Holiday/Leave/Absence) or <strong>Submit report</strong> (for Sick leave).</li>
         </ol>
-        <p><strong>Total requested:</strong> the form shows the request's hours live, computed from the chosen period and your <strong>assigned schedule</strong>. An <em>All day</em> leave counts that day's scheduled hours (e.g. 8h, not 24h) and non-working days count 0. A request falling entirely outside your schedule (e.g. holiday on a Sunday only) is blocked; a mixed range (e.g. Mon→Sun) counts only the working days.</p>
+        <p><strong>Total requested:</strong> the form shows the request's hours live, computed from the chosen period and your <strong>assigned schedule</strong>. <em>All day</em> counts each day's scheduled hours (e.g. 8h, not 24h). <em>Specific time</em> (Holiday or Leave) counts only the selected window — e.g. 09:00–13:00 = 4h, not the whole day — still capped at that day's scheduled hours. Non-working days count 0; a request falling entirely outside your schedule (e.g. holiday on a Sunday only) is blocked; a mixed range (e.g. Mon→Sun) counts only the working days.</p>
       </div>
 
       <div class="feature">
