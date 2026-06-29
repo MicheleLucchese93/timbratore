@@ -150,6 +150,25 @@ git commit -m "chore(mobile): bump OTA runtimeVersion + re-seed fingerprint base
 > first `prebuild` will flip the fingerprint. That is expected — re-seed (step 4)
 > after that first build and the gate settles.
 
+> ⚠️ **`prebuild --clean` drifts manual native edits — re-apply after every run.**
+> These are hand-maintained and NOT reproduced by any config plugin, so
+> `expo prebuild --clean` silently reverts them. After prebuilding, restore:
+> | File | Re-apply |
+> |---|---|
+> | `ios/Podfile` | `post_install` block clearing `INSTALL_OWNER`/`INSTALL_GROUP` on `installer.pods_project` (AD-joined-Mac chown fix) |
+> | `ios/sonoQui/sonoQui.entitlements` | `aps-environment` → `production` (prebuild writes `development`) |
+> | `android/app/src/main/res/values/colors.xml` | `colorPrimary` → `#15569e` (prebuild writes `#023c69`) |
+> The `git checkout HEAD -- <file>` trick restores the Podfile + entitlements
+> wholesale (their only diff vs HEAD is the manual edit). Consider promoting
+> these to config plugins so they survive prebuild on their own.
+
+> 📌 **Channel baked for this archive:** the native tree was prebuilt with the
+> default channel `production`. For a **TestFlight build on the `staging`
+> channel**, flip the baked value before archiving (no full re-prebuild needed):
+> `ios/sonoQui/Supporting/Expo.plist` → `EXUpdatesRequestHeaders` → `expo-channel-name`,
+> and `android/.../AndroidManifest.xml` → `UPDATES_CONFIGURATION_REQUEST_HEADERS_KEY`
+> → set both to `staging`. Leave as `production` for a store archive.
+
 If you use EAS Build instead of local builds, the channel comes from the
 profile's `channel` field in `eas.json`; you don't need to set `OTA_CHANNEL`.
 
