@@ -158,6 +158,7 @@ git commit -m "chore(mobile): bump OTA runtimeVersion + re-seed fingerprint base
 > | `ios/Podfile` | `post_install` block clearing `INSTALL_OWNER`/`INSTALL_GROUP` on `installer.pods_project` (AD-joined-Mac chown fix) |
 > | `ios/sonoQui/sonoQui.entitlements` | `aps-environment` → `production` (prebuild writes `development`) |
 > | `android/app/src/main/res/values/colors.xml` | `colorPrimary` → `#15569e` (prebuild writes `#023c69`) |
+> | `android/app/build.gradle` | **release `signingConfig`** via `keystore.properties` (prebuild resets release signing to the DEBUG keystore — a debug-signed AAB is rejected by Play), plus `versionCode`/`versionName` |
 > The `git checkout HEAD -- <file>` trick restores the Podfile + entitlements
 > wholesale (their only diff vs HEAD is the manual edit). Consider promoting
 > these to config plugins so they survive prebuild on their own.
