@@ -14,7 +14,7 @@ const plans = [
     annualSave: "24,99",
     userLimit: "10",
     sediLimit: "3",
-    recommended: true,
+    recommended: false,
   },
   {
     name: "Media",
@@ -27,6 +27,23 @@ const plans = [
     sediLimit: "5",
     recommended: false,
   },
+  {
+    name: "Enterprise",
+    tagline: "Per aziende con più di 20 persone",
+    custom: true,
+    userLimit: "20+",
+    sediLimit: "5+",
+    ctaLabel: "Contattaci",
+    recommended: false,
+  },
+];
+
+const enterpriseIncluded = [
+  "Tutto del piano Media",
+  "Dipendenti e sedi su misura",
+  "Onboarding e formazione dedicati",
+  "Supporto prioritario dedicato",
+  "Fatturazione personalizzata",
 ];
 
 const included = [
@@ -80,7 +97,7 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
 
       <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
         <div class="relative">
-          <span class="absolute -top-3 right-2 z-10 rounded-full bg-primary px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow">
+          <span class="absolute bottom-full left-3/4 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
             Consigliato
           </span>
           <div id="billing-toggle" role="group" aria-label="Periodo di fatturazione"
@@ -102,53 +119,60 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
       </div>
     </div>
 
-    <div id="pricing-scroller" class="mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pt-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] lg:mx-auto lg:grid lg:max-w-4xl lg:grid-cols-2 lg:gap-6 lg:overflow-visible lg:px-0 lg:pt-0 lg:pb-0">
+    <div id="pricing-scroller" class="mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pt-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] lg:mx-auto lg:grid lg:max-w-6xl lg:grid-cols-3 lg:gap-6 lg:overflow-visible lg:px-0 lg:pt-0 lg:pb-0">
       {plans.map((p) => (
         <div data-plan-card class={`relative flex w-[82%] shrink-0 snap-center flex-col rounded-3xl bg-white p-8 sm:w-[58%] lg:w-auto ${p.recommended ? "border-2 border-primary shadow-xl lg:scale-[1.02]" : "border border-gray-200 shadow-sm"}`}>
           <h3 class="text-xl font-bold text-on-surface">{p.name}</h3>
           <p class="mt-1 text-sm text-on-surface-variant">{p.tagline}</p>
 
-          <div class="mt-6 min-h-[5.5rem]">
-            <div data-billing-view="monthly">
-              <div class="flex items-baseline gap-1.5">
-                <span class="text-5xl font-extrabold tracking-tight text-on-surface">{p.monthly}</span>
-                <span class="text-xl font-bold text-on-surface">€</span>
-                <span class="text-sm font-medium text-on-surface-variant">/mese</span>
-              </div>
-              <p class="mt-2 text-sm text-on-surface-variant">Fatturazione mensile</p>
+          {p.custom ? (
+            <div class="mt-6 flex min-h-[5.5rem] flex-col justify-center">
+              <span class="text-4xl font-extrabold tracking-tight text-on-surface">Su misura</span>
+              <p class="mt-2 text-sm text-on-surface-variant">Prezzo dedicato per la tua azienda</p>
             </div>
-            <div data-billing-view="annual" class="hidden">
-              <div class="flex items-baseline gap-1.5">
-                <span class="text-5xl font-extrabold tracking-tight text-on-surface">{p.annualPerMonth}</span>
-                <span class="text-xl font-bold text-on-surface">€</span>
-                <span class="text-sm font-medium text-on-surface-variant">/mese</span>
+          ) : (
+            <div class="mt-6 min-h-[5.5rem]">
+              <div data-billing-view="monthly">
+                <div class="flex items-baseline gap-1.5">
+                  <span class="text-5xl font-extrabold tracking-tight text-on-surface">{p.monthly}</span>
+                  <span class="text-xl font-bold text-on-surface">€</span>
+                  <span class="text-sm font-medium text-on-surface-variant">/mese</span>
+                </div>
+                <p class="mt-2 text-sm text-on-surface-variant">Fatturazione mensile</p>
               </div>
-              <p class="mt-2 text-sm text-on-surface-variant">
-                {p.annualTotal} €/anno · <span class="font-semibold text-success">risparmi {p.annualSave} €</span>
-              </p>
+              <div data-billing-view="annual" class="hidden">
+                <div class="flex items-baseline gap-1.5">
+                  <span class="text-5xl font-extrabold tracking-tight text-on-surface">{p.annualPerMonth}</span>
+                  <span class="text-xl font-bold text-on-surface">€</span>
+                  <span class="text-sm font-medium text-on-surface-variant">/mese</span>
+                </div>
+                <p class="mt-2 text-sm text-on-surface-variant">
+                  {p.annualTotal} €/anno · <span class="font-semibold text-success">risparmi {p.annualSave} €</span>
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
           <div class="mt-6 grid grid-cols-2 gap-3">
             <div class="rounded-xl bg-surface p-3 text-center">
-              <div class="text-xl font-bold text-primary">fino a {p.userLimit}</div>
+              <div class="text-xl font-bold text-primary">{p.custom ? p.userLimit : `fino a ${p.userLimit}`}</div>
               <div class="mt-0.5 text-xs text-on-surface-variant">dipendenti</div>
             </div>
             <div class="rounded-xl bg-surface p-3 text-center">
-              <div class="text-xl font-bold text-primary">fino a {p.sediLimit}</div>
+              <div class="text-xl font-bold text-primary">{p.custom ? p.sediLimit : `fino a ${p.sediLimit}`}</div>
               <div class="mt-0.5 text-xs text-on-surface-variant">sedi</div>
             </div>
           </div>
 
           <a href="#contact"
-            class={`mt-6 inline-flex items-center justify-center rounded-full px-6 py-3 text-base font-semibold transition-colors ${p.recommended ? "bg-primary text-white hover:bg-primary-container" : "border border-primary text-primary hover:bg-primary/5"}`}>
-            Inizia ora
+            class={`mt-6 inline-flex items-center justify-center rounded-full px-6 py-3 text-base font-semibold transition-colors ${p.custom ? "bg-primary text-white hover:bg-primary-container" : "border border-primary text-primary hover:bg-primary/5"}`}>
+            {p.ctaLabel ?? "Inizia ora"}
           </a>
 
           <div class="mt-8 border-t border-gray-100 pt-6">
-            <p class="text-sm font-semibold text-on-surface">Tutte le funzionalità incluse</p>
+            <p class="text-sm font-semibold text-on-surface">{p.custom ? "Su misura per te" : "Tutte le funzionalità incluse"}</p>
             <ul class="mt-4 space-y-3">
-              {included.map((f) => (
+              {(p.custom ? enterpriseIncluded : included).map((f) => (
                 <li class="flex items-start gap-2.5 text-sm text-on-surface-variant">
                   <Fragment set:html={check} />
                   <span>{f}</span>
