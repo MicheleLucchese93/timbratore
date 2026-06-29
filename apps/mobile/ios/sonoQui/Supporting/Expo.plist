@@ -4,11 +4,47 @@
   <dict>
     <key>EXUpdatesCheckOnLaunch</key>
     <string>ALWAYS</string>
+    <key>EXUpdatesCodeSigningCertificate</key>
+    <string>-----BEGIN CERTIFICATE-----&#xD;
+MIIC8zCCAdugAwIBAgIJQDIoWSNCRYHoMA0GCSqGSIb3DQEBCwUAMCMxITAfBgNV&#xD;
+BAMTGHNvbm9RdWkgT1RBIENvZGUgU2lnbmluZzAeFw0yNjA2MjkxMjQ5MjFaFw0z&#xD;
+NjA2MjkxMjQ5MjFaMCMxITAfBgNVBAMTGHNvbm9RdWkgT1RBIENvZGUgU2lnbmlu&#xD;
+ZzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALqKjzrWgw1hkcfNtmiQ&#xD;
+wnQBVyChG/eTebtrtQZJYv4m+3Pan4BG+HB7l9B0zOEoQXgj8NygUNd8VEmmZZIJ&#xD;
+5T0NBWYnTf1Y9Qw5pu/Z4lW3oPS7deIfCCD4T6lx11z5zq552XGTBN2UwwUKWPph&#xD;
+RV8xXgjzCVYS/mG8notCYmwSOKRrnueF2ipuXSzwlpw5CUKA1jq8dQMRup3WNvIw&#xD;
+tXrDVSJrdotG/Ab30FTlDRC+zkd9t5qsLLPLwD7NH0hqVqGu7fEoN6ggeqFZTqrt&#xD;
+kvRBTr4P7uUZTzAUtjxN/c6ZyjEwsUy2RkAEgjCFr4QKnzWA1lj8R/81StQdHRVE&#xD;
+lbkCAwEAAaMqMCgwDgYDVR0PAQH/BAQDAgeAMBYGA1UdJQEB/wQMMAoGCCsGAQUF&#xD;
+BwMDMA0GCSqGSIb3DQEBCwUAA4IBAQAlpZLLOGuySRV0dv74nT3EgVVAvyOClsqf&#xD;
+FsjHh/a+1Er+lT/E1WpxkyuUmNxmMoi2cKNJwBULF7mbOaGA8qGnrMRs3DeeirR7&#xD;
+vEf5z6bvY+sjcGdLo3BiygPl1zYBCNd0uCrjPmVbWialdwKBzsd55dpvwKdFpmBQ&#xD;
+afDhhhhiavwsHR91cTkqafTrMcdr0B3scDcbZ3jhxzDUi8finSLk4sHeCz+G6ABT&#xD;
++OCWjIAZgv3lA6fx+xYHMYlHPrkcaLHjopDR3NUINIw0o461kAxuVRpl+RhZCVJw&#xD;
+ZRImRsCRwgab/1+We0AUyvXUlpwBafX0DADYYrnbHNJ1vqQ1rwHC&#xD;
+-----END CERTIFICATE-----&#xD;
+</string>
+    <key>EXUpdatesCodeSigningMetadata</key>
+    <dict>
+      <key>keyid</key>
+      <string>main</string>
+      <key>alg</key>
+      <string>rsa-v1_5-sha256</string>
+    </dict>
     <key>EXUpdatesEnableBsdiffPatchSupport</key>
     <true/>
     <key>EXUpdatesEnabled</key>
-    <false/>
+    <true/>
     <key>EXUpdatesLaunchWaitMs</key>
     <integer>0</integer>
+    <key>EXUpdatesRequestHeaders</key>
+    <dict>
+      <key>expo-channel-name</key>
+      <string>staging</string>
+    </dict>
+    <key>EXUpdatesRuntimeVersion</key>
+    <string>1</string>
+    <key>EXUpdatesURL</key>
+    <string>https://ota.sonoqui.pro/api/manifest</string>
   </dict>
 </plist>

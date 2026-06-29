@@ -19,7 +19,7 @@
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
-	<string>11.0.0</string>
+	<string>12.0.0</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
@@ -33,7 +33,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>4</string>
+	<string>5</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSMinimumSystemVersion</key>
@@ -49,6 +49,10 @@
 	</dict>
 	<key>NSFaceIDUsageDescription</key>
 	<string>sonoQui usa Face ID per sbloccare l'app e proteggere l'accesso al tuo account. sonoQui uses Face ID to unlock the app and protect access to your account.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>sonoQui usa la posizione SOLO al momento della timbratura.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Allow $(PRODUCT_NAME) to access your location</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>sonoQui usa la posizione SOLO al momento della timbratura per verificare che tu sia presso la sede di lavoro. La posizione NON viene mai tracciata in background. sonoQui uses your location ONLY at clock-in to verify you are at the work site. Location is NEVER tracked in the background.</string>
 	<key>NSMotionUsageDescription</key>
@@ -59,12 +63,12 @@
 	</array>
 	<key>RCTNewArchEnabled</key>
 	<true/>
-	<key>UILaunchStoryboardName</key>
-	<string>SplashScreen</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>UILaunchStoryboardName</key>
+	<string>SplashScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>arm64</string>
