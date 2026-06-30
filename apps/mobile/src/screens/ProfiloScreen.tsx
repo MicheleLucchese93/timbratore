@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as Updates from 'expo-updates';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../store/session';
@@ -19,6 +20,10 @@ import { color, space, type as t } from '@sonoqui/shared';
 import { userDisplayName } from '../lib/user-display';
 import { api } from '../lib/api';
 import { LanguageRow } from '../components/LanguageRow';
+
+// Metro inlines EXPO_PUBLIC_* at bundle time, so this is the git commit the
+// running JS bundle was published from (set by scripts/publish-ota.sh).
+const BUILD_COMMIT = (process.env.EXPO_PUBLIC_COMMIT_SHA || 'dev').slice(0, 7);
 
 const AVATAR_PALETTE = [
   '#24389c',
@@ -374,6 +379,18 @@ export function ProfiloScreen() {
           activeOpacity={0.8}>
           <Text style={styles.logoutText}>{tr('common:btn.logout')}</Text>
         </TouchableOpacity>
+
+        {/* Build / OTA diagnostics — proves which JS bundle is running.
+            "embedded" = the bundle baked into the binary; "OTA <id>" = a bundle
+            applied over-the-air. */}
+        <Text style={styles.versionText}>
+          {`commit ${BUILD_COMMIT}`}
+        </Text>
+        <Text style={styles.versionText}>
+          {Updates.isEmbeddedLaunch
+            ? `embedded · ${Updates.channel ?? '-'} · rtv ${Updates.runtimeVersion ?? '-'}`
+            : `OTA ${(Updates.updateId ?? '').slice(0, 8)} · ${Updates.channel ?? '-'} · rtv ${Updates.runtimeVersion ?? '-'}`}
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -615,5 +632,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: color.error,
+  },
+  versionText: {
+    marginTop: space.s3,
+    fontSize: 11,
+    textAlign: 'center',
+    color: color.onSurfaceVariant,
   },
 });
