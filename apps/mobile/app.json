@@ -11,7 +11,7 @@
     "runtimeVersion": "1",
     "updates": {
       "enabled": true,
-      "fallbackToCacheTimeout": 0,
+      "fallbackToCacheTimeout": 10000,
       "url": "https://ota.sonoqui.pro/api/manifest",
       "codeSigningCertificate": "./credentials/certificate.pem",
       "codeSigningMetadata": {

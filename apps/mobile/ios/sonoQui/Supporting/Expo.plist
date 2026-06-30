@@ -36,7 +36,7 @@ ZRImRsCRwgab/1+We0AUyvXUlpwBafX0DADYYrnbHNJ1vqQ1rwHC&#xD;
     <key>EXUpdatesEnabled</key>
     <true/>
     <key>EXUpdatesLaunchWaitMs</key>
-    <integer>0</integer>
+    <integer>10000</integer>
     <key>EXUpdatesRequestHeaders</key>
     <dict>
       <key>expo-channel-name</key>

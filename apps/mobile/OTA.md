@@ -29,8 +29,21 @@ Server / keys / env setup lives in [`../../ota/README.md`](../../ota/README.md)
                                 ▼  on next app launch / foreground
                        expo-updates checks /api/manifest,
                        downloads bundle, verifies signature,
-                       reloads into the new JS (useUpdateGate)
+                       launches the new JS
 ```
+
+### Apply behaviour (when an update reaches a running app)
+
+| When | Mechanism | Result |
+|---|---|---|
+| **Cold launch** (from killed) | **native** `EXUpdatesLaunchWaitMs=10000` (= app.json `fallbackToCacheTimeout`) | splash waits up to 10 s, downloads, launches **into the update** — single cold launch, no JS gate, no race |
+| **Warm foreground** (resume after ≥5 min backgrounded) | JS `useUpdateGate` (AppState) | silent check → if new bundle, show the gate → `fetch` → `reloadAsync` |
+| Mid-session (app already open) | — | never; OTA applies at launch/resume only |
+
+Cold-launch apply is handled **natively** — we deliberately do NOT run a
+cold-start JS gate (it races the native background download and tends to apply
+"next launch only"; see Argo's self-hosted-OTA guide §3/§4). `useUpdateGate`
+covers only the warm-foreground case expo-updates has no built-in hook for.
 
 ### runtimeVersion is a static string
 

@@ -76,9 +76,10 @@ export default function RootLayout() {
   const [i18nDone, setI18nDone] = useState(false);
   const me = useSession((s) => s.me);
 
-  // Cold-start / warm-foreground OTA check+apply lifecycle. No-ops in dev and
-  // when updates are disabled; only flips shouldBlockUI once a new bundle has
-  // actually been fetched and a reload is imminent.
+  // Warm-foreground OTA apply only — cold launch is handled natively by
+  // EXUpdatesLaunchWaitMs=10000 (single-launch). No-ops in dev / when updates
+  // are disabled; flips shouldBlockUI only once a new bundle has been fetched on
+  // a warm resume and a reload is imminent.
   const { shouldBlockUI } = useUpdateGate();
 
   useEffect(() => {
