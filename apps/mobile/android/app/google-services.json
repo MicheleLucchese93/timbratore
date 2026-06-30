@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "146602677701",
+    "project_id": "sonoqui-12138",
+    "storage_bucket": "sonoqui-12138.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:146602677701:android:83a238d06ba4fc66cce7ac",
+        "android_client_info": {
+          "package_name": "app.sonoqui.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBR4DvcXwhtNw2LBspYCVh1S9c7N919O0E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
