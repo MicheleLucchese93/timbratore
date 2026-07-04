@@ -12,6 +12,7 @@ import {
   nextIsoDate,
   hhmmInZone,
 } from '../lib/tz.js';
+import { uncoveredSlotIntervals } from '@sonoqui/shared';
 
 export const shiftsRouter = Router();
 shiftsRouter.use(authenticate);
@@ -837,24 +838,33 @@ function combineDateTime(dateStr: string, hhmm: string, timeZone: string): Date 
   return zonedWallClock(dateStr, hhmm, timeZone);
 }
 
-// Minutes of approved leave overlapping a [startMs, endMs] window. Lets the
-// presence anomalies (missing/late/early) treat an approved ferie/permesso as
-// covering the gap, so an admin who inserts the leave actually clears the
-// anomaly (short_hours already accounts for leave via effectiveExpected).
-function leaveOverlapMin(
+// The day's expected working windows (each slot as a [start,end] ms range) with
+// approved leave carved out. Presence anomalies (missing/late/early) are judged
+// against what REMAINS, so:
+//   • a half-day ferie/permesso covering a whole slot drops it — an employee who
+//     worked only the complementary half raises no false late/early;
+//   • the inter-slot lunch gap is never counted as expected presence (measuring
+//     earliness against the last slot end alone would bill the gap as "early").
+// short_hours keeps its own per-slot accounting (effectiveExpected) below.
+// Thin timezone adapter over the shared uncoveredSlotIntervals (single source of
+// truth also used by counted-day.ts + export-service.ts): resolve each slot's
+// wall-clock in the tenant zone and each leave to epoch ms, then carve out.
+function uncoveredWorkIntervals(
+  slots: { start_time: string; end_time: string }[],
   leaves: AnomalyRow['leaves'],
-  startMs: number,
-  endMs: number
-): number {
-  if (endMs <= startMs) return 0;
-  let covered = 0;
-  for (const lv of leaves ?? []) {
-    const f = new Date(lv.from_ts).getTime();
-    const t = new Date(lv.to_ts).getTime();
-    const ov = Math.min(t, endMs) - Math.max(f, startMs);
-    if (ov > 0) covered += Math.round(ov / 60000);
-  }
-  return covered;
+  date: string,
+  timeZone: string
+): { start: number; end: number }[] {
+  return uncoveredSlotIntervals(
+    slots.map((s) => ({
+      start: combineDateTime(date, s.start_time, timeZone).getTime(),
+      end: combineDateTime(date, s.end_time, timeZone).getTime(),
+    })),
+    (leaves ?? []).map((lv) => ({
+      from: new Date(lv.from_ts).getTime(),
+      to: new Date(lv.to_ts).getTime(),
+    }))
+  );
 }
 
 export function computeAnomalies(
@@ -921,16 +931,22 @@ export function computeAnomalies(
 
     const expStartMs = expectedStart.getTime();
     const expEndMs = expectedEnd.getTime();
-    const fullExpectedMin = Math.max(0, Math.round((expEndMs - expStartMs) / 60000));
-    // The whole scheduled window is covered by approved leave (e.g. a full-day
+    // Working windows with approved leave removed, per-slot (gap-aware). A
+    // half-day ferie/permesso drops its slot; the lunch gap is never expected.
+    const workIntervals = uncoveredWorkIntervals(slots, row.leaves, date, timeZone);
+    // The whole scheduled day is covered by approved leave (e.g. a full-day
     // ferie inserted by the admin) → no clock-in/out is expected at all.
-    const fullyCoveredByLeave =
-      fullExpectedMin > 0 && leaveOverlapMin(row.leaves, expStartMs, expEndMs) + 1 >= fullExpectedMin;
+    const fullyCoveredByLeave = workIntervals.length === 0;
+    // Late/early are measured against the first uncovered start and the last
+    // uncovered end — NOT the raw first-slot start / last-slot end. When there's
+    // no leave these collapse to expStartMs / expEndMs (unchanged behaviour).
+    const workStartMs = workIntervals[0]?.start ?? expStartMs;
+    const workEndMs = workIntervals[workIntervals.length - 1]?.end ?? expEndMs;
 
     if (!firstIn) {
-      // Don't flag a missing entry before the shift has even started (e.g. today
-      // queried mid-morning). On past days expStartMs is already behind `now`.
-      if (!fullyCoveredByLeave && now >= expStartMs) {
+      // Don't flag a missing entry before the (uncovered) shift has started (e.g.
+      // today queried mid-morning). On past days workStartMs is behind `now`.
+      if (!fullyCoveredByLeave && now >= workStartMs) {
         out.push(
           buildAnomaly(
             row,
@@ -942,15 +958,13 @@ export function computeAnomalies(
           )
         );
       }
-    } else {
+    } else if (!fullyCoveredByLeave) {
       const actual = new Date(firstIn.occurred_at);
-      const deltaMin = Math.round((actual.getTime() - expectedStart.getTime()) / 60000);
-      // Lateness is measured past the flexed entry anchor (expectedStart +
-      // flex_in_after); flex 0 → past expectedStart, as before.
-      const lateByMin = Math.round((actual.getTime() - (expStartMs + flexInAfterMs)) / 60000);
-      // A permesso covering the late stretch [expectedStart, actualIn] justifies it.
-      const lateCoveredMin = leaveOverlapMin(row.leaves, expStartMs, actual.getTime());
-      if (lateByMin - lateCoveredMin > tolIn) {
+      const deltaMin = Math.round((actual.getTime() - workStartMs) / 60000);
+      // Lateness is measured past the flexed entry anchor (workStart +
+      // flex_in_after); flex 0 → past workStart.
+      const lateByMin = Math.round((actual.getTime() - (workStartMs + flexInAfterMs)) / 60000);
+      if (lateByMin > tolIn) {
         const a = buildAnomaly(
           row,
           date,
@@ -966,9 +980,9 @@ export function computeAnomalies(
     }
 
     if (!lastOut) {
-      // Don't flag a missing exit until the scheduled end has passed — during an
-      // in-progress shift the employee simply hasn't clocked out yet.
-      if (!fullyCoveredByLeave && now >= expEndMs) {
+      // Don't flag a missing exit until the (uncovered) end has passed — during
+      // an in-progress shift the employee simply hasn't clocked out yet.
+      if (!fullyCoveredByLeave && now >= workEndMs) {
         out.push(
           buildAnomaly(
             row,
@@ -980,15 +994,13 @@ export function computeAnomalies(
           )
         );
       }
-    } else {
+    } else if (!fullyCoveredByLeave) {
       const actual = new Date(lastOut.occurred_at);
-      const deltaMin = Math.round((expectedEnd.getTime() - actual.getTime()) / 60000);
-      // Earliness is measured before the flexed exit anchor (expectedEnd −
-      // flex_out_before); flex 0 → before expectedEnd, as before.
-      const earlyByMin = Math.round(((expEndMs - flexOutBeforeMs) - actual.getTime()) / 60000);
-      // A permesso covering the early stretch [actualOut, expectedEnd] justifies it.
-      const earlyCoveredMin = leaveOverlapMin(row.leaves, actual.getTime(), expEndMs);
-      if (earlyByMin - earlyCoveredMin > tolOut) {
+      const deltaMin = Math.round((workEndMs - actual.getTime()) / 60000);
+      // Earliness is measured before the flexed exit anchor (workEnd −
+      // flex_out_before); flex 0 → before workEnd.
+      const earlyByMin = Math.round(((workEndMs - flexOutBeforeMs) - actual.getTime()) / 60000);
+      if (earlyByMin > tolOut) {
         const a = buildAnomaly(
           row,
           date,

@@ -94,16 +94,57 @@ function autoLunchMinFor(assignment: ActiveAssignment, dow: number): number {
   return (assignment.day_lunch ?? []).find((d) => d.day_of_week === dow)?.lunch_min ?? 0;
 }
 
-// Minutes of approved leave overlapping [startMs, endMs]. Mirrors
-// leaveOverlapMin in backend routes/shifts.ts + export-service.ts.
-function leaveOverlapMin(leaves: LeaveInterval[], startMs: number, endMs: number): number {
-  if (endMs <= startMs) return 0;
-  let covered = 0;
+// Slot working intervals (epoch ms) with approved-leave windows carved out, so
+// the late/early breach rules judge only genuinely-scheduled work: a half-day
+// ferie/permesso drops its slot, and the inter-slot lunch gap is never billed
+// as a deviation. Slots and leaves arrive already resolved to ms (each caller
+// uses its own time basis). Returned sorted by start; an empty result means the
+// whole scheduled day is covered by leave. Single source of truth for the
+// gap-aware presence logic mirrored in backend routes/shifts.ts +
+// export-service.ts.
+export function uncoveredSlotIntervals(
+  slots: Array<{ start: number; end: number }>,
+  leaves: Array<{ from: number; to: number }>
+): Array<{ start: number; end: number }> {
+  let intervals = slots
+    .filter((iv) => iv.end > iv.start)
+    .map((iv) => ({ start: iv.start, end: iv.end }));
   for (const lv of leaves) {
-    const ov = Math.min(new Date(lv.to_ts).getTime(), endMs) - Math.max(new Date(lv.from_ts).getTime(), startMs);
-    if (ov > 0) covered += Math.round(ov / MINUTE_MS);
+    if (lv.to <= lv.from) continue;
+    const next: Array<{ start: number; end: number }> = [];
+    for (const iv of intervals) {
+      if (lv.to <= iv.start || lv.from >= iv.end) {
+        next.push(iv); // leave doesn't touch this slot
+        continue;
+      }
+      if (lv.from > iv.start) next.push({ start: iv.start, end: Math.min(lv.from, iv.end) });
+      if (lv.to < iv.end) next.push({ start: Math.max(lv.to, iv.start), end: iv.end });
+      // otherwise the slot is fully inside the leave → dropped
+    }
+    intervals = next;
   }
-  return covered;
+  return intervals.filter((iv) => iv.end > iv.start).sort((a, b) => a.start - b.start);
+}
+
+// First uncovered start / last uncovered end for late/early breach anchors,
+// falling back to the raw slot span when there's no leave (unchanged behaviour).
+// `fullyCovered` = the whole scheduled day is approved leave → skip breaches.
+function workAnchors(
+  slotIntervals: Array<{ start: number; end: number }>,
+  leaves: LeaveInterval[],
+  fallbackStartMs: number,
+  fallbackEndMs: number
+): { startMs: number; endMs: number; fullyCovered: boolean } {
+  const cuts = leaves.map((l) => ({
+    from: new Date(l.from_ts).getTime(),
+    to: new Date(l.to_ts).getTime(),
+  }));
+  const uncovered = uncoveredSlotIntervals(slotIntervals, cuts);
+  return {
+    startMs: uncovered[0]?.start ?? fallbackStartMs,
+    endMs: uncovered[uncovered.length - 1]?.end ?? fallbackEndMs,
+    fullyCovered: uncovered.length === 0,
+  };
 }
 
 export function computeCountedDay(
@@ -146,6 +187,18 @@ export function computeCountedDay(
   const dateStr = isoLocalDate(now);
   const expectedStart = combineLocalDateTime(dateStr, todaySlots[0]!.start_time);
   const expectedEnd = combineLocalDateTime(dateStr, todaySlots[todaySlots.length - 1]!.end_time);
+  // Late anchor with approved leave carved out per-slot (gap-aware): a half-day
+  // ferie/permesso drops its slot so working the complementary half raises no
+  // breach, and the inter-slot lunch gap is never counted as a deviation.
+  const { startMs: workStartMs, fullyCovered } = workAnchors(
+    todaySlots.map((s) => ({
+      start: combineLocalDateTime(dateStr, s.start_time).getTime(),
+      end: combineLocalDateTime(dateStr, s.end_time).getTime(),
+    })),
+    leaves,
+    expectedStart.getTime(),
+    expectedEnd.getTime()
+  );
 
   const flex = assignment.flexible_enabled === true;
   const autoLunchMin = autoLunchMinFor(assignment, dow);
@@ -157,17 +210,17 @@ export function computeCountedDay(
 
   let deductMs = 0;
 
-  // late clock-in breach, measured past the flexed entry anchor. An approved
-  // permesso/ferie covering [expectedStart, firstIn] waives it.
-  if (totals.firstInAt) {
+  // late clock-in breach, measured past the flexed entry anchor. workStartMs is
+  // the first uncovered slot start, so approved leave over the earlier stretch
+  // (and any inter-slot gap) already waives the lateness.
+  if (totals.firstInAt && !fullyCovered) {
     const firstInMs = new Date(totals.firstInAt).getTime();
     const flexInAfterMin = flex ? assignment.flex_in_after_min ?? 0 : 0;
     const lateMin = Math.max(
       0,
-      Math.round((firstInMs - expectedStart.getTime()) / MINUTE_MS) - flexInAfterMin
+      Math.round((firstInMs - workStartMs) / MINUTE_MS) - flexInAfterMin
     );
-    const coveredMin = leaveOverlapMin(leaves, expectedStart.getTime(), firstInMs);
-    if (lateMin - coveredMin > assignment.tolerance_in_min) {
+    if (lateMin > assignment.tolerance_in_min) {
       deductMs += assignment.tolerance_in_breach_deduct_min * MINUTE_MS;
     }
   }
@@ -234,6 +287,18 @@ export function computeCountedDayClosed(
 
   const expectedStart = combineLocalDateTime(dayIso, slots[0]!.start_time);
   const expectedEnd = combineLocalDateTime(dayIso, slots[slots.length - 1]!.end_time);
+  // Late/early anchors with approved leave carved out per-slot (gap-aware): a
+  // half-day ferie/permesso drops its slot so working the complementary half
+  // raises no breach, and the inter-slot lunch gap is never counted.
+  const { startMs: workStartMs, endMs: workEndMs, fullyCovered } = workAnchors(
+    slots.map((s) => ({
+      start: combineLocalDateTime(dayIso, s.start_time).getTime(),
+      end: combineLocalDateTime(dayIso, s.end_time).getTime(),
+    })),
+    leaves,
+    expectedStart.getTime(),
+    expectedEnd.getTime()
+  );
 
   const flex = assignment.flexible_enabled === true;
   const autoLunchMin = autoLunchMinFor(assignment, dow);
@@ -244,33 +309,33 @@ export function computeCountedDayClosed(
 
   let deductMs = 0;
 
-  // late clock-in breach, measured past the flexed entry anchor. An approved
-  // permesso/ferie covering [expectedStart, firstIn] waives it.
-  if (totals.firstInAt) {
+  // late clock-in breach, measured past the flexed entry anchor. workStartMs is
+  // the first uncovered slot start, so approved leave over the earlier stretch
+  // (and any inter-slot gap) already waives the lateness.
+  if (totals.firstInAt && !fullyCovered) {
     const firstInMs = new Date(totals.firstInAt).getTime();
     const flexInAfterMin = flex ? assignment.flex_in_after_min ?? 0 : 0;
     const lateMin = Math.max(
       0,
-      Math.round((firstInMs - expectedStart.getTime()) / MINUTE_MS) - flexInAfterMin
+      Math.round((firstInMs - workStartMs) / MINUTE_MS) - flexInAfterMin
     );
-    const coveredMin = leaveOverlapMin(leaves, expectedStart.getTime(), firstInMs);
-    if (lateMin - coveredMin > assignment.tolerance_in_min) {
+    if (lateMin > assignment.tolerance_in_min) {
       deductMs += assignment.tolerance_in_breach_deduct_min * MINUTE_MS;
     }
   }
 
   // early clock-out breach (only knowable once the shift has closed), measured
-  // before the flexed exit anchor. An approved permesso/ferie covering
-  // [lastOut, expectedEnd] waives it.
-  if (totals.lastOutAt) {
+  // before the flexed exit anchor. workEndMs is the last uncovered slot end, so
+  // an approved permesso/ferie over the later stretch (e.g. an afternoon ferie
+  // on a lunch-gap day) already waives it.
+  if (totals.lastOutAt && !fullyCovered) {
     const lastOutMs = new Date(totals.lastOutAt).getTime();
     const flexOutBeforeMin = flex ? assignment.flex_out_before_min ?? 0 : 0;
     const earlyMin = Math.max(
       0,
-      Math.round((expectedEnd.getTime() - lastOutMs) / MINUTE_MS) - flexOutBeforeMin
+      Math.round((workEndMs - lastOutMs) / MINUTE_MS) - flexOutBeforeMin
     );
-    const coveredMin = leaveOverlapMin(leaves, lastOutMs, expectedEnd.getTime());
-    if (earlyMin - coveredMin > assignment.tolerance_out_min) {
+    if (earlyMin > assignment.tolerance_out_min) {
       deductMs += assignment.tolerance_out_breach_deduct_min * MINUTE_MS;
     }
   }

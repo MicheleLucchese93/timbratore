@@ -226,3 +226,94 @@ test('Adige Carta regression: clock-out 2 min after the scheduled end is NOT usc
   assert.ok(!k.includes('missing_clock_in'), `unexpected missing_clock_in: ${k.join(',')}`);
   assert.ok(!k.includes('short_hours'), `unexpected short_hours: ${k.join(',')}`);
 });
+
+/* ──────────── Half-day leave over a multi-slot (lunch-gap) day ────────────
+ * A split day (morning + afternoon slots with a lunch gap) where an approved
+ * ferie/permesso covers ONE slot must not fabricate late/early anomalies from
+ * the uncovered lunch gap. Pre-fix the engine collapsed the day to a single
+ * [firstStart,lastEnd] span and credited leave as a flat overlap, so the gap
+ * between the actual clock-out and the leave window billed as "uscita
+ * anticipata". (Prod: Aurora Gastaldelli, 2026-07-03, FULL TIME-ID.) */
+const FRI = '2026-07-03'; // Friday → ISO dow 5, CEST
+const SPLIT_SLOTS = [
+  { day_of_week: 5, start_time: '08:30', end_time: '12:30' },
+  { day_of_week: 5, start_time: '14:00', end_time: '18:00' },
+];
+
+test('half-day afternoon ferie: clock-out at the morning slot end is NOT uscita anticipata', () => {
+  const row = makeRowOn(FRI, {
+    slots: SPLIT_SLOTS,
+    tolerance_in_min: 5,
+    tolerance_out_min: 5,
+    stamps: [stampAt(FRI, 'clock_in', '08:29'), stampAt(FRI, 'clock_out', '12:35')],
+    leaves: [
+      {
+        type: 'ferie',
+        from_ts: zonedWallClock(FRI, '14:00').toISOString(),
+        to_ts: zonedWallClock(FRI, '18:00').toISOString(),
+      },
+    ],
+  });
+  const k = kinds([row]);
+  assert.ok(!k.includes('early_clock_out'), `unexpected early_clock_out: ${k.join(',')}`);
+  assert.ok(!k.includes('short_hours'), `unexpected short_hours: ${k.join(',')}`);
+  assert.ok(!k.includes('missing_clock_out'), `unexpected missing_clock_out: ${k.join(',')}`);
+});
+
+test('half-day morning ferie: clock-in at the afternoon slot start is NOT entrata posticipata', () => {
+  const row = makeRowOn(FRI, {
+    slots: SPLIT_SLOTS,
+    tolerance_in_min: 5,
+    tolerance_out_min: 5,
+    stamps: [stampAt(FRI, 'clock_in', '14:02'), stampAt(FRI, 'clock_out', '18:00')],
+    leaves: [
+      {
+        type: 'ferie',
+        from_ts: zonedWallClock(FRI, '08:30').toISOString(),
+        to_ts: zonedWallClock(FRI, '12:30').toISOString(),
+      },
+    ],
+  });
+  const k = kinds([row]);
+  assert.ok(!k.includes('late_clock_in'), `unexpected late_clock_in: ${k.join(',')}`);
+  assert.ok(!k.includes('missing_clock_in'), `unexpected missing_clock_in: ${k.join(',')}`);
+});
+
+test('half-day afternoon ferie but genuinely left the morning early → uscita anticipata still fires', () => {
+  // Guard against over-suppression: leaving 90 min before the morning slot ends
+  // is a real early departure and must still be flagged (delta 90, not 325).
+  const row = makeRowOn(FRI, {
+    slots: SPLIT_SLOTS,
+    tolerance_in_min: 5,
+    tolerance_out_min: 5,
+    stamps: [stampAt(FRI, 'clock_in', '08:30'), stampAt(FRI, 'clock_out', '11:00')],
+    leaves: [
+      {
+        type: 'ferie',
+        from_ts: zonedWallClock(FRI, '14:00').toISOString(),
+        to_ts: zonedWallClock(FRI, '18:00').toISOString(),
+      },
+    ],
+  });
+  const early = computeAnomalies([row]).find((a) => a.kind === 'early_clock_out');
+  assert.ok(early, 'early_clock_out present');
+  assert.equal(early!.delta_minutes, 90);
+});
+
+test('full-day ferie: clocking in anyway raises no late/early/missing anomalies', () => {
+  const row = makeRowOn(FRI, {
+    slots: SPLIT_SLOTS,
+    stamps: [stampAt(FRI, 'clock_in', '08:29'), stampAt(FRI, 'clock_out', '17:55')],
+    leaves: [
+      {
+        type: 'ferie',
+        from_ts: zonedWallClock(FRI, '08:30').toISOString(),
+        to_ts: zonedWallClock(FRI, '18:00').toISOString(),
+      },
+    ],
+  });
+  const k = kinds([row]);
+  assert.ok(!k.includes('late_clock_in'), `unexpected late_clock_in: ${k.join(',')}`);
+  assert.ok(!k.includes('early_clock_out'), `unexpected early_clock_out: ${k.join(',')}`);
+  assert.ok(!k.includes('missing_clock_out'), `unexpected missing_clock_out: ${k.join(',')}`);
+});

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import ExcelJS from 'exceljs';
 import { putObject, getObject, deleteObject } from '../lib/storage.js';
 import { DEFAULT_TZ, zonedWallClock } from '../lib/tz.js';
-import { effectiveCentroPagheMap, centroPagheKeyForLeave } from '@sonoqui/shared';
+import { effectiveCentroPagheMap, centroPagheKeyForLeave, uncoveredSlotIntervals } from '@sonoqui/shared';
 import { env } from '../env.js';
 import {
   buildCentroPagheFile,
@@ -236,6 +236,20 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
         0
       );
       const userLeaves = leaveIntervalsByUser.get(userId);
+      // Late/early anchors with approved leave carved out per-slot (gap-aware):
+      // a half-day ferie/permesso drops its slot so working the complementary
+      // half raises no breach deduction, and the inter-slot lunch gap is never
+      // billed as early/late. Mirrors computeAnomalies in routes/shifts.ts.
+      const uncovered = uncoveredSlotIntervals(
+        dowSlots.map((s) => ({
+          start: combineDateTime(day.day, s.start, timeZone).getTime(),
+          end: combineDateTime(day.day, s.end, timeZone).getTime(),
+        })),
+        (userLeaves ?? []).map((l) => ({ from: l.from, to: l.to }))
+      );
+      const fullyCoveredByLeave = uncovered.length === 0;
+      const workStart = new Date(uncovered[0]?.start ?? expectedStart.getTime());
+      const workEnd = new Date(uncovered[uncovered.length - 1]?.end ?? expectedEnd.getTime());
 
       // Feature B auto-lunch: replace stamped break/lunch accounting with a flat
       // deduction. worked = presence − L; the deducted L shows as unpaid break.
@@ -253,20 +267,21 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
       const flexOutBeforeMin = cfg.flexible_enabled ? cfg.flex_out_before_min : 0;
 
       // late clock-in beyond tolerance (past the flexed entry anchor) → deduct.
-      // An approved permesso/ferie covering [expectedStart, actualIn] justifies
-      // the lateness (same rule as the late_clock_in anomaly).
-      if (day.firstIn) {
-        const lateMin = diffMin(expectedStart, day.firstIn) - flexInAfterMin;
-        const coveredMin = leaveOverlapMin(userLeaves, expectedStart.getTime(), day.firstIn.getTime());
-        if (lateMin - coveredMin > cfg.tolerance_in_min) {
+      // workStart is the first uncovered slot start, so an approved permesso/ferie
+      // over the earlier stretch justifies the lateness (same rule as the
+      // late_clock_in anomaly). A fully-covered day raises no breach at all.
+      if (day.firstIn && !fullyCoveredByLeave) {
+        const lateMin = diffMin(workStart, day.firstIn) - flexInAfterMin;
+        if (lateMin > cfg.tolerance_in_min) {
           day.worked_minutes = Math.max(0, day.worked_minutes - cfg.tolerance_in_breach_deduct_min);
         }
       }
       // early clock-out beyond tolerance (before the flexed exit anchor) → deduct.
-      if (day.lastOut) {
-        const earlyMin = diffMin(day.lastOut, expectedEnd) - flexOutBeforeMin;
-        const coveredMin = leaveOverlapMin(userLeaves, day.lastOut.getTime(), expectedEnd.getTime());
-        if (earlyMin - coveredMin > cfg.tolerance_out_min) {
+      // workEnd is the last uncovered slot end, so an afternoon ferie on a
+      // lunch-gap day (the Aurora Gastaldelli case) waives the false anticipo.
+      if (day.lastOut && !fullyCoveredByLeave) {
+        const earlyMin = diffMin(day.lastOut, workEnd) - flexOutBeforeMin;
+        if (earlyMin > cfg.tolerance_out_min) {
           day.worked_minutes = Math.max(0, day.worked_minutes - cfg.tolerance_out_breach_deduct_min);
         }
       }
@@ -518,23 +533,6 @@ async function loadShiftConfigs(job: ExportJobRow): Promise<Map<string, ShiftCon
 
 function diffMin(a: Date, b: Date): number {
   return Math.max(0, Math.round((b.getTime() - a.getTime()) / 60000));
-}
-
-// Minutes of approved leave overlapping [startMs, endMs]. Used to waive a
-// late-in / early-out breach when an approved ferie/permesso covers the
-// deviating stretch. Mirrors leaveOverlapMin in routes/shifts.ts.
-function leaveOverlapMin(
-  leaves: LeaveInterval[] | undefined,
-  startMs: number,
-  endMs: number
-): number {
-  if (!leaves || endMs <= startMs) return 0;
-  let covered = 0;
-  for (const lv of leaves) {
-    const ov = Math.min(lv.to, endMs) - Math.max(lv.from, startMs);
-    if (ov > 0) covered += Math.round(ov / 60000);
-  }
-  return covered;
 }
 
 // Schedule wall-clock (slot time) on `dateStr` → UTC instant in `timeZone`, so
