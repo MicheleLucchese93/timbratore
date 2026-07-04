@@ -42,6 +42,15 @@
     "placeholder": "Reason…"
   },
   "justificationStandard": "Standard stamping: {{kind}}",
+  "bulk": {
+    "selectRow": "Select anomaly",
+    "selectAllVisible": "Select all ({{n}})",
+    "selected": "Selected: {{n}}",
+    "apply": "Correct ({{n}})",
+    "clear": "Clear",
+    "hint": "Only the actions valid for every selected anomaly are offered. Each anomaly is corrected using its own day's data. Select similar ones (same type) to apply the same correction.",
+    "result": "{{ok}} corrected · {{fail}} failed"
+  },
   "errors": {
     "noMissingStamp": "No missing stamp to add.",
     "invalidPermWindow": "Invalid leave window.",

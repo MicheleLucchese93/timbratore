@@ -673,6 +673,18 @@ const MAIN_IT = `
         <p><strong>Notifica al dipendente:</strong> per ferie e permessi inseriti dall'admin il dipendente riceve una notifica dedicata (push ed email) che spiega che è stata l'amministrazione a inserire l'assenza per correggere un'anomalia — distinta dalla conferma di una richiesta approvata. L'eventuale <em>nota per il dipendente</em> è inclusa nella notifica.</p>
         <p><strong>Tracciabilità nelle esportazioni:</strong> ogni correzione resta documentata nei file XLSX/JSON. I timbri aggiunti compaiono nel foglio <em>Timbrature</em> con origine "Manuale (admin)" e nota; le ferie/permessi inseriti dall'admin nel foglio <em>Ferie e Permessi</em> con colonna <em>Origine</em> = "Inserito da admin"; le giustificazioni con nota nel foglio dedicato <em>Giustifiche anomalie</em>.</p>
       </div>
+
+      <div class="feature">
+        <h3>Correzione multipla (in blocco)</h3>
+        <p>Per correggere più anomalie con la stessa azione, <strong>selezionale</strong> con le caselle a sinistra di ogni riga. Usa la casella <strong>Seleziona tutte</strong> in cima all'elenco, oppure quella accanto a ciascuna <strong>data</strong> per selezionare l'intera giornata.</p>
+        <p>Quando c'è almeno una selezione compare in basso la <strong>barra di correzione</strong>: scegli l'azione e premi <strong>Correggi</strong>. Ogni anomalia viene corretta con i dati del proprio giorno (orari previsti, timbri mancanti).</p>
+        <ul class="tidy">
+          <li>La barra propone <strong>solo le azioni valide per tutte</strong> le anomalie selezionate. <em>Giustifica con nota</em> è sempre disponibile; <em>Timbratura standard</em> solo se a tutte manca un timbro; <em>Inserisci ferie</em> solo per i tipi giustificabili con orario previsto.</li>
+          <li>Selezionando tipi diversi resta disponibile la sola <strong>giustificazione con nota</strong>: seleziona anomalie <strong>simili</strong> (stesso tipo) per applicare le altre correzioni.</li>
+          <li>L'<em>Inserisci permesso</em> non è disponibile in blocco perché la finestra oraria dipende dal singolo giorno: usa la correzione della singola riga.</li>
+          <li>Al termine viene mostrato l'esito: <strong>quante corrette</strong> e <strong>quante non riuscite</strong>, con l'elenco delle righe fallite. Le anomalie risolte spariscono dall'elenco; se ritenti, vengono ritentate solo quelle ancora presenti.</li>
+        </ul>
+      </div>
     </section>
 
     <section class="chapter" id="web-admin-ferie">

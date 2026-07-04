@@ -666,6 +666,18 @@ export const MAIN_EN = `
         <p><strong>Notification to the employee:</strong> for holiday and leave entered by the admin the employee receives a dedicated notification (push and email) explaining that the administrator entered the absence to fix an anomaly — distinct from the confirmation of an approved request. Any <em>note for the employee</em> is included in the notification.</p>
         <p><strong>Traceability in the exports:</strong> every correction stays documented in the XLSX/JSON files. The added stamps appear in the <em>Stamps</em> sheet with source "Manual (admin)" and a note; the holiday/leave entered by the admin in the <em>Holiday and Leave</em> sheet with the <em>Source</em> column = "Entered by admin"; the note justifications in the dedicated <em>Anomaly justifications</em> sheet.</p>
       </div>
+
+      <div class="feature">
+        <h3>Bulk correction</h3>
+        <p>To correct several anomalies with the same action, <strong>select</strong> them with the checkboxes on the left of each row. Use the <strong>Select all</strong> checkbox at the top of the list, or the one next to each <strong>date</strong> to select the whole day.</p>
+        <p>When at least one row is selected, the <strong>correction bar</strong> appears at the bottom: choose the action and press <strong>Correct</strong>. Each anomaly is corrected using its own day's data (expected times, missing stamps).</p>
+        <ul class="tidy">
+          <li>The bar only offers <strong>the actions valid for every</strong> selected anomaly. <em>Justify with a note</em> is always available; <em>Standard stamp</em> only when a stamp is missing on all of them; <em>Insert holiday</em> only for justifiable types with an expected schedule.</li>
+          <li>Selecting different types leaves only <strong>justify with a note</strong> available: select <strong>similar</strong> anomalies (same type) to apply the other corrections.</li>
+          <li><em>Insert leave</em> is not available in bulk because its time window depends on the single day: use the per-row correction.</li>
+          <li>At the end the outcome is shown: <strong>how many corrected</strong> and <strong>how many failed</strong>, with the list of failed rows. Resolved anomalies leave the list; if you retry, only the rows still present are retried.</li>
+        </ul>
+      </div>
     </section>
 
     <section class="chapter" id="web-admin-ferie">

@@ -42,6 +42,15 @@
     "placeholder": "Motivazione…"
   },
   "justificationStandard": "Timbratura standard: {{kind}}",
+  "bulk": {
+    "selectRow": "Seleziona anomalia",
+    "selectAllVisible": "Seleziona tutte ({{n}})",
+    "selected": "Selezionate: {{n}}",
+    "apply": "Correggi ({{n}})",
+    "clear": "Deseleziona",
+    "hint": "Vengono proposte solo le azioni valide per tutte le anomalie selezionate. Ogni anomalia viene corretta con i dati del suo giorno. Selezionane di simili (stesso tipo) per applicare la stessa correzione.",
+    "result": "{{ok}} corrette · {{fail}} non riuscite"
+  },
   "errors": {
     "noMissingStamp": "Nessun timbro mancante da aggiungere.",
     "invalidPermWindow": "Finestra del permesso non valida.",
