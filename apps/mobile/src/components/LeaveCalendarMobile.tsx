@@ -142,36 +142,40 @@ function MonthGrid({
         ))}
       </View>
       <View style={styles.grid}>
-        {weeks.flat().map((d) => {
-          const iso = toISODate(d);
-          const inMonth = d.getMonth() === anchor.getMonth();
-          const dayEvents = eventsForDay(events, iso);
-          const hol = holidays.get(iso);
-          return (
-            <Pressable key={iso} onPress={() => onPickDay(d)} style={styles.cell}>
-              <View
-                style={[
-                  styles.cellNum,
-                  iso === today && styles.cellToday,
-                ]}>
-                <Text
-                  style={[
-                    styles.cellNumText,
-                    !inMonth && styles.cellOut,
-                    (hol || isWeekend(d)) && { color: HOLIDAY_COLOR },
-                    iso === today && styles.cellTodayText,
-                  ]}>
-                  {d.getDate()}
-                </Text>
-              </View>
-              <View style={styles.dots}>
-                {dayEvents.slice(0, 3).map((e) => (
-                  <View key={e.id} style={[styles.dot, { backgroundColor: leaveTypeColor(e.type) }]} />
-                ))}
-              </View>
-            </Pressable>
-          );
-        })}
+        {weeks.map((week, wi) => (
+          <View key={wi} style={styles.gridRow}>
+            {week.map((d) => {
+              const iso = toISODate(d);
+              const inMonth = d.getMonth() === anchor.getMonth();
+              const dayEvents = eventsForDay(events, iso);
+              const hol = holidays.get(iso);
+              return (
+                <Pressable key={iso} onPress={() => onPickDay(d)} style={styles.cell}>
+                  <View
+                    style={[
+                      styles.cellNum,
+                      iso === today && styles.cellToday,
+                    ]}>
+                    <Text
+                      style={[
+                        styles.cellNumText,
+                        !inMonth && styles.cellOut,
+                        (hol || isWeekend(d)) && { color: HOLIDAY_COLOR },
+                        iso === today && styles.cellTodayText,
+                      ]}>
+                      {d.getDate()}
+                    </Text>
+                  </View>
+                  <View style={styles.dots}>
+                    {dayEvents.slice(0, 3).map((e) => (
+                      <View key={e.id} style={[styles.dot, { backgroundColor: leaveTypeColor(e.type) }]} />
+                    ))}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -305,9 +309,10 @@ const styles = StyleSheet.create({
   viewBtnTextActive: { color: color.primary },
 
   weekHeader: { flexDirection: 'row' },
-  weekHeaderText: { width: `${100 / 7}%`, textAlign: 'center', fontSize: 11, fontWeight: '600', color: color.onSurfaceVariant, paddingVertical: 4 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  cell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', paddingTop: 4 },
+  weekHeaderText: { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '600', color: color.onSurfaceVariant, paddingVertical: 4 },
+  grid: {},
+  gridRow: { flexDirection: 'row' },
+  cell: { flex: 1, aspectRatio: 1, alignItems: 'center', paddingTop: 4 },
   cellNum: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   cellToday: { backgroundColor: color.primary },
   cellNumText: { fontSize: 13, color: color.onSurface },
