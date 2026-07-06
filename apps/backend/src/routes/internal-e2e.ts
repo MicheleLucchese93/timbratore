@@ -253,6 +253,14 @@ internalE2eRouter.post(
         [TEST_TENANT_ID]
       );
 
+      // Registro attività rows: append-only in production, but every mutating
+      // spec writes them on the pinned test tenant, so residue would grow
+      // unbounded across runs. Whole-tenant wipe, same scoping as notifications.
+      const alog = await client.query(
+        `DELETE FROM audit_log WHERE tenant_id = $1`,
+        [TEST_TENANT_ID]
+      );
+
       await client.query('COMMIT');
 
       // Best-effort R2 object cleanup for the purged fixture documents. A
@@ -290,6 +298,7 @@ internalE2eRouter.post(
           documents: dq.rowCount,
           document_objects_deleted: docObjectsDeleted,
           notifications: nq.rowCount,
+          audit_log: alog.rowCount,
           partnership_members: pmembers.rowCount,
           partnership_audit_log: palog.rowCount,
           partnership_tenants: e2eTenantsDeleted.rowCount,
@@ -315,6 +324,7 @@ internalE2eRouter.post(
         documents_deleted: dq.rowCount,
         document_objects_deleted: docObjectsDeleted,
         notifications_deleted: nq.rowCount,
+        audit_log_deleted: alog.rowCount,
         partnership_members_deleted: pmembers.rowCount,
         partnership_audit_log_deleted: palog.rowCount,
         partnership_tenants_deleted: e2eTenantsDeleted.rowCount,

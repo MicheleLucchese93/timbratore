@@ -4,6 +4,7 @@ import { authenticate, requireAdmin } from '../middleware/auth.js';
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { ValidationError } from '../errors/index.js';
+import { logAudit } from '../lib/audit.js';
 
 export const settingsRouter = Router();
 settingsRouter.use(authenticate);
@@ -61,12 +62,13 @@ settingsRouter.patch(
       `UPDATE tenants SET ${set.join(', ')} WHERE id = $${i} RETURNING *`,
       values
     );
-    await client.query(
-      `INSERT INTO audit_log(tenant_id, actor_user_id, action, resource_type, resource_id, before, after)
-       VALUES (current_setting('app.current_tenant_id')::uuid, current_setting('app.current_user_id')::uuid,
-               'tenant.update', 'tenant', $1::text, NULL, $2)`,
-      [req.user!.tenantId, parse.data]
-    );
+    await logAudit(client, {
+      action: 'tenant.update',
+      resourceType: 'tenant',
+      resourceId: req.user!.tenantId,
+      after: parse.data,
+      req,
+    });
     ok(res, r.rows[0]);
   })
 );
@@ -116,6 +118,13 @@ settingsRouter.post(
        RETURNING *`,
       [parse.data.email, parse.data.label]
     );
+    await logAudit(client, {
+      action: 'tenant.export_recipient_add',
+      resourceType: 'tenant',
+      resourceId: r.rows[0].id,
+      after: { email: parse.data.email, label: parse.data.label },
+      req,
+    });
     ok(res, r.rows[0], 201);
   })
 );
@@ -123,7 +132,19 @@ settingsRouter.post(
 settingsRouter.delete(
   '/export-recipients/:id',
   tenantHandler(async (req, res, client) => {
-    await client.query(`DELETE FROM tenant_export_recipients WHERE id = $1`, [req.params.id]);
+    const r = await client.query(
+      `DELETE FROM tenant_export_recipients WHERE id = $1 RETURNING email, label`,
+      [req.params.id]
+    );
+    if (r.rowCount) {
+      await logAudit(client, {
+        action: 'tenant.export_recipient_remove',
+        resourceType: 'tenant',
+        resourceId: String(req.params.id),
+        before: { email: r.rows[0].email, label: r.rows[0].label },
+        req,
+      });
+    }
     ok(res, { deleted: true });
   })
 );

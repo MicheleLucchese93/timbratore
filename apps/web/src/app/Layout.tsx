@@ -21,6 +21,7 @@ const adminNav: NavItem[] = [
   { to: '/exports', key: 'exports', icon: <IconDownload /> },
   { to: '/me/documents', key: 'myDocuments', icon: <IconFile /> },
   { to: '/users', key: 'users', icon: <IconUsers /> },
+  { to: '/audit', key: 'audit', icon: <IconHistory /> },
   { to: '/settings', key: 'settings', icon: <IconCog /> },
   { to: '/manual', key: 'manual', icon: <IconBook /> },
 ];
@@ -435,6 +436,15 @@ function IconFile() {
       <path d="M14 2v6h6" />
       <path d="M8 13h8" />
       <path d="M8 17h8" />
+    </svg>
+  );
+}
+function IconHistory() {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+      <path d="M3 3v5h5" />
+      <path d="M12 7v5l3 3" />
     </svg>
   );
 }

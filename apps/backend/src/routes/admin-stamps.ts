@@ -1,8 +1,10 @@
 import { Router } from 'express';
+import type { Request } from 'express';
 import { z } from 'zod';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
+import { logAudit } from '../lib/audit.js';
 import { ConflictError, NotFoundError, ValidationError } from '../errors/index.js';
 
 export const adminStampsRouter = Router();
@@ -41,7 +43,7 @@ adminStampsRouter.post(
        RETURNING *`,
       [b.user_id, b.event_type, b.occurred_at, b.branch_id ?? null, b.notes ?? null, b.out_of_geofence ?? false]
     );
-    await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_create', ins.rows[0].id, null, ins.rows[0]);
+    await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_create', ins.rows[0].id, ins.rows[0].user_id, null, ins.rows[0], req);
     ok(res, ins.rows[0], 201);
   })
 );
@@ -79,7 +81,7 @@ adminStampsRouter.patch(
       `UPDATE stamps SET ${set.join(', ')} WHERE id = $${i} RETURNING *`,
       values
     );
-    await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_update', String(req.params.id), before.rows[0], r.rows[0]);
+    await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_update', String(req.params.id), before.rows[0].user_id, before.rows[0], r.rows[0], req);
     ok(res, r.rows[0]);
   })
 );
@@ -102,7 +104,7 @@ adminStampsRouter.delete(
       [parse.data.deletion_reason, req.params.id]
     );
     if (r.rowCount === 0) throw new NotFoundError('stamp');
-    await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_delete', String(req.params.id), r.rows[0], null);
+    await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_delete', String(req.params.id), r.rows[0].user_id, r.rows[0], null, req);
     ok(res, { deleted: true });
   })
 );
@@ -188,6 +190,16 @@ adminStampsRouter.post(
         results.push({ date, status: 'error', reason: (err as Error).message.slice(0, 200) });
       }
     }
+    const createdDates = results.filter((x) => x.status === 'created').map((x) => x.date);
+    if (createdDates.length) {
+      await logAudit(client, {
+        action: 'stamp.bulk_apply',
+        resourceType: 'stamp',
+        targetUserId: b.user_id,
+        after: { dates: createdDates, schedule: b.schedule },
+        req,
+      });
+    }
     ok(res, { results });
   })
 );
@@ -250,7 +262,7 @@ adminStampsRouter.post(
          RETURNING *`,
         [b.user_id, ev.event_type, ev.occurred_at, b.branch_id ?? null, `Orario standard (anomalia): ${b.justification}`]
       );
-      await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_create', ins.rows[0].id, null, ins.rows[0]);
+      await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_create', ins.rows[0].id, ins.rows[0].user_id, null, ins.rows[0], req);
       results.push({
         event_type: ev.event_type,
         occurred_at: ev.occurred_at,
@@ -265,18 +277,22 @@ adminStampsRouter.post(
 async function emitAuditAndOutbox(
   client: import('pg').PoolClient,
   tenantId: string,
-  action: string,
+  action: 'stamp.admin_create' | 'stamp.admin_update' | 'stamp.admin_delete',
   resourceId: string,
+  targetUserId: string,
   before: unknown,
-  after: unknown
+  after: unknown,
+  req: Request
 ): Promise<void> {
-  await client.query(
-    `INSERT INTO audit_log(tenant_id, actor_user_id, action, resource_type, resource_id, before, after)
-     VALUES (current_setting('app.current_tenant_id')::uuid,
-             current_setting('app.current_user_id')::uuid,
-             $1, 'stamp', $2, $3, $4)`,
-    [action, resourceId, before, after]
-  );
+  await logAudit(client, {
+    action,
+    resourceType: 'stamp',
+    resourceId,
+    targetUserId,
+    before,
+    after,
+    req,
+  });
   await client.query(
     `INSERT INTO centrifugo_outbox(method, payload)
      VALUES ('publish', jsonb_build_object(

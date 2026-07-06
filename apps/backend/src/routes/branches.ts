@@ -5,6 +5,7 @@ import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { ConflictError, NotFoundError, ValidationError } from '../errors/index.js';
 import { forwardGeocode } from '../services/geocoding-service.js';
+import { logAudit } from '../lib/audit.js';
 
 export const branchesRouter = Router();
 branchesRouter.use(authenticate);
@@ -93,7 +94,14 @@ branchesRouter.post(
       [b.name, b.address ?? null, components, lat, lng, b.radius_m, b.enforce_radius,
        b.smart_working, b.timezone ?? null, b.ordering]
     );
-    await emitAudit(client, 'branch.create', r.rows[0].id, null, r.rows[0]);
+    await logAudit(client, {
+      action: 'branch.create',
+      resourceType: 'branch',
+      resourceId: r.rows[0].id,
+      targetLabel: r.rows[0].name,
+      after: { id: r.rows[0].id, name: r.rows[0].name, address: r.rows[0].address },
+      req,
+    });
     ok(res, r.rows[0], 201);
   })
 );
@@ -110,11 +118,13 @@ branchesRouter.patch(
     if (before.rowCount === 0) throw new NotFoundError('branch');
     const updates: string[] = [];
     const values: unknown[] = [];
+    const changedBefore: Record<string, unknown> = {};
     let i = 1;
     for (const [k, v] of Object.entries(parse.data)) {
       if (v === undefined) continue;
       updates.push(`${k} = $${i++}`);
       values.push(v);
+      changedBefore[k] = before.rows[0][k];
     }
     if (updates.length === 0) return ok(res, before.rows[0]);
     values.push(req.params.id);
@@ -122,7 +132,15 @@ branchesRouter.patch(
       `UPDATE branches SET ${updates.join(', ')} WHERE id = $${i} RETURNING *`,
       values
     );
-    await emitAudit(client, 'branch.update', String(req.params.id), before.rows[0], r.rows[0]);
+    await logAudit(client, {
+      action: 'branch.update',
+      resourceType: 'branch',
+      resourceId: String(req.params.id),
+      targetLabel: r.rows[0].name,
+      before: changedBefore,
+      after: parse.data,
+      req,
+    });
     ok(res, r.rows[0]);
   })
 );
@@ -138,7 +156,14 @@ branchesRouter.delete(
       [req.params.id]
     );
     if (r.rowCount === 0) throw new NotFoundError('branch');
-    await emitAudit(client, 'branch.delete', String(req.params.id), r.rows[0], null);
+    await logAudit(client, {
+      action: 'branch.delete',
+      resourceType: 'branch',
+      resourceId: String(req.params.id),
+      targetLabel: r.rows[0].name,
+      before: { id: r.rows[0].id, name: r.rows[0].name },
+      req,
+    });
     ok(res, { deleted: true });
   })
 );
@@ -165,12 +190,21 @@ branchesRouter.post(
   tenantHandler(async (req, res, client) => {
     const parse = AddMember.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
-    await client.query(
+    const r = await client.query(
       `INSERT INTO branch_memberships(branch_id, user_id, tenant_id)
        VALUES ($1, $2, current_setting('app.current_tenant_id')::uuid)
        ON CONFLICT DO NOTHING`,
       [req.params.id, parse.data.user_id]
     );
+    if (r.rowCount) {
+      await logAudit(client, {
+        action: 'branch.member_add',
+        resourceType: 'branch',
+        resourceId: String(req.params.id),
+        targetUserId: parse.data.user_id,
+        req,
+      });
+    }
     ok(res, { added: true }, 201);
   })
 );
@@ -179,26 +213,19 @@ branchesRouter.delete(
   '/:id/members/:userId',
   requireAdmin,
   tenantHandler(async (req, res, client) => {
-    await client.query(
+    const r = await client.query(
       `DELETE FROM branch_memberships WHERE branch_id = $1 AND user_id = $2`,
       [req.params.id, req.params.userId]
     );
+    if (r.rowCount) {
+      await logAudit(client, {
+        action: 'branch.member_remove',
+        resourceType: 'branch',
+        resourceId: String(req.params.id),
+        targetUserId: String(req.params.userId),
+        req,
+      });
+    }
     ok(res, { removed: true });
   })
 );
-
-async function emitAudit(
-  client: import('pg').PoolClient,
-  action: string,
-  resourceId: string,
-  before: unknown,
-  after: unknown
-): Promise<void> {
-  await client.query(
-    `INSERT INTO audit_log(tenant_id, actor_user_id, action, resource_type, resource_id, before, after)
-     VALUES (current_setting('app.current_tenant_id')::uuid,
-             current_setting('app.current_user_id')::uuid,
-             $1, 'branch', $2, $3, $4)`,
-    [action, resourceId, before, after]
-  );
-}

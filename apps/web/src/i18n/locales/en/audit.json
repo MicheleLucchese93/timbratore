@@ -1,0 +1,119 @@
+{
+  "title": "Activity log",
+  "subtitle": "Every administrative operation performed in the company",
+  "empty": "No activity recorded",
+  "column": {
+    "when": "When",
+    "actor": "Author",
+    "action": "Activity",
+    "target": "Target",
+    "details": "Details"
+  },
+  "filter": {
+    "from": "From",
+    "to": "To",
+    "actor": "Author",
+    "target": "Target",
+    "category": "Category",
+    "all": "All"
+  },
+  "category": {
+    "users": "Users",
+    "stamps": "Stamps",
+    "corrections": "Corrections",
+    "leaves": "Leaves",
+    "quotas": "Balances",
+    "shifts": "Schedules",
+    "branches": "Branches",
+    "bacheca": "Bulletin board",
+    "exports": "Exports",
+    "documents": "Documents",
+    "settings": "Settings"
+  },
+  "action": {
+    "user": {
+      "invite": "User created",
+      "update": "User updated",
+      "deactivate": "User deactivated",
+      "reactivate": "User reactivated",
+      "delete": "User deleted",
+      "import": "Users imported from file",
+      "access_email": "Access email sent",
+      "set_branches": "User branches updated",
+      "set_approvers": "Leave approvers updated",
+      "set_correction_approvers": "Correction approvers updated",
+      "password_change": "Password changed",
+      "branches": {
+        "bulk_add": "User branches updated",
+        "bulk_remove": "User branches updated"
+      }
+    },
+    "stamp": {
+      "admin_create": "Stamp added",
+      "admin_update": "Stamp updated",
+      "admin_delete": "Stamp deleted",
+      "bulk_apply": "Standard schedule applied"
+    },
+    "anomaly": {
+      "justify": "Anomaly justified"
+    },
+    "correction": {
+      "approve": "Correction approved",
+      "reject": "Correction rejected"
+    },
+    "leave": {
+      "approve": "Leave request approved",
+      "reject": "Leave request rejected",
+      "admin_create": "Leave added",
+      "admin_revoke": "Leave revoked",
+      "decide_cancellation": "Cancellation request decided",
+      "bulk_create": "Company closure added",
+      "bulk_revoke": "Company closure revoked"
+    },
+    "leave_quota": {
+      "template_create": "Balance profile created",
+      "template_update": "Balance profile updated",
+      "template_delete": "Balance profile deleted",
+      "assign": "Balance profile assigned",
+      "assignment_update": "Balance assignment updated",
+      "assignment_delete": "Balance assignment removed",
+      "accrual_add": "Manual accrual added"
+    },
+    "shift_template": {
+      "create": "Schedule created",
+      "update": "Schedule updated",
+      "delete": "Schedule deleted"
+    },
+    "shift_assignment": {
+      "set": "Schedule assigned",
+      "clear": "Schedule assignment removed"
+    },
+    "branch": {
+      "create": "Branch created",
+      "update": "Branch updated",
+      "delete": "Branch deleted",
+      "member_add": "User added to branch",
+      "member_remove": "User removed from branch"
+    },
+    "bulletin": {
+      "create": "Bulletin published",
+      "update": "Bulletin updated",
+      "delete": "Bulletin deleted"
+    },
+    "export": {
+      "create": "Export generated",
+      "download": "Export downloaded",
+      "delete": "Export deleted"
+    },
+    "document": {
+      "upload": "Document uploaded",
+      "delete": "Document deleted",
+      "session_start": "Documentale session started"
+    },
+    "tenant": {
+      "update": "Company settings updated",
+      "export_recipient_add": "Export recipient added",
+      "export_recipient_remove": "Export recipient removed"
+    }
+  }
+}

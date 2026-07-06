@@ -8,6 +8,7 @@ import { asyncHandler, tenantHandler } from '../lib/route-helpers.js';
 import { adminPool } from '../lib/admin-db.js';
 import { ok } from '../lib/api-response.js';
 import { ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
+import { logAuditAs } from '../lib/audit.js';
 import { env } from '../env.js';
 import {
   storagePut,
@@ -255,6 +256,11 @@ documentsRouter.post(
       [tenantId, userId, String(OTP_SESSION_TTL_MIN)]
     );
     await logDocumentAccess({ tenantId, actorId: userId, action: 'otp_verify' });
+    await logAuditAs(adminPool, tenantId, userId, {
+      action: 'document.session_start',
+      resourceType: 'documentale_session',
+      req,
+    });
     ok(res, { verified: true, session_minutes: OTP_SESSION_TTL_MIN });
   })
 );
@@ -360,6 +366,18 @@ documentsRouter.post(
       // Object store write inside the tx — if it throws, the tx rolls back and
       // no orphan row survives.
       await storagePut(r2Key, body, PDF_MIME);
+      await logAuditAs(client, tenantId, actorId, {
+        action: 'document.upload',
+        resourceType: 'document',
+        resourceId: finalDoc.id,
+        targetUserId: finalDoc.user_id,
+        after: {
+          category: finalDoc.category,
+          title: finalDoc.title,
+          filename: finalDoc.original_filename,
+        },
+        req,
+      });
       await client.query('COMMIT');
     } catch (err) {
       await client.query('ROLLBACK').catch(() => {});
@@ -596,6 +614,18 @@ documentsRouter.delete(
       [doc.id]
     );
     if (upd.rowCount === 0) throw new ForbiddenError();
+    await logAuditAs(adminPool, req.user!.tenantId, req.user!.id, {
+      action: 'document.delete',
+      resourceType: 'document',
+      resourceId: doc.id,
+      targetUserId: doc.user_id,
+      before: {
+        category: doc.category,
+        title: doc.title,
+        filename: doc.original_filename,
+      },
+      req,
+    });
 
     // Drop the object after the soft-delete commits intent. A storage failure
     // must not resurrect the row, so swallow + log — the retention cron will

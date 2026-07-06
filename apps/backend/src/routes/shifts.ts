@@ -13,6 +13,7 @@ import {
   hhmmInZone,
 } from '../lib/tz.js';
 import { uncoveredSlotIntervals } from '@sonoqui/shared';
+import { logAudit } from '../lib/audit.js';
 
 export const shiftsRouter = Router();
 shiftsRouter.use(authenticate);
@@ -303,7 +304,14 @@ shiftsRouter.post(
     }
     await replaceSlots(client, created.rows[0].id, b.slots);
     await replaceDayLunch(client, created.rows[0].id, b.day_lunch);
-    await emitAudit(client, 'shift_template.create', created.rows[0].id, null, created.rows[0]);
+    await logAudit(client, {
+      action: 'shift_template.create',
+      resourceType: 'shift_template',
+      resourceId: created.rows[0].id,
+      targetLabel: created.rows[0].name,
+      after: { id: created.rows[0].id, name: created.rows[0].name },
+      req,
+    });
     const slots = await loadSlots(client, created.rows[0].id);
     const day_lunch = await loadDayLunch(client, created.rows[0].id);
     ok(res, { ...created.rows[0], slots, day_lunch }, 201);
@@ -324,11 +332,15 @@ shiftsRouter.patch(
     if (before.rowCount === 0) throw new NotFoundError('shift_template');
     const updates: string[] = [];
     const values: unknown[] = [];
+    const changedBefore: Record<string, unknown> = {};
+    const changedAfter: Record<string, unknown> = {};
     let i = 1;
     for (const [k, v] of Object.entries(b)) {
       if (v === undefined || k === 'slots' || k === 'day_lunch') continue;
       updates.push(`${k} = $${i++}`);
       values.push(v);
+      changedBefore[k] = before.rows[0][k];
+      changedAfter[k] = v;
     }
     if (updates.length > 0) {
       values.push(req.params.id);
@@ -360,7 +372,17 @@ shiftsRouter.patch(
     ]);
     const slots = await loadSlots(client, String(req.params.id));
     const day_lunch = await loadDayLunch(client, String(req.params.id));
-    await emitAudit(client, 'shift_template.update', String(req.params.id), before.rows[0], after.rows[0]);
+    if (b.slots) changedAfter.slots = b.slots;
+    if (b.day_lunch !== undefined) changedAfter.day_lunch = b.day_lunch;
+    await logAudit(client, {
+      action: 'shift_template.update',
+      resourceType: 'shift_template',
+      resourceId: String(req.params.id),
+      targetLabel: after.rows[0].name,
+      before: changedBefore,
+      after: changedAfter,
+      req,
+    });
     ok(res, { ...after.rows[0], slots, day_lunch });
   })
 );
@@ -384,7 +406,14 @@ shiftsRouter.delete(
       [req.params.id]
     );
     if (r.rowCount === 0) throw new NotFoundError('shift_template');
-    await emitAudit(client, 'shift_template.delete', String(req.params.id), r.rows[0], null);
+    await logAudit(client, {
+      action: 'shift_template.delete',
+      resourceType: 'shift_template',
+      resourceId: String(req.params.id),
+      targetLabel: r.rows[0].name,
+      before: { id: r.rows[0].id, name: r.rows[0].name },
+      req,
+    });
     ok(res, { deleted: true });
   })
 );
@@ -490,7 +519,13 @@ shiftsRouter.post(
     );
 
     if (shift_template_id === null) {
-      await emitAudit(client, 'shift_assignment.clear', user_id, null, { valid_from });
+      await logAudit(client, {
+        action: 'shift_assignment.clear',
+        resourceType: 'shift_assignment',
+        targetUserId: user_id,
+        after: { valid_from },
+        req,
+      });
       return ok(res, { cleared: true });
     }
 
@@ -500,7 +535,14 @@ shiftsRouter.post(
        RETURNING *`,
       [user_id, shift_template_id, valid_from]
     );
-    await emitAudit(client, 'shift_assignment.set', user_id, null, ins.rows[0]);
+    await logAudit(client, {
+      action: 'shift_assignment.set',
+      resourceType: 'shift_assignment',
+      resourceId: ins.rows[0].id,
+      targetUserId: user_id,
+      after: { shift_template_id, valid_from },
+      req,
+    });
     ok(res, ins.rows[0], 201);
   })
 );
@@ -556,19 +598,33 @@ shiftsRouter.post(
 
     if (shift_template_id === null) {
       for (const uid of user_ids) {
-        await emitAudit(client, 'shift_assignment.clear', uid, null, { valid_from });
+        await logAudit(client, {
+          action: 'shift_assignment.clear',
+          resourceType: 'shift_assignment',
+          targetUserId: uid,
+          after: { valid_from },
+          req,
+        });
       }
       return ok(res, { cleared: true, user_ids });
     }
 
-    await client.query(
+    const ins = await client.query(
       `INSERT INTO user_shift_assignments(tenant_id, user_id, shift_template_id, valid_from)
        SELECT current_setting('app.current_tenant_id')::uuid, u.id, $2, $3
-         FROM UNNEST($1::uuid[]) AS u(id)`,
+         FROM UNNEST($1::uuid[]) AS u(id)
+       RETURNING id, user_id`,
       [user_ids, shift_template_id, valid_from]
     );
-    for (const uid of user_ids) {
-      await emitAudit(client, 'shift_assignment.set', uid, null, { shift_template_id, valid_from });
+    for (const row of ins.rows) {
+      await logAudit(client, {
+        action: 'shift_assignment.set',
+        resourceType: 'shift_assignment',
+        resourceId: row.id,
+        targetUserId: row.user_id,
+        after: { shift_template_id, valid_from },
+        req,
+      });
     }
     ok(res, { user_ids, shift_template_id, valid_from }, 201);
   })
@@ -757,6 +813,14 @@ shiftsRouter.post(
        RETURNING *`,
       [b.user_id, b.date, b.kind, b.note]
     );
+    await logAudit(client, {
+      action: 'anomaly.justify',
+      resourceType: 'anomaly',
+      resourceId: ins.rows[0].id,
+      targetUserId: b.user_id,
+      after: { date: b.date, kind: b.kind, note: b.note },
+      req,
+    });
     ok(res, ins.rows[0], 201);
   })
 );
@@ -1233,20 +1297,4 @@ function buildAnomaly(
     justification_note: null,
     justified_at: null,
   };
-}
-
-async function emitAudit(
-  client: PoolClient,
-  action: string,
-  resourceId: string,
-  before: unknown,
-  after: unknown
-): Promise<void> {
-  await client.query(
-    `INSERT INTO audit_log(tenant_id, actor_user_id, action, resource_type, resource_id, before, after)
-     VALUES (current_setting('app.current_tenant_id')::uuid,
-             current_setting('app.current_user_id')::uuid,
-             $1, 'shift', $2, $3, $4)`,
-    [action, resourceId, before, after]
-  );
 }

@@ -1,4 +1,5 @@
 import { Router, raw } from 'express';
+import type { Request } from 'express';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import ExcelJS from 'exceljs';
@@ -6,6 +7,7 @@ import type { PoolClient } from 'pg';
 import { authenticate, requireAdmin, invalidateMembershipCache } from '../middleware/auth.js';
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
+import { logAudit } from '../lib/audit.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
 import {
   createUserSilently,
@@ -394,9 +396,14 @@ usersRouter.post(
     }
 
     const outcome = await performInvite(client, inv);
-    await emitAudit(client, 'user.invite', outcome.user_id, null, {
-      email: inv.email,
-      role: inv.role,
+    await logAudit(client, {
+      action: 'user.invite',
+      resourceType: 'user',
+      resourceId: outcome.user_id,
+      targetUserId: outcome.user_id,
+      targetLabel: inv.email,
+      after: { email: inv.email, role: inv.role },
+      req,
     });
     // Optionally give the new member their first access immediately.
     // sendTenantAccessEmail picks the kind by confirmation state: a brand-new
@@ -418,9 +425,14 @@ usersRouter.post(
         role: inv.role,
         language: lang,
       });
-      await emitAudit(client, 'user.access_email', outcome.user_id, null, {
-        email: inv.email,
-        type: emailType,
+      await logAudit(client, {
+        action: 'user.access_email',
+        resourceType: 'user',
+        resourceId: outcome.user_id,
+        targetUserId: outcome.user_id,
+        targetLabel: inv.email,
+        after: { email: inv.email, type: emailType },
+        req,
       });
     }
     invalidateMembershipCache(outcome.user_id);
@@ -461,7 +473,13 @@ usersRouter.post(
       [req.params.id]
     );
     if (r.rowCount === 0) throw new NotFoundError('user');
-    await emitAudit(client, 'user.deactivate', String(req.params.id), null, null);
+    await logAudit(client, {
+      action: 'user.deactivate',
+      resourceType: 'user',
+      resourceId: String(req.params.id),
+      targetUserId: String(req.params.id),
+      req,
+    });
     invalidateMembershipCache(String(req.params.id));
     ok(res, { deactivated: true });
   })
@@ -478,7 +496,13 @@ usersRouter.post(
       [req.params.id]
     );
     if (r.rowCount === 0) throw new NotFoundError('user');
-    await emitAudit(client, 'user.reactivate', String(req.params.id), null, null);
+    await logAudit(client, {
+      action: 'user.reactivate',
+      resourceType: 'user',
+      resourceId: String(req.params.id),
+      targetUserId: String(req.params.id),
+      req,
+    });
     invalidateMembershipCache(String(req.params.id));
     ok(res, { reactivated: true });
   })
@@ -508,7 +532,15 @@ usersRouter.post(
     if (!email) throw new ValidationError('user has no email on file');
     const lang: 'it' | 'en' = r.rows[0].language === 'en' ? 'en' : 'it';
     const emailType = await sendAccessEmail(String(req.params.id), email, lang);
-    await emitAudit(client, 'user.access_email', String(req.params.id), null, { email, type: emailType });
+    await logAudit(client, {
+      action: 'user.access_email',
+      resourceType: 'user',
+      resourceId: String(req.params.id),
+      targetUserId: String(req.params.id),
+      targetLabel: email,
+      after: { email, type: emailType },
+      req,
+    });
     ok(res, { sent: emailType !== 'none', email, email_type: emailType });
   })
 );
@@ -617,7 +649,14 @@ usersRouter.patch(
       );
     }
 
-    await emitAudit(client, 'user.update', String(req.params.id), null, parse.data);
+    await logAudit(client, {
+      action: 'user.update',
+      resourceType: 'user',
+      resourceId: String(req.params.id),
+      targetUserId: String(req.params.id),
+      after: parse.data,
+      req,
+    });
     invalidateMembershipCache(String(req.params.id));
     ok(res, r.rows[0]);
   })
@@ -678,8 +717,13 @@ usersRouter.put(
         [bId, req.params.id]
       );
     }
-    await emitAudit(client, 'user.set_branches', String(req.params.id), null, {
-      branch_ids: parse.data.branch_ids,
+    await logAudit(client, {
+      action: 'user.set_branches',
+      resourceType: 'user',
+      resourceId: String(req.params.id),
+      targetUserId: String(req.params.id),
+      after: { branch_ids: parse.data.branch_ids },
+      req,
     });
     ok(res, { branch_ids: parse.data.branch_ids });
   })
@@ -739,7 +783,14 @@ usersRouter.post(
     }
 
     for (const uid of user_ids) {
-      await emitAudit(client, `user.branches.bulk_${mode}`, uid, null, { branch_ids });
+      await logAudit(client, {
+        action: 'user.set_branches',
+        resourceType: 'user',
+        resourceId: uid,
+        targetUserId: uid,
+        after: { branch_ids, mode, bulk: true },
+        req,
+      });
       invalidateMembershipCache(uid);
     }
     ok(res, { user_ids, branch_ids, mode });
@@ -804,7 +855,13 @@ usersRouter.delete(
           AND (user_id = $1 OR approver_user_id = $1)`,
       [req.params.id]
     );
-    await emitAudit(client, 'user.delete', String(req.params.id), null, null);
+    await logAudit(client, {
+      action: 'user.delete',
+      resourceType: 'user',
+      resourceId: String(req.params.id),
+      targetUserId: String(req.params.id),
+      req,
+    });
     invalidateMembershipCache(String(req.params.id));
     ok(res, { deleted: true });
   })
@@ -1032,10 +1089,14 @@ usersRouter.post(
           [outcome.user_id, row.stamp_modes]
         );
       }
-      await emitAudit(client, 'user.import', outcome.user_id, null, {
-        email: row.email,
-        role: row.role,
-        row: row.rowNumber,
+      await logAudit(client, {
+        action: 'user.import',
+        resourceType: 'user',
+        resourceId: outcome.user_id,
+        targetUserId: outcome.user_id,
+        targetLabel: row.email,
+        after: { email: row.email, role: row.role, row: row.rowNumber },
+        req,
       });
       invalidateMembershipCache(outcome.user_id);
     }
@@ -1096,7 +1157,8 @@ async function setApprovers(
   client: PoolClient,
   kind: keyof typeof APPROVER_KINDS,
   userId: string,
-  ids: string[]
+  ids: string[],
+  req: Request
 ): Promise<void> {
   const { table, auditAction } = APPROVER_KINDS[kind];
   const member = await client.query(
@@ -1130,7 +1192,14 @@ async function setApprovers(
       [userId, aid]
     );
   }
-  await emitAudit(client, auditAction, userId, null, { approver_user_ids: ids });
+  await logAudit(client, {
+    action: auditAction,
+    resourceType: 'user',
+    resourceId: userId,
+    targetUserId: userId,
+    after: { approver_user_ids: ids },
+    req,
+  });
 }
 
 usersRouter.get(
@@ -1152,7 +1221,7 @@ usersRouter.put(
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     const userId = String(req.params.id);
     const ids = Array.from(new Set(parse.data.approver_user_ids)).filter((x) => x !== userId);
-    await setApprovers(client, 'leave', userId, ids);
+    await setApprovers(client, 'leave', userId, ids, req);
     ok(res, { approver_user_ids: ids });
   })
 );
@@ -1176,7 +1245,7 @@ usersRouter.put(
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     const userId = String(req.params.id);
     const ids = Array.from(new Set(parse.data.approver_user_ids)).filter((x) => x !== userId);
-    await setApprovers(client, 'correction', userId, ids);
+    await setApprovers(client, 'correction', userId, ids, req);
     ok(res, { approver_user_ids: ids });
   })
 );
@@ -1228,10 +1297,14 @@ usersRouter.post(
       // Sequential: GoTrue rate-limits /invite and /recover. sendAccessEmail
       // falls back to recovery on error so one bad address can't abort the batch.
       const emailType = await sendAccessEmail(String(row.user_id), row.email as string, lang);
-      await emitAudit(client, 'user.access_email', String(row.user_id), null, {
-        email: row.email,
-        type: emailType,
-        bulk: true,
+      await logAudit(client, {
+        action: 'user.access_email',
+        resourceType: 'user',
+        resourceId: String(row.user_id),
+        targetUserId: String(row.user_id),
+        targetLabel: row.email as string,
+        after: { email: row.email, type: emailType, bulk: true },
+        req,
       });
       if (emailType !== 'none') sent += 1;
     }
@@ -1262,7 +1335,14 @@ usersRouter.post(
       [user_ids, stamp_modes]
     );
     for (const row of r.rows) {
-      await emitAudit(client, 'user.update', String(row.user_id), null, { stamp_modes, bulk: true });
+      await logAudit(client, {
+        action: 'user.update',
+        resourceType: 'user',
+        resourceId: String(row.user_id),
+        targetUserId: String(row.user_id),
+        after: { stamp_modes, bulk: true },
+        req,
+      });
       invalidateMembershipCache(String(row.user_id));
     }
     ok(res, { updated: r.rowCount, stamp_modes });
@@ -1288,24 +1368,8 @@ usersRouter.post(
     for (const uid of user_ids) {
       const ids = Array.from(new Set(approver_user_ids)).filter((x) => x !== uid);
       // setApprovers validates that each approver is an active member + audits.
-      await setApprovers(client, kind, uid, ids);
+      await setApprovers(client, kind, uid, ids, req);
     }
     ok(res, { user_ids, kind, approver_user_ids });
   })
 );
-
-async function emitAudit(
-  client: PoolClient,
-  action: string,
-  resourceId: string,
-  before: unknown,
-  after: unknown
-): Promise<void> {
-  await client.query(
-    `INSERT INTO audit_log(tenant_id, actor_user_id, action, resource_type, resource_id, before, after)
-     VALUES (current_setting('app.current_tenant_id')::uuid,
-             current_setting('app.current_user_id')::uuid,
-             $1, 'user', $2, $3, $4)`,
-    [action, resourceId, before, after]
-  );
-}

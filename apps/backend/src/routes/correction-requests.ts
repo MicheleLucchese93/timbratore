@@ -5,6 +5,7 @@ import { authenticate } from '../middleware/auth.js';
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
+import { logAudit } from '../lib/audit.js';
 import {
   notifyCorrectionSubmitted,
   notifyCorrectionDecided,
@@ -199,6 +200,20 @@ correctionRequestsRouter.post(
        WHERE id = $2`,
       [parse.data.resolution_note ?? null, req.params.id]
     );
+    await logAudit(client, {
+      action: 'correction.approve',
+      resourceType: 'correction_request',
+      resourceId: String(req.params.id),
+      targetUserId: row.user_id,
+      after: {
+        event_type: eventType,
+        occurred_at: occurredAt,
+        branch_id: branchId,
+        is_edit: !!row.original_stamp_id,
+        note: parse.data.resolution_note ?? null,
+      },
+      req,
+    });
     await notifyCorrectionDecided(
       req.user!.tenantId,
       client,
@@ -243,6 +258,19 @@ correctionRequestsRouter.post(
       [note.data.resolution_note ?? null, req.params.id]
     );
     const row = r.rows[0];
+    await logAudit(client, {
+      action: 'correction.reject',
+      resourceType: 'correction_request',
+      resourceId: row.id,
+      targetUserId: row.user_id,
+      after: {
+        event_type: row.claimed_event_type,
+        occurred_at: row.claimed_occurred_at,
+        is_edit: !!row.original_stamp_id,
+        note: note.data.resolution_note ?? null,
+      },
+      req,
+    });
     await notifyCorrectionDecided(
       req.user!.tenantId,
       client,

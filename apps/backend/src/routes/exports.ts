@@ -4,6 +4,7 @@ import { authenticate, requireAdmin } from '../middleware/auth.js';
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { NotFoundError, ValidationError } from '../errors/index.js';
+import { logAudit } from '../lib/audit.js';
 import { processExportJobs } from '../services/jobs/process-exports.js';
 import { readExportFile, deleteExportFile } from '../services/export-service.js';
 import { env } from '../env.js';
@@ -47,6 +48,13 @@ exportsRouter.post(
        RETURNING *`,
       [b.format, b.period_from, b.period_to, b.filters]
     );
+    await logAudit(client, {
+      action: 'export.create',
+      resourceType: 'export_job',
+      resourceId: r.rows[0].id,
+      after: { format: b.format, period_from: b.period_from, period_to: b.period_to },
+      req,
+    });
     if (!env.SCHEDULER_ENABLED) {
       processExportJobs().catch(() => {});
     }
@@ -100,6 +108,13 @@ exportsRouter.get(
     } else {
       contentType = 'application/json';
     }
+    await logAudit(client, {
+      action: 'export.download',
+      resourceType: 'export_job',
+      resourceId: job.id,
+      after: { format: job.format, filename },
+      req,
+    });
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(buf);
@@ -114,6 +129,13 @@ exportsRouter.delete(
     ]);
     if (r.rowCount === 0) throw new NotFoundError('export job');
     const job = r.rows[0];
+    await logAudit(client, {
+      action: 'export.delete',
+      resourceType: 'export_job',
+      resourceId: job.id,
+      before: { format: job.format, period_from: job.period_from, period_to: job.period_to },
+      req,
+    });
     if (job.r2_key) {
       await deleteExportFile(job.r2_key).catch(() => {});
     }

@@ -26,6 +26,7 @@ const TOC_IT = `
       <a href="#web-admin-residui" class="sub">Residui</a>
       <a href="#web-admin-esportazioni" class="sub">Esportazioni</a>
       <a href="#web-admin-documenti" class="sub">Documenti</a>
+      <a href="#web-admin-registro" class="sub">Registro attività</a>
       <a href="#web-admin-impostazioni" class="sub">Impostazioni</a>
 
       <h3>Web · Dipendente</h3>
@@ -837,6 +838,53 @@ const MAIN_IT = `
           <li><strong>Timbrature</strong> entrata/uscita (fino a 4 coppie al giorno) e ore teoriche dal turno assegnato.</li>
           <li><strong>Eventi INPS</strong> di malattia con protocollo, quando presente.</li>
         </ul>
+      </div>
+    </section>
+
+    <section class="chapter" id="web-admin-registro">
+      <h2><span class="chapter-num">14a</span>Registro attività <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
+      <p class="lead">Lo storico di ogni operazione amministrativa effettuata nell'azienda: chi ha fatto cosa, quando e nei confronti di chi. La pagina è visibile solo agli amministratori, dalla voce <strong>Registro attività</strong> della barra laterale.</p>
+
+      <div class="feature">
+        <h3>Cosa viene registrato</h3>
+        <p>Ogni operazione amministrativa lascia una voce nel registro. In sintesi:</p>
+        <ul class="tidy">
+          <li><strong>Utenti</strong> — creazione, modifica e disattivazione degli utenti, assegnazione di sedi e approvatori.</li>
+          <li><strong>Timbrature</strong> — inserimenti, modifiche ed eliminazioni manuali di timbrature e correzioni delle anomalie.</li>
+          <li><strong>Correzioni</strong> e <strong>Ferie &amp; Permessi</strong> — approvazioni e rifiuti delle richieste, incluse le decisioni prese dai dipendenti designati come approvatori, e gli inserimenti diretti dell'amministratore (assenze, chiusure aziendali).</li>
+          <li><strong>Residui</strong> — creazione e assegnazione dei profili residui, maturazioni manuali.</li>
+          <li><strong>Orari</strong> e <strong>Sedi</strong> — creazione, modifica, eliminazione e assegnazioni.</li>
+          <li><strong>Bacheca</strong> — pubblicazione, modifica ed eliminazione dei messaggi.</li>
+          <li><strong>Esportazioni</strong> — generazione, download ed eliminazione degli export.</li>
+          <li><strong>Documenti</strong> — caricamenti, eliminazioni e avvio delle sessioni Documentale.</li>
+          <li><strong>Impostazioni</strong> — modifiche alla configurazione aziendale.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h3>Cosa contiene ogni voce</h3>
+        <ul class="tidy">
+          <li><strong>Quando</strong> — data e ora dell'operazione.</li>
+          <li><strong>Autore</strong> — l'utente che ha effettuato l'operazione.</li>
+          <li><strong>Attività</strong> — la descrizione dell'operazione (es. <em>Timbratura inserita</em>, <em>Utente disattivato</em>).</li>
+          <li><strong>Destinatario</strong> — il dipendente interessato dall'operazione, quando applicabile.</li>
+          <li><strong>Dettagli</strong> — informazioni sintetiche sull'operazione (date, valori, note).</li>
+        </ul>
+        <p class="muted">Per ogni voce il sistema registra lato server anche l'indirizzo IP da cui è stata effettuata l'operazione.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Filtri e paginazione</h3>
+        <p>In alto puoi restringere l'elenco per periodo (<strong>Dal</strong> / <strong>Al</strong>), <strong>Autore</strong>, <strong>Destinatario</strong> e <strong>Categoria</strong> (Utenti, Timbrature, Correzioni, Ferie &amp; Permessi, Residui, Orari, Sedi, Bacheca, Esportazioni, Documenti, Impostazioni). Ogni modifica ai filtri riparte dalla prima pagina.</p>
+        <p>L'elenco è paginato lato server: con i controlli in fondo alla tabella scorri le pagine e scegli quante voci mostrare (50, 100 o 200 per pagina).</p>
+      </div>
+
+      <div class="callout callout-info">
+        Le azioni quotidiane che i dipendenti compiono su sé stessi — le proprie timbrature di ingresso/uscita e l'invio delle proprie richieste di ferie e permessi — <strong>non</strong> compaiono nel registro: le consulti già nelle pagine <strong>Timbrature</strong> e <strong>Ferie &amp; Permessi</strong>.
+      </div>
+
+      <div class="callout callout-warn">
+        <strong>Registro inalterabile:</strong> le voci sono conservate senza limiti di tempo e non possono essere modificate né eliminate, nemmeno da un amministratore: il registro cresce solo in aggiunta ed è pensato come traccia di controllo permanente.
       </div>
     </section>
 

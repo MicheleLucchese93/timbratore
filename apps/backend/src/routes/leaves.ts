@@ -4,6 +4,7 @@ import type { PoolClient } from 'pg';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
+import { logAudit } from '../lib/audit.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
 import {
   computeDurationHours,
@@ -298,6 +299,14 @@ leavesRouter.post(
       duration_hours: duration,
       on_behalf_of: b.user_id,
     });
+    await logAudit(client, {
+      action: 'leave.admin_create',
+      resourceType: 'leave',
+      resourceId: row.id,
+      targetUserId: b.user_id,
+      after: { type: b.type, date_from: b.from_ts, date_to: b.to_ts, status: 'approved' },
+      req,
+    });
     await notifyLeaveAddedByAdmin(
       req.user!.tenantId,
       client,
@@ -468,6 +477,14 @@ leavesRouter.post(
       [row.id]
     );
     await logEvent(client, row.id, 'approve');
+    await logAudit(client, {
+      action: 'leave.approve',
+      resourceType: 'leave',
+      resourceId: row.id,
+      targetUserId: row.user_id,
+      after: { type: row.type, date_from: row.from_ts, date_to: row.to_ts, status: 'approved' },
+      req,
+    });
     await notifyLeaveDecided(
       req.user!.tenantId,
       client,
@@ -513,6 +530,20 @@ leavesRouter.post(
       [row.id, parse.data.rejection_reason]
     );
     await logEvent(client, row.id, 'reject', { reason: parse.data.rejection_reason });
+    await logAudit(client, {
+      action: 'leave.reject',
+      resourceType: 'leave',
+      resourceId: row.id,
+      targetUserId: row.user_id,
+      after: {
+        type: row.type,
+        date_from: row.from_ts,
+        date_to: row.to_ts,
+        status: 'rejected',
+        reason: parse.data.rejection_reason,
+      },
+      req,
+    });
     await notifyLeaveDecided(
       req.user!.tenantId,
       client,
@@ -646,6 +677,20 @@ leavesRouter.post(
       approve: parse.data.approve,
       reason: parse.data.reason ?? null,
     });
+    await logAudit(client, {
+      action: 'leave.decide_cancellation',
+      resourceType: 'leave',
+      resourceId: row.id,
+      targetUserId: row.user_id,
+      after: {
+        type: row.type,
+        date_from: row.from_ts,
+        date_to: row.to_ts,
+        status: newStatus,
+        reason: parse.data.reason ?? null,
+      },
+      req,
+    });
     await notifyCancellationDecided(
       req.user!.tenantId,
       client,
@@ -686,6 +731,20 @@ leavesRouter.post(
       [req.params.id, parse.data.reason]
     );
     await logEvent(client, String(req.params.id), 'admin_revoke', { reason: parse.data.reason });
+    await logAudit(client, {
+      action: 'leave.admin_revoke',
+      resourceType: 'leave',
+      resourceId: String(req.params.id),
+      targetUserId: r.rows[0].user_id,
+      after: {
+        type: r.rows[0].type,
+        date_from: r.rows[0].from_ts,
+        date_to: r.rows[0].to_ts,
+        status: 'cancelled_post_approval',
+        reason: parse.data.reason,
+      },
+      req,
+    });
     const updated = await loadRequest(client, String(req.params.id));
     ok(res, updated);
   })
@@ -758,6 +817,14 @@ leavesRouter.post(
       created.push(uid);
     }
 
+    await logAudit(client, {
+      action: 'leave.bulk_create',
+      resourceType: 'leave',
+      resourceId: batchId,
+      after: { type, date_from: b.from_ts, date_to: b.to_ts, user_count: created.length },
+      req,
+    });
+
     await notifyBulkEvent(req.user!.tenantId, created, {
       title: b.title,
       from_ts: b.from_ts,
@@ -787,6 +854,15 @@ leavesRouter.post(
         RETURNING id`,
       [parsed.data]
     );
+    if (r.rowCount) {
+      await logAudit(client, {
+        action: 'leave.bulk_revoke',
+        resourceType: 'leave',
+        resourceId: parsed.data,
+        after: { revoked_count: r.rowCount },
+        req,
+      });
+    }
     ok(res, { revoked_count: r.rowCount ?? 0 });
   })
 );

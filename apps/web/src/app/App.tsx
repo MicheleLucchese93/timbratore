@@ -31,6 +31,7 @@ const Documents = lazy(() => import('../pages/Documents.tsx').then((m) => ({ def
 const Bacheca = lazy(() => import('../pages/Bacheca.tsx').then((m) => ({ default: m.Bacheca })));
 const MyDocuments = lazy(() => import('../pages/MyDocuments.tsx').then((m) => ({ default: m.MyDocuments })));
 const Manual = lazy(() => import('../pages/Manual.tsx').then((m) => ({ default: m.Manual })));
+const Audit = lazy(() => import('../pages/Audit.tsx').then((m) => ({ default: m.Audit })));
 
 export function App() {
   const { me, loading, tenants, activeTenantId, refresh } = useSession();
@@ -86,6 +87,7 @@ export function App() {
               <Route path="/exports" element={<Exports />} />
               {isDocumentale && <Route path="/documents" element={<Documents />} />}
               <Route path="/me/documents" element={<MyDocuments />} />
+              <Route path="/audit" element={<Audit />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/shifts" element={<Shifts />} />
               <Route path="/anomalies" element={<Anomalies />} />

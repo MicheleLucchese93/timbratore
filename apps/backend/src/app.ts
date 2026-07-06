@@ -28,6 +28,7 @@ import { leavesRouter } from './routes/leaves.js';
 import { leaveQuotasRouter } from './routes/leave-quotas.js';
 import { documentsRouter } from './routes/documents.js';
 import { bulletinsRouter } from './routes/bulletins.js';
+import { auditRouter } from './routes/audit.js';
 import { helpdeskRouter } from './routes/helpdesk.js';
 import { internalE2eRouter } from './routes/internal-e2e.js';
 import { internalProvisionRouter } from './routes/internal-provision.js';
@@ -128,6 +129,7 @@ export function createApp(): Express {
   app.use('/api/v1/leave-quotas', leaveQuotasRouter);
   app.use('/api/v1/documents', documentsRouter);
   app.use('/api/v1/bulletins', bulletinsRouter);
+  app.use('/api/v1/audit', auditRouter);
   app.use('/api/v1/helpdesk', helpdeskRouter);
   // Reseller / tenant-management surface (partners.sonoqui.pro). Each route is
   // gated by its own partnership-member auth (see middleware/partnership-auth.ts);

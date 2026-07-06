@@ -5,6 +5,7 @@ import { asyncHandler, tenantHandler } from '../lib/route-helpers.js';
 import { adminPool } from '../lib/admin-db.js';
 import { ok } from '../lib/api-response.js';
 import { NotFoundError, ValidationError } from '../errors/index.js';
+import { logAuditAs } from '../lib/audit.js';
 import { sanitizeBulletinHtml } from '../lib/bulletin-sanitize.js';
 import { notifyBulletin } from '../lib/notifications.js';
 import { createLogger } from '../lib/logger.js';
@@ -69,20 +70,18 @@ function liveNow(startAt: string | null): boolean {
   return !startAt || new Date(startAt) <= new Date();
 }
 
-async function emitAudit(
-  client: import('pg').PoolClient,
-  tenantId: string,
-  actorId: string,
-  action: string,
-  resourceId: string,
-  before: unknown,
-  after: unknown
-): Promise<void> {
-  await client.query(
-    `INSERT INTO audit_log(tenant_id, actor_user_id, action, resource_type, resource_id, before, after)
-     VALUES ($1, $2, $3, 'bulletin', $4, $5, $6)`,
-    [tenantId, actorId, action, resourceId, before, after]
-  );
+// Small audit snapshot: title + targeting + window, NEVER the HTML body.
+function bulletinSummary(
+  row: { title: string; target_all: boolean; start_at: string | Date | null; end_at: string | Date | null },
+  userCount?: number
+): Record<string, unknown> {
+  return {
+    title: row.title,
+    target_all: row.target_all,
+    ...(row.target_all ? {} : { user_count: userCount ?? null }),
+    start_at: row.start_at,
+    end_at: row.end_at,
+  };
 }
 
 /* ===================== Member surface (everyone) ===================== */
@@ -287,7 +286,14 @@ bulletinsRouter.post(
         await client.query(`UPDATE bulletins SET notified_at = now() WHERE id = $1`, [bulletin.id]);
       }
 
-      await emitAudit(client, tenantId, actorId, 'bulletin.create', bulletin.id, null, bulletin);
+      await logAuditAs(client, tenantId, actorId, {
+        action: 'bulletin.create',
+        resourceType: 'bulletin',
+        resourceId: bulletin.id,
+        targetLabel: bulletin.title,
+        after: bulletinSummary(bulletin, recipientIds.length),
+        req,
+      });
       await client.query('COMMIT');
     } catch (err) {
       await client.query('ROLLBACK').catch(() => {});
@@ -361,6 +367,7 @@ bulletinsRouter.patch(
       // Re-sync the explicit target set. Read receipts are deliberately
       // preserved across edits (no DELETE on bulletin_reads).
       await client.query(`DELETE FROM bulletin_targets WHERE bulletin_id = $1`, [id.data]);
+      let recipientCount = 0;
       if (!d.target_all) {
         const recipientIds = await resolveRecipientIds(client, tenantId, false, d.user_ids);
         if (recipientIds.length === 0) throw new ValidationError('no valid recipients');
@@ -370,9 +377,18 @@ bulletinsRouter.patch(
            ON CONFLICT (bulletin_id, user_id) DO NOTHING`,
           [tenantId, id.data, recipientIds]
         );
+        recipientCount = recipientIds.length;
       }
 
-      await emitAudit(client, tenantId, actorId, 'bulletin.update', id.data, before.rows[0], bulletin);
+      await logAuditAs(client, tenantId, actorId, {
+        action: 'bulletin.update',
+        resourceType: 'bulletin',
+        resourceId: id.data,
+        targetLabel: bulletin.title,
+        before: bulletinSummary(before.rows[0]),
+        after: bulletinSummary(bulletin, recipientCount),
+        req,
+      });
       await client.query('COMMIT');
     } catch (err) {
       await client.query('ROLLBACK').catch(() => {});
@@ -395,17 +411,18 @@ bulletinsRouter.delete(
     const r = await adminPool.query(
       `UPDATE bulletins SET deleted_at = now()
         WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL
-        RETURNING id`,
+        RETURNING id, title, target_all, start_at, end_at`,
       [id.data, req.user!.tenantId]
     );
     if (r.rowCount === 0) throw new NotFoundError('bulletin');
-    await adminPool
-      .query(
-        `INSERT INTO audit_log(tenant_id, actor_user_id, action, resource_type, resource_id, before, after)
-         VALUES ($1, $2, 'bulletin.delete', 'bulletin', $3, NULL, NULL)`,
-        [req.user!.tenantId, req.user!.id, id.data]
-      )
-      .catch((err) => logger.error({ err, id: id.data }, 'bulletin delete audit failed'));
+    await logAuditAs(adminPool, req.user!.tenantId, req.user!.id, {
+      action: 'bulletin.delete',
+      resourceType: 'bulletin',
+      resourceId: id.data,
+      targetLabel: r.rows[0].title,
+      before: bulletinSummary(r.rows[0]),
+      req,
+    }).catch((err) => logger.error({ err, id: id.data }, 'bulletin delete audit failed'));
     ok(res, { id: id.data });
   })
 );

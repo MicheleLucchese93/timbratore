@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
+import { logAudit } from '../lib/audit.js';
 import { ConflictError, NotFoundError, ValidationError } from '../errors/index.js';
 import { getQuotaSummary } from '../lib/leave-quota.js';
 
@@ -80,6 +81,20 @@ leaveQuotasRouter.post(
           b.active ?? true,
         ]
       );
+      await logAudit(client, {
+        action: 'leave_quota.template_create',
+        resourceType: 'leave_quota_template',
+        resourceId: r.rows[0].id,
+        targetLabel: b.name,
+        after: {
+          name: b.name,
+          type: b.type,
+          hours_default: b.hours_default,
+          accrual_amount: b.accrual_amount,
+          accrual_frequency: b.accrual_frequency,
+        },
+        req,
+      });
       ok(res, r.rows[0], 201);
     } catch (err) {
       if ((err as { code?: string }).code === '23505') {
@@ -121,6 +136,14 @@ leaveQuotasRouter.patch(
       values
     );
     if (r.rowCount === 0) throw new NotFoundError('template');
+    await logAudit(client, {
+      action: 'leave_quota.template_update',
+      resourceType: 'leave_quota_template',
+      resourceId: String(req.params.id),
+      targetLabel: r.rows[0].name,
+      after: parse.data,
+      req,
+    });
     ok(res, r.rows[0]);
   })
 );
@@ -143,6 +166,14 @@ leaveQuotasRouter.delete(
       [req.params.id]
     );
     if (r.rowCount === 0) throw new NotFoundError('template');
+    await logAudit(client, {
+      action: 'leave_quota.template_delete',
+      resourceType: 'leave_quota_template',
+      resourceId: String(req.params.id),
+      targetLabel: r.rows[0].name,
+      before: { name: r.rows[0].name, type: r.rows[0].type },
+      req,
+    });
     ok(res, { deleted: true });
   })
 );
@@ -288,6 +319,14 @@ leaveQuotasRouter.post(
        RETURNING *`,
       [b.user_id, b.template_id, type, initial, startedOn]
     );
+    await logAudit(client, {
+      action: 'leave_quota.assign',
+      resourceType: 'leave_quota_assignment',
+      resourceId: r.rows[0].id,
+      targetUserId: b.user_id,
+      after: { template_id: b.template_id, type, initial_balance: initial, started_on: startedOn },
+      req,
+    });
     ok(res, r.rows[0], 201);
   })
 );
@@ -319,6 +358,14 @@ leaveQuotasRouter.patch(
       values
     );
     if (r.rowCount === 0) throw new NotFoundError('assignment');
+    await logAudit(client, {
+      action: 'leave_quota.assignment_update',
+      resourceType: 'leave_quota_assignment',
+      resourceId: String(req.params.id),
+      targetUserId: r.rows[0].user_id,
+      after: parse.data,
+      req,
+    });
     ok(res, r.rows[0]);
   })
 );
@@ -336,6 +383,14 @@ leaveQuotasRouter.delete(
       [req.params.id]
     );
     if (r.rowCount === 0) throw new NotFoundError('assignment');
+    await logAudit(client, {
+      action: 'leave_quota.assignment_delete',
+      resourceType: 'leave_quota_assignment',
+      resourceId: String(req.params.id),
+      targetUserId: r.rows[0].user_id,
+      before: { type: r.rows[0].type, template_id: r.rows[0].template_id },
+      req,
+    });
     ok(res, { closed: true });
   })
 );
@@ -450,6 +505,14 @@ leaveQuotasRouter.post(
         b.note ?? null,
       ]
     );
+    await logAudit(client, {
+      action: 'leave_quota.accrual_add',
+      resourceType: 'leave_quota_assignment',
+      resourceId: String(req.params.id),
+      targetUserId: a.rows[0].user_id,
+      after: { amount: b.hours, note: b.note ?? null },
+      req,
+    });
     ok(res, r.rows[0], 201);
   })
 );

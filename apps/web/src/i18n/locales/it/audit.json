@@ -1,0 +1,119 @@
+{
+  "title": "Registro attività",
+  "subtitle": "Ogni operazione amministrativa effettuata nell'azienda",
+  "empty": "Nessuna attività registrata",
+  "column": {
+    "when": "Quando",
+    "actor": "Autore",
+    "action": "Attività",
+    "target": "Destinatario",
+    "details": "Dettagli"
+  },
+  "filter": {
+    "from": "Dal",
+    "to": "Al",
+    "actor": "Autore",
+    "target": "Destinatario",
+    "category": "Categoria",
+    "all": "Tutti"
+  },
+  "category": {
+    "users": "Utenti",
+    "stamps": "Timbrature",
+    "corrections": "Correzioni",
+    "leaves": "Ferie & Permessi",
+    "quotas": "Residui",
+    "shifts": "Orari",
+    "branches": "Sedi",
+    "bacheca": "Bacheca",
+    "exports": "Esportazioni",
+    "documents": "Documenti",
+    "settings": "Impostazioni"
+  },
+  "action": {
+    "user": {
+      "invite": "Utente creato",
+      "update": "Utente modificato",
+      "deactivate": "Utente disattivato",
+      "reactivate": "Utente riattivato",
+      "delete": "Utente eliminato",
+      "import": "Utenti importati da file",
+      "access_email": "Email di accesso inviata",
+      "set_branches": "Sedi utente modificate",
+      "set_approvers": "Approvatori ferie modificati",
+      "set_correction_approvers": "Approvatori correzioni modificati",
+      "password_change": "Password modificata",
+      "branches": {
+        "bulk_add": "Sedi utente modificate",
+        "bulk_remove": "Sedi utente modificate"
+      }
+    },
+    "stamp": {
+      "admin_create": "Timbratura inserita",
+      "admin_update": "Timbratura modificata",
+      "admin_delete": "Timbratura eliminata",
+      "bulk_apply": "Orario standard applicato"
+    },
+    "anomaly": {
+      "justify": "Anomalia giustificata"
+    },
+    "correction": {
+      "approve": "Correzione approvata",
+      "reject": "Correzione rifiutata"
+    },
+    "leave": {
+      "approve": "Richiesta ferie/permesso approvata",
+      "reject": "Richiesta ferie/permesso rifiutata",
+      "admin_create": "Ferie/permesso inserito",
+      "admin_revoke": "Ferie/permesso revocato",
+      "decide_cancellation": "Richiesta di annullamento decisa",
+      "bulk_create": "Chiusura aziendale inserita",
+      "bulk_revoke": "Chiusura aziendale revocata"
+    },
+    "leave_quota": {
+      "template_create": "Profilo residui creato",
+      "template_update": "Profilo residui modificato",
+      "template_delete": "Profilo residui eliminato",
+      "assign": "Profilo residui assegnato",
+      "assignment_update": "Assegnazione residui modificata",
+      "assignment_delete": "Assegnazione residui rimossa",
+      "accrual_add": "Maturazione manuale aggiunta"
+    },
+    "shift_template": {
+      "create": "Orario creato",
+      "update": "Orario modificato",
+      "delete": "Orario eliminato"
+    },
+    "shift_assignment": {
+      "set": "Orario assegnato",
+      "clear": "Assegnazione orario rimossa"
+    },
+    "branch": {
+      "create": "Sede creata",
+      "update": "Sede modificata",
+      "delete": "Sede eliminata",
+      "member_add": "Utente aggiunto alla sede",
+      "member_remove": "Utente rimosso dalla sede"
+    },
+    "bulletin": {
+      "create": "Messaggio in bacheca pubblicato",
+      "update": "Messaggio in bacheca modificato",
+      "delete": "Messaggio in bacheca eliminato"
+    },
+    "export": {
+      "create": "Esportazione generata",
+      "download": "Esportazione scaricata",
+      "delete": "Esportazione eliminata"
+    },
+    "document": {
+      "upload": "Documento caricato",
+      "delete": "Documento eliminato",
+      "session_start": "Sessione Documentale avviata"
+    },
+    "tenant": {
+      "update": "Impostazioni azienda modificate",
+      "export_recipient_add": "Destinatario esportazioni aggiunto",
+      "export_recipient_remove": "Destinatario esportazioni rimosso"
+    }
+  }
+}

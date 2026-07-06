@@ -20,6 +20,7 @@ export const TOC_EN = `
       <a href="#web-admin-residui" class="sub">Balances</a>
       <a href="#web-admin-esportazioni" class="sub">Exports</a>
       <a href="#web-admin-documenti" class="sub">Documents</a>
+      <a href="#web-admin-registro" class="sub">Activity log</a>
       <a href="#web-admin-impostazioni" class="sub">Settings</a>
 
       <h3>Web · Employee</h3>
@@ -830,6 +831,53 @@ export const MAIN_EN = `
           <li><strong>Stamps</strong> in/out (up to 4 pairs per day) and theoretical hours from the assigned shift.</li>
           <li><strong>INPS events</strong> for sickness with protocol, when present.</li>
         </ul>
+      </div>
+    </section>
+
+    <section class="chapter" id="web-admin-registro">
+      <h2><span class="chapter-num">14a</span>Activity log <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
+      <p class="lead">The history of every administrative operation performed in the company: who did what, when and to whom. The page is visible to administrators only, from the <strong>Activity log</strong> entry in the sidebar.</p>
+
+      <div class="feature">
+        <h3>What gets recorded</h3>
+        <p>Every administrative operation leaves an entry in the log. In short:</p>
+        <ul class="tidy">
+          <li><strong>Users</strong> — user creation, edits and deactivation, branch and approver assignments.</li>
+          <li><strong>Stamps</strong> — manual stamp insertions, edits and deletions, and anomaly corrections.</li>
+          <li><strong>Corrections</strong> and <strong>Leaves</strong> — approvals and rejections of requests, including decisions made by employees designated as approvers, and the admin's direct entries (absences, company closures).</li>
+          <li><strong>Balances</strong> — creation and assignment of balance profiles, manual accruals.</li>
+          <li><strong>Schedules</strong> and <strong>Branches</strong> — creation, edits, deletion and assignments.</li>
+          <li><strong>Bulletin board</strong> — publishing, editing and deleting messages.</li>
+          <li><strong>Exports</strong> — export generation, download and deletion.</li>
+          <li><strong>Documents</strong> — uploads, deletions and Documentale session starts.</li>
+          <li><strong>Settings</strong> — changes to the company configuration.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h3>What each entry contains</h3>
+        <ul class="tidy">
+          <li><strong>When</strong> — date and time of the operation.</li>
+          <li><strong>Author</strong> — the user who performed the operation.</li>
+          <li><strong>Activity</strong> — the description of the operation (e.g. <em>Stamp added</em>, <em>User deactivated</em>).</li>
+          <li><strong>Target</strong> — the employee affected by the operation, when applicable.</li>
+          <li><strong>Details</strong> — compact information about the operation (dates, values, notes).</li>
+        </ul>
+        <p class="muted">For each entry the system also records, server-side, the IP address the operation was performed from.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Filters and pagination</h3>
+        <p>At the top you can narrow the list by period (<strong>From</strong> / <strong>To</strong>), <strong>Author</strong>, <strong>Target</strong> and <strong>Category</strong> (Users, Stamps, Corrections, Leaves, Balances, Schedules, Branches, Bulletin board, Exports, Documents, Settings). Any filter change restarts from the first page.</p>
+        <p>The list is paginated server-side: use the controls at the bottom of the table to move between pages and choose how many entries to show (50, 100 or 200 per page).</p>
+      </div>
+
+      <div class="callout callout-info">
+        The everyday actions employees perform on themselves — their own clock in/out stamps and their own holiday and leave requests — do <strong>not</strong> appear in the log: you already find them in the <strong>Stamps</strong> and <strong>Holiday &amp; Leave</strong> pages.
+      </div>
+
+      <div class="callout callout-warn">
+        <strong>Tamper-proof log:</strong> entries are kept with no time limit and cannot be edited or deleted, not even by an administrator: the log is append-only and is meant as a permanent audit trail.
       </div>
     </section>
 

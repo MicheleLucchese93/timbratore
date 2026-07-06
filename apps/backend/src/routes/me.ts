@@ -4,6 +4,7 @@ import { authenticate } from '../middleware/auth.js';
 import { asyncHandler, tenantHandler } from '../lib/route-helpers.js';
 import { adminPool } from '../lib/admin-db.js';
 import { ok } from '../lib/api-response.js';
+import { logAuditAs } from '../lib/audit.js';
 import { ValidationError } from '../errors/index.js';
 import { changePassword } from '../lib/gotrue-admin.js';
 import { passwordSchema } from '../lib/password.js';
@@ -245,6 +246,13 @@ meRouter.post(
     const email = req.user!.email;
     if (!email) throw new ValidationError('account has no email on file');
     await changePassword(email, parse.data.current_password, parse.data.new_password);
+    await logAuditAs(adminPool, req.user!.tenantId, req.user!.id, {
+      action: 'user.password_change',
+      resourceType: 'user',
+      resourceId: req.user!.id,
+      targetUserId: req.user!.id,
+      req,
+    });
     ok(res, { updated: true });
   })
 );
