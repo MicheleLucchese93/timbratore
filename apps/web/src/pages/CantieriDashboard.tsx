@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import type {
   CantiereEntryRecord,
   CantiereRecord,
@@ -9,6 +10,7 @@ import type {
 import { CANTIERE_REPORT_RECIPIENTS_MAX, cantieriIntervalMinutes } from '@sonoqui/shared';
 import { api, apiUrl, getToken, getTenantId } from '../lib/api.ts';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { CantieriTabs } from '../components/CantieriTabs.tsx';
 import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { fmtDate } from '../i18n/format.ts';
 
@@ -57,6 +59,7 @@ function rangeCell(start: string | null, end: string | null): string {
 
 export function CantieriDashboard() {
   const { t } = useTranslation(['cantieri', 'common']);
+  const navigate = useNavigate();
   const [month, setMonth] = useState<Date>(() => firstOfMonth(new Date()));
   const [sites, setSites] = useState<DashboardSite[]>([]);
   const [openSiteId, setOpenSiteId] = useState<string | null>(null);
@@ -134,6 +137,7 @@ export function CantieriDashboard() {
 
   return (
     <div className="space-y-5">
+      <CantieriTabs />
       <PageHeader
         title={t('dashboard.title')}
         subtitle={t('dashboard.subtitle')}
@@ -176,7 +180,18 @@ export function CantieriDashboard() {
 
       {sites.length === 0 ? (
         <div className="empty-state">
+          <div className="empty-state-icon">
+            <IconHardHat />
+          </div>
           <div className="empty-state-title">{t('dashboard.empty')}</div>
+          <div className="empty-state-hint">{t('dashboard.emptyHint')}</div>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm mt-2"
+            onClick={() => navigate('/cantieri/sites')}
+          >
+            {t('dashboard.emptyCta')}
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -259,6 +274,27 @@ export function CantieriDashboard() {
         />
       )}
     </div>
+  );
+}
+
+function IconHardHat() {
+  return (
+    <svg
+      width={20}
+      height={20}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z" />
+      <path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5" />
+      <path d="M4 15v-3a6 6 0 0 1 6-6" />
+      <path d="M14 6a6 6 0 0 1 6 6v3" />
+    </svg>
   );
 }
 

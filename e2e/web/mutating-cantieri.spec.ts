@@ -105,7 +105,9 @@ test.describe('web — Cantieri: seed, UI, dashboard, PDF', () => {
   test('UI: seeded site and mezzo are listed; modal creates a second site', async ({ page }) => {
     test.skip(!ready, 'cantieri module not provisioned on the test tenant yet');
 
-    await page.goto('/cantieri');
+    // Sites list now lives at /cantieri/sites; /cantieri itself redirects to the
+    // Dashboard tab (the module overview).
+    await page.goto('/cantieri/sites');
     await expect(page.getByRole('heading', { name: 'Cantieri', exact: true })).toBeVisible({
       timeout: 15_000,
     });

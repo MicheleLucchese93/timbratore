@@ -613,19 +613,6 @@ select.input { background-color: white; }
 .sidebar-collapsed .sidebar-link { justify-content: center; padding: 0.625rem; }
 .sidebar-collapsed .sidebar-link-active::before { left: 0; }
 
-/* Expandable nav group (submenu) ---------------------------------------- */
-.sidebar-group-toggle {
-  width: 100%;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  text-align: left;
-}
-.sidebar-group-chevron { margin-left: auto; display: inline-flex; }
-.sidebar-group-items { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
-.sidebar-group-items .sidebar-link { padding-left: 2.5rem; font-size: 0.8125rem; }
-
 /* User block at bottom ------------------------------------------------- */
 .sidebar-foot {
   border-top: 1px solid var(--color-surface-variant);
@@ -1179,12 +1166,16 @@ select.input { background-color: white; }
   padding: 0.25rem 0.75rem;
   font-size: 0.8125rem;
   color: var(--color-on-surface-variant);
+  text-decoration: none;
   transition: background 0.12s ease, color 0.12s ease;
 }
 .cal-seg-btn:hover {
   color: var(--color-on-surface);
 }
-.cal-seg-btn[aria-pressed='true'] {
+/* `.is-active` mirrors `[aria-pressed]` for NavLink-based segmented tabs (e.g.
+   the Cantieri section nav), where the active state comes from the router. */
+.cal-seg-btn[aria-pressed='true'],
+.cal-seg-btn.is-active {
   background: var(--color-surface);
   color: var(--color-primary);
   font-weight: 600;

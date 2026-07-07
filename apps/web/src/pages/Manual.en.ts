@@ -1523,7 +1523,7 @@ export const MAIN_EN = `
         <h3>Enabling and roles</h3>
         <p>When the module is on, roles are assigned from the <strong>Users</strong> page with the <strong>Cantieri role</strong> field, independent of the application role (a regular employee can be a Cantieri Admin):</p>
         <ul class="tidy">
-          <li><strong>Cantieri Admin</strong>: sees the <strong>Cantieri</strong> menu on the web (Cantieri, Mezzi, Dashboard) and manages the whole module.</li>
+          <li><strong>Cantieri Admin</strong>: sees the <strong>Cantieri</strong> entry in the web menu with its <strong>Dashboard</strong>, <strong>Work sites</strong> and <strong>Vehicles</strong> tabs, and manages the whole module.</li>
           <li><strong>Cantieri User</strong>: logs activities from the mobile app on the sites they are assigned to.</li>
           <li>Without a role the module is hidden.</li>
         </ul>

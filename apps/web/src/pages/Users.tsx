@@ -348,6 +348,17 @@ export function Users() {
     }
   }
 
+  // Cantieri module role, edited inline in the grid (mirrors the Ruolo select).
+  // Independent of the app role and does not gate login, so no self-guard here.
+  async function setCantieriRole(u: UserRow, cantieri_role: 'admin' | 'user' | null) {
+    try {
+      await api(`/api/v1/users/${u.user_id}`, { method: 'PATCH', json: { cantieri_role } });
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : t('errorGeneric'));
+    }
+  }
+
   async function saveModes(u: UserRow, stamp_modes: Array<'gps' | 'remote'>) {
     const prev = u.stamp_modes;
     setList((cur) =>
@@ -605,6 +616,7 @@ export function Users() {
           rowSelection={rowSelection}
           onRowSelectionChange={setRowSelection}
           onSetRole={setRole}
+          onSetCantieriRole={setCantieriRole}
           onEditModes={setModesEditor}
           onEditBranches={setBranchEditor}
           onEditShift={setShiftEditor}
@@ -2091,6 +2103,7 @@ interface UsersDataGridProps {
   rowSelection: GridRowSelectionModel;
   onRowSelectionChange: (m: GridRowSelectionModel) => void;
   onSetRole: (u: UserRow, role: 'admin' | 'user') => void;
+  onSetCantieriRole: (u: UserRow, role: 'admin' | 'user' | null) => void;
   onEditModes: (u: UserRow) => void;
   onEditBranches: (u: UserRow) => void;
   onEditShift: (u: UserRow) => void;
@@ -2112,6 +2125,7 @@ function UsersDataGrid({
   rowSelection,
   onRowSelectionChange,
   onSetRole,
+  onSetCantieriRole,
   onEditModes,
   onEditBranches,
   onEditShift,
@@ -2190,21 +2204,38 @@ function UsersDataGrid({
           );
         },
       },
-      // Cantieri module role — display only (edited in the user editor modal),
-      // and only when the tenant has the module enabled.
+      // Cantieri module role — editable inline (like Ruolo), only when the
+      // tenant has the module enabled. Empty option removes module access.
       ...(cantieriEnabled
         ? ([
             {
               field: 'cantieri_role',
               headerName: t('col.cantieriRole'),
-              width: 110,
+              width: 120,
+              type: 'singleSelect',
+              valueOptions: [
+                { value: '', label: t('cantieriRole.none') },
+                { value: 'user', label: t('cantieriRole.user') },
+                { value: 'admin', label: t('cantieriRole.admin') },
+              ],
               valueGetter: (_v, row) => row.cantieri_role ?? '',
-              renderCell: (p) =>
-                p.value ? (
-                  t(`cantieriRole.${p.value as 'admin' | 'user'}`)
-                ) : (
-                  <span style={{ color: 'var(--color-on-surface-variant)' }}>—</span>
-                ),
+              renderCell: (p) => {
+                const u = p.row;
+                return (
+                  <select
+                    className="input"
+                    style={{ minHeight: '1.875rem', padding: '0 0.5rem', fontSize: '0.75rem' }}
+                    value={u.cantieri_role ?? ''}
+                    onChange={(e) =>
+                      onSetCantieriRole(u, (e.target.value || null) as 'admin' | 'user' | null)
+                    }
+                  >
+                    <option value="">{t('cantieriRole.none')}</option>
+                    <option value="user">{t('cantieriRole.user')}</option>
+                    <option value="admin">{t('cantieriRole.admin')}</option>
+                  </select>
+                );
+              },
             },
           ] satisfies GridColDef<UserRow>[])
         : []),
@@ -2407,6 +2438,7 @@ function UsersDataGrid({
       me?.user.id,
       shiftAssignments,
       onSetRole,
+      onSetCantieriRole,
       onEditModes,
       onEditBranches,
       onEditShift,

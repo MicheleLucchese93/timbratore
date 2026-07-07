@@ -5,6 +5,7 @@ import { MEZZO_NAME_MAX } from '@sonoqui/shared';
 import { api } from '../lib/api.ts';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { CantieriTabs } from '../components/CantieriTabs.tsx';
 import {
   buildCustomValues,
   CantieriCustomInputs,
@@ -98,6 +99,7 @@ export function Mezzi() {
 
   return (
     <div className="space-y-5">
+      <CantieriTabs />
       <PageHeader
         title={t('mezzi.title')}
         subtitle={t('mezzi.subtitle')}
@@ -113,6 +115,14 @@ export function Mezzi() {
       {mezzi.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-title">{t('mezzi.empty')}</div>
+          <div className="empty-state-hint">{t('mezzi.emptyHint')}</div>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm mt-2"
+            onClick={() => setCreating(true)}
+          >
+            {t('mezzi.new')}
+          </button>
         </div>
       ) : (
         <ul className="space-y-2">

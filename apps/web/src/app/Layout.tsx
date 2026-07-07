@@ -1,12 +1,9 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../store/session.ts';
 
-interface NavChild { to: string; key: string }
-// A NavItem with `children` renders as an expandable group: `to` is the first
-// child's route (used when the collapsed sidebar can only navigate).
-interface NavItem { to: string; key: string; icon: ReactNode; children?: NavChild[] }
+interface NavItem { to: string; key: string; icon: ReactNode }
 
 // Document content is now own-only for everyone: every user (admin included)
 // sees only their OWN documents via "I miei documenti". Managing + viewing all
@@ -53,17 +50,11 @@ function buildNav(
     items.splice(at, 0, { to: '/documents', key: 'documents', icon: <IconFolder /> });
   }
   if (isCantieriAdmin) {
+    // Single sidebar entry for the whole module; its three views live behind an
+    // in-page tab bar (CantieriTabs) rather than exploding into the sidebar.
+    // `/cantieri` redirects to the Dashboard, the module overview.
     const at = Math.max(0, items.findIndex((n) => n.key === 'manual'));
-    items.splice(at, 0, {
-      to: '/cantieri',
-      key: 'cantieri',
-      icon: <IconHardHat />,
-      children: [
-        { to: '/cantieri', key: 'cantieri' },
-        { to: '/cantieri/mezzi', key: 'cantieri_mezzi' },
-        { to: '/cantieri/dashboard', key: 'cantieri_dashboard' },
-      ],
-    });
+    items.splice(at, 0, { to: '/cantieri', key: 'cantieri', icon: <IconHardHat /> });
   }
   return items;
 }
@@ -140,31 +131,22 @@ export function Layout({ children }: { children: ReactNode }) {
 
         <nav className="sidebar-nav">
           <ul>
-            {navItems.map((n) =>
-              n.children ? (
-                <NavGroup
-                  key={n.key}
-                  item={n}
-                  collapsed={collapsed}
-                  onNavigate={() => setMobileOpen(false)}
-                />
-              ) : (
-                <li key={n.to}>
-                  <NavLink
-                    to={n.to}
-                    end={n.to === '/'}
-                    onClick={() => setMobileOpen(false)}
-                    className={({ isActive }) =>
-                      `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`
-                    }
-                    title={collapsed ? t(n.key) : undefined}
-                  >
-                    <span className="sidebar-link-icon">{n.icon}</span>
-                    {!collapsed && <span className="sidebar-link-label">{t(n.key)}</span>}
-                  </NavLink>
-                </li>
-              )
-            )}
+            {navItems.map((n) => (
+              <li key={n.to}>
+                <NavLink
+                  to={n.to}
+                  end={n.to === '/'}
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) =>
+                    `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`
+                  }
+                  title={collapsed ? t(n.key) : undefined}
+                >
+                  <span className="sidebar-link-icon">{n.icon}</span>
+                  {!collapsed && <span className="sidebar-link-label">{t(n.key)}</span>}
+                </NavLink>
+              </li>
+            ))}
           </ul>
         </nav>
 
@@ -214,83 +196,6 @@ export function Layout({ children }: { children: ReactNode }) {
         <div className="app-content">{children}</div>
       </div>
     </div>
-  );
-}
-
-/* Expandable sidebar group: a toggle row plus an indented child list. The row
-   highlights whenever any child route is active. When the sidebar is collapsed
-   there is no room for the sub-list, so the icon simply navigates to the first
-   child. Open state lives in component state, seeded open if a child route is
-   already active. */
-function NavGroup({
-  item,
-  collapsed,
-  onNavigate,
-}: {
-  item: NavItem;
-  collapsed: boolean;
-  onNavigate: () => void;
-}) {
-  const { t } = useTranslation(['nav']);
-  const loc = useLocation();
-  const nav = useNavigate();
-  const children = item.children ?? [];
-  const groupActive = children.some(
-    (c) => loc.pathname === c.to || loc.pathname.startsWith(`${c.to}/`)
-  );
-  const [open, setOpen] = useState(groupActive);
-
-  if (collapsed) {
-    return (
-      <li>
-        <button
-          type="button"
-          className={`sidebar-link sidebar-group-toggle ${groupActive ? 'sidebar-link-active' : ''}`}
-          onClick={() => {
-            onNavigate();
-            nav(item.to);
-          }}
-          title={t(item.key)}
-        >
-          <span className="sidebar-link-icon">{item.icon}</span>
-        </button>
-      </li>
-    );
-  }
-
-  return (
-    <li>
-      <button
-        type="button"
-        className={`sidebar-link sidebar-group-toggle ${groupActive ? 'sidebar-link-active' : ''}`}
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-      >
-        <span className="sidebar-link-icon">{item.icon}</span>
-        <span className="sidebar-link-label">{t(item.key)}</span>
-        <span className="sidebar-group-chevron">
-          <IconChevronDown open={open} />
-        </span>
-      </button>
-      {open && (
-        <ul className="sidebar-group-items">
-          {children.map((c) => (
-            <li key={c.to}>
-              <NavLink
-                to={c.to}
-                end
-                onClick={onNavigate}
-                className={({ isActive }) =>
-                  `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`
-                }
-              >
-                <span className="sidebar-link-label">{t(c.key)}</span>
-              </NavLink>
-            </li>
-          ))}
-        </ul>
-      )}
-    </li>
   );
 }
 

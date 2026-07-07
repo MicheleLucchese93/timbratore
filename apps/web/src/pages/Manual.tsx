@@ -1539,7 +1539,7 @@ const MAIN_IT = `
         <h3>Attivazione e ruoli</h3>
         <p>Quando il modulo è attivo, i ruoli si assegnano dalla pagina <strong>Utenti</strong> con il campo <strong>Ruolo Cantieri</strong>, indipendente dal ruolo applicativo (anche un dipendente può essere Admin Cantieri):</p>
         <ul class="tidy">
-          <li><strong>Admin Cantieri</strong>: vede il menu <strong>Cantieri</strong> nel web (Cantieri, Mezzi, Dashboard) e gestisce l'intero modulo.</li>
+          <li><strong>Admin Cantieri</strong>: vede la voce <strong>Cantieri</strong> nel menu web e, al suo interno, le schede <strong>Dashboard</strong>, <strong>Cantieri</strong> e <strong>Mezzi</strong>; gestisce l'intero modulo.</li>
           <li><strong>User Cantieri</strong>: registra le attività dall'app mobile sui cantieri a cui è assegnato.</li>
           <li>Senza ruolo il modulo non è visibile.</li>
         </ul>

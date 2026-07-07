@@ -5,6 +5,7 @@ import { CANTIERE_ADDRESS_MAX, CANTIERE_NAME_MAX } from '@sonoqui/shared';
 import { api } from '../lib/api.ts';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { CantieriTabs } from '../components/CantieriTabs.tsx';
 import { CantieriFieldDefsSection } from '../components/CantieriFields.tsx';
 import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 
@@ -81,6 +82,7 @@ export function Cantieri() {
 
   return (
     <div className="space-y-5">
+      <CantieriTabs />
       <PageHeader
         title={t('sites.title')}
         subtitle={t('sites.subtitle')}
@@ -96,6 +98,14 @@ export function Cantieri() {
       {sites.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-title">{t('sites.empty')}</div>
+          <div className="empty-state-hint">{t('sites.emptyHint')}</div>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm mt-2"
+            onClick={() => setCreating(true)}
+          >
+            {t('sites.new')}
+          </button>
         </div>
       ) : (
         <ul className="space-y-2">

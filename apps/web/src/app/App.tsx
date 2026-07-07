@@ -93,9 +93,10 @@ export function App() {
               <Route path="/corrections" element={<Corrections />} />
               <Route path="/exports" element={<Exports />} />
               {isDocumentale && <Route path="/documents" element={<Documents />} />}
-              {isCantieriAdmin && <Route path="/cantieri" element={<Cantieri />} />}
-              {isCantieriAdmin && <Route path="/cantieri/mezzi" element={<Mezzi />} />}
+              {isCantieriAdmin && <Route path="/cantieri" element={<Navigate to="/cantieri/dashboard" replace />} />}
               {isCantieriAdmin && <Route path="/cantieri/dashboard" element={<CantieriDashboard />} />}
+              {isCantieriAdmin && <Route path="/cantieri/sites" element={<Cantieri />} />}
+              {isCantieriAdmin && <Route path="/cantieri/mezzi" element={<Mezzi />} />}
               <Route path="/me/documents" element={<MyDocuments />} />
               <Route path="/audit" element={<Audit />} />
               <Route path="/settings" element={<Settings />} />
@@ -124,9 +125,10 @@ export function App() {
             <Route path="/me/leaves" element={<MyLeaves />} />
             <Route path="/me/documents" element={<MyDocuments />} />
             {isDocumentale && <Route path="/documents" element={<Documents />} />}
-            {isCantieriAdmin && <Route path="/cantieri" element={<Cantieri />} />}
-            {isCantieriAdmin && <Route path="/cantieri/mezzi" element={<Mezzi />} />}
+            {isCantieriAdmin && <Route path="/cantieri" element={<Navigate to="/cantieri/dashboard" replace />} />}
             {isCantieriAdmin && <Route path="/cantieri/dashboard" element={<CantieriDashboard />} />}
+            {isCantieriAdmin && <Route path="/cantieri/sites" element={<Cantieri />} />}
+            {isCantieriAdmin && <Route path="/cantieri/mezzi" element={<Mezzi />} />}
             <Route path="/manual" element={<Manual />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
