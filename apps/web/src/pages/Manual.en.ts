@@ -872,7 +872,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>Filters and pagination</h3>
-        <p>At the top you can narrow the list by period (<strong>From</strong> / <strong>To</strong>), <strong>Author</strong>, <strong>Target</strong> and <strong>Category</strong> (Users, Stamps, Corrections, Leaves, Balances, Schedules, Branches, Bulletin board, Exports, Documents, Settings). Any filter change restarts from the first page.</p>
+        <p>At the top you can narrow the list by period (<strong>From</strong> / <strong>To</strong>), <strong>Author</strong>, <strong>Target</strong> and <strong>Category</strong> (Users, Stamps, Corrections, Leaves, Balances, Schedules, Branches, Bulletin board, Work sites, Exports, Documents, Settings — the <em>Work sites</em> category collects the operations of that module, when enabled). Any filter change restarts from the first page.</p>
         <p>The list is paginated server-side: use the controls at the bottom of the table to move between pages and choose how many entries to show (50, 100 or 200 per page).</p>
       </div>
 

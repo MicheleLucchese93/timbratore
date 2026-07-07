@@ -879,7 +879,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Filtri e paginazione</h3>
-        <p>In alto puoi restringere l'elenco per periodo (<strong>Dal</strong> / <strong>Al</strong>), <strong>Autore</strong>, <strong>Destinatario</strong> e <strong>Categoria</strong> (Utenti, Timbrature, Correzioni, Ferie &amp; Permessi, Residui, Orari, Sedi, Bacheca, Esportazioni, Documenti, Impostazioni). Ogni modifica ai filtri riparte dalla prima pagina.</p>
+        <p>In alto puoi restringere l'elenco per periodo (<strong>Dal</strong> / <strong>Al</strong>), <strong>Autore</strong>, <strong>Destinatario</strong> e <strong>Categoria</strong> (Utenti, Timbrature, Correzioni, Ferie &amp; Permessi, Residui, Orari, Sedi, Bacheca, Cantieri, Esportazioni, Documenti, Impostazioni — la categoria <em>Cantieri</em> raccoglie le operazioni dell'omonimo modulo, se attivo). Ogni modifica ai filtri riparte dalla prima pagina.</p>
         <p>L'elenco è paginato lato server: con i controlli in fondo alla tabella scorri le pagine e scegli quante voci mostrare (50, 100 o 200 per pagina).</p>
       </div>
 
