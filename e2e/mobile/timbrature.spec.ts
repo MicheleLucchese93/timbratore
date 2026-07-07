@@ -25,8 +25,11 @@ test.describe('mobile — Timbrature tab', () => {
   test('shows the bottom tab bar with the admin tabs (incl. Dashboard)', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'Dashboard' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Timbrature' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Storico' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Richieste' })).toBeVisible();
+    // Storico is a Timbrature sub-tab (Timbra / Correggi / Storico), not a
+    // bottom tab.
+    await expect(page.getByRole('button', { name: 'Storico' })).toHaveCount(0);
+    await expect(page.getByText('Storico', { exact: true }).first()).toBeVisible();
     // Correzioni is no longer a bottom tab — it lives inside Timbrature now.
     await expect(page.getByRole('button', { name: 'Correzioni' })).toHaveCount(0);
   });

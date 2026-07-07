@@ -15,8 +15,11 @@ test.describe('mobile — Dashboard gating (employee)', () => {
 
   test('still shows the employee tabs', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'Timbrature' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Storico' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Bacheca' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Richieste' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Documenti' })).toBeVisible();
+    // Storico is a Timbrature sub-tab, not a bottom tab.
+    await expect(page.getByRole('button', { name: 'Storico' })).toHaveCount(0);
     // Correzioni is no longer a bottom tab — merged into Timbrature.
     await expect(page.getByRole('button', { name: 'Correzioni' })).toHaveCount(0);
   });

@@ -10,7 +10,7 @@ test.describe('mobile — employee role (test3)', () => {
 
   test('all bottom tabs still visible', async ({ page }) => {
     // Correzioni is no longer a bottom tab — merged into Timbrature.
-    for (const label of ['Timbrature', 'Storico', 'Richieste']) {
+    for (const label of ['Timbrature', 'Bacheca', 'Richieste', 'Documenti']) {
       await expect(page.getByRole('button', { name: label })).toBeVisible();
     }
     await expect(page.getByRole('button', { name: 'Correzioni' })).toHaveCount(0);

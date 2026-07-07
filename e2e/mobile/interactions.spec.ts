@@ -4,7 +4,8 @@ test.describe('mobile — Storico interactions', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('button', { name: 'Timbrature' })).toBeVisible({ timeout: 30_000 });
-    await page.getByRole('button', { name: 'Storico' }).click();
+    await page.getByRole('button', { name: 'Timbrature' }).click();
+    await page.getByText('Storico', { exact: true }).first().click();
   });
 
   test('switching between 7 / 30 / 90-day pills triggers a refetch', async ({ page }) => {
@@ -13,7 +14,7 @@ test.describe('mobile — Storico interactions', () => {
       await page.getByText(label, { exact: true }).first().click();
       await page.waitForTimeout(300);
     }
-    await expect(page.getByRole('button', { name: 'Storico' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Timbrature' })).toBeVisible();
   });
 });
 

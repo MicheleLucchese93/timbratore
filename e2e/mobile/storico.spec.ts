@@ -3,7 +3,10 @@ import { test, expect } from '@playwright/test';
 test.describe('mobile — Storico tab', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Storico' }).click();
+    // Storico lives inside Timbrature as a sub-tab since the tab-bar
+    // consolidation (no bottom Storico tab anymore).
+    await page.getByRole('button', { name: 'Timbrature' }).click();
+    await page.getByText('Storico', { exact: true }).first().click();
   });
 
   test('shows range filters (7 / 30 / 90 days)', async ({ page }) => {
