@@ -31,11 +31,15 @@ export function setSessionInvalidHandler(fn: () => void): void {
 function extra(): { apiBaseUrl?: string; authBaseUrl?: string } {
   return (Constants.expoConfig?.extra as { apiBaseUrl?: string; authBaseUrl?: string } | undefined) ?? {};
 }
+// EXPO_PUBLIC_* first: Metro inlines these at bundle time, so a dev/e2e run can
+// override the endpoints reliably — the served expoConfig manifest may lag the
+// process env (observed with `expo start --web`). Unset in store builds, so
+// production keeps using the app.json extra values.
 export function apiBaseUrl(): string {
-  return extra().apiBaseUrl ?? 'http://localhost:4000';
+  return process.env.EXPO_PUBLIC_API_BASE_URL ?? extra().apiBaseUrl ?? 'http://localhost:4000';
 }
 export function authBaseUrl(): string {
-  return extra().authBaseUrl ?? '';
+  return process.env.EXPO_PUBLIC_AUTH_BASE_URL ?? extra().authBaseUrl ?? '';
 }
 
 async function storeGet(key: string): Promise<string | null> {
