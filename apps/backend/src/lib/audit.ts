@@ -106,13 +106,20 @@ export interface AuditEntry {
  * the insert is atomic with the mutation and RLS scopes it to the tenant
  * (tenant_id/actor come from the app.current_* GUCs set by tenantHandler).
  */
+// When no explicit targetLabel is given, snapshot the target's current name
+// at write time — the whole point of the column is surviving a later purge of
+// the auth_users mirror row (user delete / cross-tenant cleanup).
+const TARGET_LABEL_SQL = `COALESCE($5, (
+  SELECT COALESCE(NULLIF(TRIM(CONCAT(au.first_name, ' ', au.last_name)), ''), au.display_name, au.email)
+    FROM auth_users au WHERE au.id = $4::uuid))`;
+
 export async function logAudit(client: PoolClient, entry: AuditEntry): Promise<void> {
   await client.query(
     `INSERT INTO audit_log(tenant_id, actor_user_id, action, resource_type, resource_id,
                            target_user_id, target_label, before, after, ip, user_agent)
      VALUES (current_setting('app.current_tenant_id')::uuid,
              current_setting('app.current_user_id')::uuid,
-             $1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9)`,
+             $1, $2, $3, $4::uuid, ${TARGET_LABEL_SQL}, $6::jsonb, $7::jsonb, $8, $9)`,
     auditParams(entry)
   );
 }
@@ -130,7 +137,7 @@ export async function logAuditAs(
   await db.query(
     `INSERT INTO audit_log(tenant_id, actor_user_id, action, resource_type, resource_id,
                            target_user_id, target_label, before, after, ip, user_agent)
-     VALUES ($10::uuid, $11::uuid, $1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9)`,
+     VALUES ($10::uuid, $11::uuid, $1, $2, $3, $4::uuid, ${TARGET_LABEL_SQL}, $6::jsonb, $7::jsonb, $8, $9)`,
     [...auditParams(entry), tenantId, actorUserId]
   );
 }

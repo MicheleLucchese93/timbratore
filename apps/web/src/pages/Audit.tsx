@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef, type GridPaginationModel } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
@@ -51,8 +51,12 @@ export function Audit() {
   const [target, setTarget] = useState('');
   const [category, setCategory] = useState('');
   const [pagination, setPagination] = useState<GridPaginationModel>({ page: 0, pageSize: 50 });
+  // Monotonic request id: a slow response for an old filter must not
+  // overwrite the grid after a newer one already rendered.
+  const seqRef = useRef(0);
 
   const load = useCallback(async () => {
+    const seq = ++seqRef.current;
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -66,10 +70,11 @@ export function Audit() {
       const r = await api<{ entries: AuditEntry[]; total: number | null }>(
         `/api/v1/audit?${params}`
       );
+      if (seq !== seqRef.current) return;
       setEntries(r.entries);
       if (r.total !== null) setTotal(r.total);
     } finally {
-      setLoading(false);
+      if (seq === seqRef.current) setLoading(false);
     }
   }, [from, to, actor, target, category, pagination]);
 
@@ -235,7 +240,8 @@ export function Audit() {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Compact one-line summary of the changed fields (after wins over before).
- * Ids/uuids are dropped — they mean nothing to an admin reading the log. */
+ * Ids/uuids mean nothing to an admin reading the log; html bodies and other
+ * long blobs (legacy full-row payloads) don't belong in a grid cell. */
 function detailSummary(row: AuditEntry): string {
   const payload = row.after ?? row.before;
   if (payload === null || payload === undefined) return '';
@@ -248,9 +254,10 @@ function detailSummary(row: AuditEntry): string {
         typeof v !== 'object' &&
         k !== 'id' &&
         !k.endsWith('_id') &&
-        !(typeof v === 'string' && UUID_RE.test(v))
+        !k.endsWith('_html') &&
+        !(typeof v === 'string' && (UUID_RE.test(v) || v.length > 120))
     )
     .slice(0, 6)
-    .map(([k, v]) => `${k}: ${String(v)}`)
+    .map(([k, v]) => `${k}: ${String(v).slice(0, 80)}`)
     .join(' · ');
 }

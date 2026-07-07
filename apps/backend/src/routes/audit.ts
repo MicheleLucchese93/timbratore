@@ -73,7 +73,9 @@ auditRouter.get(
     const prefixes = q.category ? (CATEGORIES[q.category] ?? []) : [];
     if (prefixes.length) {
       where.push(`(${prefixes.map(() => `a.action LIKE $${i++} || '%'`).join(' OR ')})`);
-      values.push(...prefixes);
+      // '_' is a single-char wildcard in LIKE — escape it so 'shift_template.'
+      // only matches its literal prefix.
+      values.push(...prefixes.map((p) => p.replace(/([\\_%])/g, '\\$1')));
     }
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 

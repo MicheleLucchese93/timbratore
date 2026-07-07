@@ -99,7 +99,7 @@ branchesRouter.post(
       resourceType: 'branch',
       resourceId: r.rows[0].id,
       targetLabel: r.rows[0].name,
-      after: { id: r.rows[0].id, name: r.rows[0].name, address: r.rows[0].address },
+      after: r.rows[0],
       req,
     });
     ok(res, r.rows[0], 201);
@@ -161,7 +161,7 @@ branchesRouter.delete(
       resourceType: 'branch',
       resourceId: String(req.params.id),
       targetLabel: r.rows[0].name,
-      before: { id: r.rows[0].id, name: r.rows[0].name },
+      before: r.rows[0],
       req,
     });
     ok(res, { deleted: true });

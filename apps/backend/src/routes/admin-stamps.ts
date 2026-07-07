@@ -191,7 +191,12 @@ adminStampsRouter.post(
       }
     }
     const createdDates = results.filter((x) => x.status === 'created').map((x) => x.date);
-    if (createdDates.length) {
+    // A failed per-date INSERT aborts the shared transaction (no savepoints):
+    // any further statement would throw 25P02 and turn the partial-results
+    // response into a 500. Nothing gets committed in that case anyway, so the
+    // audit row is skipped together with the stamps it would have described.
+    const anyError = results.some((x) => x.status === 'error');
+    if (createdDates.length && !anyError) {
       await logAudit(client, {
         action: 'stamp.bulk_apply',
         resourceType: 'stamp',

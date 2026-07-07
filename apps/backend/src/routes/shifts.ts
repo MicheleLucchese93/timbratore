@@ -309,7 +309,7 @@ shiftsRouter.post(
       resourceType: 'shift_template',
       resourceId: created.rows[0].id,
       targetLabel: created.rows[0].name,
-      after: { id: created.rows[0].id, name: created.rows[0].name },
+      after: { ...created.rows[0], slots: b.slots, day_lunch: b.day_lunch },
       req,
     });
     const slots = await loadSlots(client, created.rows[0].id);
@@ -411,7 +411,7 @@ shiftsRouter.delete(
       resourceType: 'shift_template',
       resourceId: String(req.params.id),
       targetLabel: r.rows[0].name,
-      before: { id: r.rows[0].id, name: r.rows[0].name },
+      before: r.rows[0],
       req,
     });
     ok(res, { deleted: true });
