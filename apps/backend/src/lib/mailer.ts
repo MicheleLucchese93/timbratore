@@ -22,12 +22,19 @@ function transporter(): Transporter | null {
 
 export { escapeHtml, stripHeader };
 
+export interface MailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+}
+
 export interface MailInput {
   to: string;
   subject: string;
   text: string;
   html: string;
   replyTo?: string;
+  attachments?: MailAttachment[];
 }
 
 export async function sendMail(input: MailInput): Promise<boolean> {
@@ -44,6 +51,7 @@ export async function sendMail(input: MailInput): Promise<boolean> {
       text: input.text,
       html: input.html,
       replyTo: input.replyTo ? stripHeader(input.replyTo) : undefined,
+      attachments: input.attachments,
     });
     return true;
   } catch (err) {
@@ -674,6 +682,58 @@ export function buildBulletinMail(p: BulletinMailPayload): {
     `<p style="margin-top:16px;color:#94a3b8;font-size:12px">sonoQui</p>` +
     `</div>`;
   return { subject, text, html };
+}
+
+/* ----- Cantieri monthly report email ----- */
+
+export interface CantiereReportMailPayload {
+  tenantName: string;
+  siteName: string;
+  /** Localized month label, e.g. 'giugno 2026'. */
+  monthLabel: string;
+  language?: 'it' | 'en';
+}
+
+/**
+ * Cover message for the monthly per-site Cantieri PDF report (attached by the
+ * caller via sendMail attachments). Inline HTML, no template file — mirrors
+ * the reminder/company-event mails.
+ */
+export function buildCantiereReportMail(p: CantiereReportMailPayload): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const language = p.language ?? 'it';
+  const subject =
+    language === 'it'
+      ? `[sonoQui] Rapporto cantiere ${p.siteName} — ${p.monthLabel}`
+      : `[sonoQui] Site report ${p.siteName} — ${p.monthLabel}`;
+  const text =
+    language === 'it'
+      ? `In allegato il rapporto mensile delle attività di cantiere.\n` +
+        `Azienda: ${p.tenantName}\nCantiere: ${p.siteName}\nMese: ${p.monthLabel}\n`
+      : `The monthly site activity report is attached.\n` +
+        `Company: ${p.tenantName}\nSite: ${p.siteName}\nMonth: ${p.monthLabel}\n`;
+  const lines =
+    language === 'it'
+      ? [
+          `In allegato il rapporto mensile delle attività di cantiere.`,
+          `Azienda: ${escapeHtml(p.tenantName)}`,
+          `Cantiere: <strong>${escapeHtml(p.siteName)}</strong>`,
+          `Mese: ${escapeHtml(p.monthLabel)}`,
+        ]
+      : [
+          `The monthly site activity report is attached.`,
+          `Company: ${escapeHtml(p.tenantName)}`,
+          `Site: <strong>${escapeHtml(p.siteName)}</strong>`,
+          `Month: ${escapeHtml(p.monthLabel)}`,
+        ];
+  return {
+    subject,
+    text,
+    html: inlineMail(language === 'it' ? 'Rapporto cantiere' : 'Site report', lines),
+  };
 }
 
 /* ----- Documentale OTP email ----- */

@@ -18,6 +18,9 @@ export interface PartnerCaps {
   capAdminsPerTenant: number | null;
   capDocumentaliPerTenant: number | null;
   capBranchesPerTenant: number | null;
+  // Boolean capability: lets a role='partner' member toggle the Cantieri module
+  // (tenants.cantieri_enabled) on their own tenants. Ignored for role='admin'.
+  mayEnableCantieri: boolean;
 }
 
 export interface PartnerContext extends PartnerCaps {
@@ -60,7 +63,7 @@ export async function authenticatePartner(
 
     const r = await adminPool.query(
       `SELECT role, active, cap_tenants, cap_users_per_tenant, cap_admins_per_tenant,
-              cap_documentali_per_tenant, cap_branches_per_tenant
+              cap_documentali_per_tenant, cap_branches_per_tenant, may_enable_cantieri
          FROM partnership_members WHERE user_id = $1`,
       [payload.sub]
     );
@@ -80,6 +83,7 @@ export async function authenticatePartner(
       capAdminsPerTenant: row.cap_admins_per_tenant,
       capDocumentaliPerTenant: row.cap_documentali_per_tenant,
       capBranchesPerTenant: row.cap_branches_per_tenant,
+      mayEnableCantieri: row.may_enable_cantieri === true,
     };
     next();
   } catch (err) {

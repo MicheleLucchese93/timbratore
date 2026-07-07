@@ -261,6 +261,36 @@ internalE2eRouter.post(
         [TEST_TENANT_ID]
       );
 
+      // Cantieri module fixtures (migration 054). Entries + assignment links
+      // are wiped for the whole pinned tenant (specs only ever create them on
+      // QA accounts); sites/vehicles/field defs are fixture-named ('e2e-…') so
+      // any hand-seeded demo registry survives. Children first: cantiere_entries
+      // references cantieri and mezzi without a cascade.
+      const cent = await client.query(
+        `DELETE FROM cantiere_entries WHERE tenant_id = $1`,
+        [TEST_TENANT_ID]
+      );
+      const cas = await client.query(
+        `DELETE FROM cantiere_assignments WHERE tenant_id = $1`,
+        [TEST_TENANT_ID]
+      );
+      const mas = await client.query(
+        `DELETE FROM mezzo_assignments WHERE tenant_id = $1`,
+        [TEST_TENANT_ID]
+      );
+      const cant = await client.query(
+        `DELETE FROM cantieri WHERE tenant_id = $1 AND name LIKE 'e2e-%'`,
+        [TEST_TENANT_ID]
+      );
+      const mez = await client.query(
+        `DELETE FROM mezzi WHERE tenant_id = $1 AND name LIKE 'e2e-%'`,
+        [TEST_TENANT_ID]
+      );
+      const cfd = await client.query(
+        `DELETE FROM cantieri_field_defs WHERE tenant_id = $1 AND label LIKE 'e2e-%'`,
+        [TEST_TENANT_ID]
+      );
+
       await client.query('COMMIT');
 
       // Best-effort R2 object cleanup for the purged fixture documents. A
@@ -299,6 +329,12 @@ internalE2eRouter.post(
           document_objects_deleted: docObjectsDeleted,
           notifications: nq.rowCount,
           audit_log: alog.rowCount,
+          cantiere_entries: cent.rowCount,
+          cantiere_assignments: cas.rowCount,
+          mezzo_assignments: mas.rowCount,
+          cantieri: cant.rowCount,
+          mezzi: mez.rowCount,
+          cantieri_field_defs: cfd.rowCount,
           partnership_members: pmembers.rowCount,
           partnership_audit_log: palog.rowCount,
           partnership_tenants: e2eTenantsDeleted.rowCount,
@@ -325,6 +361,12 @@ internalE2eRouter.post(
         document_objects_deleted: docObjectsDeleted,
         notifications_deleted: nq.rowCount,
         audit_log_deleted: alog.rowCount,
+        cantiere_entries_deleted: cent.rowCount,
+        cantiere_assignments_deleted: cas.rowCount,
+        mezzo_assignments_deleted: mas.rowCount,
+        cantieri_deleted: cant.rowCount,
+        mezzi_deleted: mez.rowCount,
+        cantieri_field_defs_deleted: cfd.rowCount,
         partnership_members_deleted: pmembers.rowCount,
         partnership_audit_log_deleted: palog.rowCount,
         partnership_tenants_deleted: e2eTenantsDeleted.rowCount,

@@ -16,6 +16,7 @@ export const TOC_EN = `
       <a href="#aziende-limiti" class="sub">Limits and usage</a>
       <a href="#aziende-modifica" class="sub">Editing a company</a>
       <a href="#aziende-stato" class="sub">Suspend and resume</a>
+      <a href="#aziende-cantieri" class="sub">Cantieri module</a>
       <a href="#aziende-admin" class="sub">Administrators</a>
       <a href="#aziende-elimina" class="sub">Deleting</a>
       <a href="#partner">Partners</a>
@@ -244,6 +245,17 @@ export const MAIN_EN = `
         </div>
       </div>
 
+      <div class="feature" id="aziende-cantieri">
+        <h3>Cantieri module</h3>
+        <p>The <strong>Cantieri</strong> module adds construction-site management to the company app: a registry of sites and vehicles, custom fields, employees logging their daily activities from mobile, and a monthly dashboard with PDF reports.</p>
+        <p>The <strong>hard-hat</strong> icon on the company row enables or disables the module (with confirmation); the same switch is also available when creating the company. The <strong>Cantieri</strong> column shows whether the module is enabled.</p>
+        <ul class="tidy">
+          <li><strong>Who can enable it</strong> — the platform administrator always; a partner only with the <em>Cantieri module</em> cap (assigned by the administrator among the partner's caps).</li>
+          <li><strong>What it unlocks</strong> — once enabled, the company administrator assigns Cantieri roles to their users from the Users page; users without a role don't see the module.</li>
+          <li><strong>Disabling</strong> — hides the module from every user of the company; no data is deleted and everything comes back on re-enable.</li>
+        </ul>
+      </div>
+
       <div class="feature" id="aziende-admin">
         <h3>A company's administrators</h3>
         <p>The <strong>people</strong> icon opens the company's administrator management. From here you can:</p>
@@ -301,6 +313,7 @@ export const MAIN_EN = `
             <tr><td><strong>Max admins per company</strong></td><td>Ceiling on the administrator limit per company.</td></tr>
             <tr><td><strong>Max documentali per company</strong></td><td>Ceiling on the documentali limit per company.</td></tr>
             <tr><td><strong>Max branches per company</strong></td><td>Ceiling on the branch limit per company.</td></tr>
+            <tr><td><strong>Cantieri module</strong></td><td>If granted, the partner can enable or disable the Cantieri module on their companies.</td></tr>
           </tbody>
         </table>
         <p>With the <strong>pencil</strong> icon you edit the partner's caps, name and notes. A cap can't be lowered below a value already in use by the partner's companies.</p>

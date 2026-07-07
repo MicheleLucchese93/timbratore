@@ -46,6 +46,10 @@ export const TOC_EN = `
       <a href="#mob-admin-richieste" class="sub">Approving requests</a>
       <a href="#mob-admin-notifiche" class="sub">Push notifications</a>
 
+      <h3>Cantieri module</h3>
+      <a href="#cantieri">Management (web)</a>
+      <a href="#cantieri-mobile" class="sub">Logging activities (mobile)</a>
+
       <h3>References</h3>
       <a href="#geofence">Geolocation</a>
       <a href="#notifiche">Notifications</a>
@@ -1510,6 +1514,63 @@ export const MAIN_EN = `
     </section>
 
     <hr class="section-divider">
+
+    <section class="chapter" id="cantieri">
+      <h2><span class="chapter-num">29a</span>Cantieri module <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
+      <p class="lead">The Cantieri (work sites) module records the daily activities carried out on your sites: travel and work times, vehicles used and company-defined custom fields. It is an optional module, enabled for the company by your partner/reseller.</p>
+
+      <div class="feature">
+        <h3>Enabling and roles</h3>
+        <p>When the module is on, roles are assigned from the <strong>Users</strong> page with the <strong>Cantieri role</strong> field, independent of the application role (a regular employee can be a Cantieri Admin):</p>
+        <ul class="tidy">
+          <li><strong>Cantieri Admin</strong>: sees the <strong>Cantieri</strong> menu on the web (Cantieri, Mezzi, Dashboard) and manages the whole module.</li>
+          <li><strong>Cantieri User</strong>: logs activities from the mobile app on the sites they are assigned to.</li>
+          <li>Without a role the module is hidden.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h3>Sites and custom fields</h3>
+        <p>From <strong>Cantieri</strong> you create sites with a <strong>name</strong>, <strong>address</strong> and <strong>status</strong> (<span class="pill pill-ok">Open</span> or Closed: activities can only be logged on open sites) and assign the <strong>workers</strong>: only assigned users see the site in the app. In the <strong>Custom fields</strong> section you add extra inputs to the activity form — text, number, date, time, yes/no or a pick list, optionally required. Fields apply company-wide, so dashboards and reports stay comparable across sites.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Vehicles</h3>
+        <p>From <strong>Mezzi</strong> you manage the company vehicles selectable in activities. Each vehicle has a <strong>name</strong>, the custom fields you define (e.g. plate, inspection due date) and its own <strong>assigned users</strong>: in an activity a user can only pick vehicles assigned to them.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Dashboard and reports</h3>
+        <p>The <strong>Cantieri dashboard</strong> shows, for the selected month, a card per site with the number of activities, workers involved and travel/work totals. Opening a card shows the individual entries. From each card you can <strong>download the PDF</strong> monthly report or <strong>send it by email</strong> to one or more recipients.</p>
+      </div>
+
+      <div class="callout callout-info">
+        Every module operation (sites, vehicles, fields, activities) is tracked in the <strong>Activity log</strong>, category <strong>Work sites</strong>.
+      </div>
+    </section>
+
+    <section class="chapter" id="cantieri-mobile">
+      <h2><span class="chapter-num">29b</span>Cantieri on mobile <span class="badge badge-user">user</span> <span class="badge badge-mobile">mobile</span></h2>
+      <p class="lead">Anyone with a Cantieri role finds the <strong>Cantieri</strong> tab in the app to log daily activities on their assigned sites.</p>
+
+      <div class="feature">
+        <h3>Logging an activity</h3>
+        <p>In the <strong>New activity</strong> tab pick the <strong>site</strong> (only open sites you are assigned to), the <strong>date</strong> and fill in:</p>
+        <ul class="tidy">
+          <li><strong>Travel time</strong>: start and end of the trip.</li>
+          <li><strong>Work time</strong>: start and end of the on-site work.</li>
+          <li><strong>Activity performed</strong>: free description.</li>
+          <li><strong>Vehicle used</strong>: among the vehicles assigned to you (optional).</li>
+          <li>Any company-defined <strong>custom fields</strong>.</li>
+        </ul>
+        <p>You can log <strong>multiple activities on the same day</strong>, even on different sites.</p>
+      </div>
+
+      <div class="feature">
+        <h3>My activities</h3>
+        <p>The <strong>My activities</strong> tab lists the month's entries, grouped by day. Tap an entry to <strong>edit</strong> it; use the trash icon to <strong>delete</strong> it.</p>
+      </div>
+    </section>
 
     <section class="chapter" id="geofence">
       <h2><span class="chapter-num">30</span>Geolocation</h2>

@@ -15,6 +15,9 @@ export interface ProvisionTenantParams {
   maxUsers?: number | null;
   maxBranches?: number | null;
   maxDocumentali?: number | null;
+  // Enable the Cantieri module at birth (default false). Permission (partner
+  // may_enable_cantieri cap) is enforced by the caller, not here.
+  cantieriEnabled?: boolean;
   // Partner who provisioned this tenant (null = created by a platform admin / the
   // old internal route). Drives the partner's "see only my own tenants" scope.
   createdByPartner?: string | null;
@@ -49,8 +52,9 @@ export async function provisionTenant(p: ProvisionTenantParams): Promise<Provisi
 
     const t = await client.query(
       `INSERT INTO tenants
-         (ragione_sociale, language, max_admins, max_users, max_branches, max_documentali, created_by_partner)
-       VALUES ($1, $2, COALESCE($3, 2), COALESCE($4, 20), COALESCE($5, 3), COALESCE($6, 1), $7)
+         (ragione_sociale, language, max_admins, max_users, max_branches, max_documentali,
+          cantieri_enabled, created_by_partner)
+       VALUES ($1, $2, COALESCE($3, 2), COALESCE($4, 20), COALESCE($5, 3), COALESCE($6, 1), $7, $8)
        RETURNING id, max_admins, max_users, max_branches, max_documentali`,
       [
         p.ragioneSociale,
@@ -59,6 +63,7 @@ export async function provisionTenant(p: ProvisionTenantParams): Promise<Provisi
         p.maxUsers ?? null,
         p.maxBranches ?? null,
         p.maxDocumentali ?? null,
+        p.cantieriEnabled ?? false,
         p.createdByPartner ?? null,
       ]
     );

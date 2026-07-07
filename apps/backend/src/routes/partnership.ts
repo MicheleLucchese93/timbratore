@@ -99,6 +99,7 @@ partnershipRouter.get(
         cap_admins_per_tenant: p.capAdminsPerTenant,
         cap_documentali_per_tenant: p.capDocumentaliPerTenant,
         cap_branches_per_tenant: p.capBranchesPerTenant,
+        may_enable_cantieri: p.mayEnableCantieri,
       },
     });
   })
@@ -176,6 +177,7 @@ partnershipRouter.get(
     const r = await adminPool.query(
       `SELECT t.id, t.ragione_sociale, t.language,
               t.max_admins, t.max_users, t.max_documentali, t.max_branches,
+              t.cantieri_enabled,
               t.suspended_at, t.created_at, t.created_by_partner, t.partner_note AS note,
               pu.email AS owner_email, opm.partner_name AS owner_name,
               (SELECT au.email FROM memberships am JOIN auth_users au ON au.id = am.user_id
@@ -215,6 +217,8 @@ const CreateTenant = z.object({
   max_admins: Limits.max_admins.optional(),
   max_documentali: Limits.max_documentali.optional(),
   max_branches: Limits.max_branches.optional(),
+  // Enable the Cantieri module at creation. Partners need may_enable_cantieri.
+  cantieri_enabled: z.boolean().default(false),
   // Auto-send the admin's access email on create (default on). Off → the admin
   // is created silently and the partner sends access later via the mail icon.
   send_invite: z.boolean().default(true),
@@ -248,6 +252,11 @@ partnershipRouter.post(
       enforceCap('max_admins', b.max_admins, p.capAdminsPerTenant);
       enforceCap('max_documentali', b.max_documentali, p.capDocumentaliPerTenant);
       enforceCap('max_branches', b.max_branches, p.capBranchesPerTenant);
+      // The Cantieri module is a partner capability of its own (two-level flag):
+      // only partners granted may_enable_cantieri can create with it enabled.
+      if (b.cantieri_enabled && !p.mayEnableCantieri) {
+        throw new ForbiddenError('not allowed to enable the Cantieri module', 'CANTIERI_NOT_ALLOWED');
+      }
     }
 
     const result = await provisionTenant({
@@ -260,6 +269,7 @@ partnershipRouter.post(
       maxAdmins: b.max_admins ?? null,
       maxDocumentali: b.max_documentali ?? null,
       maxBranches: b.max_branches ?? null,
+      cantieriEnabled: b.cantieri_enabled,
       // Admin-created tenants are platform-owned (NULL); partner-created tenants
       // are owned by the partner so only they (and admins) see them.
       createdByPartner: p.role === 'partner' ? p.userId : null,
@@ -291,6 +301,7 @@ partnershipRouter.post(
         admin_created: result.adminCreated,
         email_type: emailType,
         limits: result.limits,
+        cantieri_enabled: b.cantieri_enabled,
       },
       ...auditCtx(req),
     });
@@ -309,6 +320,7 @@ partnershipRouter.post(
         // email_type: 'invite' | 'recovery' | 'membership' | 'none' drives the toast.
         email_type: emailType,
         admin_created: result.adminCreated,
+        cantieri_enabled: b.cantieri_enabled,
         limits: {
           max_admins: result.limits.maxAdmins,
           max_users: result.limits.maxUsers,
@@ -326,7 +338,7 @@ async function loadOwnedTenant(p: PartnerContext, tenantId: string) {
   if (!UUID_RE.test(tenantId)) throw new ValidationError('invalid tenant id');
   const r = await adminPool.query(
     `SELECT t.id, t.ragione_sociale, t.created_by_partner, t.suspended_at, t.partner_note,
-            t.language,
+            t.language, t.cantieri_enabled,
             t.max_admins, t.max_users, t.max_documentali, t.max_branches,
             (SELECT am.user_id FROM memberships am
                WHERE am.tenant_id = t.id AND am.role = 'admin'
@@ -454,6 +466,48 @@ partnershipRouter.patch(
       ...auditCtx(req),
     });
     ok(res, { tenant_id: t.id, note: parse.data.note });
+  })
+);
+
+// ---- PATCH /tenants/:id/cantieri — toggle the Cantieri module ---------------
+const ToggleCantieri = z.object({ enabled: z.boolean() });
+partnershipRouter.patch(
+  '/tenants/:id/cantieri',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const parse = ToggleCantieri.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const enabled = parse.data.enabled;
+    // Two-level flag: role='partner' needs the may_enable_cantieri capability to
+    // manage the module on their tenants; platform admins are always allowed.
+    if (p.role === 'partner' && !p.mayEnableCantieri) {
+      throw new ForbiddenError('not allowed to manage the Cantieri module', 'CANTIERI_NOT_ALLOWED');
+    }
+    const t = await loadOwnedTenant(p, String(req.params.id));
+    if (t.cantieri_enabled === enabled) {
+      return ok(res, { tenant_id: t.id, cantieri_enabled: enabled });
+    }
+    await adminPool.query(`UPDATE tenants SET cantieri_enabled = $2 WHERE id = $1`, [t.id, enabled]);
+    // Evict every member's cached membership so the flag flips on their VERY
+    // NEXT request (mirrors suspend — /me and the cantieri guards read the
+    // 60s auth cache, which would otherwise keep serving the stale flag).
+    const members = await adminPool.query(
+      `SELECT DISTINCT user_id FROM memberships WHERE tenant_id = $1 AND deleted_at IS NULL`,
+      [t.id]
+    );
+    for (const m of members.rows) invalidateMembershipCache(m.user_id as string);
+    await logPartnershipAudit({
+      actorUserId: p.userId,
+      actorRole: p.role,
+      action: enabled ? 'tenant.cantieri_enable' : 'tenant.cantieri_disable',
+      targetType: 'tenant',
+      targetId: t.id,
+      targetLabel: t.ragione_sociale,
+      before: { cantieri_enabled: t.cantieri_enabled },
+      after: { cantieri_enabled: enabled },
+      ...auditCtx(req),
+    });
+    ok(res, { tenant_id: t.id, cantieri_enabled: enabled });
   })
 );
 
@@ -923,6 +977,9 @@ const CapsSchema = {
   cap_admins_per_tenant: z.coerce.number().int().min(1).max(1000).nullable().optional(),
   cap_documentali_per_tenant: z.coerce.number().int().min(0).max(1000).nullable().optional(),
   cap_branches_per_tenant: z.coerce.number().int().min(1).max(10000).nullable().optional(),
+  // Boolean capability, not a ceiling: lets the partner toggle the Cantieri
+  // module on their tenants. Absent = unchanged (create defaults to false).
+  may_enable_cantieri: z.boolean().optional(),
 };
 
 // ---- GET /partners ---------------------------------------------------------
@@ -933,7 +990,8 @@ partnershipRouter.get(
     const r = await adminPool.query(
       `SELECT pm.user_id, au.email, pm.active, pm.partner_name, pm.note,
               pm.cap_tenants, pm.cap_users_per_tenant, pm.cap_admins_per_tenant,
-              pm.cap_documentali_per_tenant, pm.cap_branches_per_tenant, pm.created_at,
+              pm.cap_documentali_per_tenant, pm.cap_branches_per_tenant,
+              pm.may_enable_cantieri, pm.created_at,
               (SELECT count(*)::int FROM tenants t
                  WHERE t.created_by_partner = pm.user_id AND t.deleted_at IS NULL) AS tenant_count
          FROM partnership_members pm
@@ -991,12 +1049,14 @@ partnershipRouter.post(
         b.cap_admins_per_tenant ?? null,
         b.cap_documentali_per_tenant ?? null,
         b.cap_branches_per_tenant ?? null,
+        b.may_enable_cantieri ?? false,
       ];
       await client.query(
         `INSERT INTO partnership_members
            (user_id, role, active, cap_tenants, cap_users_per_tenant, cap_admins_per_tenant,
-            cap_documentali_per_tenant, cap_branches_per_tenant, partner_name, note, created_by, updated_at)
-         VALUES ($1, 'partner', TRUE, $2, $3, $4, $5, $6, $7, $8, $9, now())
+            cap_documentali_per_tenant, cap_branches_per_tenant, may_enable_cantieri,
+            partner_name, note, created_by, updated_at)
+         VALUES ($1, 'partner', TRUE, $2, $3, $4, $5, $6, $7, $8, $9, $10, now())
          ON CONFLICT (user_id) DO UPDATE
            SET role = 'partner', active = TRUE,
                cap_tenants = EXCLUDED.cap_tenants,
@@ -1004,6 +1064,7 @@ partnershipRouter.post(
                cap_admins_per_tenant = EXCLUDED.cap_admins_per_tenant,
                cap_documentali_per_tenant = EXCLUDED.cap_documentali_per_tenant,
                cap_branches_per_tenant = EXCLUDED.cap_branches_per_tenant,
+               may_enable_cantieri = EXCLUDED.may_enable_cantieri,
                partner_name = EXCLUDED.partner_name,
                note = EXCLUDED.note,
                updated_at = now()`,
@@ -1027,6 +1088,7 @@ partnershipRouter.post(
               cap_admins_per_tenant: caps[2],
               cap_documentali_per_tenant: caps[3],
               cap_branches_per_tenant: caps[4],
+              may_enable_cantieri: caps[5],
             },
           },
           ...auditCtx(req),
@@ -1071,7 +1133,7 @@ partnershipRouter.patch(
 
     const cur = await adminPool.query(
       `SELECT au.email, pm.role, pm.cap_tenants, pm.cap_users_per_tenant, pm.cap_admins_per_tenant,
-              pm.cap_documentali_per_tenant, pm.cap_branches_per_tenant
+              pm.cap_documentali_per_tenant, pm.cap_branches_per_tenant, pm.may_enable_cantieri
          FROM partnership_members pm JOIN auth_users au ON au.id = pm.user_id
         WHERE pm.user_id = $1`,
       [userId]
@@ -1084,8 +1146,9 @@ partnershipRouter.patch(
       cap_admins_per_tenant: cur.rows[0].cap_admins_per_tenant,
       cap_documentali_per_tenant: cur.rows[0].cap_documentali_per_tenant,
       cap_branches_per_tenant: cur.rows[0].cap_branches_per_tenant,
+      may_enable_cantieri: cur.rows[0].may_enable_cantieri as boolean,
     };
-    const pick = <K extends keyof typeof before>(k: K): number | null =>
+    const pick = <K extends Exclude<keyof typeof before, 'may_enable_cantieri'>>(k: K): number | null =>
       k in b ? ((b as Record<string, number | null | undefined>)[k] ?? null) : before[k];
     const next = {
       cap_tenants: pick('cap_tenants'),
@@ -1093,11 +1156,13 @@ partnershipRouter.patch(
       cap_admins_per_tenant: pick('cap_admins_per_tenant'),
       cap_documentali_per_tenant: pick('cap_documentali_per_tenant'),
       cap_branches_per_tenant: pick('cap_branches_per_tenant'),
+      may_enable_cantieri: b.may_enable_cantieri ?? before.may_enable_cantieri,
     };
     await adminPool.query(
       `UPDATE partnership_members
           SET cap_tenants = $2, cap_users_per_tenant = $3, cap_admins_per_tenant = $4,
-              cap_documentali_per_tenant = $5, cap_branches_per_tenant = $6, updated_at = now()
+              cap_documentali_per_tenant = $5, cap_branches_per_tenant = $6,
+              may_enable_cantieri = $7, updated_at = now()
         WHERE user_id = $1`,
       [
         userId,
@@ -1106,6 +1171,7 @@ partnershipRouter.patch(
         next.cap_admins_per_tenant,
         next.cap_documentali_per_tenant,
         next.cap_branches_per_tenant,
+        next.may_enable_cantieri,
       ]
     );
     await logPartnershipAudit({

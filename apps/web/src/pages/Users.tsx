@@ -23,6 +23,9 @@ interface UserRow {
   // Additive capability, independent of role: may upload + OTP-view every
   // employee's documents. Capped per tenant by max_documentali.
   is_documentale: boolean;
+  // Cantieri module role (null = no access). Only meaningful — and only shown —
+  // when the tenant has the module enabled.
+  cantieri_role: 'admin' | 'user' | null;
   active: boolean;
   stamp_modes: Array<'gps' | 'remote'>;
   created_at: string;
@@ -45,6 +48,7 @@ interface UserPatch {
   first_name?: string | null;
   last_name?: string | null;
   is_documentale?: boolean;
+  cantieri_role?: 'admin' | 'user' | null;
   codice_fiscale?: string | null;
   matricola?: string | null;
   inail?: string | null;
@@ -443,6 +447,8 @@ export function Users() {
   // Documentale is an additive capability; its cap comes from the tenant (me),
   // and the count is derived from the loaded rows (no usage counter for it).
   const maxDocumentali = me?.tenant.max_documentali ?? 1;
+  // Cantieri role selector only surfaces when the tenant module is on.
+  const cantieriEnabled = me?.tenant.cantieri_enabled === true;
   const documentaliCount = list.filter((u) => u.is_documentale).length;
   const atUserLimit = !!usage && usersCount >= usage.max_users;
   const atAdminLimit = !!usage && adminsCount >= usage.max_admins;
@@ -594,6 +600,7 @@ export function Users() {
           adminsCount={adminsCount}
           atAdminLimit={atAdminLimit}
           maxAdmins={usage?.max_admins}
+          cantieriEnabled={cantieriEnabled}
           shiftAssignments={shiftAssignments}
           rowSelection={rowSelection}
           onRowSelectionChange={setRowSelection}
@@ -614,6 +621,7 @@ export function Users() {
           branches={branches}
           atDocumentaleLimit={atDocumentaleLimit}
           maxDocumentali={maxDocumentali}
+          cantieriEnabled={cantieriEnabled}
           onClose={() => setShowInvite(false)}
           onInvited={async (emailType: InviteEmailType) => {
             setShowInvite(false);
@@ -756,6 +764,7 @@ export function Users() {
           user={userEditor}
           atDocumentaleLimit={atDocumentaleLimit}
           maxDocumentali={maxDocumentali}
+          cantieriEnabled={cantieriEnabled}
           onClose={() => setUserEditor(null)}
           onSave={async (patch) => {
             const target = userEditor;
@@ -1041,12 +1050,14 @@ function UserEditor({
   user,
   atDocumentaleLimit,
   maxDocumentali,
+  cantieriEnabled,
   onClose,
   onSave,
 }: {
   user: UserRow;
   atDocumentaleLimit: boolean;
   maxDocumentali: number;
+  cantieriEnabled: boolean;
   onClose: () => void;
   onSave: (patch: UserPatch) => Promise<void> | void;
 }) {
@@ -1056,6 +1067,10 @@ function UserEditor({
   const [lastName, setLastName] = useState(user.last_name ?? '');
   const [externalId, setExternalId] = useState(user.external_id ?? '');
   const [isDocumentale, setIsDocumentale] = useState(user.is_documentale);
+  // '' = no cantieri access (sent as null).
+  const [cantieriRole, setCantieriRole] = useState<'admin' | 'user' | ''>(
+    user.cantieri_role ?? ''
+  );
   const [codiceFiscale, setCodiceFiscale] = useState(user.codice_fiscale ?? '');
   const [matricola, setMatricola] = useState(user.matricola ?? '');
   const [inail, setInail] = useState(user.inail ?? '');
@@ -1072,6 +1087,7 @@ function UserEditor({
         last_name: lastName.trim() || null,
         external_id: externalId.trim() || null,
         is_documentale: isDocumentale,
+        ...(cantieriEnabled ? { cantieri_role: cantieriRole || null } : {}),
         codice_fiscale: codiceFiscale.trim().toUpperCase() || null,
         matricola: matricola.trim() || null,
         inail: inail.trim().toUpperCase() || null,
@@ -1145,6 +1161,22 @@ function UserEditor({
             {t('invite.isDocumentaleHint')}
           </p>
         </div>
+
+        {cantieriEnabled && (
+          <div>
+            <label className="label">{t('cantieriRole.label')}</label>
+            <select
+              className="input"
+              value={cantieriRole}
+              onChange={(e) => setCantieriRole(e.target.value as 'admin' | 'user' | '')}
+            >
+              <option value="">{t('cantieriRole.none')}</option>
+              <option value="user">{t('cantieriRole.user')}</option>
+              <option value="admin">{t('cantieriRole.admin')}</option>
+            </select>
+            <p className="text-xs muted mt-1">{t('cantieriRole.hint')}</p>
+          </div>
+        )}
 
         <div className="hairline my-1" />
         <p className="text-xs muted">{t('userEditor.anagraficaHint')}</p>
@@ -1748,12 +1780,14 @@ function InviteForm({
   branches,
   atDocumentaleLimit,
   maxDocumentali,
+  cantieriEnabled,
   onClose,
   onInvited,
 }: {
   branches: BranchOption[];
   atDocumentaleLimit: boolean;
   maxDocumentali: number;
+  cantieriEnabled: boolean;
   onClose: () => void;
   onInvited: (emailType: InviteEmailType) => void;
 }) {
@@ -1764,6 +1798,7 @@ function InviteForm({
   const [lastName, setLastName] = useState('');
   const [role, setRole] = useState<'user' | 'admin'>('user');
   const [isDocumentale, setIsDocumentale] = useState(false);
+  const [cantieriRole, setCantieriRole] = useState<'admin' | 'user' | ''>('');
   // Drives the language of the member's emails (reset password etc.). Default
   // to the admin's current UI language; the backend falls back to the tenant
   // locale if omitted.
@@ -1801,6 +1836,7 @@ function InviteForm({
           email,
           role,
           is_documentale: isDocumentale,
+          ...(cantieriEnabled && cantieriRole ? { cantieri_role: cantieriRole } : {}),
           language,
           send_reset_email: sendResetEmail,
           first_name: firstName.trim() || undefined,
@@ -1890,6 +1926,23 @@ function InviteForm({
             {t('invite.isDocumentaleHint')}
           </p>
         </div>
+        {cantieriEnabled && (
+          <div>
+            <label className="label">
+              {t('cantieriRole.label')} <span className="muted">{t('invite.optional')}</span>
+            </label>
+            <select
+              className="input"
+              value={cantieriRole}
+              onChange={(e) => setCantieriRole(e.target.value as 'admin' | 'user' | '')}
+            >
+              <option value="">{t('cantieriRole.none')}</option>
+              <option value="user">{t('cantieriRole.user')}</option>
+              <option value="admin">{t('cantieriRole.admin')}</option>
+            </select>
+            <p className="text-xs muted mt-1">{t('cantieriRole.hint')}</p>
+          </div>
+        )}
         <div>
           <label className="label">{t('invite.language')}</label>
           <select
@@ -2033,6 +2086,7 @@ interface UsersDataGridProps {
   adminsCount: number;
   atAdminLimit: boolean;
   maxAdmins: number | undefined;
+  cantieriEnabled: boolean;
   shiftAssignments: ShiftAssignmentRow[];
   rowSelection: GridRowSelectionModel;
   onRowSelectionChange: (m: GridRowSelectionModel) => void;
@@ -2053,6 +2107,7 @@ function UsersDataGrid({
   adminsCount,
   atAdminLimit,
   maxAdmins,
+  cantieriEnabled,
   shiftAssignments,
   rowSelection,
   onRowSelectionChange,
@@ -2135,6 +2190,24 @@ function UsersDataGrid({
           );
         },
       },
+      // Cantieri module role — display only (edited in the user editor modal),
+      // and only when the tenant has the module enabled.
+      ...(cantieriEnabled
+        ? ([
+            {
+              field: 'cantieri_role',
+              headerName: t('col.cantieriRole'),
+              width: 110,
+              valueGetter: (_v, row) => row.cantieri_role ?? '',
+              renderCell: (p) =>
+                p.value ? (
+                  t(`cantieriRole.${p.value as 'admin' | 'user'}`)
+                ) : (
+                  <span style={{ color: 'var(--color-on-surface-variant)' }}>—</span>
+                ),
+            },
+          ] satisfies GridColDef<UserRow>[])
+        : []),
       {
         field: 'active',
         headerName: t('col.state'),
@@ -2330,6 +2403,7 @@ function UsersDataGrid({
       adminsCount,
       atAdminLimit,
       maxAdmins,
+      cantieriEnabled,
       me?.user.id,
       shiftAssignments,
       onSetRole,

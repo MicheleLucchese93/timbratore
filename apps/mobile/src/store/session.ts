@@ -25,8 +25,15 @@ export interface Me {
     last_name: string | null;
     display_name: string | null;
     stamp_modes: Array<'gps' | 'remote' | 'wifi'>;
+    /** Cantieri module role; null = no access (tab hidden). */
+    cantieri_role: 'admin' | 'user' | null;
   };
-  tenant: { id: string; ragione_sociale: string; language: 'it' | 'en' };
+  tenant: {
+    id: string;
+    ragione_sociale: string;
+    language: 'it' | 'en';
+    cantieri_enabled: boolean;
+  };
   branches: Array<{ id: string; name: string; smart_working: boolean }>;
   preferences?: {
     language: 'it' | 'en';

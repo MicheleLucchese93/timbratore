@@ -22,6 +22,7 @@ interface PartnerRow {
   cap_admins_per_tenant: number | null;
   cap_documentali_per_tenant: number | null;
   cap_branches_per_tenant: number | null;
+  may_enable_cantieri: boolean;
   created_at: string;
   tenant_count: number;
 }
@@ -33,9 +34,11 @@ type Caps = Pick<
   | 'cap_admins_per_tenant'
   | 'cap_documentali_per_tenant'
   | 'cap_branches_per_tenant'
+  | 'may_enable_cantieri'
 >;
 
-const CAP_KEYS: (keyof Caps)[] = [
+// Numeric ceilings only — the may_enable_cantieri boolean gets its own checkbox.
+const CAP_KEYS: Exclude<keyof Caps, 'may_enable_cantieri'>[] = [
   'cap_tenants',
   'cap_users_per_tenant',
   'cap_admins_per_tenant',
@@ -146,6 +149,12 @@ export function Partners() {
     { field: 'cap_documentali_per_tenant', headerName: t('partners.col.cap_documentali'), width: 160, renderCell: (p) => capCell(p.row.cap_documentali_per_tenant) },
     { field: 'cap_branches_per_tenant', headerName: t('partners.col.cap_branches'), width: 150, renderCell: (p) => capCell(p.row.cap_branches_per_tenant) },
     {
+      field: 'may_enable_cantieri',
+      headerName: t('partners.col.cantieri'),
+      width: 130,
+      renderCell: (p) => (p.row.may_enable_cantieri ? t('common.yes') : t('common.no')),
+    },
+    {
       field: 'active',
       headerName: t('partners.col.status'),
       width: 120,
@@ -214,6 +223,7 @@ export function Partners() {
                 { label: t('partners.col.cap_admins'), value: capCell(r.cap_admins_per_tenant) },
                 { label: t('partners.col.cap_documentali'), value: capCell(r.cap_documentali_per_tenant) },
                 { label: t('partners.col.cap_branches'), value: capCell(r.cap_branches_per_tenant) },
+                { label: t('partners.col.cantieri'), value: r.may_enable_cantieri ? t('common.yes') : t('common.no') },
                 ...(r.note ? [{ label: t('partners.col.note'), value: r.note }] : []),
               ]}
               actions={renderActions(r)}
@@ -260,26 +270,48 @@ export function Partners() {
   );
 }
 
-function CapInputs({ caps, set }: { caps: Caps; set: (k: keyof Caps, v: number | null) => void }) {
+function CapInputs({
+  caps,
+  set,
+}: {
+  caps: Caps;
+  set: <K extends keyof Caps>(k: K, v: Caps[K]) => void;
+}) {
   const { t } = useTranslation();
   return (
-    <div className="grid-2">
-      {CAP_KEYS.map((k) => (
-        <div key={k}>
-          <label className="label" htmlFor={`cap-${k}`}>{t(`caps.${k}`)}</label>
-          <input
-            id={`cap-${k}`}
-            data-testid={`cap-${k}`}
-            className="input"
-            type="number"
-            min={0}
-            placeholder={t('common.unlimited')}
-            value={caps[k] ?? ''}
-            onChange={(e) => set(k, e.target.value === '' ? null : Number(e.target.value))}
-          />
-        </div>
-      ))}
-    </div>
+    <>
+      <div className="grid-2">
+        {CAP_KEYS.map((k) => (
+          <div key={k}>
+            <label className="label" htmlFor={`cap-${k}`}>{t(`caps.${k}`)}</label>
+            <input
+              id={`cap-${k}`}
+              data-testid={`cap-${k}`}
+              className="input"
+              type="number"
+              min={0}
+              placeholder={t('common.unlimited')}
+              value={caps[k] ?? ''}
+              onChange={(e) => set(k, e.target.value === '' ? null : Number(e.target.value))}
+            />
+          </div>
+        ))}
+      </div>
+      <label className="checkbox-row" style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+        <input
+          type="checkbox"
+          data-testid="cap-may_enable_cantieri"
+          checked={caps.may_enable_cantieri}
+          onChange={(e) => set('may_enable_cantieri', e.target.checked)}
+        />
+        <span>
+          {t('caps.may_enable_cantieri')}
+          <span className="muted" style={{ display: 'block', fontWeight: 400 }}>
+            {t('caps.may_enable_cantieri_hint')}
+          </span>
+        </span>
+      </label>
+    </>
   );
 }
 
@@ -298,6 +330,7 @@ function CreatePartner({ onClose, onDone }: { onClose: () => void; onDone: () =>
     cap_admins_per_tenant: null,
     cap_documentali_per_tenant: null,
     cap_branches_per_tenant: null,
+    may_enable_cantieri: false,
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -407,6 +440,7 @@ function EditCaps({
     cap_admins_per_tenant: partner.cap_admins_per_tenant,
     cap_documentali_per_tenant: partner.cap_documentali_per_tenant,
     cap_branches_per_tenant: partner.cap_branches_per_tenant,
+    may_enable_cantieri: partner.may_enable_cantieri,
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);

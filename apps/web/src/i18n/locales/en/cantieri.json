@@ -1,0 +1,119 @@
+{
+  "sites": {
+    "title": "Work sites",
+    "subtitle": "Manage work sites, assigned workers and the custom fields of activity logs",
+    "new": "New work site",
+    "empty": "No work site created yet.",
+    "assignedCount_one": "{{count}} worker",
+    "assignedCount_other": "{{count}} workers",
+    "entriesCount_one": "{{count}} activity",
+    "entriesCount_other": "{{count}} activities",
+    "deleteTitle": "Delete work site?",
+    "deleteConfirm": "The site \"{{name}}\" will be deleted and no longer visible to workers. Activities already logged remain in the reports."
+  },
+  "status": {
+    "label": "Status",
+    "open": "Open",
+    "closed": "Closed"
+  },
+  "form": {
+    "createTitle": "New work site",
+    "editTitle": "Edit work site",
+    "name": "Name",
+    "address": "Address",
+    "statusHint": "Workers can only log activities on open sites.",
+    "assignees": "Assigned workers",
+    "assigneesHint": "Only assigned workers see the site in the app and can log activities.",
+    "noUsers": "No active user available.",
+    "errorNameRequired": "Enter a name",
+    "errorFieldRequired": "Fill in the required field \"{{label}}\""
+  },
+  "fields": {
+    "title": "Custom fields",
+    "hint": {
+      "entry": "Extra fields requested when a worker logs a site activity.",
+      "mezzo": "Extra descriptive fields of the vehicles (e.g. plate, inspection due date)."
+    },
+    "add": "Add field",
+    "empty": "No custom field.",
+    "required": "Required",
+    "limitReached": "Limit of {{max}} fields reached",
+    "deleteTitle": "Delete field?",
+    "deleteConfirm": "The field \"{{label}}\" will no longer be requested. Values already logged remain in the reports.",
+    "type": {
+      "text": "Text",
+      "number": "Number",
+      "date": "Date",
+      "time": "Time",
+      "boolean": "Yes/No",
+      "select": "Choice from list"
+    },
+    "form": {
+      "createTitle": "New custom field",
+      "editTitle": "Edit custom field",
+      "label": "Label",
+      "fieldType": "Type",
+      "fieldTypeImmutable": "The type cannot be changed after creation.",
+      "options": "Options",
+      "optionsHint": "One option per line (max {{max}}).",
+      "required": "Required field",
+      "position": "Position",
+      "positionHint": "Display order in the form (lowest first).",
+      "errorLabelRequired": "Enter a label",
+      "errorOptionsRequired": "Enter at least one option"
+    }
+  },
+  "mezzi": {
+    "title": "Vehicles",
+    "subtitle": "Manage the vehicles usable in site activities",
+    "new": "New vehicle",
+    "empty": "No vehicle created yet.",
+    "deleteTitle": "Delete vehicle?",
+    "deleteConfirm": "The vehicle \"{{name}}\" will be deleted and no longer selectable in activities.",
+    "form": {
+      "createTitle": "New vehicle",
+      "editTitle": "Edit vehicle",
+      "name": "Name",
+      "assignees": "Assigned workers",
+      "assigneesHint": "Only assigned workers can select the vehicle in their activities."
+    }
+  },
+  "dashboard": {
+    "title": "Work sites dashboard",
+    "subtitle": "Monthly summary of activities per site",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "currentMonth": "Current month",
+    "empty": "No work site.",
+    "entries": "Activities",
+    "users": "Workers",
+    "travel": "Travel time",
+    "activity": "Activity time",
+    "lastEntry": "Last activity",
+    "downloadPdf": "Download PDF",
+    "sendEmail": "Send by email",
+    "downloadFailed": "Download failed",
+    "detail": {
+      "title": "Activities at {{name}}",
+      "empty": "No activity logged in the selected month.",
+      "colDate": "Date",
+      "colUser": "Worker",
+      "colTravel": "Travel time",
+      "colActivity": "Activity time",
+      "colActivityText": "Activity performed",
+      "colMezzo": "Vehicle used"
+    },
+    "emailDialog": {
+      "title": "Send report by email",
+      "hint": "The PDF report of \"{{name}}\" — {{month}} will be sent to the addresses below (max {{max}}).",
+      "placeholder": "name@example.com",
+      "addRecipient": "Add recipient",
+      "remove": "Remove recipient",
+      "send": "Send",
+      "sending": "Sending…",
+      "sent": "Report sent.",
+      "errorEmailRequired": "Enter at least one email address",
+      "errorEmailInvalid": "Check the email addresses you entered"
+    }
+  }
+}

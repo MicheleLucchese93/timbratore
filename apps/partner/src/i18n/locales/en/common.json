@@ -86,10 +86,25 @@
     "col": {
       "name": "Company name", "admin_email": "Admin email", "owner": "Partner", "language": "Language",
       "users": "Users", "admins": "Admins", "documentali": "Documentali", "branches": "Branches",
+      "cantieri": "Cantieri",
       "note": "Note", "status": "Status", "created": "Created", "actions": "Actions"
     },
     "status": { "active": "Active", "suspended": "Suspended" },
     "platform": "Platform",
+    "cantieri": {
+      "on": "Enabled",
+      "off": "Off",
+      "enable": {
+        "label": "Enable Cantieri",
+        "confirm": "Enable the Cantieri module for this company? The company admin will then assign Cantieri roles to their users.",
+        "done": "Cantieri module enabled."
+      },
+      "disable": {
+        "label": "Disable Cantieri",
+        "confirm": "Disable the Cantieri module for this company? The module disappears for all its users; the data stays and comes back on re-enable.",
+        "done": "Cantieri module disabled."
+      }
+    },
     "create": {
       "title": "New company",
       "ragione_sociale": "Company name",
@@ -100,6 +115,8 @@
       "limits": "Limits",
       "max_users": "Max users", "max_admins": "Max admins",
       "max_documentali": "Max documentali", "max_branches": "Max branches",
+      "cantieri": "Enable the Cantieri module",
+      "cantieri_hint": "Construction sites, vehicles and activity reports. Can also be enabled later via the hard-hat icon.",
       "submit": "Create company",
       "send_invite": "Send the admin's access email now",
       "send_invite_hint": "Recommended. If unchecked, the admin is created with no email — send it later via the envelope icon.",
@@ -129,6 +146,7 @@
       "tenants": "Companies", "cap_tenants": "Max companies",
       "cap_users": "Max users/company", "cap_admins": "Max admins/company",
       "cap_documentali": "Max documentali/company", "cap_branches": "Max branches/company",
+      "cantieri": "Cantieri module",
       "status": "Status", "actions": "Actions"
     },
     "status": { "active": "Active", "inactive": "Disabled" },
@@ -156,7 +174,9 @@
     "cap_users_per_tenant": "Max users per company",
     "cap_admins_per_tenant": "Max admins per company",
     "cap_documentali_per_tenant": "Max documentali per company",
-    "cap_branches_per_tenant": "Max branches per company"
+    "cap_branches_per_tenant": "Max branches per company",
+    "may_enable_cantieri": "Cantieri module",
+    "may_enable_cantieri_hint": "Lets the partner enable the Cantieri module on their companies."
   },
   "audit": {
     "title": "Activity log", "subtitle": "Every operation performed in the console",
@@ -172,6 +192,8 @@
       "tenant.remove_admin": "Admin removed",
       "tenant.assign_partner": "Tenant assigned to partner",
       "tenant.update_note": "Company note changed",
+      "tenant.cantieri_enable": "Cantieri module enabled",
+      "tenant.cantieri_disable": "Cantieri module disabled",
       "tenant.delete": "Company deleted",
       "partner.create": "Partner created",
       "partner.update_caps": "Partner caps changed",
@@ -191,6 +213,7 @@
     "INVALID_PARTNER": "Invalid partner.",
     "LAST_ADMIN": "You can't remove the last administrator.",
     "TENANT_NOT_OWNED": "This company is not yours.",
+    "CANTIERI_NOT_ALLOWED": "You are not allowed to manage the Cantieri module. Contact the platform administrator.",
     "SUPER_ADMIN_REQUIRED": "Only the super-user can delete a company.",
     "NAME_MISMATCH": "The company name you typed doesn't match.",
     "default": "Operation failed. Try again."

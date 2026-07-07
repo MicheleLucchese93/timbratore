@@ -26,6 +26,7 @@
     "shifts": "Schedules",
     "branches": "Branches",
     "bacheca": "Bulletin board",
+    "cantieri": "Work sites",
     "exports": "Exports",
     "documents": "Documents",
     "settings": "Settings"
@@ -114,6 +115,29 @@
       "update": "Company settings updated",
       "export_recipient_add": "Export recipient added",
       "export_recipient_remove": "Export recipient removed"
+    },
+    "cantiere": {
+      "create": "Work site created",
+      "update": "Work site updated",
+      "delete": "Work site deleted",
+      "assign": "Work site assignments updated",
+      "report_email": "Work site report emailed"
+    },
+    "mezzo": {
+      "create": "Vehicle created",
+      "update": "Vehicle updated",
+      "delete": "Vehicle deleted",
+      "assign": "Vehicle assignments updated"
+    },
+    "cantieri_field": {
+      "create": "Work sites custom field created",
+      "update": "Work sites custom field updated",
+      "delete": "Work sites custom field deleted"
+    },
+    "cantiere_entry": {
+      "create": "Work site activity logged",
+      "update": "Work site activity updated",
+      "delete": "Work site activity deleted"
     }
   }
 }

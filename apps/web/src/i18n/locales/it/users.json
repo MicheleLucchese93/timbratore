@@ -180,12 +180,20 @@
     "sending": "Invio…",
     "submit": "Invita"
   },
+  "cantieriRole": {
+    "label": "Ruolo Cantieri",
+    "none": "— Nessun accesso —",
+    "user": "Utente",
+    "admin": "Admin",
+    "hint": "Utente: registra le attività di cantiere dall'app. Admin: gestisce cantieri, mezzi e report dal web. Indipendente dal ruolo aziendale."
+  },
   "col": {
     "email": "Email",
     "firstName": "Nome",
     "lastName": "Cognome",
     "codiceFiscale": "Codice fiscale",
     "role": "Ruolo",
+    "cantieriRole": "Cantieri",
     "state": "Stato",
     "branches": "Sedi",
     "shift": "Orario",

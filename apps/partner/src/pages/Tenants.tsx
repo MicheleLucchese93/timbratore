@@ -10,7 +10,7 @@ import { PageHeader } from '../components/PageHeader.tsx';
 import { MCard, MCardList } from '../components/MobileCards.tsx';
 import { Modal } from '../components/Modal.tsx';
 import { IconButton } from '../components/IconButton.tsx';
-import { IconEdit, IconPause, IconPlay, IconUsers, IconTrash, IconPlus, IconMail, IconUserMinus } from '../components/icons.tsx';
+import { IconEdit, IconPause, IconPlay, IconUsers, IconTrash, IconPlus, IconMail, IconUserMinus, IconHardHat } from '../components/icons.tsx';
 
 interface TenantRow {
   id: string;
@@ -20,6 +20,7 @@ interface TenantRow {
   max_users: number;
   max_documentali: number;
   max_branches: number;
+  cantieri_enabled: boolean;
   suspended_at: string | null;
   created_at: string;
   created_by_partner: string | null;
@@ -48,6 +49,9 @@ export function Tenants() {
   const isAdmin = me?.role === 'admin';
   const isSuper = me?.is_super === true;
   const caps = me?.caps;
+  // Who may toggle the Cantieri module: platform admins always, partners only
+  // with the may_enable_cantieri capability (server re-checks either way).
+  const canCantieri = isAdmin || caps?.may_enable_cantieri === true;
 
   const [rows, setRows] = useState<TenantRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,6 +122,31 @@ export function Tenants() {
         />
       )}
       <IconButton label={t('admins.label')} testId="manage-admins" icon={<IconUsers />} onClick={() => setManagingAdmins(row)} />
+      {canCantieri && (
+        <IconButton
+          label={t(row.cantieri_enabled ? 'tenants.cantieri.disable.label' : 'tenants.cantieri.enable.label')}
+          testId="toggle-cantieri"
+          icon={<IconHardHat />}
+          onClick={async () => {
+            const okToToggle = await confirm({
+              message: t(row.cantieri_enabled ? 'tenants.cantieri.disable.confirm' : 'tenants.cantieri.enable.confirm'),
+              confirmLabel: t(row.cantieri_enabled ? 'tenants.cantieri.disable.label' : 'tenants.cantieri.enable.label'),
+              danger: row.cantieri_enabled,
+            });
+            if (!okToToggle) return;
+            try {
+              await api(`/api/v1/partnership/tenants/${row.id}/cantieri`, {
+                method: 'PATCH',
+                json: { enabled: !row.cantieri_enabled },
+              });
+              toast(t(row.cantieri_enabled ? 'tenants.cantieri.disable.done' : 'tenants.cantieri.enable.done'));
+              await load();
+            } catch (e) {
+              toast(errMsg(t, e), true);
+            }
+          }}
+        />
+      )}
       {isSuper && (
         <IconButton label={t('tenants.delete.label')} testId="delete-tenant" danger icon={<IconTrash />} onClick={() => setDeleting(row)} />
       )}
@@ -190,6 +219,20 @@ export function Tenants() {
       renderCell: (p) => `${p.row.used_branches}/${p.row.max_branches}`,
     },
     {
+      field: 'cantieri_enabled',
+      headerName: t('tenants.col.cantieri'),
+      width: 110,
+      renderCell: (p) => (
+        <span className="cell-badge">
+          {p.row.cantieri_enabled ? (
+            <span className="badge badge-ok">{t('tenants.cantieri.on')}</span>
+          ) : (
+            <span className="muted">{t('tenants.cantieri.off')}</span>
+          )}
+        </span>
+      ),
+    },
+    {
       field: 'suspended_at',
       headerName: t('tenants.col.status'),
       width: 120,
@@ -221,7 +264,7 @@ export function Tenants() {
     {
       field: 'actions',
       headerName: t('tenants.col.actions'),
-      width: isSuper ? 210 : 170,
+      width: 170 + (isSuper ? 40 : 0) + (canCantieri ? 40 : 0),
       sortable: false,
       filterable: false,
       renderCell: (p) => renderActions(p.row),
@@ -264,6 +307,7 @@ export function Tenants() {
                 { label: t('tenants.col.admins'), value: `${r.used_admins}/${r.max_admins}` },
                 { label: t('tenants.col.documentali'), value: `${r.used_documentali}/${r.max_documentali}` },
                 { label: t('tenants.col.branches'), value: `${r.used_branches}/${r.max_branches}` },
+                { label: t('tenants.col.cantieri'), value: r.cantieri_enabled ? t('tenants.cantieri.on') : t('tenants.cantieri.off') },
                 ...(r.note ? [{ label: t('tenants.col.note'), value: r.note }] : []),
               ]}
               actions={renderActions(r)}
@@ -290,6 +334,7 @@ export function Tenants() {
       {creating && (
         <CreateTenant
           caps={caps}
+          canEnableCantieri={canCantieri}
           onClose={() => setCreating(false)}
           onDone={async () => {
             setCreating(false);
@@ -411,10 +456,12 @@ function clampDefault(def: number, cap: number | null | undefined): number {
 
 function CreateTenant({
   caps,
+  canEnableCantieri,
   onClose,
   onDone,
 }: {
   caps: PartnerCaps | undefined;
+  canEnableCantieri: boolean;
   onClose: () => void;
   onDone: () => Promise<void>;
 }) {
@@ -426,6 +473,7 @@ function CreateTenant({
   const [last, setLast] = useState('');
   const [language, setLanguage] = useState<'it' | 'en'>('it');
   const [sendInvite, setSendInvite] = useState(true);
+  const [cantieri, setCantieri] = useState(false);
   const [maxUsers, setMaxUsers] = useState(clampDefault(20, caps?.cap_users_per_tenant));
   const [maxAdmins, setMaxAdmins] = useState(clampDefault(2, caps?.cap_admins_per_tenant));
   const [maxDoc, setMaxDoc] = useState(clampDefault(1, caps?.cap_documentali_per_tenant));
@@ -453,6 +501,7 @@ function CreateTenant({
             max_admins: maxAdmins,
             max_documentali: maxDoc,
             max_branches: maxBranches,
+            cantieri_enabled: canEnableCantieri ? cantieri : false,
           },
         }
       );
@@ -514,6 +563,22 @@ function CreateTenant({
             <NumField id="t-doc" label={t('tenants.create.max_documentali')} value={maxDoc} max={caps?.cap_documentali_per_tenant} onChange={setMaxDoc} min={0} />
             <NumField id="t-branches" label={t('tenants.create.max_branches')} value={maxBranches} max={caps?.cap_branches_per_tenant} onChange={setMaxBranches} min={1} />
           </div>
+          {canEnableCantieri && (
+            <label className="checkbox-row" style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+              <input
+                type="checkbox"
+                data-testid="tenant-cantieri"
+                checked={cantieri}
+                onChange={(e) => setCantieri(e.target.checked)}
+              />
+              <span>
+                {t('tenants.create.cantieri')}
+                <span className="muted" style={{ display: 'block', fontWeight: 400 }}>
+                  {t('tenants.create.cantieri_hint')}
+                </span>
+              </span>
+            </label>
+          )}
           {err && <div className="form-err">{err}</div>}
         </div>
         <div className="modal-foot">

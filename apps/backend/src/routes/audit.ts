@@ -20,6 +20,7 @@ const CATEGORIES: Record<string, string[]> = {
   shifts: ['shift_template.', 'shift_assignment.'],
   branches: ['branch.'],
   bacheca: ['bulletin.'],
+  cantieri: ['cantiere.', 'mezzo.', 'cantieri_field.', 'cantiere_entry.'],
   exports: ['export.'],
   documents: ['document.'],
   settings: ['tenant.'],

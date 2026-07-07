@@ -7,6 +7,8 @@ export interface PartnerCaps {
   cap_admins_per_tenant: number | null;
   cap_documentali_per_tenant: number | null;
   cap_branches_per_tenant: number | null;
+  /** Capability: the partner may toggle the Cantieri module on their tenants. */
+  may_enable_cantieri: boolean;
 }
 
 export interface PartnerMe {

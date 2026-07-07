@@ -14,6 +14,8 @@ export interface MeResponse {
     role: 'admin' | 'user';
     // Additive capability: may upload + OTP-view every employee's documents.
     is_documentale: boolean;
+    // Cantieri module role, independent of the tenant role. null = no access.
+    cantieri_role: 'admin' | 'user' | null;
     first_name: string | null;
     last_name: string | null;
     display_name: string | null;
@@ -29,6 +31,8 @@ export interface MeResponse {
     max_users: number;
     max_branches: number;
     max_documentali: number;
+    // Cantieri module toggled per tenant by the partner/reseller.
+    cantieri_enabled: boolean;
   };
   branches: Array<{
     id: string;

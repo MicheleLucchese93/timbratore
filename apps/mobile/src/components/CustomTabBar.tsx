@@ -19,6 +19,7 @@ const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   bacheca: 'megaphone-outline',
   timbrature: 'time-outline',
   richieste: 'sunny-outline',
+  cantieri: 'construct-outline',
   documenti: 'document-text-outline',
 };
 
@@ -29,12 +30,16 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
   const bachecaUnread = useBacheca((s) => s.unread);
   const isAdmin = me?.user.role === 'admin';
   const canStamp = (me?.user.stamp_modes ?? []).length > 0;
+  const hasCantieri =
+    me?.tenant.cantieri_enabled === true && me?.user.cantieri_role != null;
   const focusedKey = state.routes[state.index]?.key;
-  // Dashboard is admin-only; Timbrature hides when no stamp method is enabled.
+  // Dashboard is admin-only; Timbrature hides when no stamp method is enabled;
+  // Cantieri needs the tenant module flag plus a per-user module role.
   // Storico is not a bottom tab — it lives as a sub-tab inside Timbrature.
   const routes = state.routes.filter((r) => {
     if (r.name === 'dashboard') return isAdmin;
     if (r.name === 'timbrature') return canStamp;
+    if (r.name === 'cantieri') return hasCantieri;
     return true;
   });
 

@@ -1,0 +1,119 @@
+{
+  "sites": {
+    "title": "Cantieri",
+    "subtitle": "Gestisci i cantieri, gli addetti assegnati e i campi personalizzati delle attività",
+    "new": "Nuovo cantiere",
+    "empty": "Nessun cantiere ancora creato.",
+    "assignedCount_one": "{{count}} addetto",
+    "assignedCount_other": "{{count}} addetti",
+    "entriesCount_one": "{{count}} attività",
+    "entriesCount_other": "{{count}} attività",
+    "deleteTitle": "Eliminare il cantiere?",
+    "deleteConfirm": "Il cantiere «{{name}}» verrà eliminato e non sarà più visibile agli addetti. Le attività già registrate restano nei report."
+  },
+  "status": {
+    "label": "Stato",
+    "open": "Aperto",
+    "closed": "Chiuso"
+  },
+  "form": {
+    "createTitle": "Nuovo cantiere",
+    "editTitle": "Modifica cantiere",
+    "name": "Nome",
+    "address": "Indirizzo",
+    "statusHint": "Gli addetti possono registrare attività solo sui cantieri aperti.",
+    "assignees": "Addetti assegnati",
+    "assigneesHint": "Solo gli addetti assegnati vedono il cantiere nell'app e possono registrare attività.",
+    "noUsers": "Nessun utente attivo disponibile.",
+    "errorNameRequired": "Inserisci un nome",
+    "errorFieldRequired": "Compila il campo obbligatorio «{{label}}»"
+  },
+  "fields": {
+    "title": "Campi personalizzati",
+    "hint": {
+      "entry": "Campi aggiuntivi richiesti quando un addetto registra un'attività di cantiere.",
+      "mezzo": "Campi descrittivi aggiuntivi dei mezzi (es. targa, scadenza revisione)."
+    },
+    "add": "Aggiungi campo",
+    "empty": "Nessun campo personalizzato.",
+    "required": "Obbligatorio",
+    "limitReached": "Limite di {{max}} campi raggiunto",
+    "deleteTitle": "Eliminare il campo?",
+    "deleteConfirm": "Il campo «{{label}}» non verrà più richiesto. I valori già registrati restano nei report.",
+    "type": {
+      "text": "Testo",
+      "number": "Numero",
+      "date": "Data",
+      "time": "Ora",
+      "boolean": "Sì/No",
+      "select": "Scelta da elenco"
+    },
+    "form": {
+      "createTitle": "Nuovo campo personalizzato",
+      "editTitle": "Modifica campo personalizzato",
+      "label": "Etichetta",
+      "fieldType": "Tipo",
+      "fieldTypeImmutable": "Il tipo non è modificabile dopo la creazione.",
+      "options": "Opzioni",
+      "optionsHint": "Una opzione per riga (max {{max}}).",
+      "required": "Campo obbligatorio",
+      "position": "Posizione",
+      "positionHint": "Ordine di visualizzazione nel modulo (dal più basso al più alto).",
+      "errorLabelRequired": "Inserisci un'etichetta",
+      "errorOptionsRequired": "Inserisci almeno un'opzione"
+    }
+  },
+  "mezzi": {
+    "title": "Mezzi",
+    "subtitle": "Gestisci i mezzi utilizzabili nelle attività di cantiere",
+    "new": "Nuovo mezzo",
+    "empty": "Nessun mezzo ancora creato.",
+    "deleteTitle": "Eliminare il mezzo?",
+    "deleteConfirm": "Il mezzo «{{name}}» verrà eliminato e non sarà più selezionabile nelle attività.",
+    "form": {
+      "createTitle": "Nuovo mezzo",
+      "editTitle": "Modifica mezzo",
+      "name": "Nome",
+      "assignees": "Addetti assegnati",
+      "assigneesHint": "Solo gli addetti assegnati possono selezionare il mezzo nelle attività."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard cantieri",
+    "subtitle": "Riepilogo mensile delle attività per cantiere",
+    "prevMonth": "Mese precedente",
+    "nextMonth": "Mese successivo",
+    "currentMonth": "Mese corrente",
+    "empty": "Nessun cantiere.",
+    "entries": "Attività",
+    "users": "Addetti",
+    "travel": "Tempo viaggio",
+    "activity": "Tempo attività",
+    "lastEntry": "Ultima attività",
+    "downloadPdf": "Scarica PDF",
+    "sendEmail": "Invia via email",
+    "downloadFailed": "Download fallito",
+    "detail": {
+      "title": "Attività di {{name}}",
+      "empty": "Nessuna attività registrata nel mese selezionato.",
+      "colDate": "Data",
+      "colUser": "Addetto",
+      "colTravel": "Tempo viaggio",
+      "colActivity": "Tempo attività",
+      "colActivityText": "Attività svolta",
+      "colMezzo": "Mezzo utilizzato"
+    },
+    "emailDialog": {
+      "title": "Invia report via email",
+      "hint": "Il report PDF di «{{name}}» — {{month}} verrà inviato agli indirizzi indicati (max {{max}}).",
+      "placeholder": "nome@esempio.it",
+      "addRecipient": "Aggiungi destinatario",
+      "remove": "Rimuovi destinatario",
+      "send": "Invia",
+      "sending": "Invio…",
+      "sent": "Report inviato.",
+      "errorEmailRequired": "Inserisci almeno un indirizzo email",
+      "errorEmailInvalid": "Controlla gli indirizzi email inseriti"
+    }
+  }
+}

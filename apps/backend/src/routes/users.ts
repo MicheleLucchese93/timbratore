@@ -70,7 +70,7 @@ usersRouter.get(
   tenantHandler(async (_req, res, client) => {
     const r = await client.query(
       `SELECT m.id AS membership_id, m.user_id, m.role, m.active, m.created_at,
-              m.stamp_modes, m.is_documentale,
+              m.stamp_modes, m.is_documentale, m.cantieri_role,
               m.codice_fiscale, m.matricola, m.inail, m.qualifica, m.qualifica2,
               m.external_id,
               COALESCE(au.email, m.user_id::text) AS email,
@@ -150,6 +150,9 @@ const Invite = z.object({
   // Additive "Documentale" capability (independent of role): may upload + OTP-
   // view every employee's documents. Capped per tenant by max_documentali.
   is_documentale: z.boolean().default(false),
+  // Additive Cantieri module role (independent of role, like is_documentale).
+  // null/omitted = no module access; only effective while tenants.cantieri_enabled.
+  cantieri_role: z.enum(['admin', 'user']).nullable().optional(),
   // Language for the member's emails (reset password etc.). Omitted → tenant
   // locale (resolved in ensureAuthUser).
   language: z.enum(['it', 'en']).optional(),
@@ -164,6 +167,7 @@ interface InviteInput {
   email: string;
   role: 'admin' | 'user';
   is_documentale?: boolean;
+  cantieri_role?: 'admin' | 'user' | null;
   language?: 'it' | 'en';
   first_name?: string | null;
   last_name?: string | null;
@@ -276,8 +280,9 @@ async function performInvite(client: PoolClient, inv: InviteInput): Promise<Invi
     const ex = existing.rows[0];
     if (ex.active && !ex.deleted_at) {
       const upd = await client.query(
-        `UPDATE memberships SET role = $1, is_documentale = $3 WHERE id = $2 RETURNING *`,
-        [inv.role, ex.id, inv.is_documentale ?? false]
+        `UPDATE memberships SET role = $1, is_documentale = $3, cantieri_role = $4
+          WHERE id = $2 RETURNING *`,
+        [inv.role, ex.id, inv.is_documentale ?? false, inv.cantieri_role ?? null]
       );
       membership = upd.rows[0];
       addedMember = false;
@@ -289,6 +294,7 @@ async function performInvite(client: PoolClient, inv: InviteInput): Promise<Invi
         `UPDATE memberships
          SET role = $1, active = TRUE, deleted_at = NULL,
              is_documentale = $8,
+             cantieri_role = $10,
              codice_fiscale = COALESCE($3, codice_fiscale),
              matricola = COALESCE($4, matricola),
              inail = COALESCE($5, inail),
@@ -306,6 +312,7 @@ async function performInvite(client: PoolClient, inv: InviteInput): Promise<Invi
           inv.qualifica2 ?? null,
           inv.is_documentale ?? false,
           inv.external_id ?? null,
+          inv.cantieri_role ?? null,
         ]
       );
       membership = upd.rows[0];
@@ -313,13 +320,14 @@ async function performInvite(client: PoolClient, inv: InviteInput): Promise<Invi
     }
   } else {
     const ins = await client.query(
-      `INSERT INTO memberships(tenant_id, user_id, role, is_documentale, codice_fiscale, matricola, inail, qualifica, qualifica2, external_id)
-       VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO memberships(tenant_id, user_id, role, is_documentale, cantieri_role, codice_fiscale, matricola, inail, qualifica, qualifica2, external_id)
+       VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
       [
         userId,
         inv.role,
         inv.is_documentale ?? false,
+        inv.cantieri_role ?? null,
         inv.codice_fiscale ?? null,
         inv.matricola ?? null,
         inv.inail ?? null,
@@ -549,6 +557,8 @@ const PatchUser = z.object({
   role: z.enum(['admin', 'user']).optional(),
   // Additive "Documentale" capability toggle (capped by max_documentali).
   is_documentale: z.boolean().optional(),
+  // Additive Cantieri module role. undefined = unchanged, null = revoke.
+  cantieri_role: z.enum(['admin', 'user']).nullable().optional(),
   // Allowed clock-in methods. Empty array = user cannot clock in.
   // 'wifi' is not yet implemented, so it is rejected here for now.
   stamp_modes: z.array(z.enum(['gps', 'remote'])).max(2).optional(),
@@ -622,6 +632,12 @@ usersRouter.patch(
         setClauses.push(`${col} = $${idx++}`);
         values.push(parse.data[col]);
       }
+    }
+    // Same null-vs-undefined idiom as the anagrafica: COALESCE could never
+    // revoke the module role (set it back to NULL).
+    if (parse.data.cantieri_role !== undefined) {
+      setClauses.push(`cantieri_role = $${idx++}`);
+      values.push(parse.data.cantieri_role);
     }
     const r = await client.query(
       `UPDATE memberships

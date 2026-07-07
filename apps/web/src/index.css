@@ -613,6 +613,19 @@ select.input { background-color: white; }
 .sidebar-collapsed .sidebar-link { justify-content: center; padding: 0.625rem; }
 .sidebar-collapsed .sidebar-link-active::before { left: 0; }
 
+/* Expandable nav group (submenu) ---------------------------------------- */
+.sidebar-group-toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+.sidebar-group-chevron { margin-left: auto; display: inline-flex; }
+.sidebar-group-items { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
+.sidebar-group-items .sidebar-link { padding-left: 2.5rem; font-size: 0.8125rem; }
+
 /* User block at bottom ------------------------------------------------- */
 .sidebar-foot {
   border-top: 1px solid var(--color-surface-variant);

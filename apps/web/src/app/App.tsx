@@ -32,6 +32,9 @@ const Bacheca = lazy(() => import('../pages/Bacheca.tsx').then((m) => ({ default
 const MyDocuments = lazy(() => import('../pages/MyDocuments.tsx').then((m) => ({ default: m.MyDocuments })));
 const Manual = lazy(() => import('../pages/Manual.tsx').then((m) => ({ default: m.Manual })));
 const Audit = lazy(() => import('../pages/Audit.tsx').then((m) => ({ default: m.Audit })));
+const Cantieri = lazy(() => import('../pages/Cantieri.tsx').then((m) => ({ default: m.Cantieri })));
+const Mezzi = lazy(() => import('../pages/Mezzi.tsx').then((m) => ({ default: m.Mezzi })));
+const CantieriDashboard = lazy(() => import('../pages/CantieriDashboard.tsx').then((m) => ({ default: m.CantieriDashboard })));
 
 export function App() {
   const { me, loading, tenants, activeTenantId, refresh } = useSession();
@@ -71,6 +74,10 @@ export function App() {
   // not by role — an admin OR a base user may hold it. Everyone (admin included)
   // gets their OWN documents at /me/documents.
   const isDocumentale = me.user.is_documentale === true;
+  // Cantieri admin surface: tenant module flag + per-user module role, again
+  // independent of the tenant role (a plain employee can be a cantieri admin).
+  const isCantieriAdmin =
+    me.tenant.cantieri_enabled === true && me.user.cantieri_role === 'admin';
 
   if (me.user.role === 'admin') {
     return (
@@ -86,6 +93,9 @@ export function App() {
               <Route path="/corrections" element={<Corrections />} />
               <Route path="/exports" element={<Exports />} />
               {isDocumentale && <Route path="/documents" element={<Documents />} />}
+              {isCantieriAdmin && <Route path="/cantieri" element={<Cantieri />} />}
+              {isCantieriAdmin && <Route path="/cantieri/mezzi" element={<Mezzi />} />}
+              {isCantieriAdmin && <Route path="/cantieri/dashboard" element={<CantieriDashboard />} />}
               <Route path="/me/documents" element={<MyDocuments />} />
               <Route path="/audit" element={<Audit />} />
               <Route path="/settings" element={<Settings />} />
@@ -114,6 +124,9 @@ export function App() {
             <Route path="/me/leaves" element={<MyLeaves />} />
             <Route path="/me/documents" element={<MyDocuments />} />
             {isDocumentale && <Route path="/documents" element={<Documents />} />}
+            {isCantieriAdmin && <Route path="/cantieri" element={<Cantieri />} />}
+            {isCantieriAdmin && <Route path="/cantieri/mezzi" element={<Mezzi />} />}
+            {isCantieriAdmin && <Route path="/cantieri/dashboard" element={<CantieriDashboard />} />}
             <Route path="/manual" element={<Manual />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

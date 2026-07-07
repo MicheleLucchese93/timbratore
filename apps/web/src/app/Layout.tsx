@@ -1,9 +1,12 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../store/session.ts';
 
-interface NavItem { to: string; key: string; icon: ReactNode }
+interface NavChild { to: string; key: string }
+// A NavItem with `children` renders as an expandable group: `to` is the first
+// child's route (used when the collapsed sidebar can only navigate).
+interface NavItem { to: string; key: string; icon: ReactNode; children?: NavChild[] }
 
 // Document content is now own-only for everyone: every user (admin included)
 // sees only their OWN documents via "I miei documenti". Managing + viewing all
@@ -36,12 +39,31 @@ const userNav: NavItem[] = [
 ];
 
 // Inject the all-documents management entry right before "Manuale" for any user
-// (admin OR base) who holds the Documentale capability.
-function buildNav(role: 'admin' | 'user', isDocumentale: boolean): NavItem[] {
+// (admin OR base) who holds the Documentale capability. The Cantieri group
+// follows the same rule for cantieri admins (module role, independent of the
+// tenant role — a plain employee can be a cantieri admin).
+function buildNav(
+  role: 'admin' | 'user',
+  isDocumentale: boolean,
+  isCantieriAdmin: boolean
+): NavItem[] {
   const items = role === 'admin' ? [...adminNav] : [...userNav];
   if (isDocumentale) {
     const at = Math.max(0, items.findIndex((n) => n.key === 'manual'));
     items.splice(at, 0, { to: '/documents', key: 'documents', icon: <IconFolder /> });
+  }
+  if (isCantieriAdmin) {
+    const at = Math.max(0, items.findIndex((n) => n.key === 'manual'));
+    items.splice(at, 0, {
+      to: '/cantieri',
+      key: 'cantieri',
+      icon: <IconHardHat />,
+      children: [
+        { to: '/cantieri', key: 'cantieri' },
+        { to: '/cantieri/mezzi', key: 'cantieri_mezzi' },
+        { to: '/cantieri/dashboard', key: 'cantieri_dashboard' },
+      ],
+    });
   }
   return items;
 }
@@ -51,7 +73,11 @@ const COLLAPSED_KEY = 'sonoqui.sidebar.collapsed';
 export function Layout({ children }: { children: ReactNode }) {
   const { me, logout } = useSession();
   const { t } = useTranslation(['nav', 'common']);
-  const navItems = buildNav(me?.user.role ?? 'user', me?.user.is_documentale === true);
+  const navItems = buildNav(
+    me?.user.role ?? 'user',
+    me?.user.is_documentale === true,
+    me?.tenant.cantieri_enabled === true && me?.user.cantieri_role === 'admin'
+  );
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try {
@@ -114,22 +140,31 @@ export function Layout({ children }: { children: ReactNode }) {
 
         <nav className="sidebar-nav">
           <ul>
-            {navItems.map((n) => (
-              <li key={n.to}>
-                <NavLink
-                  to={n.to}
-                  end={n.to === '/'}
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) =>
-                    `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`
-                  }
-                  title={collapsed ? t(n.key) : undefined}
-                >
-                  <span className="sidebar-link-icon">{n.icon}</span>
-                  {!collapsed && <span className="sidebar-link-label">{t(n.key)}</span>}
-                </NavLink>
-              </li>
-            ))}
+            {navItems.map((n) =>
+              n.children ? (
+                <NavGroup
+                  key={n.key}
+                  item={n}
+                  collapsed={collapsed}
+                  onNavigate={() => setMobileOpen(false)}
+                />
+              ) : (
+                <li key={n.to}>
+                  <NavLink
+                    to={n.to}
+                    end={n.to === '/'}
+                    onClick={() => setMobileOpen(false)}
+                    className={({ isActive }) =>
+                      `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`
+                    }
+                    title={collapsed ? t(n.key) : undefined}
+                  >
+                    <span className="sidebar-link-icon">{n.icon}</span>
+                    {!collapsed && <span className="sidebar-link-label">{t(n.key)}</span>}
+                  </NavLink>
+                </li>
+              )
+            )}
           </ul>
         </nav>
 
@@ -179,6 +214,83 @@ export function Layout({ children }: { children: ReactNode }) {
         <div className="app-content">{children}</div>
       </div>
     </div>
+  );
+}
+
+/* Expandable sidebar group: a toggle row plus an indented child list. The row
+   highlights whenever any child route is active. When the sidebar is collapsed
+   there is no room for the sub-list, so the icon simply navigates to the first
+   child. Open state lives in component state, seeded open if a child route is
+   already active. */
+function NavGroup({
+  item,
+  collapsed,
+  onNavigate,
+}: {
+  item: NavItem;
+  collapsed: boolean;
+  onNavigate: () => void;
+}) {
+  const { t } = useTranslation(['nav']);
+  const loc = useLocation();
+  const nav = useNavigate();
+  const children = item.children ?? [];
+  const groupActive = children.some(
+    (c) => loc.pathname === c.to || loc.pathname.startsWith(`${c.to}/`)
+  );
+  const [open, setOpen] = useState(groupActive);
+
+  if (collapsed) {
+    return (
+      <li>
+        <button
+          type="button"
+          className={`sidebar-link sidebar-group-toggle ${groupActive ? 'sidebar-link-active' : ''}`}
+          onClick={() => {
+            onNavigate();
+            nav(item.to);
+          }}
+          title={t(item.key)}
+        >
+          <span className="sidebar-link-icon">{item.icon}</span>
+        </button>
+      </li>
+    );
+  }
+
+  return (
+    <li>
+      <button
+        type="button"
+        className={`sidebar-link sidebar-group-toggle ${groupActive ? 'sidebar-link-active' : ''}`}
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <span className="sidebar-link-icon">{item.icon}</span>
+        <span className="sidebar-link-label">{t(item.key)}</span>
+        <span className="sidebar-group-chevron">
+          <IconChevronDown open={open} />
+        </span>
+      </button>
+      {open && (
+        <ul className="sidebar-group-items">
+          {children.map((c) => (
+            <li key={c.to}>
+              <NavLink
+                to={c.to}
+                end
+                onClick={onNavigate}
+                className={({ isActive }) =>
+                  `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`
+                }
+              >
+                <span className="sidebar-link-label">{t(c.key)}</span>
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
   );
 }
 
@@ -452,6 +564,16 @@ function IconFolder() {
   return (
     <svg {...ICON_PROPS}>
       <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    </svg>
+  );
+}
+function IconHardHat() {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z" />
+      <path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5" />
+      <path d="M4 15v-3a6 6 0 0 1 6-6" />
+      <path d="M14 6a6 6 0 0 1 6 6v3" />
     </svg>
   );
 }

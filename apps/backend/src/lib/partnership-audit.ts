@@ -12,6 +12,8 @@ export type PartnershipAction =
   | 'tenant.remove_admin'
   | 'tenant.assign_partner'
   | 'tenant.update_note'
+  | 'tenant.cantieri_enable'
+  | 'tenant.cantieri_disable'
   | 'tenant.delete'
   | 'partner.create'
   | 'partner.update_caps'

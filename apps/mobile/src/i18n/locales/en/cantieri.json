@@ -1,0 +1,69 @@
+{
+  "tab": {
+    "new": "New activity",
+    "mine": "My activities"
+  },
+  "guard": {
+    "title": "Cantieri module not active",
+    "subtitle": "The module is not enabled for your company or your profile."
+  },
+  "form": {
+    "siteLabel": "Site",
+    "sitePlaceholder": "Select a site",
+    "sitePickerTitle": "Select site",
+    "dateLabel": "Date",
+    "travelLabel": "Travel time",
+    "activityTimeLabel": "Activity time",
+    "startLabel": "Start",
+    "endLabel": "End",
+    "setTime": "Set time",
+    "setDate": "Set date",
+    "clearA11y": "Clear value",
+    "duration": "Duration: {{value}}",
+    "activityTextLabel": "Work performed",
+    "activityTextPlaceholder": "Describe the work performed…",
+    "mezzoLabel": "Vehicle",
+    "mezzoPlaceholder": "No vehicle",
+    "mezzoPickerTitle": "Select vehicle",
+    "mezzoNone": "No vehicle",
+    "selectPlaceholder": "Select…",
+    "selectNone": "No selection",
+    "submitNew": "Log activity",
+    "submitEdit": "Save changes",
+    "editingBanner": "You are editing the activity of {{date}}",
+    "cancelEditA11y": "Cancel editing",
+    "createdTitle": "Activity logged",
+    "createdMessage": "The activity has been saved.",
+    "savedTitle": "Changes saved",
+    "savedMessage": "The activity has been updated.",
+    "siteRequiredTitle": "Site required",
+    "siteRequiredMessage": "Select the site you worked at.",
+    "endWithoutStartTitle": "Incomplete time",
+    "endWithoutStartMessage": "Set the start time as well ({{section}}).",
+    "invertedRangeTitle": "Invalid time",
+    "invertedRangeMessage": "The end time must be after the start ({{section}}).",
+    "fieldRequiredTitle": "Required field",
+    "fieldRequiredMessage": "Fill in the \"{{label}}\" field.",
+    "fieldNumberTitle": "Invalid value",
+    "fieldNumberMessage": "The \"{{label}}\" field must be a number.",
+    "noSitesTitle": "No site assigned",
+    "noSitesSubtitle": "Ask your manager to assign you to a site."
+  },
+  "list": {
+    "travel": "Travel",
+    "activity": "Activity",
+    "unknownSite": "Site not available",
+    "deleteA11y": "Delete activity",
+    "prevMonthA11y": "Previous month",
+    "nextMonthA11y": "Next month",
+    "empty": "No activities this month",
+    "emptySub": "Activities you log will appear here."
+  },
+  "confirm": {
+    "deleteTitle": "Delete activity?",
+    "deleteMessage": "It will be permanently deleted."
+  },
+  "error": {
+    "operationFailed": "Operation failed."
+  }
+}

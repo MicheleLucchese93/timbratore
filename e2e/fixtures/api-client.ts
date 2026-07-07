@@ -1136,3 +1136,207 @@ export async function selfDisplayName(userToken: string, email: string): Promise
   const me = await apiGet<{ user: { display_name: string | null } }>(userToken, '/api/v1/me');
   return me.user.display_name?.trim() || email.split('@')[0] || email;
 }
+
+/* ---------------- Cantieri helpers ---------------- */
+
+export interface CantiereSiteRecord {
+  id: string;
+  name: string;
+  address: string | null;
+  status: 'open' | 'closed';
+}
+
+export interface CantieriFieldDefRecord {
+  id: string;
+  scope: 'entry' | 'mezzo';
+  key: string;
+  label: string;
+  field_type: 'text' | 'number' | 'date' | 'time' | 'boolean' | 'select';
+  options: string[] | null;
+  required: boolean;
+  position: number;
+}
+
+export interface CantiereMezzoRecord {
+  id: string;
+  name: string;
+  custom_values: Record<string, unknown>;
+}
+
+export interface CantiereEntryApiRecord {
+  id: string;
+  cantiere_id: string;
+  entry_date: string;
+  travel_start: string | null;
+  travel_end: string | null;
+  activity_start: string | null;
+  activity_end: string | null;
+  activity_text: string | null;
+  mezzo_id: string | null;
+  custom_values: Record<string, unknown>;
+}
+
+/** Cantieri module state for the calling user, from /me. */
+export async function cantieriMe(
+  token: string,
+): Promise<{ enabled: boolean; role: 'admin' | 'user' | null }> {
+  const me = await apiGet<{
+    user: { cantieri_role?: 'admin' | 'user' | null };
+    tenant: { cantieri_enabled?: boolean };
+  }>(token, '/api/v1/me');
+  return {
+    enabled: me.tenant.cantieri_enabled === true,
+    role: me.user.cantieri_role ?? null,
+  };
+}
+
+/** Seed a site. Names stay 'e2e-'-prefixed (purge matches the prefix). */
+export async function createCantiereSite(
+  adminToken: string,
+  body: { name: string; address?: string | null; status?: 'open' | 'closed' },
+): Promise<CantiereSiteRecord> {
+  const r = await apiPost<CantiereSiteRecord>(adminToken, '/api/v1/cantieri/sites', body);
+  if (r.status !== 201 || !r.data) {
+    throw new Error(`createCantiereSite failed: ${r.status} ${r.code ?? ''} ${r.message ?? ''}`.trim());
+  }
+  return r.data;
+}
+
+export async function deleteCantiereSite(adminToken: string, id: string): Promise<void> {
+  await apiDelete(adminToken, `/api/v1/cantieri/sites/${id}`);
+}
+
+async function putAssignments(
+  adminToken: string,
+  path: string,
+  userIds: string[],
+): Promise<void> {
+  const r = await fetch(`${API_BASE}${path}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${adminToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ user_ids: userIds }),
+  });
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error(`PUT ${path} → ${r.status}: ${text}`);
+  }
+}
+
+export async function setCantiereAssignments(
+  adminToken: string,
+  siteId: string,
+  userIds: string[],
+): Promise<void> {
+  await putAssignments(adminToken, `/api/v1/cantieri/sites/${siteId}/assignments`, userIds);
+}
+
+export async function createCantiereMezzo(
+  adminToken: string,
+  body: { name: string; custom_values?: Record<string, unknown> },
+): Promise<CantiereMezzoRecord> {
+  const r = await apiPost<CantiereMezzoRecord>(adminToken, '/api/v1/cantieri/mezzi', body);
+  if (r.status !== 201 || !r.data) {
+    throw new Error(`createCantiereMezzo failed: ${r.status} ${r.code ?? ''} ${r.message ?? ''}`.trim());
+  }
+  return r.data;
+}
+
+export async function deleteCantiereMezzo(adminToken: string, id: string): Promise<void> {
+  await apiDelete(adminToken, `/api/v1/cantieri/mezzi/${id}`);
+}
+
+export async function setMezzoAssignments(
+  adminToken: string,
+  mezzoId: string,
+  userIds: string[],
+): Promise<void> {
+  await putAssignments(adminToken, `/api/v1/cantieri/mezzi/${mezzoId}/assignments`, userIds);
+}
+
+/** Seed a custom field def. Labels stay 'e2e-'-prefixed (purge matches). */
+export async function createCantieriField(
+  adminToken: string,
+  body: {
+    scope: 'entry' | 'mezzo';
+    label: string;
+    field_type: CantieriFieldDefRecord['field_type'];
+    options?: string[];
+    required?: boolean;
+    position?: number;
+  },
+): Promise<CantieriFieldDefRecord> {
+  const r = await apiPost<CantieriFieldDefRecord>(adminToken, '/api/v1/cantieri/fields', body);
+  if (r.status !== 201 || !r.data) {
+    throw new Error(`createCantieriField failed: ${r.status} ${r.code ?? ''} ${r.message ?? ''}`.trim());
+  }
+  return r.data;
+}
+
+export async function deleteCantieriField(adminToken: string, id: string): Promise<void> {
+  await apiDelete(adminToken, `/api/v1/cantieri/fields/${id}`);
+}
+
+/** Member surface: log an activity entry (caller needs a cantieri role +
+ *  assignment to the site). */
+export async function createCantiereEntry(
+  token: string,
+  body: {
+    cantiere_id: string;
+    entry_date: string;
+    travel_start?: string | null;
+    travel_end?: string | null;
+    activity_start?: string | null;
+    activity_end?: string | null;
+    activity_text?: string | null;
+    mezzo_id?: string | null;
+    custom_values?: Record<string, unknown>;
+  },
+): Promise<CantiereEntryApiRecord> {
+  const r = await apiPost<CantiereEntryApiRecord>(token, '/api/v1/cantieri/entries', body);
+  if (r.status !== 201 || !r.data) {
+    throw new Error(`createCantiereEntry failed: ${r.status} ${r.code ?? ''} ${r.message ?? ''}`.trim());
+  }
+  return r.data;
+}
+
+export async function deleteCantiereEntry(token: string, id: string): Promise<void> {
+  await apiDelete(token, `/api/v1/cantieri/entries/${id}`);
+}
+
+export async function getCantieriDashboard(
+  adminToken: string,
+  month: string,
+): Promise<{
+  month: string;
+  sites: Array<{
+    id: string;
+    name: string;
+    entries_count: number;
+    users_count: number;
+    travel_minutes: number;
+    activity_minutes: number;
+    last_entry_date: string | null;
+  }>;
+}> {
+  return apiGet(adminToken, `/api/v1/cantieri/dashboard?month=${month}`);
+}
+
+/** Fetch the per-site monthly PDF report; returns status + sniffed header. */
+export async function getCantiereReportPdf(
+  adminToken: string,
+  siteId: string,
+  month: string,
+): Promise<{ status: number; contentType: string | null; magic: string }> {
+  const r = await fetch(`${API_BASE}/api/v1/cantieri/sites/${siteId}/report?month=${month}`, {
+    headers: { Authorization: `Bearer ${adminToken}` },
+  });
+  const buf = Buffer.from(await r.arrayBuffer());
+  return {
+    status: r.status,
+    contentType: r.headers.get('content-type'),
+    magic: buf.subarray(0, 5).toString('latin1'),
+  };
+}

@@ -180,12 +180,20 @@
     "sending": "Sending…",
     "submit": "Invite"
   },
+  "cantieriRole": {
+    "label": "Work sites role",
+    "none": "— No access —",
+    "user": "User",
+    "admin": "Admin",
+    "hint": "User: logs work-site activities from the app. Admin: manages sites, vehicles and reports from the web. Independent of the company role."
+  },
   "col": {
     "email": "Email",
     "firstName": "First name",
     "lastName": "Last name",
     "codiceFiscale": "Tax code",
     "role": "Role",
+    "cantieriRole": "Work sites",
     "state": "Status",
     "branches": "Branches",
     "shift": "Schedule",

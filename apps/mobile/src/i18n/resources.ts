@@ -11,6 +11,7 @@ import itBacheca from './locales/it/bacheca.json';
 import itStorico from './locales/it/storico.json';
 import itCorrezioni from './locales/it/correzioni.json';
 import itRichieste from './locales/it/richieste.json';
+import itCantieri from './locales/it/cantieri.json';
 import itProfilo from './locales/it/profilo.json';
 import itDocumenti from './locales/it/documenti.json';
 import itChooseTenant from './locales/it/chooseTenant.json';
@@ -26,6 +27,7 @@ import enBacheca from './locales/en/bacheca.json';
 import enStorico from './locales/en/storico.json';
 import enCorrezioni from './locales/en/correzioni.json';
 import enRichieste from './locales/en/richieste.json';
+import enCantieri from './locales/en/cantieri.json';
 import enProfilo from './locales/en/profilo.json';
 import enDocumenti from './locales/en/documenti.json';
 import enChooseTenant from './locales/en/chooseTenant.json';
@@ -43,6 +45,7 @@ export const resources = {
     storico: itStorico,
     correzioni: itCorrezioni,
     richieste: itRichieste,
+    cantieri: itCantieri,
     profilo: itProfilo,
     documenti: itDocumenti,
     chooseTenant: itChooseTenant,
@@ -59,6 +62,7 @@ export const resources = {
     storico: enStorico,
     correzioni: enCorrezioni,
     richieste: enRichieste,
+    cantieri: enCantieri,
     profilo: enProfilo,
     documenti: enDocumenti,
     chooseTenant: enChooseTenant,

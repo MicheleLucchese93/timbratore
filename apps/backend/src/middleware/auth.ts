@@ -13,6 +13,10 @@ declare module 'express-serve-static-core' {
       // Additive capability (independent of role): may manage + OTP-view every
       // employee's documents. A member can be admin OR user AND a documentale.
       isDocumentale: boolean;
+      // Cantieri module role (additive, like isDocumentale). null = no access.
+      // Only meaningful while the tenant flag cantieriEnabled is true.
+      cantieriRole: 'admin' | 'user' | null;
+      cantieriEnabled: boolean;
       membershipId: string;
     };
   }
@@ -22,6 +26,8 @@ export interface ResolvedMembership {
   tenantId: string;
   role: 'admin' | 'user';
   isDocumentale: boolean;
+  cantieriRole: 'admin' | 'user' | null;
+  cantieriEnabled: boolean;
   membershipId: string;
 }
 
@@ -48,7 +54,8 @@ export async function fetchMembership(
     tenantFilter = 'AND m.tenant_id = $2';
   }
   const r = await adminPool.query(
-    `SELECT m.id, m.tenant_id, m.role, m.is_documentale
+    `SELECT m.id, m.tenant_id, m.role, m.is_documentale, m.cantieri_role,
+            t.cantieri_enabled
      FROM memberships m
      JOIN tenants t ON t.id = m.tenant_id
      WHERE m.user_id = $1
@@ -71,6 +78,8 @@ export async function fetchMembership(
     tenantId: row.tenant_id,
     role: row.role,
     isDocumentale: row.is_documentale === true,
+    cantieriRole: row.cantieri_role ?? null,
+    cantieriEnabled: row.cantieri_enabled === true,
   };
 }
 
@@ -155,6 +164,8 @@ export async function authenticate(
       tenantId: membership.tenantId,
       role: membership.role,
       isDocumentale: membership.isDocumentale,
+      cantieriRole: membership.cantieriRole,
+      cantieriEnabled: membership.cantieriEnabled,
       membershipId: membership.membershipId,
     };
     next();
@@ -175,5 +186,24 @@ export function requireAdmin(req: Request, _res: Response, next: NextFunction): 
 export function requireDocumentale(req: Request, _res: Response, next: NextFunction): void {
   if (!req.user) return next(new UnauthorizedError());
   if (!req.user.isDocumentale) return next(new ForbiddenError('Documentale role required', 'DOCUMENTALE_REQUIRED'));
+  next();
+}
+
+// Gates for the Cantieri module. Both require the tenant feature flag (set
+// from the partner console); the role is the per-user module role, additive
+// to admin|user exactly like isDocumentale.
+export function requireCantieri(req: Request, _res: Response, next: NextFunction): void {
+  if (!req.user) return next(new UnauthorizedError());
+  if (!req.user.cantieriEnabled || req.user.cantieriRole === null) {
+    return next(new ForbiddenError('Cantieri module required', 'CANTIERI_REQUIRED'));
+  }
+  next();
+}
+
+export function requireCantieriAdmin(req: Request, _res: Response, next: NextFunction): void {
+  if (!req.user) return next(new UnauthorizedError());
+  if (!req.user.cantieriEnabled || req.user.cantieriRole !== 'admin') {
+    return next(new ForbiddenError('Cantieri admin role required', 'CANTIERI_ADMIN_REQUIRED'));
+  }
   next();
 }

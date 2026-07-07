@@ -27,6 +27,9 @@ export default function TabsLayout() {
   if (!me) return <Redirect href="/" />;
   const isAdmin = me.user.role === 'admin';
   const canStamp = (me.user.stamp_modes ?? []).length > 0;
+  // Cantieri needs the tenant flag AND a module role (admin or user) — same
+  // predicate as the CustomTabBar route filter; keep the two in sync.
+  const hasCantieri = me.tenant.cantieri_enabled === true && me.user.cantieri_role != null;
   // Admins open on the Dashboard recap; everyone else on their stamp screen
   // (or Richieste when no stamp method is enabled — those users have no
   // Timbrature tab, and Storico lives inside it).
@@ -40,6 +43,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="bacheca" options={{ title: t('tab.bacheca') }} />
       <Tabs.Screen name="timbrature" options={{ title: t('tab.timbrature') }} />
       <Tabs.Screen name="richieste" options={{ title: t('tab.richieste') }} />
+      {hasCantieri && <Tabs.Screen name="cantieri" options={{ title: t('tab.cantieri') }} />}
       <Tabs.Screen name="documenti" options={{ title: t('tab.documenti') }} />
     </Tabs>
   );

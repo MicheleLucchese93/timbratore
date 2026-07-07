@@ -26,6 +26,7 @@
     "shifts": "Orari",
     "branches": "Sedi",
     "bacheca": "Bacheca",
+    "cantieri": "Cantieri",
     "exports": "Esportazioni",
     "documents": "Documenti",
     "settings": "Impostazioni"
@@ -114,6 +115,29 @@
       "update": "Impostazioni azienda modificate",
       "export_recipient_add": "Destinatario esportazioni aggiunto",
       "export_recipient_remove": "Destinatario esportazioni rimosso"
+    },
+    "cantiere": {
+      "create": "Cantiere creato",
+      "update": "Cantiere modificato",
+      "delete": "Cantiere eliminato",
+      "assign": "Assegnazioni cantiere modificate",
+      "report_email": "Report cantiere inviato via email"
+    },
+    "mezzo": {
+      "create": "Mezzo creato",
+      "update": "Mezzo modificato",
+      "delete": "Mezzo eliminato",
+      "assign": "Assegnazioni mezzo modificate"
+    },
+    "cantieri_field": {
+      "create": "Campo personalizzato cantieri creato",
+      "update": "Campo personalizzato cantieri modificato",
+      "delete": "Campo personalizzato cantieri eliminato"
+    },
+    "cantiere_entry": {
+      "create": "Attività di cantiere registrata",
+      "update": "Attività di cantiere modificata",
+      "delete": "Attività di cantiere eliminata"
     }
   }
 }

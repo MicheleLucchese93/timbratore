@@ -1,0 +1,69 @@
+{
+  "tab": {
+    "new": "Nuova attività",
+    "mine": "Le mie attività"
+  },
+  "guard": {
+    "title": "Modulo Cantieri non attivo",
+    "subtitle": "Il modulo non è abilitato per la tua azienda o per il tuo profilo."
+  },
+  "form": {
+    "siteLabel": "Cantiere",
+    "sitePlaceholder": "Seleziona un cantiere",
+    "sitePickerTitle": "Seleziona cantiere",
+    "dateLabel": "Data",
+    "travelLabel": "Tempo di viaggio",
+    "activityTimeLabel": "Tempo di attività",
+    "startLabel": "Inizio",
+    "endLabel": "Fine",
+    "setTime": "Imposta orario",
+    "setDate": "Imposta data",
+    "clearA11y": "Rimuovi valore",
+    "duration": "Durata: {{value}}",
+    "activityTextLabel": "Attività svolta",
+    "activityTextPlaceholder": "Descrivi il lavoro svolto…",
+    "mezzoLabel": "Mezzo",
+    "mezzoPlaceholder": "Nessun mezzo",
+    "mezzoPickerTitle": "Seleziona mezzo",
+    "mezzoNone": "Nessun mezzo",
+    "selectPlaceholder": "Seleziona…",
+    "selectNone": "Nessuna selezione",
+    "submitNew": "Registra attività",
+    "submitEdit": "Salva modifiche",
+    "editingBanner": "Stai modificando l'attività del {{date}}",
+    "cancelEditA11y": "Annulla modifica",
+    "createdTitle": "Attività registrata",
+    "createdMessage": "L'attività è stata salvata.",
+    "savedTitle": "Modifiche salvate",
+    "savedMessage": "L'attività è stata aggiornata.",
+    "siteRequiredTitle": "Cantiere obbligatorio",
+    "siteRequiredMessage": "Seleziona il cantiere in cui hai lavorato.",
+    "endWithoutStartTitle": "Orario incompleto",
+    "endWithoutStartMessage": "Imposta anche l'orario di inizio ({{section}}).",
+    "invertedRangeTitle": "Orario non valido",
+    "invertedRangeMessage": "L'orario di fine deve essere dopo l'inizio ({{section}}).",
+    "fieldRequiredTitle": "Campo obbligatorio",
+    "fieldRequiredMessage": "Compila il campo \"{{label}}\".",
+    "fieldNumberTitle": "Valore non valido",
+    "fieldNumberMessage": "Il campo \"{{label}}\" deve essere un numero.",
+    "noSitesTitle": "Nessun cantiere assegnato",
+    "noSitesSubtitle": "Chiedi al tuo responsabile di assegnarti a un cantiere."
+  },
+  "list": {
+    "travel": "Viaggio",
+    "activity": "Attività",
+    "unknownSite": "Cantiere non disponibile",
+    "deleteA11y": "Elimina attività",
+    "prevMonthA11y": "Mese precedente",
+    "nextMonthA11y": "Mese successivo",
+    "empty": "Nessuna attività nel mese",
+    "emptySub": "Le attività che registri compariranno qui."
+  },
+  "confirm": {
+    "deleteTitle": "Eliminare l'attività?",
+    "deleteMessage": "Verrà eliminata definitivamente."
+  },
+  "error": {
+    "operationFailed": "Operazione non riuscita."
+  }
+}

@@ -32,6 +32,7 @@ const CATEGORIES = [
   'shifts',
   'branches',
   'bacheca',
+  'cantieri',
   'exports',
   'documents',
   'settings',
