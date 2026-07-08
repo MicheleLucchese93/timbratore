@@ -173,8 +173,8 @@ export function Partners() {
     { field: 'cap_branches_per_tenant', headerName: t('partners.col.cap_branches'), width: 150, renderCell: (p) => capCell(p.row.cap_branches_per_tenant) },
     {
       field: 'modules',
-      headerName: t('modules.col'),
-      width: 150,
+      headerName: t('caps.modules'),
+      width: 160,
       sortable: false,
       filterable: false,
       renderCell: (p) => <ModuleCapChips row={p.row} />,
@@ -248,7 +248,7 @@ export function Partners() {
                 { label: t('partners.col.cap_admins'), value: capCell(r.cap_admins_per_tenant) },
                 { label: t('partners.col.cap_documentali'), value: capCell(r.cap_documentali_per_tenant) },
                 { label: t('partners.col.cap_branches'), value: capCell(r.cap_branches_per_tenant) },
-                { label: t('modules.col'), value: capModuleNames(t, r) },
+                { label: t('caps.modules'), value: capModuleNames(t, r) },
                 ...(r.note ? [{ label: t('partners.col.note'), value: r.note }] : []),
               ]}
               actions={renderActions(r)}
