@@ -7,6 +7,12 @@
     "newTitle": "Nuova attività",
     "editTitle": "Modifica attività"
   },
+  "filter": {
+    "byMonth": "Mese",
+    "allTime": "Tutto",
+    "allSites": "Tutti i cantieri",
+    "siteTitle": "Filtra per cantiere"
+  },
   "guard": {
     "title": "Modulo Cantieri non attivo",
     "subtitle": "Il modulo non è abilitato per la tua azienda o per il tuo profilo."

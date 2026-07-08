@@ -1562,7 +1562,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Dashboard e report</h3>
-        <p>La <strong>Dashboard cantieri</strong> mostra, per il mese scelto, una scheda per ogni cantiere con numero di attività, addetti coinvolti e totali di viaggio e attività. Aprendo una scheda vedi il dettaglio delle registrazioni. Da ogni scheda, con le icone dedicate, puoi <strong>scaricare il PDF</strong> del report mensile o <strong>inviarlo via email</strong>. Nell'invio indichi i <strong>destinatari</strong> e, se vuoi, gli indirizzi in <strong>CC</strong> e <strong>CCN</strong> e una <strong>nota</strong> formattata che compare nel corpo del messaggio; il PDF resta in allegato.</p>
+        <p>La <strong>Dashboard cantieri</strong> mostra una scheda per ogni cantiere con numero di attività, addetti coinvolti e totali di viaggio e attività. In alto filtri per <strong>cantiere</strong> e scegli il periodo: <strong>per mese</strong> (con le frecce per spostarti tra i mesi) o <strong>tutto il periodo</strong>. Aprendo una scheda vedi il dettaglio delle registrazioni. Da ogni scheda, con le icone dedicate, puoi <strong>scaricare il PDF</strong> del report mensile o <strong>inviarlo via email</strong> (le azioni report sono disponibili in modalità «per mese»). Nell'invio indichi i <strong>destinatari</strong> e, se vuoi, gli indirizzi in <strong>CC</strong> e <strong>CCN</strong> e una <strong>nota</strong> formattata che compare nel corpo del messaggio; il PDF resta in allegato.</p>
       </div>
 
       <div class="callout callout-info">
@@ -1576,7 +1576,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Le mie attività</h3>
-        <p>La scheda <strong>Cantieri</strong> elenca le tue registrazioni del mese, raggruppate per giorno (usa le frecce per cambiare mese). Toccando un'attività la <strong>modifichi</strong>; con il cestino la <strong>elimini</strong>. Il pulsante <strong>+</strong> in basso a destra apre il modulo per registrarne una nuova.</p>
+        <p>La scheda <strong>Cantieri</strong> elenca le tue registrazioni, raggruppate per giorno. In alto filtri per <strong>cantiere</strong> e scegli il periodo: <strong>Mese</strong> (con le frecce per cambiare mese) o <strong>Tutto</strong> (tutte le attività). Toccando un'attività la <strong>modifichi</strong>; con il cestino la <strong>elimini</strong>. Il pulsante <strong>+</strong> in basso a destra apre il modulo per registrarne una nuova.</p>
       </div>
 
       <div class="feature">

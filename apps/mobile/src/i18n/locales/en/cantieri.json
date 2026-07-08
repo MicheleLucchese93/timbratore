@@ -7,6 +7,12 @@
     "newTitle": "New activity",
     "editTitle": "Edit activity"
   },
+  "filter": {
+    "byMonth": "Month",
+    "allTime": "All time",
+    "allSites": "All work sites",
+    "siteTitle": "Filter by work site"
+  },
   "guard": {
     "title": "Cantieri module not active",
     "subtitle": "The module is not enabled for your company or your profile."

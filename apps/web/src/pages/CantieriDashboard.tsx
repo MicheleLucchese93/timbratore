@@ -72,26 +72,34 @@ export function CantieriDashboard() {
   const [emailFor, setEmailFor] = useState<DashboardSite | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  // Filters: all-time toggle (month arrows hidden when on) + cantiere focus
+  // ('' = all). The cantiere filter is applied client-side over the sites list.
+  const [allTime, setAllTime] = useState(false);
+  const [cantiereFilter, setCantiereFilter] = useState('');
 
   const mp = monthParam(month);
+  // Only the aggregate/drill-in queries drop the month for all-time; the PDF /
+  // email report stays monthly (a report needs a month), so those actions are
+  // hidden while all-time is on.
+  const monthQuery = allTime ? '' : `?month=${mp}`;
 
   const load = useCallback(async () => {
     try {
       const r = await api<{ month: string; sites: DashboardSite[] }>(
-        `/api/v1/cantieri/dashboard?month=${mp}`
+        `/api/v1/cantieri/dashboard${monthQuery}`
       );
       setSites(r.sites);
       setErr(null);
     } catch (e) {
       setErr(e instanceof Error ? e.message : t('common:state.error'));
     }
-  }, [mp, t]);
+  }, [monthQuery, t]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  // Load the drill-in entries when a card is opened or the month changes.
+  // Load the drill-in entries when a card is opened or the period changes.
   useEffect(() => {
     if (!openSiteId) {
       setDetail(null);
@@ -99,7 +107,7 @@ export function CantieriDashboard() {
     }
     let cancelled = false;
     setDetail(null);
-    api<SiteEntriesResponse>(`/api/v1/cantieri/sites/${openSiteId}/entries?month=${mp}`)
+    api<SiteEntriesResponse>(`/api/v1/cantieri/sites/${openSiteId}/entries${monthQuery}`)
       .then((r) => {
         if (!cancelled) setDetail(r);
       })
@@ -109,7 +117,9 @@ export function CantieriDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [openSiteId, mp, t]);
+  }, [openSiteId, monthQuery, t]);
+
+  const shownSites = cantiereFilter ? sites.filter((s) => s.id === cantiereFilter) : sites;
 
   async function downloadPdf(e: MouseEvent, site: DashboardSite) {
     e.stopPropagation();
@@ -147,35 +157,64 @@ export function CantieriDashboard() {
         title={t('dashboard.title')}
         subtitle={t('dashboard.subtitle')}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <select
+              className="input"
+              style={{ width: 'auto', minWidth: '10rem' }}
+              value={cantiereFilter}
+              onChange={(e) => setCantiereFilter(e.target.value)}
+              aria-label={t('dashboard.filterSite')}
+            >
+              <option value="">{t('dashboard.allSites')}</option>
+              {sites.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => setMonth((m) => addMonths(m, -1))}
-              aria-label={t('dashboard.prevMonth')}
-              title={t('dashboard.prevMonth')}
+              className={`btn btn-sm ${allTime ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setAllTime((a) => !a)}
+              aria-pressed={allTime}
             >
-              ‹
+              {allTime ? t('dashboard.allTime') : t('dashboard.byMonth')}
             </button>
-            <span className="text-sm font-semibold" style={{ minWidth: '9rem', textAlign: 'center' }}>
-              {monthLabel}
-            </span>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => setMonth((m) => addMonths(m, 1))}
-              aria-label={t('dashboard.nextMonth')}
-              title={t('dashboard.nextMonth')}
-            >
-              ›
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => setMonth(firstOfMonth(new Date()))}
-            >
-              {t('dashboard.currentMonth')}
-            </button>
+            {!allTime && (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setMonth((m) => addMonths(m, -1))}
+                  aria-label={t('dashboard.prevMonth')}
+                  title={t('dashboard.prevMonth')}
+                >
+                  ‹
+                </button>
+                <span
+                  className="text-sm font-semibold"
+                  style={{ minWidth: '9rem', textAlign: 'center' }}
+                >
+                  {monthLabel}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setMonth((m) => addMonths(m, 1))}
+                  aria-label={t('dashboard.nextMonth')}
+                  title={t('dashboard.nextMonth')}
+                >
+                  ›
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setMonth(firstOfMonth(new Date()))}
+                >
+                  {t('dashboard.currentMonth')}
+                </button>
+              </>
+            )}
           </div>
         }
       />
@@ -200,7 +239,7 @@ export function CantieriDashboard() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-          {sites.map((s) => (
+          {shownSites.map((s) => (
             <div
               key={s.id}
               className="card space-y-2"
@@ -237,30 +276,34 @@ export function CantieriDashboard() {
                     : '—'}
                 </span>
               </div>
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={(e) => downloadPdf(e, s)}
-                  aria-label={t('dashboard.downloadPdf')}
-                  title={t('dashboard.downloadPdf')}
-                >
-                  <IconDownload />
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setInfo(null);
-                    setEmailFor(s);
-                  }}
-                  aria-label={t('dashboard.sendEmail')}
-                  title={t('dashboard.sendEmail')}
-                >
-                  <IconMail />
-                </button>
-              </div>
+              {/* Monthly report actions — a report needs a month, so hide them
+                  while the all-time view is active. */}
+              {!allTime && (
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={(e) => downloadPdf(e, s)}
+                    aria-label={t('dashboard.downloadPdf')}
+                    title={t('dashboard.downloadPdf')}
+                  >
+                    <IconDownload />
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setInfo(null);
+                      setEmailFor(s);
+                    }}
+                    aria-label={t('dashboard.sendEmail')}
+                    title={t('dashboard.sendEmail')}
+                  >
+                    <IconMail />
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

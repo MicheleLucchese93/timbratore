@@ -1546,7 +1546,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>Dashboard and reports</h3>
-        <p>The <strong>Cantieri dashboard</strong> shows, for the selected month, a card per site with the number of activities, workers involved and travel/work totals. Opening a card shows the individual entries. From each card, using the dedicated icons, you can <strong>download the PDF</strong> monthly report or <strong>send it by email</strong>. When sending you set the <strong>recipients</strong> and, optionally, <strong>CC</strong> and <strong>BCC</strong> addresses and a formatted <strong>note</strong> that appears in the message body; the PDF stays attached.</p>
+        <p>The <strong>Cantieri dashboard</strong> shows a card per site with the number of activities, workers involved and travel/work totals. At the top you filter by <strong>work site</strong> and pick the period: <strong>by month</strong> (arrows move between months) or <strong>all time</strong>. Opening a card shows the individual entries. From each card, using the dedicated icons, you can <strong>download the PDF</strong> monthly report or <strong>send it by email</strong> (the report actions are available in "by month" mode). When sending you set the <strong>recipients</strong> and, optionally, <strong>CC</strong> and <strong>BCC</strong> addresses and a formatted <strong>note</strong> that appears in the message body; the PDF stays attached.</p>
       </div>
 
       <div class="callout callout-info">
@@ -1560,7 +1560,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>My activities</h3>
-        <p>The <strong>Cantieri</strong> tab lists your entries for the month, grouped by day (use the arrows to change month). Tap an entry to <strong>edit</strong> it; use the trash icon to <strong>delete</strong> it. The <strong>+</strong> button at the bottom right opens the form to log a new one.</p>
+        <p>The <strong>Cantieri</strong> tab lists your entries, grouped by day. At the top you filter by <strong>work site</strong> and pick the period: <strong>Month</strong> (arrows change month) or <strong>All time</strong> (every activity). Tap an entry to <strong>edit</strong> it; use the trash icon to <strong>delete</strong> it. The <strong>+</strong> button at the bottom right opens the form to log a new one.</p>
       </div>
 
       <div class="feature">

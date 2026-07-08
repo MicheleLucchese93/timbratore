@@ -77,6 +77,10 @@ export function CantieriScreen() {
   const [entries, setEntries] = useState<MyEntry[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  // List filters: period (a single month with arrows, or all time) + cantiere.
+  const [allTime, setAllTime] = useState(false);
+  const [filterCantiereId, setFilterCantiereId] = useState<string | null>(null);
+  const [filterPickerOpen, setFilterPickerOpen] = useState(false);
 
   // Form state. `editing` non-null = the form PATCHes that entry.
   const [editing, setEditing] = useState<MyEntry | null>(null);
@@ -111,10 +115,13 @@ export function CantieriScreen() {
     }
   }, []);
 
-  const loadEntries = useCallback(async (m: string) => {
+  const loadEntries = useCallback(async (m: string | null, cantiereId: string | null) => {
     try {
+      const qs = new URLSearchParams();
+      if (m) qs.set('month', m);
+      if (cantiereId) qs.set('cantiere_id', cantiereId);
       const { entries: list } = await api<{ entries: MyEntry[] }>(
-        `/api/v1/cantieri/my/entries?month=${m}`
+        `/api/v1/cantieri/my/entries?${qs.toString()}`
       );
       setEntries(list);
     } catch {
@@ -133,8 +140,8 @@ export function CantieriScreen() {
   useEffect(() => {
     if (!enabled) return;
     setLoadingEntries(true);
-    void loadEntries(month);
-  }, [enabled, month, loadEntries]);
+    void loadEntries(allTime ? null : month, filterCantiereId);
+  }, [enabled, month, allTime, filterCantiereId, loadEntries]);
 
   const resetForm = useCallback(() => {
     setEditing(null);
@@ -192,7 +199,7 @@ export function CantieriScreen() {
       try {
         await api(`/api/v1/cantieri/entries/${e.id}`, { method: 'DELETE' });
         if (editing?.id === e.id) resetForm();
-        await loadEntries(month);
+        await loadEntries(allTime ? null : month, filterCantiereId);
       } catch (err) {
         showError(err);
       }
@@ -272,7 +279,7 @@ export function CantieriScreen() {
       setFormOpen(false);
       resetForm();
       setLoadingEntries(true);
-      void loadEntries(month);
+      void loadEntries(allTime ? null : month, filterCantiereId);
       notify(
         t(wasEdit ? 'form.savedTitle' : 'form.createdTitle'),
         t(wasEdit ? 'form.savedMessage' : 'form.createdMessage')
@@ -514,25 +521,61 @@ export function CantieriScreen() {
     </KeyboardAvoidingView>
   );
 
+  const filterSiteName = filterCantiereId
+    ? (sites.find((s) => s.id === filterCantiereId)?.name ?? t('filter.allSites'))
+    : t('filter.allSites');
+
   const renderMinePage = (
     <View style={{ flex: 1 }}>
-      <View style={styles.monthRow}>
-        <TouchableOpacity
-          onPress={() => setMonth((m) => shiftMonth(m, -1))}
-          style={styles.monthBtn}
-          hitSlop={8}
-          accessibilityLabel={t('list.prevMonthA11y')}>
-          <Ionicons name="chevron-back" size={20} color={color.onSurface} />
-        </TouchableOpacity>
-        <Text style={styles.monthLabel}>{monthLabel(month)}</Text>
-        <TouchableOpacity
-          onPress={() => setMonth((m) => shiftMonth(m, 1))}
-          style={styles.monthBtn}
-          hitSlop={8}
-          accessibilityLabel={t('list.nextMonthA11y')}>
-          <Ionicons name="chevron-forward" size={20} color={color.onSurface} />
-        </TouchableOpacity>
+      <View style={styles.filterBar}>
+        <Pressable
+          style={[styles.filterChip, filterCantiereId != null && styles.filterChipActive]}
+          onPress={() => setFilterPickerOpen(true)}>
+          <Ionicons
+            name="business-outline"
+            size={14}
+            color={filterCantiereId != null ? color.primary : color.onSurfaceVariant}
+          />
+          <Text
+            style={[styles.filterChipText, filterCantiereId != null && styles.filterChipTextActive]}
+            numberOfLines={1}>
+            {filterSiteName}
+          </Text>
+          <Ionicons name="chevron-down" size={14} color={color.onSurfaceVariant} />
+        </Pressable>
+        <Pressable
+          style={[styles.filterChip, allTime && styles.filterChipActive]}
+          onPress={() => setAllTime((a) => !a)}>
+          <Ionicons
+            name={allTime ? 'infinite' : 'calendar-outline'}
+            size={14}
+            color={allTime ? color.primary : color.onSurfaceVariant}
+          />
+          <Text style={[styles.filterChipText, allTime && styles.filterChipTextActive]}>
+            {allTime ? t('filter.allTime') : t('filter.byMonth')}
+          </Text>
+        </Pressable>
       </View>
+
+      {!allTime && (
+        <View style={styles.monthRow}>
+          <TouchableOpacity
+            onPress={() => setMonth((m) => shiftMonth(m, -1))}
+            style={styles.monthBtn}
+            hitSlop={8}
+            accessibilityLabel={t('list.prevMonthA11y')}>
+            <Ionicons name="chevron-back" size={20} color={color.onSurface} />
+          </TouchableOpacity>
+          <Text style={styles.monthLabel}>{monthLabel(month)}</Text>
+          <TouchableOpacity
+            onPress={() => setMonth((m) => shiftMonth(m, 1))}
+            style={styles.monthBtn}
+            hitSlop={8}
+            accessibilityLabel={t('list.nextMonthA11y')}>
+            <Ionicons name="chevron-forward" size={20} color={color.onSurface} />
+          </TouchableOpacity>
+        </View>
+      )}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -541,7 +584,7 @@ export function CantieriScreen() {
             refreshing={refreshing}
             onRefresh={() => {
               setRefreshing(true);
-              void loadEntries(month);
+              void loadEntries(allTime ? null : month, filterCantiereId);
             }}
           />
         }>
@@ -638,6 +681,17 @@ export function CantieriScreen() {
           }
         }}
         onClose={() => setSitePickerOpen(false)}
+      />
+
+      {/* List filter: which cantiere to show ("all" clears it). */}
+      <ListPickerModal
+        visible={filterPickerOpen}
+        title={t('filter.siteTitle')}
+        options={sites.map((s) => ({ id: s.id, label: s.name }))}
+        selectedId={filterCantiereId}
+        clearLabel={t('filter.allSites')}
+        onSelect={setFilterCantiereId}
+        onClose={() => setFilterPickerOpen(false)}
       />
 
       <Modal visible={formOpen} animationType="slide" onRequestClose={closeForm}>
@@ -1056,6 +1110,28 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   submitText: { fontSize: 16, fontWeight: '700', color: color.onPrimary },
+
+  filterBar: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 6,
+    paddingBottom: space.s2,
+  },
+  filterChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 20,
+    backgroundColor: color.surfaceVariant,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  filterChipActive: { borderColor: color.primary, backgroundColor: color.primaryContainer },
+  filterChipText: { flex: 1, fontSize: 13, fontWeight: '600', color: color.onSurfaceVariant },
+  filterChipTextActive: { color: color.primary },
 
   monthRow: {
     flexDirection: 'row',

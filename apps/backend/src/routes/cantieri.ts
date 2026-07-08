@@ -52,6 +52,15 @@ function monthRange(month: string): { start: string; end: string } {
   return { start: `${month}-01`, end };
 }
 
+// Cap for unbounded ("all time") entry lists, newest first.
+const ALL_TIME_LIMIT = 500;
+
+// Optional 'YYYY-MM' — undefined/empty means "all time" (no date filter).
+function optionalMonth(raw: unknown): string | null {
+  if (raw === undefined || raw === '') return null;
+  return requireMonth(raw);
+}
+
 function requireMonth(raw: unknown): string {
   if (typeof raw !== 'string' || !MONTH_RE.test(raw)) {
     throw new ValidationError("month must be 'YYYY-MM'");
@@ -308,13 +317,32 @@ cantieriRouter.get(
   })
 );
 
-/* ----- GET /api/v1/cantieri/my/entries?month= — my entries for a month ----- */
+/* ----- GET /api/v1/cantieri/my/entries?month=&cantiere_id= — my entries ----- */
+/* month optional (omit = all time, capped); cantiere_id optional filter. */
 cantieriRouter.get(
   '/my/entries',
   requireCantieri,
   tenantHandler(async (req, res, client) => {
-    const month = requireMonth(req.query.month);
-    const { start, end } = monthRange(month);
+    const month = optionalMonth(req.query.month);
+    const cantiereId =
+      typeof req.query.cantiere_id === 'string' && req.query.cantiere_id
+        ? requireUuid(req.query.cantiere_id)
+        : null;
+
+    const params: unknown[] = [];
+    const filters: string[] = ['e.deleted_at IS NULL'];
+    if (month) {
+      const { start, end } = monthRange(month);
+      params.push(start);
+      const si = params.length;
+      params.push(end);
+      const ei = params.length;
+      filters.push(`e.entry_date >= $${si} AND e.entry_date < $${ei}`);
+    }
+    if (cantiereId) {
+      params.push(cantiereId);
+      filters.push(`e.cantiere_id = $${params.length}`);
+    }
     // Joined names go through the caller's own RLS visibility: a site/vehicle
     // the user was unassigned from since resolves to NULL, never an error.
     const r = await client.query(
@@ -324,10 +352,10 @@ cantieriRouter.get(
          FROM cantiere_entries e
          LEFT JOIN cantieri c ON c.id = e.cantiere_id
          LEFT JOIN mezzi m ON m.id = e.mezzo_id
-        WHERE e.deleted_at IS NULL
-          AND e.entry_date >= $1 AND e.entry_date < $2
-        ORDER BY e.entry_date DESC, e.created_at DESC`,
-      [start, end]
+        WHERE ${filters.join(' AND ')}
+        ORDER BY e.entry_date DESC, e.created_at DESC
+        ${month ? '' : `LIMIT ${ALL_TIME_LIMIT}`}`,
+      params
     );
     ok(res, { entries: r.rows });
   })
@@ -1200,13 +1228,19 @@ cantieriRouter.get(
   '/dashboard',
   requireCantieriAdmin,
   asyncHandler(async (req, res) => {
-    const month = requireMonth(req.query.month);
-    const { start, end } = monthRange(month);
+    const month = optionalMonth(req.query.month);
     // Minutes are summed in SQL from the same null/inverted-range rule as
     // cantieriIntervalMinutes (missing or inverted bounds contribute 0).
     const minutesSql = (col: string): string =>
       `SUM(CASE WHEN ${col}_start IS NOT NULL AND ${col}_end IS NOT NULL AND ${col}_end >= ${col}_start
                 THEN EXTRACT(EPOCH FROM (${col}_end - ${col}_start)) / 60 ELSE 0 END)`;
+    const params: unknown[] = [req.user!.tenantId];
+    let dateFilter = '';
+    if (month) {
+      const { start, end } = monthRange(month);
+      params.push(start, end);
+      dateFilter = `AND entry_date >= $${params.length - 1} AND entry_date < $${params.length}`;
+    }
     const r = await adminPool.query(
       `SELECT c.id, c.name, c.address, c.status,
               COALESCE(s.entries_count, 0)::int AS entries_count,
@@ -1223,13 +1257,12 @@ cantieriRouter.get(
                   ${minutesSql('activity')} AS activity_minutes,
                   MAX(entry_date) AS last_entry_date
              FROM cantiere_entries
-            WHERE tenant_id = $1 AND deleted_at IS NULL
-              AND entry_date >= $2 AND entry_date < $3
+            WHERE tenant_id = $1 AND deleted_at IS NULL ${dateFilter}
             GROUP BY cantiere_id
          ) s ON s.cantiere_id = c.id
         WHERE c.tenant_id = $1 AND c.deleted_at IS NULL
         ORDER BY c.name`,
-      [req.user!.tenantId, start, end]
+      params
     );
     ok(res, { month, sites: r.rows });
   })
@@ -1249,7 +1282,7 @@ interface SiteMonthData {
 async function loadSiteMonth(
   tenantId: string,
   siteId: string,
-  month: string
+  month: string | null
 ): Promise<SiteMonthData> {
   const site = await adminPool.query(
     `SELECT ${SITE_COLS} FROM cantieri
@@ -1259,7 +1292,13 @@ async function loadSiteMonth(
   if (site.rowCount === 0) throw new NotFoundError('cantiere');
   // Columns are the entry fields shown for THIS site (global + site-specific).
   const fields = entryDefsForCantiere(await loadFieldDefs(adminPool, 'entry', tenantId), siteId);
-  const { start, end } = monthRange(month);
+  const params: unknown[] = [tenantId, siteId];
+  let dateFilter = '';
+  if (month) {
+    const { start, end } = monthRange(month);
+    params.push(start, end);
+    dateFilter = `AND e.entry_date >= $${params.length - 1} AND e.entry_date < $${params.length}`;
+  }
   const entries = await adminPool.query(
     `SELECT ${ENTRY_COLS('e.')},
             ${USER_NAME_SQL} AS user_name,
@@ -1267,21 +1306,21 @@ async function loadSiteMonth(
        FROM cantiere_entries e
        LEFT JOIN auth_users au ON au.id = e.user_id
        LEFT JOIN mezzi m ON m.id = e.mezzo_id
-      WHERE e.tenant_id = $1 AND e.cantiere_id = $2 AND e.deleted_at IS NULL
-        AND e.entry_date >= $3 AND e.entry_date < $4
-      ORDER BY e.entry_date ASC, e.created_at ASC`,
-    [tenantId, siteId, start, end]
+      WHERE e.tenant_id = $1 AND e.cantiere_id = $2 AND e.deleted_at IS NULL ${dateFilter}
+      ORDER BY e.entry_date ASC, e.created_at ASC
+      ${month ? '' : `LIMIT ${ALL_TIME_LIMIT}`}`,
+    params
   );
   return { site: site.rows[0], fields, entries: entries.rows };
 }
 
-/* ----- GET /api/v1/cantieri/sites/:id/entries?month= ----- */
+/* ----- GET /api/v1/cantieri/sites/:id/entries?month= (month optional) ----- */
 cantieriRouter.get(
   '/sites/:id/entries',
   requireCantieriAdmin,
   asyncHandler(async (req, res) => {
     const id = requireUuid(req.params.id);
-    const month = requireMonth(req.query.month);
+    const month = optionalMonth(req.query.month);
     const { site, fields, entries } = await loadSiteMonth(req.user!.tenantId, id, month);
     ok(res, { site, fields, entries });
   })
