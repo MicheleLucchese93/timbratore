@@ -418,7 +418,7 @@ export function RichiesteScreen() {
         </View>
       )}
       {!loadingMine && mineRows.length === 0 && (
-        <EmptyState icon="calendar-outline" title={t('empty.mine')} subtitle={t('empty.mineSub')} />
+        <EmptyState icon="calendar-outline" title={t('empty.mine')} subtitle={t('empty.mineSub')} fill bare />
       )}
       {mineRows.map((r) => (
         <LeaveCard
@@ -456,7 +456,7 @@ export function RichiesteScreen() {
         </View>
       )}
       {!loadingInbox && inboxRows.length === 0 && (
-        <EmptyState icon="calendar-outline" title={t('empty.inbox')} subtitle={t('empty.inboxSub')} />
+        <EmptyState icon="calendar-outline" title={t('empty.inbox')} subtitle={t('empty.inboxSub')} fill bare />
       )}
       {inboxRows.map((r) => (
         <LeaveCard
@@ -1305,7 +1305,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: color.surface },
 
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 6, paddingBottom: 96 },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 6, paddingBottom: 96 },
 
   kpiRow: {
     flexDirection: 'row',

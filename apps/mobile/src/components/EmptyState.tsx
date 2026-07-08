@@ -13,14 +13,26 @@ export function EmptyState({
   title,
   subtitle,
   style,
+  fill,
+  bare,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   subtitle?: string;
   style?: StyleProp<ViewStyle>;
+  /**
+   * When the empty state is the whole page's content, set `fill` so the card
+   * centers in the available vertical space instead of sitting at the top.
+   * Requires the surrounding ScrollView `contentContainerStyle` to grow
+   * (`flexGrow: 1`) so there is height to fill.
+   */
+  fill?: boolean;
+  /** Drop the white card chrome (background + shadow) — icon/title/subtitle
+   * sit directly on the page. */
+  bare?: boolean;
 }) {
   return (
-    <View style={[styles.card, style]}>
+    <View style={[styles.card, fill && styles.cardFill, bare && styles.cardBare, style]}>
       <View style={styles.badge}>
         <Ionicons name={icon} size={26} color={color.primary} />
       </View>
@@ -31,6 +43,11 @@ export function EmptyState({
 }
 
 const styles = StyleSheet.create({
+  // `fill` stretches the card to consume all vertical space in its scroll
+  // container (content stays centered), instead of a top-anchored small card.
+  cardFill: { flex: 1, justifyContent: 'center' },
+  // `bare` strips the white card so the empty state blends into the page.
+  cardBare: { backgroundColor: 'transparent', shadowOpacity: 0, elevation: 0 },
   card: {
     backgroundColor: '#ffffff',
     borderRadius: 20,

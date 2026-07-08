@@ -220,7 +220,8 @@ export function DocumentiScreen() {
             icon="folder-open-outline"
             title={t('empty.title')}
             subtitle={t('empty.sub')}
-            style={styles.emptyOffset}
+            fill
+            bare
           />
         )}
 
@@ -301,7 +302,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: color.surface },
 
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 6, paddingBottom: 96 },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 6, paddingBottom: 96 },
 
   pageTitle: {
     fontSize: ty.h2.size,
@@ -320,7 +321,6 @@ const styles = StyleSheet.create({
   },
 
   centered: { paddingVertical: 48, alignItems: 'center' },
-  emptyOffset: { marginTop: space.s4 },
 
   card: {
     flexDirection: 'row',

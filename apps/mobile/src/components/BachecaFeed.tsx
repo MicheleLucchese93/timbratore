@@ -77,7 +77,7 @@ export const BachecaFeed = forwardRef<BachecaFeedHandle, { title?: string }>(fun
   );
 
   return (
-    <View>
+    <View style={styles.root}>
       <View style={styles.headerRow}>
         {title ? <Text style={styles.sectionTitle}>{title}</Text> : <View />}
         {items.length > 0 && (
@@ -107,6 +107,8 @@ export const BachecaFeed = forwardRef<BachecaFeedHandle, { title?: string }>(fun
           icon="megaphone-outline"
           title={unreadOnly ? t('emptyUnreadTitle') : t('emptyTitle')}
           subtitle={unreadOnly ? t('emptyUnreadSub') : t('emptySub')}
+          fill
+          bare
         />
       ) : (
         visible.map((b) => <BulletinCard key={b.id} item={b} onMarkRead={() => markRead(b.id)} />)
@@ -155,6 +157,7 @@ function BulletinCard({
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',

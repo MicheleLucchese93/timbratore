@@ -181,6 +181,8 @@ export function CorrectionsListPage({
           icon="document-text-outline"
           title={isAdmin ? t('empty.admin') : t('empty.user')}
           subtitle={isAdmin ? t('empty.adminSub') : t('empty.userSub')}
+          fill
+          bare
         />
       )}
       {data.map((r) => (
@@ -717,7 +719,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: color.surface },
 
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 6, paddingBottom: 96 },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 6, paddingBottom: 96 },
 
   centered: { paddingVertical: 48, alignItems: 'center' },
   emptyCard: {

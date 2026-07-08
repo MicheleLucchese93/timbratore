@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
 
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  listContent: { paddingHorizontal: 6, paddingBottom: 32, gap: 8 },
+  listContent: { flexGrow: 1, paddingHorizontal: 6, paddingBottom: 32, gap: 8 },
 
   item: {
     flexDirection: 'row',
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
 
-  empty: { alignItems: 'center', paddingVertical: 64, gap: 8 },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 64, gap: 8 },
   emptyTitle: { fontSize: 16, fontWeight: '700', color: color.onSurface, marginTop: 8 },
   emptySub: { fontSize: 13, color: color.onSurfaceVariant, textAlign: 'center', paddingHorizontal: 24 },
 });

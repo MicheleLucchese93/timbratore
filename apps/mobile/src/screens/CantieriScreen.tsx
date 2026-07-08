@@ -330,6 +330,8 @@ export function CantieriScreen() {
             icon="construct-outline"
             title={t('guard.title')}
             subtitle={t('guard.subtitle')}
+            fill
+            bare
           />
         </View>
       </SafeAreaView>
@@ -410,6 +412,8 @@ export function CantieriScreen() {
             icon="business-outline"
             title={t('form.noSitesTitle')}
             subtitle={t('form.noSitesSubtitle')}
+            fill
+            bare
           />
         ) : (
           <>
@@ -598,6 +602,8 @@ export function CantieriScreen() {
             icon="construct-outline"
             title={t('list.empty')}
             subtitle={t('list.emptySub')}
+            fill
+            bare
           />
         )}
         {byDay.map(({ day, rows }) => (
@@ -977,8 +983,8 @@ const styles = StyleSheet.create({
   guardWrap: { flex: 1, justifyContent: 'center', paddingHorizontal: space.s4 },
 
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 6, paddingBottom: 96 },
-  formContent: { padding: 6, paddingBottom: 16, gap: 14 },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 6, paddingBottom: 96 },
+  formContent: { flexGrow: 1, padding: 6, paddingBottom: 16, gap: 14 },
 
   centered: { paddingVertical: 48, alignItems: 'center' },
 

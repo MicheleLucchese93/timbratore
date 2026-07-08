@@ -41,5 +41,5 @@ export function BachecaScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: color.surface },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 6, paddingTop: 8, paddingBottom: 44 },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 6, paddingTop: 8, paddingBottom: 44 },
 });

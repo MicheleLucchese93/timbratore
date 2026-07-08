@@ -144,7 +144,7 @@ export function StoricoContent() {
           </View>
         )}
         {!loading && byDay.length === 0 && (
-          <EmptyState icon="calendar-outline" title={tr('empty')} subtitle={tr('emptySub')} />
+          <EmptyState icon="calendar-outline" title={tr('empty')} subtitle={tr('emptySub')} fill bare />
         )}
         {byDay.map((d) => (
           <DayCard key={d.day} day={d.day} stamps={d.stamps} assignment={assignment} leaves={leaves} />
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
   tabPillTextActive: { color: color.onPrimary },
 
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 6, paddingBottom: 44 },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 6, paddingBottom: 44 },
 
   summaryCard: {
     flexDirection: 'row',
