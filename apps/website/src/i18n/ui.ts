@@ -22,7 +22,7 @@ export const ui = {
     'video.play': 'Riproduci il video demo',
 
     // Hero
-    'hero.tagline': 'La timbratura è qui.',
+    'hero.tagline': 'La timbratura è qui: rilevazione presenze con GPS',
     'hero.subtitle':
       "sonoQui è l'app di rilevazione presenze pensata per le PMI italiane. Timbra in un tap, gestisci ferie e correzioni, esporta tutto per il commercialista.",
     'hero.cta.appstore': 'App Store',
@@ -30,7 +30,7 @@ export const ui = {
     'hero.cta.web': 'Apri la dashboard',
 
     // Features
-    'features.title': 'Quello che ti serve, niente di più',
+    'features.title': 'Rilevazione presenze: quello che ti serve, niente di più',
     'features.subtitle':
       'Semplice per chi timbra. Potente per chi amministra. Nel rispetto della normativa italiana.',
 
@@ -136,7 +136,7 @@ export const ui = {
     'partner.cta.login': 'Accedi alla console',
     'partner.cta.note': 'Hai già un account partner?',
     'partner.page.title':
-      'Diventa partner sonoQui: rivendi la rilevazione presenze ai tuoi clienti',
+      'Rilevazione presenze per commercialisti e consulenti del lavoro: il programma partner sonoQui',
     'partner.page.lead':
       "Programma partner per commercialisti, consulenti del lavoro e software house. Attivi e gestisci le aziende dei tuoi clienti da un'unica console, con un margine ricorrente. Al prodotto, all'infrastruttura e all'assistenza pensiamo noi.",
     'partner.page.faq.title': 'Domande frequenti sul programma partner',

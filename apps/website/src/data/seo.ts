@@ -303,3 +303,292 @@ export function buildHomeSchemas(lang: Lang) {
     buildFaqSchema(lang),
   ];
 }
+
+// ---------------------------------------------------------------------------
+// Standalone content/landing pages (rendered by src/pages/it/[slug].astro).
+// These earn the non-brand search footprint the homepage alone can't: dedicated
+// solution pages for "timbratura GPS" and "rilevazione presenze PMI", plus a
+// buyer-guide listicle. Italian-only, matching the rest of the site.
+// ---------------------------------------------------------------------------
+
+export type ContentSection = { heading: string; body: string[] };
+export type ContentPage = {
+  key: string;
+  slug: string;
+  breadcrumb: string;
+  title: string;
+  description: string;
+  h1: string;
+  intro: string;
+  highlights: string[];
+  sections: ContentSection[];
+  faq: FaqItem[];
+  cta: { title: string; text: string };
+  // Tool names for the ItemList node (buyer-guide page only).
+  itemList?: string[];
+};
+
+export const contentPages: ContentPage[] = [
+  {
+    key: 'timbratura-gps-app',
+    slug: 'timbratura-gps-app',
+    breadcrumb: 'Timbratura GPS',
+    title: 'App di timbratura GPS: timbra il cartellino dallo smartphone | sonoQui',
+    description:
+      "App di timbratura GPS per PMI italiane: i dipendenti timbrano il cartellino dallo smartphone, con la posizione verificata solo al momento del tap. Nel rispetto dell'art. 4. Da 24,99 €/mese.",
+    h1: 'Timbratura GPS: il cartellino è nello smartphone dei tuoi dipendenti',
+    intro:
+      "sonoQui trasforma lo smartphone in un cartellino digitale: un tap per timbrare, con la posizione verificata solo in quel momento per confermare che il dipendente sia nella sede di lavoro. Niente badge, niente totem, niente hardware da installare.",
+    highlights: [
+      'Timbratura in un tap da iOS e Android',
+      'Posizione rilevata solo al momento del tap, mai in background',
+      "Progettata nel rispetto dell'art. 4 dello Statuto dei Lavoratori",
+    ],
+    sections: [
+      {
+        heading: 'Come funziona la timbratura GPS',
+        body: [
+          "Quando un dipendente tocca «Timbra», sonoQui rileva la posizione una sola volta e verifica che sia entro la tolleranza della sede di lavoro. Il raggio è configurabile per sede, da 50 a 1500 metri (di default 300 m), così puoi adattarlo a un ufficio, a un negozio o a un cantiere.",
+          "La posizione non viene mai tracciata di continuo né in background: il GPS entra in gioco solo nell'istante della timbratura, e il dipendente riceve subito la conferma se è nel posto giusto.",
+        ],
+      },
+      {
+        heading: 'Timbrare senza badge né hardware',
+        body: [
+          "Il cartellino fisico e i lettori a muro diventano superflui: ogni dipendente usa il proprio telefono. Questo azzera i costi di installazione e manutenzione dell'hardware e rende la timbratura immediata anche per chi lavora su più sedi o in mobilità.",
+          "Per chi amministra, ogni timbratura arriva in tempo reale nella dashboard web, con orario, sede e stato della giornata già pronti per l'export di fine mese.",
+        ],
+      },
+      {
+        heading: "Timbratura GPS e art. 4 dello Statuto dei Lavoratori",
+        body: [
+          "sonoQui è progettata nel rispetto dell'art. 4: rileva la posizione solo al momento della timbratura, mai in continuo, e non utilizza riconoscimento facciale né dati biometrici. I dati GPS di dettaglio vengono mascherati dopo 90 giorni, lasciando solo la sede di riferimento.",
+          "L'attivazione resta comunque subordinata agli obblighi dell'art. 4 a carico del datore di lavoro: accordo sindacale aziendale oppure autorizzazione dell'Ispettorato Territoriale del Lavoro. È uno strumento pensato per aiutarti a rispettare la norma, non per aggirarla.",
+        ],
+      },
+      {
+        heading: 'Fuori sede, cantieri e smart working',
+        body: [
+          "Una sede può essere impostata come «fuori sede»: per quei dipendenti la timbratura avviene senza verifica della posizione, mentre per le sedi fisiche la verifica GPS resta attiva. È la soluzione per trasferte, lavoro da remoto e cantieri, senza rinunciare al controllo dove serve.",
+          "Se un dipendente dimentica di timbrare, può richiedere una correzione dall'app indicando orario e motivo; l'amministratore approva o rifiuta e ogni modifica resta tracciata con audit log completo.",
+        ],
+      },
+    ],
+    faq: [
+      homeFaq.it[0], // Come funziona la timbratura GPS?
+      homeFaq.it[1], // conforme art. 4?
+      homeFaq.it[4], // dimenticanza timbratura
+      homeFaq.it[9], // quanto costa
+    ],
+    cta: {
+      title: 'Porta la timbratura nello smartphone dei tuoi dipendenti',
+      text: 'Scarica sonoQui o richiedi l’attivazione per la tua azienda: ti aiutiamo a partire in pochi giorni.',
+    },
+  },
+  {
+    key: 'rilevazione-presenze-pmi',
+    slug: 'rilevazione-presenze-pmi',
+    breadcrumb: 'Rilevazione presenze per PMI',
+    title: 'Software di rilevazione presenze per PMI italiane | sonoQui',
+    description:
+      'Software di rilevazione presenze pensato per le PMI italiane: timbratura GPS, ferie, permessi, anomalie ed export per il commercialista. Da 24,99 €/mese, tutto incluso.',
+    h1: 'Il software di rilevazione presenze pensato per le PMI italiane',
+    intro:
+      "sonoQui è il sistema di rilevazione presenze su misura per le piccole e medie imprese italiane: semplice per chi timbra, completo per chi amministra e già pronto per il commercialista. Tutte le funzionalità sono incluse, senza moduli a pagamento.",
+    highlights: [
+      'Timbratura, ferie, permessi e anomalie in un’unica app',
+      'Export XLSX mensile pronto per le paghe italiane',
+      'Prezzo fisso per fascia, tutto incluso, da 24,99 €/mese',
+    ],
+    sections: [
+      {
+        heading: 'Perché una PMI ha bisogno di un sistema di rilevazione presenze',
+        body: [
+          "La sentenza della Corte di Giustizia UE nel caso CCOO (2019) obbliga i datori di lavoro a dotarsi di un sistema oggettivo, affidabile e accessibile per misurare l'orario di lavoro. In pratica i fogli presenze cartacei e i file Excel non firmati non bastano più come documentazione.",
+          "Per una PMI questo non deve tradursi in una suite HR complessa e costosa: serve uno strumento che i dipendenti usino davvero e che faccia risparmiare tempo a chi gestisce le paghe.",
+        ],
+      },
+      {
+        heading: 'Tutto quello che serve per chiudere il mese',
+        body: [
+          "I dipendenti timbrano in un tap, richiedono ferie, permessi e malattia e segnalano le correzioni dall'app. Gli amministratori approvano dalla dashboard web, con anomalie (turni oltre 14 ore, pause sospette, timbrature fuori sede) già evidenziate e risolvibili.",
+          "A fine mese generi con un click un export XLSX nel formato utile alle paghe italiane — ore ordinarie e straordinari, ferie e permessi, totali per dipendente e sede — da consegnare al commercialista senza ricopiare nulla a mano.",
+        ],
+      },
+      {
+        heading: 'Prezzi trasparenti, pensati per le PMI',
+        body: [
+          "sonoQui parte da 24,99 €/mese per le aziende fino a 10 dipendenti (massimo 3 sedi) e 39,99 €/mese fino a 20 dipendenti (massimo 5 sedi). Tutte le funzionalità sono incluse in entrambi i piani, senza moduli aggiuntivi né costi nascosti.",
+          "Con la fatturazione annuale hai 1 mese gratis. Oltre i limiti del piano aggiungi singoli dipendenti a 1,99 €/mese e sedi a 2,99 €/mese. Prezzi IVA esclusa; l'app è gratuita da scaricare e l'attivazione avviene su richiesta.",
+        ],
+      },
+      {
+        heading: 'Conforme al GDPR e alla normativa italiana',
+        body: [
+          "I dati sono cifrati in transito e a riposo e conservati su server nell'Unione Europea; quelli di ogni azienda sono isolati con Row Level Security e non sono mai visibili ad altre aziende. Le timbrature si conservano di default per 5 anni (configurabili fino a 10).",
+          "La rilevazione della posizione avviene solo al momento della timbratura, senza riconoscimento facciale né dati biometrici, nel rispetto dell'art. 4 dello Statuto dei Lavoratori. Puoi anche gestire smart working e sedi multiple, con approvatori dedicati per singola sede.",
+        ],
+      },
+    ],
+    faq: [
+      homeFaq.it[2], // export commercialista
+      homeFaq.it[5], // sicurezza dati
+      homeFaq.it[9], // prezzo
+      homeFaq.it[11], // come iniziamo
+    ],
+    cta: {
+      title: 'Prova sonoQui nella tua PMI',
+      text: 'Compila il modulo di contatto: attiviamo noi la tua azienda e creiamo il primo account amministratore, in genere entro 1-2 giorni lavorativi.',
+    },
+  },
+  {
+    key: 'migliori-app-rilevazione-presenze',
+    slug: 'migliori-app-rilevazione-presenze-2026',
+    breadcrumb: 'Migliori app rilevazione presenze 2026',
+    title: 'Migliori app di rilevazione presenze per PMI (2026) | sonoQui',
+    description:
+      'Guida 2026 alle app di rilevazione presenze per PMI italiane: i criteri per scegliere e una panoramica onesta delle soluzioni — sonoQui, Fluida, Factorial, Jibble, Dipendenti in Cloud e Zucchetti.',
+    h1: 'Migliori app di rilevazione presenze per PMI italiane (2026)',
+    intro:
+      "Scegliere un'app di rilevazione presenze non significa cercare quella con più funzioni, ma quella che i tuoi dipendenti useranno davvero e che ti fa chiudere il mese senza fatica. Ecco i criteri che contano e una panoramica onesta delle soluzioni sul mercato italiano nel 2026, sonoQui inclusa.",
+    highlights: [
+      'I criteri di scelta che contano per una PMI',
+      'Panoramica delle principali soluzioni italiane e internazionali',
+      'Quando conviene sonoQui e quando un’altra soluzione',
+    ],
+    sections: [
+      {
+        heading: 'Come scegliere: i criteri che contano',
+        body: [
+          "Conformità normativa: l'app deve aiutarti a rispettare l'art. 4 dello Statuto dei Lavoratori e il GDPR, e a soddisfare l'obbligo (sentenza CGUE CCOO, 2019) di un sistema oggettivo e affidabile di misurazione dell'orario.",
+          "Timbratura mobile e senza hardware: per una PMI la soluzione più sostenibile è la timbratura da smartphone, con verifica GPS della sede, senza badge fisici né lettori a muro.",
+          "Gestione completa e export per le paghe: ferie, permessi, anomalie e soprattutto un export mensile nel formato utile al commercialista fanno la differenza sul tempo risparmiato. Infine il prezzo: chiaro, prevedibile e proporzionato ai numeri di una piccola azienda.",
+        ],
+      },
+      {
+        heading: 'sonoQui',
+        body: [
+          "Pensata specificamente per le PMI italiane: timbratura GPS al tap, gestione di ferie, permessi e anomalie, ed export XLSX pronto per il commercialista. Il focus è la conformità all'art. 4 (posizione solo al tap, nessun dato biometrico, GPS mascherato dopo 90 giorni) e un prezzo fisso per fascia — da 24,99 €/mese, tutte le funzionalità incluse, senza hardware.",
+        ],
+      },
+      {
+        heading: 'Fluida',
+        body: [
+          "App italiana con forte focus sulla geolocalizzazione (Bluetooth, GPS, NFC), adatta a team distribuiti, lavoratori in mobilità e cantieri. Copre presenze, ferie e permessi e note spese, con listino a consumo per dipendente.",
+        ],
+      },
+      {
+        heading: 'Factorial',
+        body: [
+          "Piattaforma HR all-in-one di origine spagnola, molto diffusa tra le PMI in crescita. Oltre alla rilevazione presenze con geolocalizzazione al momento della timbratura, offre un ventaglio ampio di funzioni HR (buste paga, documenti, reportistica). Adatta a chi cerca una suite completa più che un singolo strumento presenze.",
+        ],
+      },
+      {
+        heading: 'Jibble',
+        body: [
+          "Soluzione internazionale con un piano gratuito, app mobile che funziona offline, geofencing e riconoscimento facciale. È un'opzione conveniente per piccole imprese e startup; valuta con attenzione l'uso del riconoscimento facciale alla luce dell'art. 4 e del GDPR nel contesto italiano.",
+        ],
+      },
+      {
+        heading: 'Dipendenti in Cloud',
+        body: [
+          "Piattaforma HR italiana molto diffusa tra commercialisti e consulenti del lavoro, integrata con diversi software di paghe italiani. Copre timbrature, ferie e documenti: una scelta naturale per gli studi che gestiscono più aziende clienti.",
+        ],
+      },
+      {
+        heading: 'Zucchetti HR Infinity',
+        body: [
+          "La suite HR completa del principale fornitore italiano di gestionali: rilevazione presenze, paghe, controllo accessi e molto altro. È la scelta tipica di medie e grandi aziende con esigenze articolate, più che della piccola impresa che cerca semplicità.",
+        ],
+      },
+      {
+        heading: 'In sintesi: qual è la scelta giusta',
+        body: [
+          "Non esiste un'app «migliore» in assoluto: dipende dai tuoi numeri e dalle tue priorità. Per una PMI italiana che vuole timbratura GPS senza hardware, conformità all'art. 4 ed export pronto per il commercialista, con un prezzo fisso e prevedibile, sonoQui è pensata esattamente per questo caso.",
+          "Se ti serve una suite HR ampia (Factorial), un'integrazione stretta con lo studio paghe (Dipendenti in Cloud), o una piattaforma enterprise (Zucchetti), quelle soluzioni possono essere più adatte. L'importante è partire dai criteri, non dall'elenco di funzioni.",
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: "Qual è la migliore app di rilevazione presenze per una PMI?",
+        answer:
+          "Dipende dai numeri e dalle priorità dell'azienda. Per una PMI italiana che cerca timbratura GPS da smartphone, conformità all'art. 4 ed export per il commercialista con un prezzo fisso, sonoQui è pensata per questo scenario. Aziende più grandi o con esigenze HR ampie possono trovarsi meglio con suite come Factorial o Zucchetti.",
+      },
+      {
+        question: "Serve un badge o un hardware dedicato per timbrare?",
+        answer:
+          "No, con le soluzioni mobili come sonoQui i dipendenti timbrano dal proprio smartphone, con verifica GPS della sede. Non servono badge fisici né lettori a muro, azzerando i costi di installazione e manutenzione.",
+      },
+      {
+        question: "La timbratura GPS è conforme all'art. 4 dello Statuto dei Lavoratori?",
+        answer:
+          "Può esserlo se la posizione viene rilevata solo al momento della timbratura, senza tracciamento continuo né dati biometrici, e se il datore di lavoro rispetta gli obblighi dell'art. 4 (accordo sindacale o autorizzazione dell'Ispettorato del Lavoro). sonoQui è progettata con questi vincoli in mente.",
+      },
+      {
+        question: "Quanto costa un'app di rilevazione presenze?",
+        answer:
+          "I modelli variano tra prezzo per dipendente e prezzo fisso per fascia. sonoQui parte da 24,99 €/mese fino a 10 dipendenti e 39,99 €/mese fino a 20, con tutte le funzionalità incluse e nessun costo hardware; altre soluzioni adottano listini a consumo per dipendente.",
+      },
+    ],
+    cta: {
+      title: 'Cerchi la rilevazione presenze giusta per la tua PMI?',
+      text: 'Prova sonoQui: timbratura GPS, gestione presenze completa ed export per il commercialista, a un prezzo fisso e trasparente.',
+    },
+    itemList: ['sonoQui', 'Fluida', 'Factorial', 'Jibble', 'Dipendenti in Cloud', 'Zucchetti HR Infinity'],
+  },
+];
+
+export const getContentPages = () => contentPages;
+export const getContentPage = (slug: string) =>
+  contentPages.find((page) => page.slug === slug);
+
+// Internal links to the content pages, for footer / cross-linking.
+export const contentPageLinks = contentPages.map((page) => ({
+  href: `/it/${page.slug}/`,
+  label: page.breadcrumb,
+}));
+
+// Structured data for a content page: WebPage + Breadcrumb + Organization + FAQ,
+// plus an ItemList on the buyer-guide page.
+export function buildContentPageSchemas(page: ContentPage) {
+  const url = `${SITE_URL}/it/${page.slug}/`;
+  const webPage = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: page.title,
+    description: page.description,
+    url,
+    inLanguage: 'it-IT',
+    isPartOf: { '@type': 'WebSite', name: 'sonoQui', url: SITE_URL },
+    about: buildOrganizationSchema(),
+    primaryImageOfPage: { '@type': 'ImageObject', url: `${SITE_URL}${DEFAULT_IMAGE}` },
+  };
+  const breadcrumb = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/it/` },
+      { '@type': 'ListItem', position: 2, name: page.breadcrumb, item: url },
+    ],
+  };
+  const nodes: Record<string, unknown>[] = [
+    webPage,
+    breadcrumb,
+    buildOrganizationSchema(),
+    faqPageSchema(page.faq),
+  ];
+  if (page.itemList) {
+    nodes.push({
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: page.title,
+      itemListElement: page.itemList.map((name, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name,
+      })),
+    });
+  }
+  return nodes;
+}

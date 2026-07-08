@@ -1,0 +1,149 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import {
+  getContentPages,
+  buildContentPageSchemas,
+  APP_STORE_URL,
+  PLAY_STORE_URL,
+  WEB_APP_URL,
+  type ContentPage,
+} from "../../data/seo";
+
+export function getStaticPaths() {
+  return getContentPages().map((page) => ({
+    params: { slug: page.slug },
+    props: { page },
+  }));
+}
+
+interface Props {
+  page: ContentPage;
+}
+
+const { page } = Astro.props;
+---
+
+<BaseLayout
+  title={page.title}
+  description={page.description}
+  type="article"
+  alternatePaths={{ it: `/it/${page.slug}/` }}
+  schema={buildContentPageSchemas(page)}
+>
+  <article class="bg-white pt-28 sm:pt-36">
+    <header class="mx-auto max-w-4xl px-4 pb-14 sm:px-6 sm:pb-20">
+      <nav class="text-sm text-on-surface-variant" aria-label="Breadcrumb">
+        <a href="/it/" class="hover:text-primary">sonoQui</a>
+        <span class="mx-2">/</span>
+        <span>{page.breadcrumb}</span>
+      </nav>
+
+      <h1 class="mt-8 text-3xl font-extrabold leading-tight tracking-tight text-on-surface text-balance sm:text-5xl">
+        {page.h1}
+      </h1>
+      <p class="mt-6 text-lg leading-relaxed text-on-surface-variant sm:text-xl">
+        {page.intro}
+      </p>
+
+      <ul class="mt-8 grid gap-3 sm:grid-cols-3">
+        {page.highlights.map((highlight) => (
+          <li class="rounded-lg border border-gray-100 bg-surface px-4 py-3 text-sm font-medium text-on-surface">
+            {highlight}
+          </li>
+        ))}
+      </ul>
+
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a
+          href={APP_STORE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center justify-center rounded-lg bg-on-surface px-5 py-2.5 text-sm font-semibold text-white hover:bg-on-surface/90 transition-colors"
+        >
+          App Store
+        </a>
+        <a
+          href={PLAY_STORE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center justify-center rounded-lg bg-on-surface px-5 py-2.5 text-sm font-semibold text-white hover:bg-on-surface/90 transition-colors"
+        >
+          Google Play
+        </a>
+        <a
+          href={WEB_APP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center justify-center rounded-lg border border-on-surface px-5 py-2.5 text-sm font-semibold text-on-surface hover:bg-on-surface/5 transition-colors"
+        >
+          Apri la dashboard
+        </a>
+      </div>
+    </header>
+
+    <div class="border-y border-gray-100 bg-surface py-14">
+      <div class="mx-auto grid max-w-4xl gap-10 px-4 sm:px-6">
+        {page.sections.map((section) => (
+          <section>
+            <h2 class="text-2xl font-bold tracking-tight text-on-surface">
+              {section.heading}
+            </h2>
+            <div class="mt-4 space-y-4">
+              {section.body.map((paragraph) => (
+                <p class="text-base leading-relaxed text-on-surface-variant">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    </div>
+
+    <section id="faq" class="mx-auto max-w-4xl px-4 py-14 sm:px-6">
+      <h2 class="text-2xl font-bold tracking-tight text-on-surface">
+        Domande frequenti
+      </h2>
+      <div class="mt-6 divide-y divide-gray-100 rounded-lg border border-gray-100">
+        {page.faq.map((item) => (
+          <details class="group p-5">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-left font-semibold text-on-surface">
+              <span>{item.question}</span>
+              <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface text-primary transition-transform group-open:rotate-45">
+                +
+              </span>
+            </summary>
+            <p class="mt-3 text-sm leading-relaxed text-on-surface-variant">
+              {item.answer}
+            </p>
+          </details>
+        ))}
+      </div>
+    </section>
+
+    <section class="bg-primary py-14">
+      <div class="mx-auto max-w-4xl px-4 text-center sm:px-6">
+        <h2 class="text-3xl font-bold text-white">
+          {page.cta.title}
+        </h2>
+        <p class="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-white/80">
+          {page.cta.text}
+        </p>
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <a
+            href="/it/#contact"
+            class="inline-flex items-center justify-center rounded-full bg-white px-7 py-3 text-base font-semibold text-primary hover:bg-white/90 transition-colors"
+          >
+            Richiedi l'accesso
+          </a>
+          <a
+            href="/it/#pricing"
+            class="inline-flex items-center justify-center rounded-full border border-white/70 px-7 py-3 text-base font-semibold text-white hover:bg-white/10 transition-colors"
+          >
+            Vedi i prezzi
+          </a>
+        </div>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
