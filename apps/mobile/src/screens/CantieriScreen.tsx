@@ -680,6 +680,7 @@ export function CantieriScreen() {
         title={t('form.sitePickerTitle')}
         options={sites.map((s) => ({ id: s.id, label: s.name }))}
         selectedId={cantiereId}
+        bottomInset={insets.bottom}
         onSelect={(id) => {
           if (id) {
             setCantiereId(id);
@@ -696,6 +697,7 @@ export function CantieriScreen() {
         options={sites.map((s) => ({ id: s.id, label: s.name }))}
         selectedId={filterCantiereId}
         clearLabel={t('filter.allSites')}
+        bottomInset={insets.bottom}
         onSelect={setFilterCantiereId}
         onClose={() => setFilterPickerOpen(false)}
       />
@@ -729,6 +731,7 @@ export function CantieriScreen() {
             options={mezzi.map((m) => ({ id: m.id, label: m.name }))}
             selectedId={mezzoId}
             clearLabel={t('form.mezzoNone')}
+            bottomInset={insets.bottom}
             onSelect={setMezzoId}
             onClose={() => setMezzoPickerOpen(false)}
           />
@@ -742,6 +745,7 @@ export function CantieriScreen() {
                 : null
             }
             clearLabel={openSelectDef && !openSelectDef.required ? t('form.selectNone') : undefined}
+            bottomInset={insets.bottom}
             onSelect={(id) => {
               if (openSelectDef) setCustomValue(openSelectDef.key, id ?? '');
             }}
@@ -819,6 +823,7 @@ function ListPickerModal({
   options,
   selectedId,
   clearLabel,
+  bottomInset,
   onSelect,
   onClose,
 }: {
@@ -827,13 +832,18 @@ function ListPickerModal({
   options: PickerOption[];
   selectedId: string | null;
   clearLabel?: string;
+  // Bottom safe-area inset, read from the screen (it is 0 inside a RN <Modal>)
+  // so the sheet clears the Android nav bar / iOS home indicator.
+  bottomInset: number;
   onSelect: (id: string | null) => void;
   onClose: () => void;
 }) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.pickerOverlay} onPress={onClose}>
-        <Pressable style={styles.pickerSheet} onPress={() => undefined}>
+        <Pressable
+          style={[styles.pickerSheet, { paddingBottom: bottomInset + 24 }]}
+          onPress={() => undefined}>
           <View style={styles.pickerHeader}>
             <Text style={styles.pickerTitle}>{title}</Text>
             <TouchableOpacity onPress={onClose} hitSlop={8}>
@@ -1205,7 +1215,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
-    paddingBottom: 24,
+    // paddingBottom is applied inline (bottomInset + 24) to clear the nav bar.
     maxHeight: '70%',
   },
   pickerHeader: {
