@@ -559,7 +559,7 @@ function DayStampEditor({
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50" onClick={onClose}>
-      <div data-testid="day-editor" className="card w-full max-w-lg space-y-3" onClick={(e) => e.stopPropagation()}>
+      <div data-testid="day-editor" className="card w-full max-w-3xl space-y-3" onClick={(e) => e.stopPropagation()}>
         <h2 className="section-title">
           {userLabel(user)} · {fmtDate(dateIso, { weekday: 'long', day: '2-digit', month: 'long' })}
         </h2>

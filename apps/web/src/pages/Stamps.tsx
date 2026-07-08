@@ -318,7 +318,7 @@ function StampForm({
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
-      <form onSubmit={submit} className="card w-full max-w-md space-y-3">
+      <form onSubmit={submit} className="card w-full max-w-2xl space-y-3">
         <h2 className="section-title">{stamp ? t('editStamp') : t('newStamp')}</h2>
         {!stamp && (
           <div>

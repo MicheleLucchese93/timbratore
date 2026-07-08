@@ -115,7 +115,7 @@ export function NewLeaveModal({ onClose, onDone }: { onClose: () => void; onDone
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50" onClick={onClose}>
-      <div className="card w-full max-w-md space-y-3 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="card w-full max-w-2xl space-y-3 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <h2 className="section-title">{t('title')}</h2>
         <div>
           <label className="label">{t('field.type')}</label>

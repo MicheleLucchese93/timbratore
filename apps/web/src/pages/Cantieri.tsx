@@ -225,7 +225,7 @@ function SiteModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50 overflow-y-auto">
-      <form onSubmit={submit} className="card w-full max-w-lg space-y-3 my-4">
+      <form onSubmit={submit} className="card w-full max-w-3xl space-y-3 my-4">
         <h2 className="section-title">
           {existing ? t('form.editTitle') : t('form.createTitle')}
         </h2>

@@ -870,7 +870,7 @@ function BulkAssignQuotaModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
-      <form onSubmit={submit} className="card w-full max-w-md space-y-3">
+      <form onSubmit={submit} className="card w-full max-w-2xl space-y-3">
         <h2 className="section-title">{t('quotas.bulkTitle', { count: userIds.length })}</h2>
         <div>
           <label className="label">{t('adjust.type')}</label>
@@ -1029,7 +1029,7 @@ function AssignmentEditor({
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
-      <form onSubmit={submit} className="card w-full max-w-md space-y-3">
+      <form onSubmit={submit} className="card w-full max-w-2xl space-y-3">
         <h2 className="section-title">
           {t('editor.title', {
             type: type === 'ferie' ? t('common:leaveType.ferie') : t('quotas.permessiPlural'),
@@ -1169,7 +1169,7 @@ function ManualAdjustModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
-      <form onSubmit={submit} className="card w-full max-w-md space-y-3">
+      <form onSubmit={submit} className="card w-full max-w-2xl space-y-3">
         <h2 className="section-title">{t('adjust.title', { user: userLabel })}</h2>
         <p className="text-xs muted">
           {t('adjust.intro')}
@@ -1499,7 +1499,7 @@ function TemplateEditor({
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
-      <form onSubmit={submit} className="card w-full max-w-lg space-y-3">
+      <form onSubmit={submit} className="card w-full max-w-3xl space-y-3">
         <h2 className="section-title">
           {initial.id ? t('templateForm.editTitle') : t('templateForm.newTitle')}
         </h2>
