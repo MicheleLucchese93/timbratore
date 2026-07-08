@@ -25,6 +25,12 @@ CREATE INDEX IF NOT EXISTS cantiere_field_cantieri_field_idx
 CREATE INDEX IF NOT EXISTS cantiere_field_cantieri_cantiere_idx
   ON cantiere_field_cantieri(tenant_id, cantiere_id);
 
+-- Own the table with the app's service role (matches every other module table,
+-- 054), so adminPool — which connects as sonoqui_owner — can write it and bypass
+-- RLS for management. Without this the table is owned by whoever runs the
+-- migration and adminPool only gets the SELECT grant below → writes are denied.
+ALTER TABLE cantiere_field_cantieri OWNER TO sonoqui_owner;
+
 ALTER TABLE cantiere_field_cantieri ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
