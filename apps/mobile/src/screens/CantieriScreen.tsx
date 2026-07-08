@@ -17,7 +17,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import {
@@ -52,6 +52,10 @@ type RawCustomMap = Record<string, string | boolean>;
 export function CantieriScreen() {
   const { t } = useTranslation(['cantieri', 'common']);
   const { me } = useSession();
+  // Read once from the screen (outside the Modal): react-native-safe-area-context
+  // reports 0 insets inside a RN <Modal>, so the modal header would slide under
+  // the notch/status bar. Apply this top inset to the modal manually.
+  const insets = useSafeAreaInsets();
   // Tab is hidden when the module is off, but the route can still be reached
   // (deep link / stale session) — same predicate as the tab-bar filter.
   const enabled =
@@ -166,6 +170,10 @@ export function CantieriScreen() {
   function openNew() {
     resetForm();
     setFormOpen(true);
+    // Ask which cantiere first: one assigned site → preselect it; several →
+    // open the picker straight away so the user picks before filling the form.
+    if (sites.length === 1) setCantiereId(sites[0].id);
+    else if (sites.length > 1) setSitePickerOpen(true);
   }
 
   function closeForm() {
@@ -617,7 +625,7 @@ export function CantieriScreen() {
       </TouchableOpacity>
 
       <Modal visible={formOpen} animationType="slide" onRequestClose={closeForm}>
-        <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={[styles.safe, { paddingTop: insets.top }]}>
           <View style={styles.formHeader}>
             <Text style={styles.formHeaderTitle} numberOfLines={1}>
               {editing ? t('modal.editTitle') : t('modal.newTitle')}
@@ -664,7 +672,7 @@ export function CantieriScreen() {
             }}
             onClose={() => setOpenSelectKey(null)}
           />
-        </SafeAreaView>
+        </View>
       </Modal>
     </SafeAreaView>
   );
