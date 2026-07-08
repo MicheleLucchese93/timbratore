@@ -1118,6 +1118,8 @@ function UserEditor({
         <p className="text-xs muted">
           {t('userEditor.emailHint', { email: user.email })}
         </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-3">
+        <div className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="label">{t('userEditor.firstName')}</label>
@@ -1158,6 +1160,8 @@ function UserEditor({
           />
         </div>
 
+        </div>
+        <div className="space-y-3">
         <div>
           <label className="flex items-start gap-2 text-sm cursor-pointer">
             <input
@@ -1190,6 +1194,8 @@ function UserEditor({
           </div>
         )}
 
+        </div>
+        </div>
         <div className="hairline my-1" />
         <p className="text-xs muted">{t('userEditor.anagraficaHint')}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1875,6 +1881,8 @@ function InviteForm({
       <form onSubmit={submit} className="card w-full max-w-4xl max-h-[90vh] overflow-y-auto space-y-3">
         <h2 className="section-title">{t('invite.title')}</h2>
         <p className="text-xs muted">{t('invite.subtitle')}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-3">
+        <div className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="label">{t('invite.firstName')} <span className="muted">{t('invite.optional')}</span></label>
@@ -1923,6 +1931,8 @@ function InviteForm({
             <option value="admin">{t('common:role.admin')}</option>
           </select>
         </div>
+        </div>
+        <div className="space-y-3">
         <div>
           <label className="flex items-start gap-2 text-sm cursor-pointer">
             <input
@@ -2003,6 +2013,8 @@ function InviteForm({
             <span>{t('invite.sendResetEmail')}</span>
           </label>
           <p className="text-xs muted mt-1">{t('invite.sendResetEmailHint')}</p>
+        </div>
+        </div>
         </div>
 
         <div className="hairline my-1" />
