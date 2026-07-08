@@ -172,14 +172,24 @@ export function CantieriDashboard() {
                 </option>
               ))}
             </select>
-            <button
-              type="button"
-              className={`btn btn-sm ${allTime ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setAllTime((a) => !a)}
-              aria-pressed={allTime}
-            >
-              {allTime ? t('dashboard.allTime') : t('dashboard.byMonth')}
-            </button>
+            <div className="flex items-center gap-1" role="group" aria-label={t('dashboard.period')}>
+              <button
+                type="button"
+                className={`btn btn-sm ${allTime ? 'btn-secondary' : 'btn-primary'}`}
+                onClick={() => setAllTime(false)}
+                aria-pressed={!allTime}
+              >
+                {t('dashboard.byMonth')}
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${allTime ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setAllTime(true)}
+                aria-pressed={allTime}
+              >
+                {t('dashboard.allTime')}
+              </button>
+            </div>
             {!allTime && (
               <>
                 <button
