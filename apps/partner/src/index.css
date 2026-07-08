@@ -121,6 +121,19 @@ select.input { background-color: white; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.875rem; }
 .muted { font-size: 0.8125rem; color: var(--color-on-surface-variant); }
 
+/* Package selector (tenant create) — mirrors the website pricing tiers -------- */
+.pkg-toggle { display: flex; gap: 0.5rem; }
+.pkg-toggle button {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.125rem;
+  padding: 0.5rem 0.375rem; border-radius: 0.5rem; border: 1px solid var(--color-outline);
+  background: #fff; font-size: 0.8125rem; font-weight: 600; color: var(--color-on-surface);
+  cursor: pointer; text-align: center;
+}
+.pkg-toggle button:hover { border-color: var(--color-primary); }
+.pkg-toggle button small { font-weight: 400; font-size: 0.6875rem; color: var(--color-on-surface-variant); }
+.pkg-toggle button.is-active { border-color: var(--color-primary); background: color-mix(in oklab, var(--color-primary) 8%, transparent); color: var(--color-primary); }
+.pkg-toggle button.is-active small { color: var(--color-primary); }
+
 /* Manage-admins list */
 .admin-list { display: flex; flex-direction: column; border: 1px solid var(--color-surface-variant); border-radius: 0.5rem; overflow: hidden; }
 .admin-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.5rem 0.75rem; }
@@ -128,6 +141,11 @@ select.input { background-color: white; }
 .admin-row-email { font-size: 0.875rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .admin-row-actions { display: flex; gap: 0.375rem; flex-shrink: 0; }
 .admin-add { display: flex; gap: 0.5rem; }
+/* Per-tenant module activation rows (ManageModules dialog). */
+.module-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.625rem 0.75rem; cursor: pointer; }
+.module-row + .module-row { border-top: 1px solid var(--color-surface-variant); }
+.module-row-name { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; font-weight: 500; }
+.module-row-icon { display: inline-flex; color: var(--color-on-surface-variant); }
 .admin-add .input { flex: 1; }
 .form-err { background: var(--color-error-tint, #fde8e8); color: var(--color-error); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.8125rem; }
 .form-ok { background: color-mix(in oklab, var(--color-success) 14%, transparent); color: var(--color-success); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.8125rem; }

@@ -10,7 +10,8 @@ import { PageHeader } from '../components/PageHeader.tsx';
 import { MCard, MCardList } from '../components/MobileCards.tsx';
 import { Modal } from '../components/Modal.tsx';
 import { IconButton } from '../components/IconButton.tsx';
-import { IconEdit, IconPause, IconPlay, IconUsers, IconTrash, IconPlus, IconMail, IconUserMinus, IconHardHat } from '../components/icons.tsx';
+import { IconEdit, IconPause, IconPlay, IconUsers, IconTrash, IconPlus, IconMail, IconUserMinus, IconModules } from '../components/icons.tsx';
+import { MODULES, moduleFlag, type ModuleDef } from '../lib/modules.ts';
 
 interface TenantRow {
   id: string;
@@ -40,6 +41,28 @@ function errMsg(t: (k: string, o?: Record<string, unknown>) => string, e: unknow
   return t(`errors.${code ?? 'default'}`, { defaultValue: t('errors.default') });
 }
 
+// Comma-joined names of the modules active on a tenant (mobile card + fallback).
+function activeModuleNames(t: (k: string) => string, row: TenantRow): string {
+  const names = MODULES.filter((m) => moduleFlag(row, m.tenantField)).map((m) => t(`modules.${m.key}.name`));
+  return names.length ? names.join(', ') : '—';
+}
+
+// Grid cell: a chip per active module, or a muted dash when none are on.
+function ModuleChips({ row }: { row: TenantRow }) {
+  const { t } = useTranslation();
+  const active = MODULES.filter((m) => moduleFlag(row, m.tenantField));
+  if (active.length === 0) return <span className="muted">—</span>;
+  return (
+    <span className="cell-badge" style={{ gap: 4, flexWrap: 'wrap' }}>
+      {active.map((m) => (
+        <span key={m.key} className="badge badge-ok">
+          {t(`modules.${m.key}.name`)}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export function Tenants() {
   const { t } = useTranslation();
   const me = useSession((s) => s.me);
@@ -49,15 +72,17 @@ export function Tenants() {
   const isAdmin = me?.role === 'admin';
   const isSuper = me?.is_super === true;
   const caps = me?.caps;
-  // Who may toggle the Cantieri module: platform admins always, partners only
-  // with the may_enable_cantieri capability (server re-checks either way).
-  const canCantieri = isAdmin || caps?.may_enable_cantieri === true;
+  // Modules this user may activate on a tenant: platform admins get every
+  // registered module, partners only those their caps grant (server re-checks
+  // either way). Empty → the modules action/section is hidden entirely.
+  const availableModules = MODULES.filter((m) => isAdmin || moduleFlag(caps, m.capField));
 
   const [rows, setRows] = useState<TenantRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<TenantRow | null>(null);
   const [managingAdmins, setManagingAdmins] = useState<TenantRow | null>(null);
+  const [managingModules, setManagingModules] = useState<TenantRow | null>(null);
   const [deleting, setDeleting] = useState<TenantRow | null>(null);
 
   const load = useCallback(async () => {
@@ -122,29 +147,12 @@ export function Tenants() {
         />
       )}
       <IconButton label={t('admins.label')} testId="manage-admins" icon={<IconUsers />} onClick={() => setManagingAdmins(row)} />
-      {canCantieri && (
+      {availableModules.length > 0 && (
         <IconButton
-          label={t(row.cantieri_enabled ? 'tenants.cantieri.disable.label' : 'tenants.cantieri.enable.label')}
-          testId="toggle-cantieri"
-          icon={<IconHardHat />}
-          onClick={async () => {
-            const okToToggle = await confirm({
-              message: t(row.cantieri_enabled ? 'tenants.cantieri.disable.confirm' : 'tenants.cantieri.enable.confirm'),
-              confirmLabel: t(row.cantieri_enabled ? 'tenants.cantieri.disable.label' : 'tenants.cantieri.enable.label'),
-              danger: row.cantieri_enabled,
-            });
-            if (!okToToggle) return;
-            try {
-              await api(`/api/v1/partnership/tenants/${row.id}/cantieri`, {
-                method: 'PATCH',
-                json: { enabled: !row.cantieri_enabled },
-              });
-              toast(t(row.cantieri_enabled ? 'tenants.cantieri.disable.done' : 'tenants.cantieri.enable.done'));
-              await load();
-            } catch (e) {
-              toast(errMsg(t, e), true);
-            }
-          }}
+          label={t('modules.manage')}
+          testId="manage-modules"
+          icon={<IconModules />}
+          onClick={() => setManagingModules(row)}
         />
       )}
       {isSuper && (
@@ -219,18 +227,12 @@ export function Tenants() {
       renderCell: (p) => `${p.row.used_branches}/${p.row.max_branches}`,
     },
     {
-      field: 'cantieri_enabled',
-      headerName: t('tenants.col.cantieri'),
-      width: 110,
-      renderCell: (p) => (
-        <span className="cell-badge">
-          {p.row.cantieri_enabled ? (
-            <span className="badge badge-ok">{t('tenants.cantieri.on')}</span>
-          ) : (
-            <span className="muted">{t('tenants.cantieri.off')}</span>
-          )}
-        </span>
-      ),
+      field: 'modules',
+      headerName: t('modules.col'),
+      width: 150,
+      sortable: false,
+      filterable: false,
+      renderCell: (p) => <ModuleChips row={p.row} />,
     },
     {
       field: 'suspended_at',
@@ -264,7 +266,7 @@ export function Tenants() {
     {
       field: 'actions',
       headerName: t('tenants.col.actions'),
-      width: 170 + (isSuper ? 40 : 0) + (canCantieri ? 40 : 0),
+      width: 170 + (isSuper ? 40 : 0) + (availableModules.length > 0 ? 40 : 0),
       sortable: false,
       filterable: false,
       renderCell: (p) => renderActions(p.row),
@@ -307,7 +309,7 @@ export function Tenants() {
                 { label: t('tenants.col.admins'), value: `${r.used_admins}/${r.max_admins}` },
                 { label: t('tenants.col.documentali'), value: `${r.used_documentali}/${r.max_documentali}` },
                 { label: t('tenants.col.branches'), value: `${r.used_branches}/${r.max_branches}` },
-                { label: t('tenants.col.cantieri'), value: r.cantieri_enabled ? t('tenants.cantieri.on') : t('tenants.cantieri.off') },
+                { label: t('modules.col'), value: activeModuleNames(t, r) },
                 ...(r.note ? [{ label: t('tenants.col.note'), value: r.note }] : []),
               ]}
               actions={renderActions(r)}
@@ -334,7 +336,7 @@ export function Tenants() {
       {creating && (
         <CreateTenant
           caps={caps}
-          canEnableCantieri={canCantieri}
+          modules={availableModules}
           onClose={() => setCreating(false)}
           onDone={async () => {
             setCreating(false);
@@ -358,6 +360,14 @@ export function Tenants() {
         <ManageAdmins
           tenant={managingAdmins}
           onClose={() => setManagingAdmins(null)}
+          onChanged={load}
+        />
+      )}
+      {managingModules && (
+        <ManageModules
+          tenant={managingModules}
+          modules={availableModules}
+          onClose={() => setManagingModules(null)}
           onChanged={load}
         />
       )}
@@ -454,14 +464,26 @@ function clampDefault(def: number, cap: number | null | undefined): number {
   return cap != null ? Math.min(def, cap) : def;
 }
 
+// Subscription packages mirror the public website pricing (website Pricing.astro):
+// Piccola = 10 users / 3 branches, Media = 20 / 5, "Su misura" (custom) leaves the
+// limits free. Picking a package only seeds the user/branch baseline — the partner
+// can still bump any limit above it for pay-per-use extras. Admins and documentali
+// aren't part of the public plans, so packages leave those fields untouched.
+type PkgKey = 'piccola' | 'media' | 'custom';
+const PACKAGES: { key: PkgKey; users: number | null; branches: number | null }[] = [
+  { key: 'piccola', users: 10, branches: 3 },
+  { key: 'media', users: 20, branches: 5 },
+  { key: 'custom', users: null, branches: null },
+];
+
 function CreateTenant({
   caps,
-  canEnableCantieri,
+  modules,
   onClose,
   onDone,
 }: {
   caps: PartnerCaps | undefined;
-  canEnableCantieri: boolean;
+  modules: ModuleDef[];
   onClose: () => void;
   onDone: () => Promise<void>;
 }) {
@@ -473,13 +495,24 @@ function CreateTenant({
   const [last, setLast] = useState('');
   const [language, setLanguage] = useState<'it' | 'en'>('it');
   const [sendInvite, setSendInvite] = useState(true);
-  const [cantieri, setCantieri] = useState(false);
+  // Which modules to switch on at creation, keyed by module id.
+  const [moduleOn, setModuleOn] = useState<Record<string, boolean>>({});
+  const [pkg, setPkg] = useState<PkgKey>('media');
   const [maxUsers, setMaxUsers] = useState(clampDefault(20, caps?.cap_users_per_tenant));
   const [maxAdmins, setMaxAdmins] = useState(clampDefault(2, caps?.cap_admins_per_tenant));
   const [maxDoc, setMaxDoc] = useState(clampDefault(1, caps?.cap_documentali_per_tenant));
-  const [maxBranches, setMaxBranches] = useState(clampDefault(3, caps?.cap_branches_per_tenant));
+  const [maxBranches, setMaxBranches] = useState(clampDefault(5, caps?.cap_branches_per_tenant));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  // Seed the user/branch limits from a package. Admins/documentali stay as-is so a
+  // partner who tweaked them first doesn't lose the value when switching plan.
+  function applyPackage(key: PkgKey) {
+    setPkg(key);
+    const p = PACKAGES.find((x) => x.key === key)!;
+    if (p.users != null) setMaxUsers(clampDefault(p.users, caps?.cap_users_per_tenant));
+    if (p.branches != null) setMaxBranches(clampDefault(p.branches, caps?.cap_branches_per_tenant));
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -501,7 +534,9 @@ function CreateTenant({
             max_admins: maxAdmins,
             max_documentali: maxDoc,
             max_branches: maxBranches,
-            cantieri_enabled: canEnableCantieri ? cantieri : false,
+            // One request field per activatable module (backend keys them by
+            // the same tenantField, e.g. `cantieri_enabled`).
+            ...Object.fromEntries(modules.map((m) => [m.tenantField, moduleOn[m.key] === true])),
           },
         }
       );
@@ -557,27 +592,53 @@ function CreateTenant({
               </span>
             </span>
           </label>
+          <div>
+            <label className="label">{t('tenants.create.package')}</label>
+            <div className="pkg-toggle" role="group" aria-label={t('tenants.create.package')}>
+              {PACKAGES.map((p) => (
+                <button
+                  type="button"
+                  key={p.key}
+                  data-testid={`pkg-${p.key}`}
+                  className={pkg === p.key ? 'is-active' : ''}
+                  aria-pressed={pkg === p.key}
+                  onClick={() => applyPackage(p.key)}
+                >
+                  {t(`tenants.create.pkg.${p.key}`)}
+                  <small>{t(`tenants.create.pkg.${p.key}_limits`)}</small>
+                </button>
+              ))}
+            </div>
+            <span className="muted" style={{ display: 'block', marginTop: '0.375rem' }}>
+              {t(`tenants.create.pkg.${pkg}_hint`)}
+            </span>
+          </div>
           <div className="grid-2">
             <NumField id="t-users" label={t('tenants.create.max_users')} value={maxUsers} max={caps?.cap_users_per_tenant} onChange={setMaxUsers} min={1} />
             <NumField id="t-admins" label={t('tenants.create.max_admins')} value={maxAdmins} max={caps?.cap_admins_per_tenant} onChange={setMaxAdmins} min={1} />
             <NumField id="t-doc" label={t('tenants.create.max_documentali')} value={maxDoc} max={caps?.cap_documentali_per_tenant} onChange={setMaxDoc} min={0} />
             <NumField id="t-branches" label={t('tenants.create.max_branches')} value={maxBranches} max={caps?.cap_branches_per_tenant} onChange={setMaxBranches} min={1} />
           </div>
-          {canEnableCantieri && (
-            <label className="checkbox-row" style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-              <input
-                type="checkbox"
-                data-testid="tenant-cantieri"
-                checked={cantieri}
-                onChange={(e) => setCantieri(e.target.checked)}
-              />
-              <span>
-                {t('tenants.create.cantieri')}
-                <span className="muted" style={{ display: 'block', fontWeight: 400 }}>
-                  {t('tenants.create.cantieri_hint')}
-                </span>
-              </span>
-            </label>
+          {modules.length > 0 && (
+            <>
+              <div className="label" style={{ marginTop: '0.25rem' }}>{t('modules.col')}</div>
+              {modules.map((m) => (
+                <label key={m.key} className="checkbox-row" style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                  <input
+                    type="checkbox"
+                    data-testid={`tenant-module-${m.key}`}
+                    checked={moduleOn[m.key] === true}
+                    onChange={(e) => setModuleOn((s) => ({ ...s, [m.key]: e.target.checked }))}
+                  />
+                  <span>
+                    {t('modules.create', { module: t(`modules.${m.key}.name`) })}
+                    <span className="muted" style={{ display: 'block', fontWeight: 400 }}>
+                      {t(`modules.${m.key}.desc`)}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </>
           )}
           {err && <div className="form-err">{err}</div>}
         </div>
@@ -847,6 +908,87 @@ function ManageAdmins({
         </label>
         {atLimit && <div className="muted">{t('admins.limit_reached')}</div>}
         {err && <div className="form-err">{err}</div>}
+      </div>
+      <div className="modal-foot">
+        <button type="button" className="btn btn-secondary" onClick={onClose}>
+          {t('actions.close')}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// Per-tenant module activation. Lists every module the current user may
+// enable with a switch each; flipping one hits the module's toggle endpoint
+// immediately (disabling asks to confirm — it hides the module for all the
+// tenant's users, though no data is lost).
+function ManageModules({
+  tenant,
+  modules,
+  onClose,
+  onChanged,
+}: {
+  tenant: TenantRow;
+  modules: ModuleDef[];
+  onClose: () => void;
+  onChanged: () => Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const confirm = useConfirm();
+  const [active, setActive] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(modules.map((m) => [m.key, moduleFlag(tenant, m.tenantField)]))
+  );
+  const [busy, setBusy] = useState<string | null>(null);
+
+  async function toggle(m: ModuleDef) {
+    const next = !active[m.key];
+    const name = t(`modules.${m.key}.name`);
+    if (!next) {
+      const ok = await confirm({
+        message: t('modules.disable.confirm', { module: name }),
+        confirmLabel: t('modules.disable.label', { module: name }),
+        danger: true,
+      });
+      if (!ok) return;
+    }
+    setBusy(m.key);
+    try {
+      await api(m.togglePath(tenant.id), { method: 'PATCH', json: { enabled: next } });
+      setActive((s) => ({ ...s, [m.key]: next }));
+      toast(t(next ? 'modules.enable.done' : 'modules.disable.done', { module: name }));
+      await onChanged();
+    } catch (e) {
+      toast(errMsg(t, e), true);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <Modal title={`${t('modules.manage')} · ${tenant.ragione_sociale}`} onClose={onClose}>
+      <div className="modal-body">
+        <div className="admin-list">
+          {modules.map((m) => {
+            const Icon = m.icon;
+            return (
+              <label className="module-row" key={m.key}>
+                <span className="module-row-name">
+                  <span className="module-row-icon"><Icon /></span>
+                  {t(`modules.${m.key}.name`)}
+                </span>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  data-testid={`module-switch-${m.key}`}
+                  checked={active[m.key] === true}
+                  disabled={busy === m.key}
+                  onChange={() => void toggle(m)}
+                />
+              </label>
+            );
+          })}
+        </div>
       </div>
       <div className="modal-foot">
         <button type="button" className="btn btn-secondary" onClick={onClose}>

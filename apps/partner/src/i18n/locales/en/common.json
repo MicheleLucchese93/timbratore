@@ -86,25 +86,10 @@
     "col": {
       "name": "Company name", "admin_email": "Admin email", "owner": "Partner", "language": "Language",
       "users": "Users", "admins": "Admins", "documentali": "Documentali", "branches": "Branches",
-      "cantieri": "Cantieri",
       "note": "Note", "status": "Status", "created": "Created", "actions": "Actions"
     },
     "status": { "active": "Active", "suspended": "Suspended" },
     "platform": "Platform",
-    "cantieri": {
-      "on": "Enabled",
-      "off": "Off",
-      "enable": {
-        "label": "Enable Cantieri",
-        "confirm": "Enable the Cantieri module for this company? The company admin will then assign Cantieri roles to their users.",
-        "done": "Cantieri module enabled."
-      },
-      "disable": {
-        "label": "Disable Cantieri",
-        "confirm": "Disable the Cantieri module for this company? The module disappears for all its users; the data stays and comes back on re-enable.",
-        "done": "Cantieri module disabled."
-      }
-    },
     "create": {
       "title": "New company",
       "ragione_sociale": "Company name",
@@ -113,10 +98,17 @@
       "admin_last_name": "Last name (opt.)",
       "language": "Language",
       "limits": "Limits",
+      "package": "Package",
+      "pkg": {
+        "piccola": "Small", "piccola_limits": "10 users · 3 branches",
+        "media": "Medium", "media_limits": "20 users · 5 branches",
+        "custom": "Custom", "custom_limits": "Free limits",
+        "piccola_hint": "Small plan: 10 employees and 3 branches included. You can add extra users and branches as pay-per-use.",
+        "media_hint": "Medium plan: 20 employees and 5 branches included. You can add extra users and branches as pay-per-use.",
+        "custom_hint": "Custom plan: set users, branches and the other limits freely."
+      },
       "max_users": "Max users", "max_admins": "Max admins",
       "max_documentali": "Max documentali", "max_branches": "Max branches",
-      "cantieri": "Enable the Cantieri module",
-      "cantieri_hint": "Construction sites, vehicles and activity reports. Can also be enabled later via the hard-hat icon.",
       "submit": "Create company",
       "send_invite": "Send the admin's access email now",
       "send_invite_hint": "Recommended. If unchecked, the admin is created with no email — send it later via the envelope icon.",
@@ -146,7 +138,6 @@
       "tenants": "Companies", "cap_tenants": "Max companies",
       "cap_users": "Max users/company", "cap_admins": "Max admins/company",
       "cap_documentali": "Max documentali/company", "cap_branches": "Max branches/company",
-      "cantieri": "Cantieri module",
       "status": "Status", "actions": "Actions"
     },
     "status": { "active": "Active", "inactive": "Disabled" },
@@ -175,8 +166,23 @@
     "cap_admins_per_tenant": "Max admins per company",
     "cap_documentali_per_tenant": "Max documentali per company",
     "cap_branches_per_tenant": "Max branches per company",
-    "may_enable_cantieri": "Cantieri module",
-    "may_enable_cantieri_hint": "Lets the partner enable the Cantieri module on their companies."
+    "modules": "Enabled modules",
+    "modules_hint": "Modules the partner may enable on their companies."
+  },
+  "modules": {
+    "col": "Modules",
+    "manage": "Manage modules",
+    "create": "Enable the {{module}} module",
+    "enable": { "done": "{{module}} module enabled." },
+    "disable": {
+      "label": "Disable {{module}}",
+      "confirm": "Disable the {{module}} module for this company? The module disappears for all its users; the data stays and comes back on re-enable.",
+      "done": "{{module}} module disabled."
+    },
+    "cantieri": {
+      "name": "Cantieri",
+      "desc": "Construction sites, vehicles and activity reports. Can also be enabled later via the modules icon."
+    }
   },
   "audit": {
     "title": "Activity log", "subtitle": "Every operation performed in the console",

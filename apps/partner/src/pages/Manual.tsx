@@ -19,7 +19,7 @@ const TOC_IT = `
       <a href="#aziende-limiti" class="sub">Limiti e utilizzo</a>
       <a href="#aziende-modifica" class="sub">Modificare un'azienda</a>
       <a href="#aziende-stato" class="sub">Sospendere e riattivare</a>
-      <a href="#aziende-cantieri" class="sub">Modulo Cantieri</a>
+      <a href="#aziende-cantieri" class="sub">Moduli</a>
       <a href="#aziende-admin" class="sub">Amministratori</a>
       <a href="#aziende-elimina" class="sub">Eliminare</a>
       <a href="#partner">Partner</a>
@@ -213,6 +213,7 @@ const MAIN_IT = `
           <li>Inserisci l'<strong>email dell'amministratore</strong> (obbligatoria) e, facoltativamente, nome e cognome.</li>
           <li>Scegli la <strong>lingua</strong> (Italiano o English): determina la lingua delle email che l'amministratore riceverà.</li>
           <li>Lascia spuntata <strong>Invia subito l'email di accesso all'amministratore</strong> per dargli accesso immediato. Se la togli, l'azienda viene creata senza email e gliela invierai dopo dall'icona busta.</li>
+          <li>Scegli il <strong>pacchetto</strong> in linea con i piani del sito: <strong>Piccola</strong> (10 utenti, 3 sedi), <strong>Media</strong> (20 utenti, 5 sedi) o <strong>Su misura</strong> (limiti liberi). Il pacchetto imposta i valori di partenza di utenti e sedi; puoi comunque aumentarli per gli extra a consumo.</li>
           <li>Imposta i <strong>limiti</strong>: max utenti, max admin, max documentali, max sedi. Ogni limite è vincolato al tuo massimale (caps): se è impostato un tetto, il campo mostra <em>(max N)</em>.</li>
           <li>Premi <strong>Crea azienda</strong>.</li>
         </ol>
@@ -249,12 +250,12 @@ const MAIN_IT = `
       </div>
 
       <div class="feature" id="aziende-cantieri">
-        <h3>Modulo Cantieri</h3>
-        <p>Il modulo <strong>Cantieri</strong> aggiunge all'app aziendale la gestione dei cantieri: anagrafica di cantieri e mezzi, campi personalizzati, registrazione delle attività giornaliere dei dipendenti da mobile e una dashboard mensile con report PDF.</p>
-        <p>L'icona <strong>casco</strong> sulla riga dell'azienda attiva o disattiva il modulo (con conferma); lo stesso interruttore è disponibile anche alla creazione dell'azienda. La colonna <strong>Cantieri</strong> mostra se il modulo è attivo.</p>
+        <h3>Moduli</h3>
+        <p>I <strong>moduli</strong> sono funzionalità aggiuntive attivabili per singola azienda. Oggi è disponibile <strong>Cantieri</strong>, che aggiunge all'app aziendale la gestione dei cantieri: anagrafica di cantieri e mezzi, campi personalizzati, registrazione delle attività giornaliere dei dipendenti da mobile e una dashboard mensile con report PDF.</p>
+        <p>L'icona <strong>moduli</strong> (griglia) sulla riga dell'azienda apre l'elenco dei moduli disponibili, ognuno con un interruttore per attivarlo o disattivarlo (la disattivazione chiede conferma); gli stessi moduli sono selezionabili anche alla creazione dell'azienda. La colonna <strong>Moduli</strong> mostra i moduli attivi sull'azienda.</p>
         <ul class="tidy">
-          <li><strong>Chi può attivarlo</strong> — l'amministratore di piattaforma sempre; un partner solo se ha il cap <em>Modulo Cantieri</em> (lo assegna l'amministratore tra i limiti del partner).</li>
-          <li><strong>Cosa sblocca</strong> — con il modulo attivo, l'amministratore dell'azienda assegna i ruoli Cantieri ai propri utenti dalla pagina Utenti; chi non ha un ruolo non vede il modulo.</li>
+          <li><strong>Chi può attivarli</strong> — l'amministratore di piattaforma sempre; un partner solo per i moduli concessi tra i suoi limiti (li assegna l'amministratore nella sezione <em>Moduli abilitati</em> del partner). L'icona moduli e la sezione compaiono solo se c'è almeno un modulo attivabile.</li>
+          <li><strong>Cosa sblocca</strong> — con Cantieri attivo, l'amministratore dell'azienda assegna i ruoli Cantieri ai propri utenti dalla pagina Utenti; chi non ha un ruolo non vede il modulo.</li>
           <li><strong>Disattivazione</strong> — nasconde il modulo a tutti gli utenti dell'azienda; i dati non vengono cancellati e tornano disponibili alla riattivazione.</li>
         </ul>
       </div>
@@ -316,7 +317,7 @@ const MAIN_IT = `
             <tr><td><strong>Max admin per azienda</strong></td><td>Tetto al limite amministratori per azienda.</td></tr>
             <tr><td><strong>Max documentali per azienda</strong></td><td>Tetto al limite documentali per azienda.</td></tr>
             <tr><td><strong>Max sedi per azienda</strong></td><td>Tetto al limite sedi per azienda.</td></tr>
-            <tr><td><strong>Modulo Cantieri</strong></td><td>Se attivo, il partner può abilitare o disabilitare il modulo Cantieri sulle proprie aziende.</td></tr>
+            <tr><td><strong>Moduli abilitati</strong></td><td>I moduli (es. Cantieri) che il partner può attivare o disattivare sulle proprie aziende. Ogni modulo è una casella indipendente.</td></tr>
           </tbody>
         </table>
         <p>Con l'icona <strong>matita</strong> modifichi caps, nome e note del partner. Un cap non può essere abbassato sotto un valore già in uso dalle aziende del partner.</p>

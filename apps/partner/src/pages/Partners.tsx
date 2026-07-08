@@ -10,6 +10,7 @@ import { MCard, MCardList } from '../components/MobileCards.tsx';
 import { Modal } from '../components/Modal.tsx';
 import { IconButton } from '../components/IconButton.tsx';
 import { IconEdit, IconMail, IconCheck, IconBan, IconPlus } from '../components/icons.tsx';
+import { MODULES, moduleFlag } from '../lib/modules.ts';
 
 interface PartnerRow {
   user_id: string;
@@ -49,6 +50,28 @@ const CAP_KEYS: Exclude<keyof Caps, 'may_enable_cantieri'>[] = [
 function errMsg(t: (k: string, o?: Record<string, unknown>) => string, e: unknown): string {
   const code = (e as ApiError | null)?.code;
   return t(`errors.${code ?? 'default'}`, { defaultValue: t('errors.default') });
+}
+
+// Comma-joined names of the modules a partner may enable (mobile card).
+function capModuleNames(t: (k: string) => string, row: PartnerRow): string {
+  const names = MODULES.filter((m) => moduleFlag(row, m.capField)).map((m) => t(`modules.${m.key}.name`));
+  return names.length ? names.join(', ') : '—';
+}
+
+// Grid cell: a chip per module the partner may enable, muted dash when none.
+function ModuleCapChips({ row }: { row: PartnerRow }) {
+  const { t } = useTranslation();
+  const allowed = MODULES.filter((m) => moduleFlag(row, m.capField));
+  if (allowed.length === 0) return <span className="muted">—</span>;
+  return (
+    <span className="cell-badge" style={{ gap: 4, flexWrap: 'wrap' }}>
+      {allowed.map((m) => (
+        <span key={m.key} className="badge badge-ok">
+          {t(`modules.${m.key}.name`)}
+        </span>
+      ))}
+    </span>
+  );
 }
 
 export function Partners() {
@@ -149,10 +172,12 @@ export function Partners() {
     { field: 'cap_documentali_per_tenant', headerName: t('partners.col.cap_documentali'), width: 160, renderCell: (p) => capCell(p.row.cap_documentali_per_tenant) },
     { field: 'cap_branches_per_tenant', headerName: t('partners.col.cap_branches'), width: 150, renderCell: (p) => capCell(p.row.cap_branches_per_tenant) },
     {
-      field: 'may_enable_cantieri',
-      headerName: t('partners.col.cantieri'),
-      width: 130,
-      renderCell: (p) => (p.row.may_enable_cantieri ? t('common.yes') : t('common.no')),
+      field: 'modules',
+      headerName: t('modules.col'),
+      width: 150,
+      sortable: false,
+      filterable: false,
+      renderCell: (p) => <ModuleCapChips row={p.row} />,
     },
     {
       field: 'active',
@@ -223,7 +248,7 @@ export function Partners() {
                 { label: t('partners.col.cap_admins'), value: capCell(r.cap_admins_per_tenant) },
                 { label: t('partners.col.cap_documentali'), value: capCell(r.cap_documentali_per_tenant) },
                 { label: t('partners.col.cap_branches'), value: capCell(r.cap_branches_per_tenant) },
-                { label: t('partners.col.cantieri'), value: r.may_enable_cantieri ? t('common.yes') : t('common.no') },
+                { label: t('modules.col'), value: capModuleNames(t, r) },
                 ...(r.note ? [{ label: t('partners.col.note'), value: r.note }] : []),
               ]}
               actions={renderActions(r)}
@@ -297,20 +322,23 @@ function CapInputs({
           </div>
         ))}
       </div>
-      <label className="checkbox-row" style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-        <input
-          type="checkbox"
-          data-testid="cap-may_enable_cantieri"
-          checked={caps.may_enable_cantieri}
-          onChange={(e) => set('may_enable_cantieri', e.target.checked)}
-        />
-        <span>
-          {t('caps.may_enable_cantieri')}
-          <span className="muted" style={{ display: 'block', fontWeight: 400 }}>
-            {t('caps.may_enable_cantieri_hint')}
-          </span>
-        </span>
-      </label>
+      <div className="label" style={{ marginTop: '0.25rem' }}>
+        {t('caps.modules')} <span style={{ fontWeight: 400 }}>— {t('caps.modules_hint')}</span>
+      </div>
+      {MODULES.map((m) => {
+        const capKey = m.capField as keyof Caps;
+        return (
+          <label key={m.key} className="checkbox-row" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              data-testid={`cap-module-${m.key}`}
+              checked={caps[capKey] === true}
+              onChange={(e) => set(capKey, e.target.checked)}
+            />
+            <span>{t(`modules.${m.key}.name`)}</span>
+          </label>
+        );
+      })}
     </>
   );
 }

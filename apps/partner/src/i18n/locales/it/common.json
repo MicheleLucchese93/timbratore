@@ -86,25 +86,10 @@
     "col": {
       "name": "Ragione sociale", "admin_email": "Email admin", "owner": "Partner", "language": "Lingua",
       "users": "Utenti", "admins": "Admin", "documentali": "Documentali", "branches": "Sedi",
-      "cantieri": "Cantieri",
       "note": "Note", "status": "Stato", "created": "Creata", "actions": "Azioni"
     },
     "status": { "active": "Attiva", "suspended": "Sospesa" },
     "platform": "Piattaforma",
-    "cantieri": {
-      "on": "Attivo",
-      "off": "Non attivo",
-      "enable": {
-        "label": "Attiva Cantieri",
-        "confirm": "Attivare il modulo Cantieri per questa azienda? L'amministratore dell'azienda potrà poi assegnare i ruoli Cantieri ai propri utenti.",
-        "done": "Modulo Cantieri attivato."
-      },
-      "disable": {
-        "label": "Disattiva Cantieri",
-        "confirm": "Disattivare il modulo Cantieri per questa azienda? Il modulo sparirà per tutti i suoi utenti; i dati restano e tornano disponibili alla riattivazione.",
-        "done": "Modulo Cantieri disattivato."
-      }
-    },
     "create": {
       "title": "Nuova azienda",
       "ragione_sociale": "Ragione sociale",
@@ -113,10 +98,17 @@
       "admin_last_name": "Cognome (opz.)",
       "language": "Lingua",
       "limits": "Limiti",
+      "package": "Pacchetto",
+      "pkg": {
+        "piccola": "Piccola", "piccola_limits": "10 utenti · 3 sedi",
+        "media": "Media", "media_limits": "20 utenti · 5 sedi",
+        "custom": "Su misura", "custom_limits": "Limiti liberi",
+        "piccola_hint": "Piano Piccola: 10 dipendenti e 3 sedi inclusi. Puoi aggiungere utenti e sedi extra a consumo.",
+        "media_hint": "Piano Media: 20 dipendenti e 5 sedi inclusi. Puoi aggiungere utenti e sedi extra a consumo.",
+        "custom_hint": "Piano su misura: imposta liberamente utenti, sedi e gli altri limiti."
+      },
       "max_users": "Max utenti", "max_admins": "Max admin",
       "max_documentali": "Max documentali", "max_branches": "Max sedi",
-      "cantieri": "Attiva il modulo Cantieri",
-      "cantieri_hint": "Gestione cantieri, mezzi e rapporti attività. Attivabile anche in seguito dall'icona casco.",
       "submit": "Crea azienda",
       "send_invite": "Invia subito l'email di accesso all'amministratore",
       "send_invite_hint": "Consigliato. Se la togli, l'admin viene creato senza email: gliela invii dopo dall'icona busta.",
@@ -146,7 +138,6 @@
       "tenants": "Aziende", "cap_tenants": "Max aziende",
       "cap_users": "Max utenti/azienda", "cap_admins": "Max admin/azienda",
       "cap_documentali": "Max documentali/azienda", "cap_branches": "Max sedi/azienda",
-      "cantieri": "Modulo Cantieri",
       "status": "Stato", "actions": "Azioni"
     },
     "status": { "active": "Attivo", "inactive": "Disattivato" },
@@ -175,8 +166,23 @@
     "cap_admins_per_tenant": "Max admin per azienda",
     "cap_documentali_per_tenant": "Max documentali per azienda",
     "cap_branches_per_tenant": "Max sedi per azienda",
-    "may_enable_cantieri": "Modulo Cantieri",
-    "may_enable_cantieri_hint": "Consente al partner di attivare il modulo Cantieri sulle proprie aziende."
+    "modules": "Moduli abilitati",
+    "modules_hint": "Moduli che il partner può attivare sulle proprie aziende."
+  },
+  "modules": {
+    "col": "Moduli",
+    "manage": "Gestisci moduli",
+    "create": "Attiva il modulo {{module}}",
+    "enable": { "done": "Modulo {{module}} attivato." },
+    "disable": {
+      "label": "Disattiva {{module}}",
+      "confirm": "Disattivare il modulo {{module}} per questa azienda? Il modulo sparirà per tutti i suoi utenti; i dati restano e tornano disponibili alla riattivazione.",
+      "done": "Modulo {{module}} disattivato."
+    },
+    "cantieri": {
+      "name": "Cantieri",
+      "desc": "Gestione cantieri, mezzi e rapporti attività. Attivabile anche in seguito dall'icona moduli."
+    }
   },
   "audit": {
     "title": "Registro attività", "subtitle": "Ogni operazione effettuata nella console",

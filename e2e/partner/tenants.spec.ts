@@ -25,6 +25,14 @@ test.describe('partner admin · tenants', () => {
     await page.getByTestId('new-tenant').click();
     await page.locator('input#t-ragione').fill(tenantName);
     await page.locator('input#t-email').fill(adminEmail);
+    // Packages seed the user/branch limits, coherent with the website pricing tiers.
+    await page.getByTestId('pkg-piccola').click();
+    await expect(page.locator('input#t-users')).toHaveValue('10');
+    await expect(page.locator('input#t-branches')).toHaveValue('3');
+    await page.getByTestId('pkg-media').click();
+    await expect(page.locator('input#t-users')).toHaveValue('20');
+    await expect(page.locator('input#t-branches')).toHaveValue('5');
+    // Override for the rest of the assertions (extra usage on top of a package).
     await page.locator('input#t-users').fill('15');
     await page.getByTestId('create-tenant-submit').click();
     await expect(page.getByText(/Azienda creata/)).toBeVisible({ timeout: 15_000 });
