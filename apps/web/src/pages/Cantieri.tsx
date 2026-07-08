@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { CantiereRecord, CantiereStatus, CantieriFieldDef } from '@sonoqui/shared';
+import type { CantiereRecord, CantiereStatus } from '@sonoqui/shared';
 import { CANTIERE_ADDRESS_MAX, CANTIERE_NAME_MAX } from '@sonoqui/shared';
 import { api } from '../lib/api.ts';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
 import { CantieriTabs } from '../components/CantieriTabs.tsx';
-import { CantieriFieldDefsSection } from '../components/CantieriFields.tsx';
 import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 
 interface SiteRow extends CantiereRecord {
@@ -33,7 +32,6 @@ export function Cantieri() {
   const { t } = useTranslation(['cantieri', 'common']);
   const confirm = useConfirm();
   const [sites, setSites] = useState<SiteRow[]>([]);
-  const [fields, setFields] = useState<CantieriFieldDef[]>([]);
   const [members, setMembers] = useState<MemberOption[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -41,13 +39,11 @@ export function Cantieri() {
 
   const load = useCallback(async () => {
     try {
-      const [s, f, u] = await Promise.all([
+      const [s, u] = await Promise.all([
         api<{ sites: SiteRow[] }>('/api/v1/cantieri/sites'),
-        api<{ fields: CantieriFieldDef[] }>('/api/v1/cantieri/fields?scope=entry'),
         api<{ members: MemberOption[] }>('/api/v1/cantieri/members'),
       ]);
       setSites(s.sites);
-      setFields(f.fields);
       setMembers(u.members);
       setErr(null);
     } catch (e) {
@@ -58,11 +54,6 @@ export function Cantieri() {
   useEffect(() => {
     load();
   }, [load]);
-
-  const loadFields = useCallback(async () => {
-    const f = await api<{ fields: CantieriFieldDef[] }>('/api/v1/cantieri/fields?scope=entry');
-    setFields(f.fields);
-  }, []);
 
   async function remove(s: SiteRow) {
     const ok = await confirm({
@@ -138,8 +129,6 @@ export function Cantieri() {
           ))}
         </ul>
       )}
-
-      <CantieriFieldDefsSection scope="entry" defs={fields} onChanged={loadFields} />
 
       {(creating || editing) && (
         <SiteModal

@@ -3,6 +3,7 @@ import type { DocumentCategory } from '@sonoqui/shared';
 import { env } from '../env.js';
 import { createLogger } from './logger.js';
 import { renderTemplate, escapeHtml, stripHeader } from './template-renderer.js';
+import { htmlToPlainText } from './bulletin-sanitize.js';
 
 const logger = createLogger('mailer');
 
@@ -29,7 +30,12 @@ export interface MailAttachment {
 }
 
 export interface MailInput {
-  to: string;
+  /** Primary recipient(s). A single string or a list (combined into one mail). */
+  to: string | string[];
+  /** Carbon-copy recipients (visible to everyone). */
+  cc?: string[];
+  /** Blind-carbon-copy recipients (hidden from the others). */
+  bcc?: string[];
   subject: string;
   text: string;
   html: string;
@@ -37,16 +43,25 @@ export interface MailInput {
   attachments?: MailAttachment[];
 }
 
+// Drop empties and collapse to undefined so nodemailer omits the header.
+function addrList(list: string[] | undefined): string[] | undefined {
+  const cleaned = (list ?? []).map((a) => a.trim()).filter((a) => a.length > 0);
+  return cleaned.length > 0 ? cleaned : undefined;
+}
+
 export async function sendMail(input: MailInput): Promise<boolean> {
   const t = transporter();
+  const to = Array.isArray(input.to) ? addrList(input.to) : input.to;
   if (!t) {
-    logger.warn({ to: input.to, subject: input.subject }, 'SMTP not configured, mail skipped');
+    logger.warn({ to, subject: input.subject }, 'SMTP not configured, mail skipped');
     return false;
   }
   try {
     await t.sendMail({
       from: env.SMTP_FROM || env.SMTP_USER,
-      to: input.to,
+      to,
+      cc: addrList(input.cc),
+      bcc: addrList(input.bcc),
       subject: stripHeader(input.subject),
       text: input.text,
       html: input.html,
@@ -55,7 +70,7 @@ export async function sendMail(input: MailInput): Promise<boolean> {
     });
     return true;
   } catch (err) {
-    logger.error({ err, to: input.to }, 'mail send failed');
+    logger.error({ err, to }, 'mail send failed');
     return false;
   }
 }
@@ -691,13 +706,16 @@ export interface CantiereReportMailPayload {
   siteName: string;
   /** Localized month label, e.g. 'giugno 2026'. */
   monthLabel: string;
+  /** Optional admin note, already sanitized HTML (sanitizeBulletinHtml). */
+  noteHtml?: string;
   language?: 'it' | 'en';
 }
 
 /**
  * Cover message for the monthly per-site Cantieri PDF report (attached by the
  * caller via sendMail attachments). Inline HTML, no template file — mirrors
- * the reminder/company-event mails.
+ * the reminder/company-event mails. An optional admin note (pre-sanitized rich
+ * text) is embedded below the summary and never escaped.
  */
 export function buildCantiereReportMail(p: CantiereReportMailPayload): {
   subject: string;
@@ -705,16 +723,19 @@ export function buildCantiereReportMail(p: CantiereReportMailPayload): {
   html: string;
 } {
   const language = p.language ?? 'it';
+  const noteHtml = (p.noteHtml ?? '').trim();
+  const noteText = noteHtml ? htmlToPlainText(noteHtml, 2000) : '';
   const subject =
     language === 'it'
       ? `[sonoQui] Rapporto cantiere ${p.siteName} — ${p.monthLabel}`
       : `[sonoQui] Site report ${p.siteName} — ${p.monthLabel}`;
   const text =
-    language === 'it'
+    (language === 'it'
       ? `In allegato il rapporto mensile delle attività di cantiere.\n` +
         `Azienda: ${p.tenantName}\nCantiere: ${p.siteName}\nMese: ${p.monthLabel}\n`
       : `The monthly site activity report is attached.\n` +
-        `Company: ${p.tenantName}\nSite: ${p.siteName}\nMonth: ${p.monthLabel}\n`;
+        `Company: ${p.tenantName}\nSite: ${p.siteName}\nMonth: ${p.monthLabel}\n`) +
+    (noteText ? `\n${noteText}\n` : '');
   const lines =
     language === 'it'
       ? [
@@ -729,11 +750,23 @@ export function buildCantiereReportMail(p: CantiereReportMailPayload): {
           `Site: <strong>${escapeHtml(p.siteName)}</strong>`,
           `Month: ${escapeHtml(p.monthLabel)}`,
         ];
-  return {
-    subject,
-    text,
-    html: inlineMail(language === 'it' ? 'Rapporto cantiere' : 'Site report', lines),
-  };
+  const heading = language === 'it' ? 'Rapporto cantiere' : 'Site report';
+  // Bespoke shell (not inlineMail): the summary lines are escaped and wrapped in
+  // <p>, but the note is raw sanitized rich text with block tags (<p>/<ul>/<h*>)
+  // and must sit at block level — never inside a <p> — to stay valid HTML. It
+  // goes between the summary and the footer.
+  const summary = lines.map((l) => `<p style="margin:4px 0;color:#334155">${l}</p>`).join('');
+  const note = noteHtml
+    ? `<div style="margin-top:12px;color:#334155;font-size:14px;line-height:1.55">${noteHtml}</div>`
+    : '';
+  const html =
+    `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px">` +
+    `<h2 style="color:#0f172a;font-size:18px;margin:0 0 12px">${escapeHtml(heading)}</h2>` +
+    summary +
+    note +
+    `<p style="margin-top:20px;color:#94a3b8;font-size:12px">sonoQui</p>` +
+    `</div>`;
+  return { subject, text, html };
 }
 
 /* ----- Documentale OTP email ----- */

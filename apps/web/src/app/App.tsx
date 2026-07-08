@@ -34,6 +34,7 @@ const Manual = lazy(() => import('../pages/Manual.tsx').then((m) => ({ default: 
 const Audit = lazy(() => import('../pages/Audit.tsx').then((m) => ({ default: m.Audit })));
 const Cantieri = lazy(() => import('../pages/Cantieri.tsx').then((m) => ({ default: m.Cantieri })));
 const Mezzi = lazy(() => import('../pages/Mezzi.tsx').then((m) => ({ default: m.Mezzi })));
+const CantieriCampi = lazy(() => import('../pages/CantieriCampi.tsx').then((m) => ({ default: m.CantieriCampi })));
 const CantieriDashboard = lazy(() => import('../pages/CantieriDashboard.tsx').then((m) => ({ default: m.CantieriDashboard })));
 
 export function App() {
@@ -96,6 +97,7 @@ export function App() {
               {isCantieriAdmin && <Route path="/cantieri" element={<Navigate to="/cantieri/dashboard" replace />} />}
               {isCantieriAdmin && <Route path="/cantieri/dashboard" element={<CantieriDashboard />} />}
               {isCantieriAdmin && <Route path="/cantieri/sites" element={<Cantieri />} />}
+              {isCantieriAdmin && <Route path="/cantieri/campi" element={<CantieriCampi />} />}
               {isCantieriAdmin && <Route path="/cantieri/mezzi" element={<Mezzi />} />}
               <Route path="/me/documents" element={<MyDocuments />} />
               <Route path="/audit" element={<Audit />} />
@@ -128,6 +130,7 @@ export function App() {
             {isCantieriAdmin && <Route path="/cantieri" element={<Navigate to="/cantieri/dashboard" replace />} />}
             {isCantieriAdmin && <Route path="/cantieri/dashboard" element={<CantieriDashboard />} />}
             {isCantieriAdmin && <Route path="/cantieri/sites" element={<Cantieri />} />}
+            {isCantieriAdmin && <Route path="/cantieri/campi" element={<CantieriCampi />} />}
             {isCantieriAdmin && <Route path="/cantieri/mezzi" element={<Mezzi />} />}
             <Route path="/manual" element={<Manual />} />
             <Route path="*" element={<Navigate to="/" replace />} />

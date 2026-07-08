@@ -22,6 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import {
   CANTIERE_ACTIVITY_TEXT_MAX,
+  cantiereEntryFieldsFor,
   cantieriIntervalMinutes,
   color,
   space,
@@ -38,14 +39,11 @@ import { useSession } from '../store/session';
 import { AppHeader } from '../components/AppHeader';
 import { EmptyState } from '../components/EmptyState';
 import { DateField } from '../components/DateField';
-import { SwipeableTabs } from '../components/SwipeableTabs';
 
 type MyEntry = CantiereEntryRecord & {
   cantiere_name: string | null;
   mezzo_name: string | null;
 };
-
-type CantieriTab = 'new' | 'mine';
 
 // Custom-field inputs are kept as raw UI values (string for everything typed,
 // boolean for switches) and converted to typed custom_values on submit.
@@ -59,7 +57,9 @@ export function CantieriScreen() {
   const enabled =
     me?.tenant.cantieri_enabled === true && me?.user.cantieri_role != null;
 
-  const [tab, setTab] = useState<CantieriTab>('new');
+  // The activity form lives in a full-screen modal opened by the FAB (new) or by
+  // tapping an entry (edit); the screen itself is just the activity list.
+  const [formOpen, setFormOpen] = useState(false);
 
   // Reference data for the form (assigned open sites, assigned mezzi,
   // entry-scope custom field definitions).
@@ -160,7 +160,17 @@ export function CantieriScreen() {
     setActivityText(e.activity_text ?? '');
     setMezzoId(e.mezzo_id);
     setCustom(rawFromValues(e.custom_values ?? {}, fields));
-    setTab('new');
+    setFormOpen(true);
+  }
+
+  function openNew() {
+    resetForm();
+    setFormOpen(true);
+  }
+
+  function closeForm() {
+    setFormOpen(false);
+    resetForm();
   }
 
   function remove(e: MyEntry) {
@@ -197,8 +207,9 @@ export function CantieriScreen() {
     }
     // Client-side mirror of the backend validation: required non-empty,
     // number fields numeric. Booleans are always sent (false is a valid value).
+    // Only the fields shown for the chosen cantiere are validated + sent.
     const custom_values: CantieriCustomValues = {};
-    for (const f of fields) {
+    for (const f of cantiereEntryFieldsFor(fields, cantiereId)) {
       const raw = custom[f.key];
       if (f.field_type === 'boolean') {
         custom_values[f.key] = raw === true;
@@ -244,10 +255,10 @@ export function CantieriScreen() {
           json: { ...body, cantiere_id: cantiereId },
         });
       }
+      setFormOpen(false);
       resetForm();
       setLoadingEntries(true);
       void loadEntries(month);
-      if (wasEdit) setTab('mine');
       notify(
         t(wasEdit ? 'form.savedTitle' : 'form.createdTitle'),
         t(wasEdit ? 'form.savedMessage' : 'form.createdMessage')
@@ -270,6 +281,13 @@ export function CantieriScreen() {
     return Array.from(map.entries()).map(([day, rows]) => ({ day, rows }));
   }, [entries]);
 
+  // Custom fields shown for the chosen cantiere (global + site-specific). Before
+  // a site is picked only the global fields (no association) are shown.
+  const visibleFields = useMemo(
+    () => cantiereEntryFieldsFor(fields, cantiereId),
+    [fields, cantiereId]
+  );
+
   const travelMin = cantieriIntervalMinutes(travelStart, travelEnd);
   const activityMin = cantieriIntervalMinutes(activityStart, activityEnd);
   const selectedSiteName = editing
@@ -279,7 +297,7 @@ export function CantieriScreen() {
     ? (mezzi.find((m) => m.id === mezzoId)?.name ?? editing?.mezzo_name ?? null)
     : null;
   const openSelectDef = openSelectKey
-    ? (fields.find((f) => f.key === openSelectKey) ?? null)
+    ? (visibleFields.find((f) => f.key === openSelectKey) ?? null)
     : null;
 
   if (!enabled) {
@@ -374,21 +392,6 @@ export function CantieriScreen() {
           />
         ) : (
           <>
-            {editing && (
-              <View style={styles.editBanner}>
-                <Ionicons name="create-outline" size={16} color={color.primary} />
-                <Text style={styles.editBannerText}>
-                  {t('form.editingBanner', { date: fmtDay(editing.entry_date) })}
-                </Text>
-                <TouchableOpacity
-                  onPress={resetForm}
-                  hitSlop={8}
-                  accessibilityLabel={t('form.cancelEditA11y')}>
-                  <Ionicons name="close" size={18} color={color.primary} />
-                </TouchableOpacity>
-              </View>
-            )}
-
             <Text style={styles.fieldLabel}>{t('form.siteLabel')}</Text>
             {/* cantiere_id is immutable on PATCH — lock the picker while editing */}
             <Pressable
@@ -476,7 +479,7 @@ export function CantieriScreen() {
               </>
             )}
 
-            {fields.map(renderCustomField)}
+            {visibleFields.map(renderCustomField)}
 
             <TouchableOpacity
               onPress={submit}
@@ -602,48 +605,67 @@ export function CantieriScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <AppHeader />
 
-      <SwipeableTabs
-        tabs={[
-          { id: 'new', label: t('tab.new') },
-          { id: 'mine', label: t('tab.mine') },
-        ]}
-        activeId={tab}
-        onChange={setTab}>
-        {[renderNewPage, renderMinePage]}
-      </SwipeableTabs>
+      {renderMinePage}
 
-      <ListPickerModal
-        visible={sitePickerOpen}
-        title={t('form.sitePickerTitle')}
-        options={sites.map((s) => ({ id: s.id, label: s.name }))}
-        selectedId={cantiereId}
-        onSelect={setCantiereId}
-        onClose={() => setSitePickerOpen(false)}
-      />
-      <ListPickerModal
-        visible={mezzoPickerOpen}
-        title={t('form.mezzoPickerTitle')}
-        options={mezzi.map((m) => ({ id: m.id, label: m.name }))}
-        selectedId={mezzoId}
-        clearLabel={t('form.mezzoNone')}
-        onSelect={setMezzoId}
-        onClose={() => setMezzoPickerOpen(false)}
-      />
-      <ListPickerModal
-        visible={openSelectDef != null}
-        title={openSelectDef?.label ?? ''}
-        options={(openSelectDef?.options ?? []).map((o) => ({ id: o, label: o }))}
-        selectedId={
-          openSelectDef && typeof custom[openSelectDef.key] === 'string'
-            ? ((custom[openSelectDef.key] as string) || null)
-            : null
-        }
-        clearLabel={openSelectDef && !openSelectDef.required ? t('form.selectNone') : undefined}
-        onSelect={(id) => {
-          if (openSelectDef) setCustomValue(openSelectDef.key, id ?? '');
-        }}
-        onClose={() => setOpenSelectKey(null)}
-      />
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={openNew}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel={t('modal.newTitle')}>
+        <Ionicons name="add" size={28} color={color.onPrimary} />
+      </TouchableOpacity>
+
+      <Modal visible={formOpen} animationType="slide" onRequestClose={closeForm}>
+        <SafeAreaView style={styles.safe} edges={['top']}>
+          <View style={styles.formHeader}>
+            <Text style={styles.formHeaderTitle} numberOfLines={1}>
+              {editing ? t('modal.editTitle') : t('modal.newTitle')}
+            </Text>
+            <TouchableOpacity
+              onPress={closeForm}
+              hitSlop={8}
+              accessibilityLabel={t('common:btn.cancel')}>
+              <Ionicons name="close" size={26} color={color.onSurface} />
+            </TouchableOpacity>
+          </View>
+
+          {renderNewPage}
+
+          <ListPickerModal
+            visible={sitePickerOpen}
+            title={t('form.sitePickerTitle')}
+            options={sites.map((s) => ({ id: s.id, label: s.name }))}
+            selectedId={cantiereId}
+            onSelect={setCantiereId}
+            onClose={() => setSitePickerOpen(false)}
+          />
+          <ListPickerModal
+            visible={mezzoPickerOpen}
+            title={t('form.mezzoPickerTitle')}
+            options={mezzi.map((m) => ({ id: m.id, label: m.name }))}
+            selectedId={mezzoId}
+            clearLabel={t('form.mezzoNone')}
+            onSelect={setMezzoId}
+            onClose={() => setMezzoPickerOpen(false)}
+          />
+          <ListPickerModal
+            visible={openSelectDef != null}
+            title={openSelectDef?.label ?? ''}
+            options={(openSelectDef?.options ?? []).map((o) => ({ id: o, label: o }))}
+            selectedId={
+              openSelectDef && typeof custom[openSelectDef.key] === 'string'
+                ? ((custom[openSelectDef.key] as string) || null)
+                : null
+            }
+            clearLabel={openSelectDef && !openSelectDef.required ? t('form.selectNone') : undefined}
+            onSelect={(id) => {
+              if (openSelectDef) setCustomValue(openSelectDef.key, id ?? '');
+            }}
+            onClose={() => setOpenSelectKey(null)}
+          />
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -878,7 +900,7 @@ const styles = StyleSheet.create({
   guardWrap: { flex: 1, justifyContent: 'center', paddingHorizontal: space.s4 },
 
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 6, paddingBottom: 44 },
+  scrollContent: { paddingHorizontal: 6, paddingBottom: 96 },
   formContent: { padding: 6, paddingBottom: 48, gap: 14 },
 
   centered: { paddingVertical: 48, alignItems: 'center' },
@@ -893,16 +915,32 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 
-  editBanner: {
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: color.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: 'rgba(0,0,0,0.25)',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  formHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: color.primaryContainer,
+    justifyContent: 'space-between',
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: color.surfaceVariant,
   },
-  editBannerText: { flex: 1, fontSize: 13, fontWeight: '600', color: color.primary },
+  formHeaderTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: color.onSurface },
 
   pickerBtn: {
     flexDirection: 'row',

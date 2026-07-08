@@ -11,10 +11,13 @@ import {
   setMezzoAssignments,
   createCantieriField,
   deleteCantieriField,
+  getCantieriFields,
   createCantiereEntry,
+  tryCreateCantiereEntry,
   deleteCantiereEntry,
   getCantieriDashboard,
   getCantiereReportPdf,
+  sendCantiereReportEmail,
   type ApiHandle,
   type CantiereSiteRecord,
   type CantiereMezzoRecord,
@@ -47,9 +50,11 @@ test.describe('web — Cantieri: seed, UI, dashboard, PDF', () => {
   let admin: ApiHandle;
   let ready = false;
   let site: CantiereSiteRecord | null = null;
+  let site2: CantiereSiteRecord | null = null;
   let uiSiteName: string | null = null;
   let mezzo: CantiereMezzoRecord | null = null;
   let field: CantieriFieldDefRecord | null = null;
+  let field2: CantieriFieldDefRecord | null = null;
   const entries: string[] = [];
 
   test.beforeAll(async () => {
@@ -64,8 +69,10 @@ test.describe('web — Cantieri: seed, UI, dashboard, PDF', () => {
       await deleteCantiereEntry(admin.token, id).catch(() => {});
     }
     if (field) await deleteCantieriField(admin.token, field.id).catch(() => {});
+    if (field2) await deleteCantieriField(admin.token, field2.id).catch(() => {});
     if (mezzo) await deleteCantiereMezzo(admin.token, mezzo.id).catch(() => {});
     if (site) await deleteCantiereSite(admin.token, site.id).catch(() => {});
+    if (site2) await deleteCantiereSite(admin.token, site2.id).catch(() => {});
     if (uiSiteName) {
       // The UI-created site is looked up by name (the modal gives no id back).
       const { apiGet } = await import('../fixtures/api-client');
@@ -158,5 +165,52 @@ test.describe('web — Cantieri: seed, UI, dashboard, PDF', () => {
     expect(pdf.status).toBe(200);
     expect(pdf.contentType).toContain('application/pdf');
     expect(pdf.magic).toBe('%PDF-');
+  });
+
+  test('per-cantiere field scoping + report email with CC/BCC/note', async () => {
+    test.skip(!ready, 'cantieri module not provisioned on the test tenant yet');
+    const stamp = Date.now();
+
+    // A second site with a custom field associated ONLY to it.
+    site2 = await createCantiereSite(admin.token, { name: `e2e-cantiere2-${stamp}` });
+    await setCantiereAssignments(admin.token, site2.id, [admin.userId]);
+    field2 = await createCantieriField(admin.token, {
+      scope: 'entry',
+      label: `e2e-campo2-${stamp}`,
+      field_type: 'text',
+      cantiere_ids: [site2.id],
+    });
+    expect(field2.cantiere_ids).toEqual([site2.id]);
+
+    // GET /fields echoes the association set.
+    const { fields } = await getCantieriFields(admin.token, 'entry');
+    expect(fields.find((f) => f.id === field2!.id)?.cantiere_ids).toEqual([site2!.id]);
+
+    // The site2-only field is rejected on the FIRST site (not associated there)…
+    const bad = await tryCreateCantiereEntry(admin.token, {
+      cantiere_id: site!.id,
+      entry_date: localDate(),
+      custom_values: { [field2!.key]: 'x' },
+    });
+    expect(bad.status).toBe(400);
+
+    // …but accepted on its own site.
+    const okEntry = await createCantiereEntry(admin.token, {
+      cantiere_id: site2!.id,
+      entry_date: localDate(),
+      custom_values: { [field2!.key]: 'y' },
+    });
+    entries.push(okEntry.id);
+
+    // Report email with To/CC/BCC + an HTML note returns 200 (delivery to the
+    // example.com sink is best-effort; the endpoint reports the send outcome).
+    const res = await sendCantiereReportEmail(admin.token, site2!.id, {
+      month: localMonth(),
+      to: ['e2e-report@example.com'],
+      cc: ['e2e-cc@example.com'],
+      bcc: ['e2e-bcc@example.com'],
+      note: '<p>e2e <strong>nota</strong> di prova</p>',
+    });
+    expect(res.status).toBe(200);
   });
 });

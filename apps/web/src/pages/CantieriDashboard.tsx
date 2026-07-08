@@ -7,10 +7,15 @@ import type {
   CantiereStatus,
   CantieriFieldDef,
 } from '@sonoqui/shared';
-import { CANTIERE_REPORT_RECIPIENTS_MAX, cantieriIntervalMinutes } from '@sonoqui/shared';
+import {
+  CANTIERE_REPORT_NOTE_MAX,
+  CANTIERE_REPORT_RECIPIENTS_MAX,
+  cantieriIntervalMinutes,
+} from '@sonoqui/shared';
 import { api, apiUrl, getToken, getTenantId } from '../lib/api.ts';
 import { PageHeader } from '../components/PageHeader.tsx';
 import { CantieriTabs } from '../components/CantieriTabs.tsx';
+import { RichTextEditor } from '../components/RichTextEditor.tsx';
 import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { fmtDate } from '../i18n/format.ts';
 
@@ -237,8 +242,10 @@ export function CantieriDashboard() {
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={(e) => downloadPdf(e, s)}
+                  aria-label={t('dashboard.downloadPdf')}
+                  title={t('dashboard.downloadPdf')}
                 >
-                  {t('dashboard.downloadPdf')}
+                  <IconDownload />
                 </button>
                 <button
                   type="button"
@@ -248,8 +255,10 @@ export function CantieriDashboard() {
                     setInfo(null);
                     setEmailFor(s);
                   }}
+                  aria-label={t('dashboard.sendEmail')}
+                  title={t('dashboard.sendEmail')}
                 >
-                  {t('dashboard.sendEmail')}
+                  <IconMail />
                 </button>
               </div>
             </div>
@@ -294,6 +303,27 @@ function IconHardHat() {
       <path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5" />
       <path d="M4 15v-3a6 6 0 0 1 6-6" />
       <path d="M14 6a6 6 0 0 1 6 6v3" />
+    </svg>
+  );
+}
+
+function IconDownload() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
+
+function IconMail() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
     </svg>
   );
 }
@@ -374,6 +404,12 @@ function EntriesDetail({
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// The rich-text editor emits '<p></p>' when empty — treat a body with no
+// visible text (tags/nbsp only) as no note.
+function noteIsEmpty(html: string): boolean {
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length === 0;
+}
+
 function EmailReportModal({
   site,
   month,
@@ -390,26 +426,32 @@ function EmailReportModal({
   const { t } = useTranslation(['cantieri', 'common']);
   useEscapeKey(onClose);
   const [recipients, setRecipients] = useState<string[]>(['']);
+  const [cc, setCc] = useState<string[]>([]);
+  const [bcc, setBcc] = useState<string[]>([]);
+  const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-
-  function setAt(i: number, value: string) {
-    setRecipients((cur) => cur.map((r, idx) => (idx === i ? value : r)));
-  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     setErr(null);
-    const to = recipients.map((r) => r.trim()).filter((r) => r.length > 0);
+    const clean = (list: string[]) => list.map((r) => r.trim()).filter((r) => r.length > 0);
+    const to = clean(recipients);
+    const ccList = clean(cc);
+    const bccList = clean(bcc);
     if (to.length === 0) return setErr(t('dashboard.emailDialog.errorEmailRequired'));
-    if (to.some((r) => !EMAIL_RE.test(r))) {
+    if ([...to, ...ccList, ...bccList].some((r) => !EMAIL_RE.test(r))) {
       return setErr(t('dashboard.emailDialog.errorEmailInvalid'));
+    }
+    const noteHtml = noteIsEmpty(note) ? undefined : note;
+    if (noteHtml && noteHtml.length > CANTIERE_REPORT_NOTE_MAX) {
+      return setErr(t('dashboard.emailDialog.errorNoteTooLong', { max: CANTIERE_REPORT_NOTE_MAX }));
     }
     setBusy(true);
     try {
       await api(`/api/v1/cantieri/sites/${site.id}/report/email`, {
         method: 'POST',
-        json: { month, to },
+        json: { month, to, cc: ccList, bcc: bccList, note: noteHtml },
       });
       onSent();
     } catch (e2) {
@@ -419,8 +461,8 @@ function EmailReportModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">
-      <form onSubmit={submit} className="card w-full max-w-md space-y-3">
+    <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50 overflow-y-auto">
+      <form onSubmit={submit} className="card w-full max-w-lg space-y-3 my-4">
         <h2 className="section-title">{t('dashboard.emailDialog.title')}</h2>
         <p className="text-xs muted">
           {t('dashboard.emailDialog.hint', {
@@ -432,40 +474,45 @@ function EmailReportModal({
 
         {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
 
-        <div className="space-y-2">
-          {recipients.map((r, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <input
-                type="email"
-                className="input"
-                value={r}
-                placeholder={t('dashboard.emailDialog.placeholder')}
-                onChange={(e) => setAt(i, e.target.value)}
-                autoFocus={i === 0}
-              />
-              {recipients.length > 1 && (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setRecipients((cur) => cur.filter((_, idx) => idx !== i))}
-                  aria-label={t('dashboard.emailDialog.remove')}
-                  title={t('dashboard.emailDialog.remove')}
-                >
-                  ×
-                </button>
-              )}
-            </div>
-          ))}
+        <EmailFieldList
+          label={t('dashboard.emailDialog.toLabel')}
+          values={recipients}
+          onChange={setRecipients}
+          placeholder={t('dashboard.emailDialog.placeholder')}
+          max={CANTIERE_REPORT_RECIPIENTS_MAX}
+          addLabel={t('dashboard.emailDialog.addRecipient')}
+          removeLabel={t('dashboard.emailDialog.remove')}
+          keepOne
+          autoFocusFirst
+        />
+        <EmailFieldList
+          label={t('dashboard.emailDialog.ccLabel')}
+          values={cc}
+          onChange={setCc}
+          placeholder={t('dashboard.emailDialog.placeholder')}
+          max={CANTIERE_REPORT_RECIPIENTS_MAX}
+          addLabel={t('dashboard.emailDialog.addCc')}
+          removeLabel={t('dashboard.emailDialog.remove')}
+        />
+        <EmailFieldList
+          label={t('dashboard.emailDialog.bccLabel')}
+          values={bcc}
+          onChange={setBcc}
+          placeholder={t('dashboard.emailDialog.placeholder')}
+          max={CANTIERE_REPORT_RECIPIENTS_MAX}
+          addLabel={t('dashboard.emailDialog.addBcc')}
+          removeLabel={t('dashboard.emailDialog.remove')}
+        />
+
+        <div>
+          <label className="label">{t('dashboard.emailDialog.note')}</label>
+          <RichTextEditor
+            value={note}
+            onChange={setNote}
+            placeholder={t('dashboard.emailDialog.notePlaceholder')}
+          />
+          <p className="text-xs muted mt-1">{t('dashboard.emailDialog.noteHint')}</p>
         </div>
-        {recipients.length < CANTIERE_REPORT_RECIPIENTS_MAX && (
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={() => setRecipients((cur) => [...cur, ''])}
-          >
-            {t('dashboard.emailDialog.addRecipient')}
-          </button>
-        )}
 
         <div className="flex justify-end gap-2">
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
@@ -476,6 +523,72 @@ function EmailReportModal({
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+/** A labeled, growable list of email inputs (To / CC / BCC). `keepOne` keeps at
+ *  least one input visible and hides its remove control. */
+function EmailFieldList({
+  label,
+  values,
+  onChange,
+  placeholder,
+  max,
+  addLabel,
+  removeLabel,
+  keepOne,
+  autoFocusFirst,
+}: {
+  label: string;
+  values: string[];
+  onChange: (next: string[]) => void;
+  placeholder: string;
+  max: number;
+  addLabel: string;
+  removeLabel: string;
+  keepOne?: boolean;
+  autoFocusFirst?: boolean;
+}) {
+  return (
+    <div className="space-y-1">
+      <label className="label">{label}</label>
+      {values.length > 0 && (
+        <div className="space-y-2">
+          {values.map((v, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input
+                type="email"
+                className="input"
+                value={v}
+                placeholder={placeholder}
+                onChange={(e) => onChange(values.map((x, idx) => (idx === i ? e.target.value : x)))}
+                autoFocus={autoFocusFirst && i === 0}
+              />
+              {!(keepOne && values.length === 1) && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => onChange(values.filter((_, idx) => idx !== i))}
+                  aria-label={removeLabel}
+                  title={removeLabel}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      {values.length < max && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          onClick={() => onChange([...values, ''])}
+        >
+          {addLabel}
+        </button>
+      )}
     </div>
   );
 }

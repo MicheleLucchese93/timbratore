@@ -13,6 +13,7 @@ import { ConflictError, NotFoundError, ValidationError } from '../errors/index.j
 import { logAudit, logAuditAs } from '../lib/audit.js';
 import { buildCantiereReportPdf, type CantiereReportEntry } from '../lib/cantieri-pdf.js';
 import { sendMail, buildCantiereReportMail } from '../lib/mailer.js';
+import { sanitizeBulletinHtml } from '../lib/bulletin-sanitize.js';
 import { createLogger } from '../lib/logger.js';
 import {
   CANTIERE_NAME_MAX,
@@ -25,6 +26,7 @@ import {
   CANTIERI_FIELD_OPTIONS_MAX,
   CANTIERI_FIELDS_PER_SCOPE_MAX,
   CANTIERE_REPORT_RECIPIENTS_MAX,
+  CANTIERE_REPORT_NOTE_MAX,
   cantieriFieldKeyFromLabel,
   type CantieriCustomValues,
   type CantieriFieldScope,
@@ -74,24 +76,97 @@ interface FieldDefRow {
   options: string[] | null;
   required: boolean;
   position: number;
+  // Entry-scope only; empty = applies to all cantieri. Always [] for 'mezzo'.
+  cantiere_ids: string[];
 }
 
-// Active defs of one scope, in display order. On the RLS client the tenant is
-// implied by the select policy; adminPool callers pass tenantId explicitly.
+// SELECT list for a field def joined with its per-cantiere association set. The
+// LATERAL subquery correlates on field_def_id (itself tenant-scoped via the
+// def's tenant_id filter / RLS), so no cross-tenant leak. Alias the def 'd'.
+const FIELD_DEF_SELECT = `
+  d.id, d.scope, d.key, d.label, d.field_type, d.options, d.required, d.position,
+  COALESCE(fc.cantiere_ids, ARRAY[]::uuid[]) AS cantiere_ids`;
+const FIELD_DEF_FROM = `
+  cantieri_field_defs d
+  LEFT JOIN LATERAL (
+    SELECT array_agg(cantiere_id) AS cantiere_ids
+      FROM cantiere_field_cantieri WHERE field_def_id = d.id
+  ) fc ON true`;
+
+// Active defs of one scope, in display order, each with its cantiere_ids. On the
+// RLS client the tenant is implied by the select policy; adminPool callers pass
+// tenantId explicitly.
 async function loadFieldDefs(
   db: Pick<PoolClient, 'query'>,
   scope: CantieriFieldScope,
   tenantId?: string
 ): Promise<FieldDefRow[]> {
   const r = await db.query(
-    `SELECT id, scope, key, label, field_type, options, required, position
-       FROM cantieri_field_defs
-      WHERE deleted_at IS NULL AND scope = $1
-        ${tenantId ? 'AND tenant_id = $2' : ''}
-      ORDER BY position, key`,
+    `SELECT ${FIELD_DEF_SELECT}
+       FROM ${FIELD_DEF_FROM}
+      WHERE d.deleted_at IS NULL AND d.scope = $1
+        ${tenantId ? 'AND d.tenant_id = $2' : ''}
+      ORDER BY d.position, d.key`,
     tenantId ? [scope, tenantId] : [scope]
   );
   return r.rows;
+}
+
+// Entry defs shown for one cantiere: those with no association (all sites) plus
+// those explicitly linked to this cantiere. This is the authoritative set used
+// to validate an entry's custom_values and to pick report/drill-in columns.
+function entryDefsForCantiere(defs: FieldDefRow[], cantiereId: string): FieldDefRow[] {
+  return defs.filter((d) => d.cantiere_ids.length === 0 || d.cantiere_ids.includes(cantiereId));
+}
+
+// Current association set of a field, sorted for stable responses. Defaults to
+// adminPool but takes a client so a caller inside a transaction reads its own
+// uncommitted writes.
+async function fieldCantiereIds(
+  tenantId: string,
+  fieldDefId: string,
+  db: Pick<PoolClient, 'query'> = adminPool
+): Promise<string[]> {
+  const r = await db.query(
+    `SELECT cantiere_id FROM cantiere_field_cantieri
+      WHERE field_def_id = $1 AND tenant_id = $2 ORDER BY cantiere_id`,
+    [fieldDefId, tenantId]
+  );
+  return r.rows.map((x) => x.cantiere_id as string);
+}
+
+// Full-replace a field's cantiere association set (entry scope only). Validates
+// every id is a live site of the tenant. Runs on the given client so callers can
+// share a transaction. Dedupes the input.
+async function replaceFieldCantieri(
+  client: Pick<PoolClient, 'query'>,
+  tenantId: string,
+  fieldDefId: string,
+  cantiereIds: string[]
+): Promise<string[]> {
+  const ids = Array.from(new Set(cantiereIds));
+  if (ids.length > 0) {
+    const valid = await client.query(
+      `SELECT id FROM cantieri
+        WHERE id = ANY($1::uuid[]) AND tenant_id = $2 AND deleted_at IS NULL`,
+      [ids, tenantId]
+    );
+    if (valid.rowCount !== ids.length) {
+      throw new ValidationError('one or more cantiere_ids are not valid sites');
+    }
+  }
+  await client.query(
+    `DELETE FROM cantiere_field_cantieri WHERE field_def_id = $1 AND tenant_id = $2`,
+    [fieldDefId, tenantId]
+  );
+  if (ids.length > 0) {
+    await client.query(
+      `INSERT INTO cantiere_field_cantieri(tenant_id, field_def_id, cantiere_id)
+       SELECT $1, $2, x FROM unnest($3::uuid[]) AS x`,
+      [tenantId, fieldDefId, ids]
+    );
+  }
+  return ids;
 }
 
 const CustomValuesInput = z.record(
@@ -222,11 +297,11 @@ cantieriRouter.get(
     );
     if (!scope.success) throw new ValidationError("scope must be 'entry' or 'mezzo'");
     const r = await client.query(
-      `SELECT id, scope, key, label, field_type, options, required, position
-         FROM cantieri_field_defs
-        WHERE deleted_at IS NULL
-          ${scope.data ? 'AND scope = $1' : ''}
-        ORDER BY position, key`,
+      `SELECT ${FIELD_DEF_SELECT}
+         FROM ${FIELD_DEF_FROM}
+        WHERE d.deleted_at IS NULL
+          ${scope.data ? 'AND d.scope = $1' : ''}
+        ORDER BY d.position, d.key`,
       scope.data ? [scope.data] : []
     );
     ok(res, { fields: r.rows });
@@ -315,7 +390,9 @@ cantieriRouter.post(
     }
     if (d.mezzo_id) await assertMezzoVisible(client, d.mezzo_id);
 
-    const defs = await loadFieldDefs(client, 'entry');
+    // Only the fields shown for THIS cantiere are accepted (a value for a field
+    // not applicable to the site is rejected as an unknown key by the validator).
+    const defs = entryDefsForCantiere(await loadFieldDefs(client, 'entry'), d.cantiere_id);
     const customValues = validateCustomValues(defs, d.custom_values);
 
     const r = await client.query(
@@ -374,7 +451,12 @@ cantieriRouter.patch(
     if (d.mezzo_id) await assertMezzoVisible(client, d.mezzo_id);
     let customValues: CantieriCustomValues | undefined;
     if (d.custom_values !== undefined) {
-      const defs = await loadFieldDefs(client, 'entry');
+      // cantiere_id is immutable, so the applicable field set is that of the
+      // existing entry's site.
+      const defs = entryDefsForCantiere(
+        await loadFieldDefs(client, 'entry'),
+        before.rows[0].cantiere_id
+      );
       customValues = validateCustomValues(defs, d.custom_values);
     }
 
@@ -869,6 +951,10 @@ cantieriRouter.put(
 
 /* ----- Custom field definitions ----- */
 
+// Empty/omitted cantiere_ids = the field applies to ALL cantieri. Only honored
+// for scope='entry' (mezzo fields are never tied to a site).
+const CantiereIds = z.array(z.string().uuid()).max(500);
+
 const CreateField = z
   .object({
     scope: z.enum(['entry', 'mezzo']),
@@ -881,6 +967,7 @@ const CreateField = z
       .optional(),
     required: z.boolean().default(false),
     position: z.number().int().gte(0).optional(),
+    cantiere_ids: CantiereIds.optional(),
   })
   .refine((d) => d.field_type !== 'select' || (d.options && d.options.length > 0), {
     message: 'options are required for select fields',
@@ -896,6 +983,7 @@ const PatchField = z.object({
     .optional(),
   required: z.boolean().optional(),
   position: z.number().int().gte(0).optional(),
+  cantiere_ids: CantiereIds.optional(),
 });
 
 const FIELD_COLS = `id, scope, key, label, field_type, options, required, position`;
@@ -941,30 +1029,58 @@ cantieriRouter.post(
       d.position ?? existing.rows.reduce((max, row) => Math.max(max, row.position + 1), 0);
     const options = d.field_type === 'select' ? d.options : null;
 
-    const r = await adminPool.query(
-      `INSERT INTO cantieri_field_defs(tenant_id, scope, key, label, field_type, options, required, position)
-       VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8)
-       RETURNING ${FIELD_COLS}`,
-      [
-        tenantId,
-        d.scope,
-        key,
-        d.label,
-        d.field_type,
-        options ? JSON.stringify(options) : null,
-        d.required,
-        position,
-      ]
-    );
-    await logAuditAs(adminPool, tenantId, req.user!.id, {
-      action: 'cantieri_field.create',
-      resourceType: 'cantieri_field',
-      resourceId: r.rows[0].id,
-      targetLabel: d.label,
-      after: { scope: d.scope, key, label: d.label, field_type: d.field_type, required: d.required },
-      req,
-    });
-    ok(res, r.rows[0], 201);
+    // The def INSERT + its cantiere association + audit must be atomic: on
+    // adminPool (autocommit) an invalid cantiere_ids would otherwise leave an
+    // orphaned def that — having zero associations — applies to ALL cantieri
+    // while the caller sees a 400. Mirror replaceAssignments' transaction.
+    const client = await adminPool.connect();
+    let field: Record<string, unknown>;
+    let cantiere_ids: string[] = [];
+    try {
+      await client.query('BEGIN');
+      const r = await client.query(
+        `INSERT INTO cantieri_field_defs(tenant_id, scope, key, label, field_type, options, required, position)
+         VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8)
+         RETURNING ${FIELD_COLS}`,
+        [
+          tenantId,
+          d.scope,
+          key,
+          d.label,
+          d.field_type,
+          options ? JSON.stringify(options) : null,
+          d.required,
+          position,
+        ]
+      );
+      field = r.rows[0];
+      // Cantiere association is entry-scope only; mezzo fields ignore it.
+      if (d.scope === 'entry' && d.cantiere_ids) {
+        cantiere_ids = await replaceFieldCantieri(client, tenantId, field.id as string, d.cantiere_ids);
+      }
+      await logAuditAs(client, tenantId, req.user!.id, {
+        action: 'cantieri_field.create',
+        resourceType: 'cantieri_field',
+        resourceId: field.id as string,
+        targetLabel: d.label,
+        after: {
+          scope: d.scope,
+          key,
+          label: d.label,
+          field_type: d.field_type,
+          required: d.required,
+          cantiere_ids,
+        },
+        req,
+      });
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw err;
+    } finally {
+      client.release();
+    }
+    ok(res, { ...field, cantiere_ids }, 201);
   })
 );
 
@@ -1004,23 +1120,53 @@ cantieriRouter.patch(
       values.push(JSON.stringify(d.options));
       changedBefore.options = before.rows[0].options;
     }
-    if (updates.length === 0) return ok(res, before.rows[0]);
-    const r = await adminPool.query(
-      `UPDATE cantieri_field_defs SET ${updates.join(', ')}
-        WHERE id = $1 AND tenant_id = $2
-        RETURNING ${FIELD_COLS}`,
-      values
-    );
-    await logAuditAs(adminPool, tenantId, req.user!.id, {
-      action: 'cantieri_field.update',
-      resourceType: 'cantieri_field',
-      resourceId: id,
-      targetLabel: r.rows[0].label,
-      before: changedBefore,
-      after: d,
-      req,
-    });
-    ok(res, r.rows[0]);
+
+    // Association changes are entry-scope only and independent of column updates
+    // (an admin may re-scope a field without touching its other attributes).
+    const changesAssoc = d.cantiere_ids !== undefined && before.rows[0].scope === 'entry';
+    if (updates.length === 0 && !changesAssoc) {
+      return ok(res, { ...before.rows[0], cantiere_ids: await fieldCantiereIds(tenantId, id) });
+    }
+
+    // Column update + association replace + audit must be atomic: on adminPool
+    // an invalid cantiere_ids would commit the column change yet return 400 with
+    // the association untouched (a partial update). Wrap it all in one tx.
+    const client = await adminPool.connect();
+    let row = before.rows[0];
+    let cantiere_ids: string[];
+    try {
+      await client.query('BEGIN');
+      if (updates.length > 0) {
+        const r = await client.query(
+          `UPDATE cantieri_field_defs SET ${updates.join(', ')}
+            WHERE id = $1 AND tenant_id = $2
+            RETURNING ${FIELD_COLS}`,
+          values
+        );
+        row = r.rows[0];
+      }
+      if (changesAssoc) {
+        changedBefore.cantiere_ids = await fieldCantiereIds(tenantId, id, client);
+        await replaceFieldCantieri(client, tenantId, id, d.cantiere_ids!);
+      }
+      cantiere_ids = await fieldCantiereIds(tenantId, id, client);
+      await logAuditAs(client, tenantId, req.user!.id, {
+        action: 'cantieri_field.update',
+        resourceType: 'cantieri_field',
+        resourceId: id,
+        targetLabel: row.label,
+        before: changedBefore,
+        after: d,
+        req,
+      });
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw err;
+    } finally {
+      client.release();
+    }
+    ok(res, { ...row, cantiere_ids });
   })
 );
 
@@ -1111,7 +1257,8 @@ async function loadSiteMonth(
     [siteId, tenantId]
   );
   if (site.rowCount === 0) throw new NotFoundError('cantiere');
-  const fields = await loadFieldDefs(adminPool, 'entry', tenantId);
+  // Columns are the entry fields shown for THIS site (global + site-specific).
+  const fields = entryDefsForCantiere(await loadFieldDefs(adminPool, 'entry', tenantId), siteId);
   const { start, end } = monthRange(month);
   const entries = await adminPool.query(
     `SELECT ${ENTRY_COLS('e.')},
@@ -1212,9 +1359,14 @@ cantieriRouter.get(
   })
 );
 
+const EmailList = z.array(z.string().email()).max(CANTIERE_REPORT_RECIPIENTS_MAX);
 const ReportEmail = z.object({
   month: z.string().regex(MONTH_RE, "month must be 'YYYY-MM'"),
   to: z.array(z.string().email()).min(1).max(CANTIERE_REPORT_RECIPIENTS_MAX),
+  cc: EmailList.optional(),
+  bcc: EmailList.optional(),
+  // Optional admin note (rich text); re-sanitized here against the allowlist.
+  note: z.string().max(CANTIERE_REPORT_NOTE_MAX).optional(),
 });
 
 /* ----- POST /api/v1/cantieri/sites/:id/report/email — send the PDF to free-form addresses ----- */
@@ -1227,6 +1379,9 @@ cantieriRouter.post(
     if (!parsed.success) throw new ValidationError('invalid body', parsed.error.flatten());
     const { month } = parsed.data;
     const recipients = Array.from(new Set(parsed.data.to));
+    const cc = Array.from(new Set(parsed.data.cc ?? []));
+    const bcc = Array.from(new Set(parsed.data.bcc ?? []));
+    const noteHtml = parsed.data.note?.trim() ? sanitizeBulletinHtml(parsed.data.note) : undefined;
     const tenantId = req.user!.tenantId;
 
     const language = await requesterLanguage(req.user!.id);
@@ -1236,29 +1391,34 @@ cantieriRouter.post(
       month,
       language
     );
-    const mail = buildCantiereReportMail({ tenantName, siteName, monthLabel: label, language });
+    const mail = buildCantiereReportMail({
+      tenantName,
+      siteName,
+      monthLabel: label,
+      noteHtml,
+      language,
+    });
     const attachment = {
       filename: `cantiere-${safeFileName(siteName)}-${month}.pdf`,
       content: pdf,
       contentType: 'application/pdf',
     };
-    // Sequential, one mail per address (mailer idiom); a single bad mailbox
-    // must not abort the rest — sendMail already swallows + logs failures.
-    let sent = 0;
-    for (const to of recipients) {
-      const okSend = await sendMail({ ...mail, to, attachments: [attachment] });
-      if (okSend) sent += 1;
-    }
-    logger.info({ cantiere_id: id, month, recipients: recipients.length, sent }, 'cantiere report emailed');
+    // One combined mail: To = recipients, plus CC / BCC. sendMail swallows +
+    // logs SMTP failures and returns false rather than throwing.
+    const sent = await sendMail({ ...mail, to: recipients, cc, bcc, attachments: [attachment] });
+    logger.info(
+      { cantiere_id: id, month, to: recipients.length, cc: cc.length, bcc: bcc.length, sent },
+      'cantiere report emailed'
+    );
 
     await logAuditAs(adminPool, tenantId, req.user!.id, {
       action: 'cantiere.report_email',
       resourceType: 'cantiere',
       resourceId: id,
       targetLabel: siteName,
-      after: { month, to: recipients, sent },
+      after: { month, to: recipients, cc, bcc, has_note: !!noteHtml, sent },
       req,
     });
-    ok(res, { sent: true });
+    ok(res, { sent });
   })
 );

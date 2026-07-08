@@ -3,6 +3,10 @@
     "new": "New activity",
     "mine": "My activities"
   },
+  "modal": {
+    "newTitle": "New activity",
+    "editTitle": "Edit activity"
+  },
   "guard": {
     "title": "Cantieri module not active",
     "subtitle": "The module is not enabled for your company or your profile."

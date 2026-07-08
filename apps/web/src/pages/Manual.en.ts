@@ -1523,15 +1523,20 @@ export const MAIN_EN = `
         <h3>Enabling and roles</h3>
         <p>When the module is on, roles are assigned from the <strong>Users</strong> page with the <strong>Cantieri role</strong> field, independent of the application role (a regular employee can be a Cantieri Admin):</p>
         <ul class="tidy">
-          <li><strong>Cantieri Admin</strong>: sees the <strong>Cantieri</strong> entry in the web menu with its <strong>Dashboard</strong>, <strong>Work sites</strong> and <strong>Vehicles</strong> tabs, and manages the whole module.</li>
+          <li><strong>Cantieri Admin</strong>: sees the <strong>Cantieri</strong> entry in the web menu with its <strong>Dashboard</strong>, <strong>Work sites</strong>, <strong>Custom fields</strong> and <strong>Vehicles</strong> tabs, and manages the whole module.</li>
           <li><strong>Cantieri User</strong>: logs activities from the mobile app on the sites they are assigned to.</li>
           <li>Without a role the module is hidden.</li>
         </ul>
       </div>
 
       <div class="feature">
-        <h3>Sites and custom fields</h3>
-        <p>From <strong>Cantieri</strong> you create sites with a <strong>name</strong>, <strong>address</strong> and <strong>status</strong> (<span class="pill pill-ok">Open</span> or Closed: activities can only be logged on open sites) and assign the <strong>workers</strong>: only assigned users see the site in the app. In the <strong>Custom fields</strong> section you add extra inputs to the activity form — text, number, date, time, yes/no or a pick list, optionally required. Fields apply company-wide, so dashboards and reports stay comparable across sites.</p>
+        <h3>Work sites</h3>
+        <p>From <strong>Cantieri</strong> you create sites with a <strong>name</strong>, <strong>address</strong> and <strong>status</strong> (<span class="pill pill-ok">Open</span> or Closed: activities can only be logged on open sites) and assign the <strong>workers</strong>: only assigned users see the site in the app.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Custom fields</h3>
+        <p>From the <strong>Custom fields</strong> tab you add extra inputs to the activity form — text, number, date, time, yes/no or a pick list, optionally required. For each field you can choose the <strong>work sites</strong> it appears on: with no site selected the field applies to <strong>all</strong> of them, otherwise it shows only on the chosen sites (and in their report). Vehicle fields stay on the Vehicles tab.</p>
       </div>
 
       <div class="feature">
@@ -1541,7 +1546,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>Dashboard and reports</h3>
-        <p>The <strong>Cantieri dashboard</strong> shows, for the selected month, a card per site with the number of activities, workers involved and travel/work totals. Opening a card shows the individual entries. From each card you can <strong>download the PDF</strong> monthly report or <strong>send it by email</strong> to one or more recipients.</p>
+        <p>The <strong>Cantieri dashboard</strong> shows, for the selected month, a card per site with the number of activities, workers involved and travel/work totals. Opening a card shows the individual entries. From each card, using the dedicated icons, you can <strong>download the PDF</strong> monthly report or <strong>send it by email</strong>. When sending you set the <strong>recipients</strong> and, optionally, <strong>CC</strong> and <strong>BCC</strong> addresses and a formatted <strong>note</strong> that appears in the message body; the PDF stays attached.</p>
       </div>
 
       <div class="callout callout-info">
@@ -1551,24 +1556,24 @@ export const MAIN_EN = `
 
     <section class="chapter" id="cantieri-mobile">
       <h2><span class="chapter-num">29b</span>Cantieri on mobile <span class="badge badge-user">user</span> <span class="badge badge-mobile">mobile</span></h2>
-      <p class="lead">Anyone with a Cantieri role finds the <strong>Cantieri</strong> tab in the app to log daily activities on their assigned sites.</p>
+      <p class="lead">Anyone with a Cantieri role finds the <strong>Cantieri</strong> tab in the app with the list of their activities and a button to add new ones.</p>
+
+      <div class="feature">
+        <h3>My activities</h3>
+        <p>The <strong>Cantieri</strong> tab lists your entries for the month, grouped by day (use the arrows to change month). Tap an entry to <strong>edit</strong> it; use the trash icon to <strong>delete</strong> it. The <strong>+</strong> button at the bottom right opens the form to log a new one.</p>
+      </div>
 
       <div class="feature">
         <h3>Logging an activity</h3>
-        <p>In the <strong>New activity</strong> tab pick the <strong>site</strong> (only open sites you are assigned to), the <strong>date</strong> and fill in:</p>
+        <p>From the <strong>+</strong> button pick the <strong>site</strong> (only open sites you are assigned to), the <strong>date</strong> and fill in:</p>
         <ul class="tidy">
           <li><strong>Travel time</strong>: start and end of the trip.</li>
           <li><strong>Work time</strong>: start and end of the on-site work.</li>
           <li><strong>Activity performed</strong>: free description.</li>
           <li><strong>Vehicle used</strong>: among the vehicles assigned to you (optional).</li>
-          <li>Any company-defined <strong>custom fields</strong>.</li>
+          <li>Any <strong>custom fields</strong> configured for that site.</li>
         </ul>
         <p>You can log <strong>multiple activities on the same day</strong>, even on different sites.</p>
-      </div>
-
-      <div class="feature">
-        <h3>My activities</h3>
-        <p>The <strong>My activities</strong> tab lists the month's entries, grouped by day. Tap an entry to <strong>edit</strong> it; use the trash icon to <strong>delete</strong> it.</p>
       </div>
     </section>
 

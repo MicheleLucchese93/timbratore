@@ -1,7 +1,7 @@
 {
   "sites": {
     "title": "Work sites",
-    "subtitle": "Manage work sites, assigned workers and the custom fields of activity logs",
+    "subtitle": "Manage work sites and assigned workers",
     "new": "New work site",
     "empty": "No work site created yet.",
     "emptyHint": "Create your first work site to assign workers and collect the activities logged from the app.",
@@ -38,6 +38,9 @@
     "add": "Add field",
     "empty": "No custom field.",
     "required": "Required",
+    "allCantieri": "All work sites",
+    "someCantieri_one": "{{count}} work site",
+    "someCantieri_other": "{{count}} work sites",
     "limitReached": "Limit of {{max}} fields reached",
     "deleteTitle": "Delete field?",
     "deleteConfirm": "The field \"{{label}}\" will no longer be requested. Values already logged remain in the reports.",
@@ -58,11 +61,18 @@
       "options": "Options",
       "optionsHint": "One option per line (max {{max}}).",
       "required": "Required field",
+      "cantieri": "Work sites",
+      "cantieriHint": "Select the work sites where this field is shown. No selection = all work sites.",
+      "cantieriNoSites": "No work site available: the field will be shown on all of them.",
       "position": "Position",
       "positionHint": "Display order in the form (lowest first).",
       "errorLabelRequired": "Enter a label",
       "errorOptionsRequired": "Enter at least one option"
     }
+  },
+  "campi": {
+    "title": "Custom fields",
+    "subtitle": "Define the extra fields of the activity form and link them to one or more work sites"
   },
   "mezzi": {
     "title": "Vehicles",
@@ -109,15 +119,24 @@
     },
     "emailDialog": {
       "title": "Send report by email",
-      "hint": "The PDF report of \"{{name}}\" — {{month}} will be sent to the addresses below (max {{max}}).",
+      "hint": "The PDF report of \"{{name}}\" — {{month}} will be sent to the addresses below (max {{max}} per field).",
       "placeholder": "name@example.com",
+      "toLabel": "Recipients",
+      "ccLabel": "CC",
+      "bccLabel": "BCC",
       "addRecipient": "Add recipient",
-      "remove": "Remove recipient",
+      "addCc": "Add CC",
+      "addBcc": "Add BCC",
+      "remove": "Remove address",
+      "note": "Note",
+      "notePlaceholder": "Add a note to the message…",
+      "noteHint": "The note appears in the email body, above the summary. The PDF stays attached.",
       "send": "Send",
       "sending": "Sending…",
       "sent": "Report sent.",
       "errorEmailRequired": "Enter at least one email address",
-      "errorEmailInvalid": "Check the email addresses you entered"
+      "errorEmailInvalid": "Check the email addresses you entered",
+      "errorNoteTooLong": "The note is too long (max {{max}} characters)"
     }
   }
 }

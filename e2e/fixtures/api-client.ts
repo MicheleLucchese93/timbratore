@@ -1155,6 +1155,7 @@ export interface CantieriFieldDefRecord {
   options: string[] | null;
   required: boolean;
   position: number;
+  cantiere_ids: string[];
 }
 
 export interface CantiereMezzoRecord {
@@ -1266,6 +1267,7 @@ export async function createCantieriField(
     options?: string[];
     required?: boolean;
     position?: number;
+    cantiere_ids?: string[];
   },
 ): Promise<CantieriFieldDefRecord> {
   const r = await apiPost<CantieriFieldDefRecord>(adminToken, '/api/v1/cantieri/fields', body);
@@ -1277,6 +1279,37 @@ export async function createCantieriField(
 
 export async function deleteCantieriField(adminToken: string, id: string): Promise<void> {
   await apiDelete(adminToken, `/api/v1/cantieri/fields/${id}`);
+}
+
+/** List entry/mezzo field defs (each with its cantiere_ids association set). */
+export async function getCantieriFields(
+  adminToken: string,
+  scope: 'entry' | 'mezzo',
+): Promise<{ fields: CantieriFieldDefRecord[] }> {
+  return apiGet(adminToken, `/api/v1/cantieri/fields?scope=${scope}`);
+}
+
+/** POST an entry and return the raw status/code (for negative-path assertions). */
+export async function tryCreateCantiereEntry(
+  token: string,
+  body: Record<string, unknown>,
+): Promise<{ status: number; code?: string }> {
+  const r = await apiPost(token, '/api/v1/cantieri/entries', body);
+  return { status: r.status, code: r.code };
+}
+
+/** Send the monthly report by email (To/CC/BCC + optional HTML note). */
+export async function sendCantiereReportEmail(
+  adminToken: string,
+  siteId: string,
+  body: { month: string; to: string[]; cc?: string[]; bcc?: string[]; note?: string },
+): Promise<{ status: number; sent?: boolean }> {
+  const r = await apiPost<{ sent: boolean }>(
+    adminToken,
+    `/api/v1/cantieri/sites/${siteId}/report/email`,
+    body,
+  );
+  return { status: r.status, sent: r.data?.sent };
 }
 
 /** Member surface: log an activity entry (caller needs a cantieri role +

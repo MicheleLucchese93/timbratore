@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 const TABS: Array<{ to: string; key: string }> = [
   { to: '/cantieri/dashboard', key: 'cantieri_dashboard' },
   { to: '/cantieri/sites', key: 'cantieri' },
+  { to: '/cantieri/campi', key: 'cantieri_fields' },
   { to: '/cantieri/mezzi', key: 'cantieri_mezzi' },
 ];
 

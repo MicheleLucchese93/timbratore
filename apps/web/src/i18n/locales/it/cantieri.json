@@ -1,7 +1,7 @@
 {
   "sites": {
     "title": "Cantieri",
-    "subtitle": "Gestisci i cantieri, gli addetti assegnati e i campi personalizzati delle attività",
+    "subtitle": "Gestisci i cantieri e gli addetti assegnati",
     "new": "Nuovo cantiere",
     "empty": "Nessun cantiere ancora creato.",
     "emptyHint": "Crea il primo cantiere per assegnarvi gli addetti e raccogliere le attività registrate dall'app.",
@@ -38,6 +38,9 @@
     "add": "Aggiungi campo",
     "empty": "Nessun campo personalizzato.",
     "required": "Obbligatorio",
+    "allCantieri": "Tutti i cantieri",
+    "someCantieri_one": "{{count}} cantiere",
+    "someCantieri_other": "{{count}} cantieri",
     "limitReached": "Limite di {{max}} campi raggiunto",
     "deleteTitle": "Eliminare il campo?",
     "deleteConfirm": "Il campo «{{label}}» non verrà più richiesto. I valori già registrati restano nei report.",
@@ -58,11 +61,18 @@
       "options": "Opzioni",
       "optionsHint": "Una opzione per riga (max {{max}}).",
       "required": "Campo obbligatorio",
+      "cantieri": "Cantieri",
+      "cantieriHint": "Seleziona i cantieri in cui mostrare questo campo. Nessuna selezione = tutti i cantieri.",
+      "cantieriNoSites": "Nessun cantiere disponibile: il campo verrà mostrato su tutti.",
       "position": "Posizione",
       "positionHint": "Ordine di visualizzazione nel modulo (dal più basso al più alto).",
       "errorLabelRequired": "Inserisci un'etichetta",
       "errorOptionsRequired": "Inserisci almeno un'opzione"
     }
+  },
+  "campi": {
+    "title": "Campi personalizzati",
+    "subtitle": "Definisci i campi aggiuntivi del modulo attività e associali a uno o più cantieri"
   },
   "mezzi": {
     "title": "Mezzi",
@@ -109,15 +119,24 @@
     },
     "emailDialog": {
       "title": "Invia report via email",
-      "hint": "Il report PDF di «{{name}}» — {{month}} verrà inviato agli indirizzi indicati (max {{max}}).",
+      "hint": "Il report PDF di «{{name}}» — {{month}} verrà inviato agli indirizzi indicati (max {{max}} per campo).",
       "placeholder": "nome@esempio.it",
+      "toLabel": "Destinatari",
+      "ccLabel": "CC",
+      "bccLabel": "CCN",
       "addRecipient": "Aggiungi destinatario",
-      "remove": "Rimuovi destinatario",
+      "addCc": "Aggiungi CC",
+      "addBcc": "Aggiungi CCN",
+      "remove": "Rimuovi indirizzo",
+      "note": "Nota",
+      "notePlaceholder": "Aggiungi una nota al messaggio…",
+      "noteHint": "La nota compare nel corpo dell'email, sopra il riepilogo. Il PDF resta in allegato.",
       "send": "Invia",
       "sending": "Invio…",
       "sent": "Report inviato.",
       "errorEmailRequired": "Inserisci almeno un indirizzo email",
-      "errorEmailInvalid": "Controlla gli indirizzi email inseriti"
+      "errorEmailInvalid": "Controlla gli indirizzi email inseriti",
+      "errorNoteTooLong": "La nota è troppo lunga (max {{max}} caratteri)"
     }
   }
 }

@@ -1539,15 +1539,20 @@ const MAIN_IT = `
         <h3>Attivazione e ruoli</h3>
         <p>Quando il modulo è attivo, i ruoli si assegnano dalla pagina <strong>Utenti</strong> con il campo <strong>Ruolo Cantieri</strong>, indipendente dal ruolo applicativo (anche un dipendente può essere Admin Cantieri):</p>
         <ul class="tidy">
-          <li><strong>Admin Cantieri</strong>: vede la voce <strong>Cantieri</strong> nel menu web e, al suo interno, le schede <strong>Dashboard</strong>, <strong>Cantieri</strong> e <strong>Mezzi</strong>; gestisce l'intero modulo.</li>
+          <li><strong>Admin Cantieri</strong>: vede la voce <strong>Cantieri</strong> nel menu web e, al suo interno, le schede <strong>Dashboard</strong>, <strong>Cantieri</strong>, <strong>Campi personalizzati</strong> e <strong>Mezzi</strong>; gestisce l'intero modulo.</li>
           <li><strong>User Cantieri</strong>: registra le attività dall'app mobile sui cantieri a cui è assegnato.</li>
           <li>Senza ruolo il modulo non è visibile.</li>
         </ul>
       </div>
 
       <div class="feature">
-        <h3>Cantieri e campi personalizzati</h3>
-        <p>Dalla voce <strong>Cantieri</strong> crei i cantieri con <strong>nome</strong>, <strong>indirizzo</strong> e <strong>stato</strong> (<span class="pill pill-ok">Aperto</span> o Chiuso: le attività si registrano solo sui cantieri aperti) e assegni gli <strong>addetti</strong>: solo gli assegnati vedono il cantiere nell'app. Nella sezione <strong>Campi personalizzati</strong> aggiungi campi extra al modulo di registrazione attività — testo, numero, data, ora, sì/no o scelta da elenco, anche obbligatori. I campi valgono per tutta l'azienda, così dashboard e report restano confrontabili tra cantieri.</p>
+        <h3>Cantieri</h3>
+        <p>Dalla voce <strong>Cantieri</strong> crei i cantieri con <strong>nome</strong>, <strong>indirizzo</strong> e <strong>stato</strong> (<span class="pill pill-ok">Aperto</span> o Chiuso: le attività si registrano solo sui cantieri aperti) e assegni gli <strong>addetti</strong>: solo gli assegnati vedono il cantiere nell'app.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Campi personalizzati</h3>
+        <p>Dalla scheda <strong>Campi personalizzati</strong> aggiungi campi extra al modulo di registrazione attività — testo, numero, data, ora, sì/no o scelta da elenco, anche obbligatori. Per ogni campo puoi indicare i <strong>cantieri</strong> in cui mostrarlo: se non selezioni nessun cantiere il campo vale per <strong>tutti</strong>, altrimenti compare solo sui cantieri scelti (e nel relativo report). I campi dei mezzi restano nella scheda Mezzi.</p>
       </div>
 
       <div class="feature">
@@ -1557,7 +1562,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Dashboard e report</h3>
-        <p>La <strong>Dashboard cantieri</strong> mostra, per il mese scelto, una scheda per ogni cantiere con numero di attività, addetti coinvolti e totali di viaggio e attività. Aprendo una scheda vedi il dettaglio delle registrazioni. Da ogni scheda puoi <strong>scaricare il PDF</strong> del report mensile o <strong>inviarlo via email</strong> a uno o più destinatari.</p>
+        <p>La <strong>Dashboard cantieri</strong> mostra, per il mese scelto, una scheda per ogni cantiere con numero di attività, addetti coinvolti e totali di viaggio e attività. Aprendo una scheda vedi il dettaglio delle registrazioni. Da ogni scheda, con le icone dedicate, puoi <strong>scaricare il PDF</strong> del report mensile o <strong>inviarlo via email</strong>. Nell'invio indichi i <strong>destinatari</strong> e, se vuoi, gli indirizzi in <strong>CC</strong> e <strong>CCN</strong> e una <strong>nota</strong> formattata che compare nel corpo del messaggio; il PDF resta in allegato.</p>
       </div>
 
       <div class="callout callout-info">
@@ -1567,24 +1572,24 @@ const MAIN_IT = `
 
     <section class="chapter" id="cantieri-mobile">
       <h2><span class="chapter-num">29b</span>Cantieri su mobile <span class="badge badge-user">user</span> <span class="badge badge-mobile">mobile</span></h2>
-      <p class="lead">Chi ha un ruolo Cantieri trova nell'app la scheda <strong>Cantieri</strong> per registrare le attività giornaliere sui cantieri assegnati.</p>
+      <p class="lead">Chi ha un ruolo Cantieri trova nell'app la scheda <strong>Cantieri</strong> con l'elenco delle proprie attività e un pulsante per aggiungerne di nuove.</p>
+
+      <div class="feature">
+        <h3>Le mie attività</h3>
+        <p>La scheda <strong>Cantieri</strong> elenca le tue registrazioni del mese, raggruppate per giorno (usa le frecce per cambiare mese). Toccando un'attività la <strong>modifichi</strong>; con il cestino la <strong>elimini</strong>. Il pulsante <strong>+</strong> in basso a destra apre il modulo per registrarne una nuova.</p>
+      </div>
 
       <div class="feature">
         <h3>Registrare un'attività</h3>
-        <p>Nella scheda <strong>Nuova attività</strong> scegli il <strong>cantiere</strong> (solo quelli aperti a cui sei assegnato), la <strong>data</strong> e compili:</p>
+        <p>Dal pulsante <strong>+</strong> scegli il <strong>cantiere</strong> (solo quelli aperti a cui sei assegnato), la <strong>data</strong> e compili:</p>
         <ul class="tidy">
           <li><strong>Tempo viaggio</strong>: ora di inizio e fine del viaggio.</li>
           <li><strong>Tempo attività</strong>: ora di inizio e fine del lavoro in cantiere.</li>
           <li><strong>Attività svolta</strong>: descrizione libera.</li>
           <li><strong>Mezzo utilizzato</strong>: tra i mezzi a te assegnati (facoltativo).</li>
-          <li>Gli eventuali <strong>campi personalizzati</strong> definiti dall'azienda.</li>
+          <li>Gli eventuali <strong>campi personalizzati</strong> previsti per quel cantiere.</li>
         </ul>
         <p>Puoi registrare <strong>più attività nello stesso giorno</strong>, anche su cantieri diversi.</p>
-      </div>
-
-      <div class="feature">
-        <h3>Le mie attività</h3>
-        <p>La scheda <strong>Le mie attività</strong> elenca le registrazioni del mese, raggruppate per giorno. Toccando un'attività puoi <strong>modificarla</strong>; con il cestino la <strong>elimini</strong>.</p>
       </div>
     </section>
 

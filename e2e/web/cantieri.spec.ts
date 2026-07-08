@@ -42,12 +42,20 @@ test.describe('web — Cantieri module gating', () => {
     // Switch views through the section tabs.
     await page.getByRole('tab', { name: 'Mezzi' }).click();
     await expect(page.getByRole('heading', { name: 'Mezzi', exact: true })).toBeVisible();
+    await page.getByRole('tab', { name: 'Campi personalizzati' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Campi personalizzati' }).first(),
+    ).toBeVisible();
     await page.getByRole('tab', { name: 'Cantieri' }).click();
     await expect(page.getByRole('heading', { name: 'Cantieri', exact: true })).toBeVisible();
 
     // Deep links resolve; /cantieri redirects to the Dashboard tab.
     await page.goto('/cantieri/sites');
     await expect(page.getByRole('heading', { name: 'Cantieri', exact: true })).toBeVisible();
+    await page.goto('/cantieri/campi');
+    await expect(
+      page.getByRole('heading', { name: 'Campi personalizzati' }).first(),
+    ).toBeVisible();
     await page.goto('/cantieri/mezzi');
     await expect(page.getByRole('heading', { name: 'Mezzi', exact: true })).toBeVisible();
     await page.goto('/cantieri');

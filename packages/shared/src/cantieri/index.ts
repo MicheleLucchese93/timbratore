@@ -20,6 +20,8 @@ export const CANTIERI_FIELD_OPTION_MAX = 60;
 export const CANTIERI_FIELD_OPTIONS_MAX = 30;
 export const CANTIERI_FIELDS_PER_SCOPE_MAX = 20;
 export const CANTIERE_REPORT_RECIPIENTS_MAX = 5;
+// Max HTML length of the optional note added to a report email (rich text).
+export const CANTIERE_REPORT_NOTE_MAX = 5000;
 
 export const CANTIERI_FIELD_TYPES: CantieriFieldType[] = [
   'text', 'number', 'date', 'time', 'boolean', 'select',
@@ -34,6 +36,26 @@ export interface CantieriFieldDef {
   options: string[] | null; // select choices
   required: boolean;
   position: number;
+  // Entry-scope only: the cantieri this field is shown on. An EMPTY array means
+  // the field applies to ALL cantieri (backward-compatible default). Always []
+  // for scope='mezzo' (vehicle fields are not tied to a site).
+  cantiere_ids: string[];
+}
+
+// Does an entry-scope field apply to a given cantiere? Empty association = all.
+export function cantiereFieldApplies(def: CantieriFieldDef, cantiereId: string): boolean {
+  return def.cantiere_ids.length === 0 || def.cantiere_ids.includes(cantiereId);
+}
+
+// Entry-scope defs shown for one cantiere, in display order (already ordered by
+// the API). A null cantiere (nothing picked yet) yields only the global defs.
+export function cantiereEntryFieldsFor(
+  defs: CantieriFieldDef[],
+  cantiereId: string | null
+): CantieriFieldDef[] {
+  return defs.filter((d) =>
+    cantiereId === null ? d.cantiere_ids.length === 0 : cantiereFieldApplies(d, cantiereId)
+  );
 }
 
 export interface CantiereRecord {

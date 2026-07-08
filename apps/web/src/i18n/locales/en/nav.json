@@ -12,6 +12,7 @@
   "documents": "Documents",
   "cantieri": "Work sites",
   "cantieri_mezzi": "Vehicles",
+  "cantieri_fields": "Custom fields",
   "cantieri_dashboard": "Dashboard",
   "audit": "Activity log",
   "settings": "Settings",

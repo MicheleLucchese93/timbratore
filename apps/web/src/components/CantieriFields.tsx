@@ -132,14 +132,20 @@ export function CantieriCustomInputs({
 export function CantieriFieldDefsSection({
   scope,
   defs,
+  sites,
   onChanged,
 }: {
   scope: CantieriFieldScope;
   defs: CantieriFieldDef[];
+  /** Entry scope: the tenant's sites, enabling per-cantiere association. */
+  sites?: Array<{ id: string; name: string }>;
   onChanged: () => Promise<void> | void;
 }) {
   const { t } = useTranslation(['cantieri', 'common']);
   const confirm = useConfirm();
+  const showAssoc = scope === 'entry' && sites !== undefined;
+  const siteName = (id: string): string =>
+    sites?.find((s) => s.id === id)?.name ?? '…';
   const [editing, setEditing] = useState<CantieriFieldDef | null>(null);
   const [creating, setCreating] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -200,6 +206,21 @@ export function CantieriFieldDefsSection({
                   {(d.options ?? []).join(', ')}
                 </span>
               )}
+              {showAssoc && (
+                <span
+                  className="badge badge-muted truncate"
+                  style={{ maxWidth: '20rem' }}
+                  title={
+                    d.cantiere_ids.length === 0
+                      ? t('fields.allCantieri')
+                      : d.cantiere_ids.map(siteName).join(', ')
+                  }
+                >
+                  {d.cantiere_ids.length === 0
+                    ? t('fields.allCantieri')
+                    : d.cantiere_ids.map(siteName).join(', ')}
+                </span>
+              )}
               <span className="flex-1" />
               <button className="btn btn-ghost btn-sm" onClick={() => setEditing(d)}>
                 {t('common:btn.edit')}
@@ -220,6 +241,7 @@ export function CantieriFieldDefsSection({
         <FieldDefModal
           scope={scope}
           existing={editing}
+          sites={showAssoc ? sites : undefined}
           nextPosition={defs.reduce((max, d) => Math.max(max, d.position), 0) + 1}
           onClose={() => {
             setCreating(false);
@@ -240,12 +262,14 @@ export function CantieriFieldDefsSection({
 function FieldDefModal({
   scope,
   existing,
+  sites,
   nextPosition,
   onClose,
   onSaved,
 }: {
   scope: CantieriFieldScope;
   existing: CantieriFieldDef | null;
+  sites?: Array<{ id: string; name: string }>;
   nextPosition: number;
   onClose: () => void;
   onSaved: () => Promise<void> | void;
@@ -258,8 +282,22 @@ function FieldDefModal({
   const [optionsText, setOptionsText] = useState((existing?.options ?? []).join('\n'));
   const [required, setRequired] = useState(existing?.required ?? false);
   const [position, setPosition] = useState<number>(existing?.position ?? nextPosition);
+  // Per-cantiere association (entry scope). Empty set = all cantieri.
+  const [cantiereIds, setCantiereIds] = useState<Set<string>>(
+    new Set(existing?.cantiere_ids ?? [])
+  );
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const showAssoc = sites !== undefined;
+
+  function toggleCantiere(id: string) {
+    setCantiereIds((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -273,6 +311,7 @@ function FieldDefModal({
     if (fieldType === 'select' && options.length === 0) {
       return setErr(t('fields.form.errorOptionsRequired'));
     }
+    const cantiere_ids = showAssoc ? Array.from(cantiereIds) : undefined;
     setBusy(true);
     try {
       if (existing) {
@@ -283,6 +322,7 @@ function FieldDefModal({
             ...(existing.field_type === 'select' ? { options } : {}),
             required,
             position,
+            ...(cantiere_ids ? { cantiere_ids } : {}),
           },
         });
       } else {
@@ -295,6 +335,7 @@ function FieldDefModal({
             ...(fieldType === 'select' ? { options } : {}),
             required,
             position,
+            ...(cantiere_ids ? { cantiere_ids } : {}),
           },
         });
       }
@@ -367,6 +408,34 @@ function FieldDefModal({
             <span>{t('fields.form.required')}</span>
           </label>
         </div>
+
+        {showAssoc && (
+          <div>
+            <label className="label">{t('fields.form.cantieri')}</label>
+            {sites!.length === 0 ? (
+              <p className="text-sm muted">{t('fields.form.cantieriNoSites')}</p>
+            ) : (
+              <ul
+                className="space-y-1 max-h-48 overflow-auto"
+                style={{ paddingLeft: 0, listStyle: 'none' }}
+              >
+                {sites!.map((s) => (
+                  <li key={s.id}>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={cantiereIds.has(s.id)}
+                        onChange={() => toggleCantiere(s.id)}
+                      />
+                      <span className="truncate">{s.name}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-xs muted mt-1">{t('fields.form.cantieriHint')}</p>
+          </div>
+        )}
 
         <div>
           <label className="label">{t('fields.form.position')}</label>
