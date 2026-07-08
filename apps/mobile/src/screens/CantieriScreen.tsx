@@ -169,11 +169,17 @@ export function CantieriScreen() {
 
   function openNew() {
     resetForm();
-    setFormOpen(true);
-    // Ask which cantiere first: one assigned site → preselect it; several →
-    // open the picker straight away so the user picks before filling the form.
-    if (sites.length === 1) setCantiereId(sites[0].id);
-    else if (sites.length > 1) setSitePickerOpen(true);
+    // Ask which cantiere FIRST, as a standalone step: one assigned site →
+    // preselect it and go straight to the form; several → open the picker and
+    // let its selection open the form; none → open the form's empty state.
+    if (sites.length === 1) {
+      setCantiereId(sites[0].id);
+      setFormOpen(true);
+    } else if (sites.length > 1) {
+      setSitePickerOpen(true);
+    } else {
+      setFormOpen(true);
+    }
   }
 
   function closeForm() {
@@ -400,19 +406,6 @@ export function CantieriScreen() {
           />
         ) : (
           <>
-            <Text style={styles.fieldLabel}>{t('form.siteLabel')}</Text>
-            {/* cantiere_id is immutable on PATCH — lock the picker while editing */}
-            <Pressable
-              onPress={editing ? undefined : () => setSitePickerOpen(true)}
-              style={[styles.pickerBtn, editing != null && styles.pickerBtnDisabled]}>
-              <Text style={[styles.pickerBtnText, !selectedSiteName && styles.pickerPlaceholder]}>
-                {selectedSiteName ?? t('form.sitePlaceholder')}
-              </Text>
-              {!editing && (
-                <Ionicons name="chevron-down" size={18} color={color.onSurfaceVariant} />
-              )}
-            </Pressable>
-
             <Text style={styles.fieldLabel}>{t('form.dateLabel')}</Text>
             <DateField mode="date" value={entryDate} onChange={setEntryDate} />
 
@@ -488,30 +481,36 @@ export function CantieriScreen() {
             )}
 
             {visibleFields.map(renderCustomField)}
-
-            <TouchableOpacity
-              onPress={submit}
-              disabled={submitting}
-              activeOpacity={0.85}
-              style={[styles.submitBtn, submitting && { opacity: 0.6 }]}>
-              {submitting ? (
-                <ActivityIndicator color={color.onPrimary} />
-              ) : (
-                <>
-                  <Ionicons
-                    name={editing ? 'save-outline' : 'send-outline'}
-                    size={18}
-                    color={color.onPrimary}
-                  />
-                  <Text style={styles.submitText}>
-                    {editing ? t('form.submitEdit') : t('form.submitNew')}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
           </>
         )}
       </ScrollView>
+
+      {/* Fixed submit footer — stays pinned above the Android nav bar / iOS home
+          indicator (insets read from the screen; they are 0 inside a Modal). */}
+      {!loadingMeta && (sites.length > 0 || editing) && (
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+          <TouchableOpacity
+            onPress={submit}
+            disabled={submitting}
+            activeOpacity={0.85}
+            style={[styles.submitBtn, submitting && { opacity: 0.6 }]}>
+            {submitting ? (
+              <ActivityIndicator color={color.onPrimary} />
+            ) : (
+              <>
+                <Ionicons
+                  name={editing ? 'save-outline' : 'send-outline'}
+                  size={18}
+                  color={color.onPrimary}
+                />
+                <Text style={styles.submitText}>
+                  {editing ? t('form.submitEdit') : t('form.submitNew')}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 
@@ -624,12 +623,36 @@ export function CantieriScreen() {
         <Ionicons name="add" size={28} color={color.onPrimary} />
       </TouchableOpacity>
 
+      {/* Step 1: pick the cantiere. Standalone (at screen root, not inside the
+          form modal) so it is the first thing shown; selecting one opens the
+          form. Dismissing it without a choice leaves the form closed. */}
+      <ListPickerModal
+        visible={sitePickerOpen}
+        title={t('form.sitePickerTitle')}
+        options={sites.map((s) => ({ id: s.id, label: s.name }))}
+        selectedId={cantiereId}
+        onSelect={(id) => {
+          if (id) {
+            setCantiereId(id);
+            setFormOpen(true);
+          }
+        }}
+        onClose={() => setSitePickerOpen(false)}
+      />
+
       <Modal visible={formOpen} animationType="slide" onRequestClose={closeForm}>
         <View style={[styles.safe, { paddingTop: insets.top }]}>
           <View style={styles.formHeader}>
-            <Text style={styles.formHeaderTitle} numberOfLines={1}>
-              {editing ? t('modal.editTitle') : t('modal.newTitle')}
-            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.formHeaderTitle} numberOfLines={1}>
+                {editing ? t('modal.editTitle') : t('modal.newTitle')}
+              </Text>
+              {selectedSiteName ? (
+                <Text style={styles.formHeaderSub} numberOfLines={1}>
+                  {selectedSiteName}
+                </Text>
+              ) : null}
+            </View>
             <TouchableOpacity
               onPress={closeForm}
               hitSlop={8}
@@ -640,14 +663,6 @@ export function CantieriScreen() {
 
           {renderNewPage}
 
-          <ListPickerModal
-            visible={sitePickerOpen}
-            title={t('form.sitePickerTitle')}
-            options={sites.map((s) => ({ id: s.id, label: s.name }))}
-            selectedId={cantiereId}
-            onSelect={setCantiereId}
-            onClose={() => setSitePickerOpen(false)}
-          />
           <ListPickerModal
             visible={mezzoPickerOpen}
             title={t('form.mezzoPickerTitle')}
@@ -909,7 +924,7 @@ const styles = StyleSheet.create({
 
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 6, paddingBottom: 96 },
-  formContent: { padding: 6, paddingBottom: 48, gap: 14 },
+  formContent: { padding: 6, paddingBottom: 16, gap: 14 },
 
   centered: { paddingVertical: 48, alignItems: 'center' },
 
@@ -948,7 +963,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: color.surfaceVariant,
   },
-  formHeaderTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: color.onSurface },
+  formHeaderTitle: { fontSize: 17, fontWeight: '700', color: color.onSurface },
+  formHeaderSub: { fontSize: 13, fontWeight: '600', color: color.primary, marginTop: 2 },
+
+  footer: {
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: color.surfaceVariant,
+    backgroundColor: color.surface,
+  },
 
   pickerBtn: {
     flexDirection: 'row',
