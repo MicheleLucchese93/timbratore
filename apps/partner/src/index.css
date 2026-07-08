@@ -115,10 +115,17 @@ select.input { background-color: white; }
 /* Modal ----------------------------------------------------------------- */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 50; }
 .modal { background: #fff; border-radius: 0.75rem; width: 100%; max-width: 720px; max-height: 90vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+/* Wide variant for tall two-column forms — uses the desktop width so the form
+   fits without vertical scrolling. */
+.modal.wide { max-width: 960px; }
 .modal-head { padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-surface-variant); font-weight: 700; }
 .modal-body { padding: 1.25rem; display: flex; flex-direction: column; gap: 0.875rem; }
 .modal-foot { padding: 1rem 1.25rem; border-top: 1px solid var(--color-surface-variant); display: flex; justify-content: flex-end; gap: 0.5rem; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.875rem; }
+/* Two side-by-side field columns so tall forms use the desktop width instead
+   of scrolling vertically. Each .col-group stacks its own fields. */
+.form-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0.875rem 1.5rem; align-items: start; }
+.form-cols .col-group { display: flex; flex-direction: column; gap: 0.875rem; min-width: 0; }
 .muted { font-size: 0.8125rem; color: var(--color-on-surface-variant); }
 
 /* Package selector (tenant create) — mirrors the website pricing tiers -------- */
@@ -217,6 +224,7 @@ select.input { background-color: white; }
   .page-header-title h1 { font-size: 1.25rem; }
   /* Stacked single-column forms read better than cramped 2-up on phones. */
   .grid-2 { grid-template-columns: 1fr; }
+  .form-cols { grid-template-columns: 1fr; gap: 0.875rem; }
   /* Larger touch targets across the mobile surface (WCAG 2.5.5 / HIG). */
   .m-card-actions .icon-btn { width: 40px; height: 40px; }
   .sidebar-foot .icon-btn { width: 40px; height: 40px; }

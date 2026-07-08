@@ -393,9 +393,11 @@ function CreatePartner({ onClose, onDone }: { onClose: () => void; onDone: () =>
   }
 
   return (
-    <Modal title={t('partners.create.title')} onClose={onClose}>
+    <Modal title={t('partners.create.title')} onClose={onClose} wide>
       <form onSubmit={submit}>
         <div className="modal-body">
+          <div className="form-cols">
+          <div className="col-group">
           <div>
             <label className="label" htmlFor="p-email">{t('partners.create.email')}</label>
             <input id="p-email" className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -418,6 +420,8 @@ function CreatePartner({ onClose, onDone }: { onClose: () => void; onDone: () =>
             <label className="label" htmlFor="p-note">{t('partners.create.note')}</label>
             <textarea id="p-note" className="input" rows={2} data-testid="partner-note" value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
+          </div>
+          <div className="col-group">
           <label className="checkbox-row" style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
             <input
               type="checkbox"
@@ -436,6 +440,8 @@ function CreatePartner({ onClose, onDone }: { onClose: () => void; onDone: () =>
             {t('partners.create.caps')} <span style={{ fontWeight: 400 }}>— {t('partners.create.caps_hint')}</span>
           </div>
           <CapInputs caps={caps} set={(k, v) => setCaps((c) => ({ ...c, [k]: v }))} />
+          </div>
+          </div>
           {err && <div className="form-err">{err}</div>}
         </div>
         <div className="modal-foot">
@@ -497,9 +503,11 @@ function EditCaps({
   }
 
   return (
-    <Modal title={`${t('partners.edit.title')} · ${partner.email}`} onClose={onClose}>
+    <Modal title={`${t('partners.edit.title')} · ${partner.email}`} onClose={onClose} wide>
       <form onSubmit={submit}>
         <div className="modal-body">
+          <div className="form-cols">
+          <div className="col-group">
           <div>
             <label className="label" htmlFor="e-name">{t('partners.create.partner_name')}</label>
             <input id="e-name" className="input" data-testid="edit-partner-name" value={name} onChange={(e) => setName(e.target.value)} />
@@ -508,7 +516,11 @@ function EditCaps({
             <label className="label" htmlFor="e-note">{t('partners.create.note')}</label>
             <textarea id="e-note" className="input" rows={2} data-testid="edit-partner-note" value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
+          </div>
+          <div className="col-group">
           <CapInputs caps={caps} set={(k, v) => setCaps((c) => ({ ...c, [k]: v }))} />
+          </div>
+          </div>
           {err && <div className="form-err">{err}</div>}
         </div>
         <div className="modal-foot">

@@ -550,9 +550,11 @@ function CreateTenant({
   }
 
   return (
-    <Modal title={t('tenants.create.title')} onClose={onClose}>
+    <Modal title={t('tenants.create.title')} onClose={onClose} wide>
       <form onSubmit={submit}>
         <div className="modal-body">
+          <div className="form-cols">
+          <div className="col-group">
           <div>
             <label className="label" htmlFor="t-ragione">{t('tenants.create.ragione_sociale')}</label>
             <input id="t-ragione" className="input" required value={ragione} onChange={(e) => setRagione(e.target.value)} />
@@ -592,6 +594,8 @@ function CreateTenant({
               </span>
             </span>
           </label>
+          </div>
+          <div className="col-group">
           <div>
             <label className="label">{t('tenants.create.package')}</label>
             <div className="pkg-toggle" role="group" aria-label={t('tenants.create.package')}>
@@ -640,6 +644,8 @@ function CreateTenant({
               ))}
             </>
           )}
+          </div>
+          </div>
           {err && <div className="form-err">{err}</div>}
         </div>
         <div className="modal-foot">
