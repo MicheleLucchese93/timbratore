@@ -1,0 +1,356 @@
+---
+// Optional add-on modules. The base subscription covers attendance for the
+// plan's users; modules add sector-specific capability on top, billed per month
+// on request. Italian-only inline copy, same convention as Features/Pricing.
+// Web screenshots: public/screenshots-web/cantieri-*.{png,webp}
+// Mobile (field) screenshots: public/screenshots/cantieri-mobile-*.{png,webp}
+
+// Supporting Cantieri web screens (the dashboard is the hero, shown separately).
+const cantieriShots = [
+  {
+    file: "cantieri-sites",
+    label: "Cantieri e addetti",
+    desc: "Ogni cantiere con indirizzo, stato e addetti assegnati. Chi non è assegnato non lo vede.",
+  },
+  {
+    file: "cantieri-mezzi",
+    label: "Mezzi e attrezzature",
+    desc: "Escavatori, autocarri, betoniere: censiti con targa, tipo e scadenza revisione.",
+  },
+  {
+    file: "cantieri-campi",
+    label: "Campi personalizzati",
+    desc: "Aggiungi i campi che ti servono (meteo, note sicurezza, metri posati) per singolo cantiere.",
+  },
+];
+
+// Mobile screens — where the field crew logs the work.
+const mobileShots = [
+  {
+    file: "cantieri-mobile-list",
+    label: "Le attività della giornata",
+    desc: "Ogni addetto vede e registra le proprie attività, cantiere per cantiere.",
+  },
+  {
+    file: "cantieri-mobile-form",
+    label: "Un rapportino in un attimo",
+    desc: "Tempo di viaggio, ore di lavoro, mezzo e campi su misura: dal telefono, sul posto.",
+  },
+];
+
+const cantieriPoints = [
+  "Gli addetti registrano le attività dall'app, solo per i cantieri a cui sono assegnati",
+  "Tempo di viaggio, ore di lavoro, mezzo utilizzato e campi su misura in ogni rapportino",
+  "Riepilogo mensile per cantiere: attività, addetti, ore di viaggio e di lavoro",
+  "Report in PDF scaricabile o inviato via email, con nota e destinatari a scelta",
+];
+
+const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`;
+const zoomIcon = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 8v6M8 11h6M19 11a8 8 0 11-16 0 8 8 0 0116 0z"/></svg>`;
+
+const src = (file: string) => `/screenshots-web/${file}.png`;
+const webp = (file: string) => `/screenshots-web/${file}.webp`;
+const msrc = (file: string) => `/screenshots/${file}.png`;
+const mwebp = (file: string) => `/screenshots/${file}.webp`;
+---
+
+<section id="moduli" class="bg-white py-20 sm:py-28 scroll-mt-20">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6">
+    <div class="text-center">
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-secondary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-secondary">
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/></svg>
+        Moduli
+      </span>
+      <h2 class="mt-4 text-3xl font-bold tracking-tight text-on-surface sm:text-4xl">
+        Espandi sonoQui con i moduli
+      </h2>
+      <p class="mx-auto mt-4 max-w-3xl text-lg text-on-surface-variant">
+        L'abbonamento include tutta la rilevazione presenze. Quando ti serve di più, attivi un
+        <strong class="font-semibold text-on-surface">modulo</strong> pensato per il tuo settore:
+        si aggiunge all'abbonamento, si paga <strong class="font-semibold text-on-surface">a consumo mensile</strong> e il prezzo è su richiesta.
+      </p>
+    </div>
+
+    <!-- Featured module: Cantieri -->
+    <div class="mt-12 rounded-3xl border border-gray-200 bg-surface p-5 sm:p-7">
+      <div class="grid items-center gap-8 lg:grid-cols-2 lg:gap-12">
+        <div>
+          <button
+            type="button"
+            data-zoom
+            data-src={src("cantieri-dashboard")}
+            data-label="Dashboard cantieri"
+            aria-label="Ingrandisci: Dashboard cantieri"
+            class="group block w-full cursor-zoom-in overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 text-left shadow-2xl transition-all hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            <div class="flex items-center gap-1.5 border-b border-gray-200 bg-gray-50 px-4 py-2.5">
+              <span class="h-2.5 w-2.5 rounded-full bg-red-400"></span>
+              <span class="h-2.5 w-2.5 rounded-full bg-yellow-400"></span>
+              <span class="h-2.5 w-2.5 rounded-full bg-green-400"></span>
+            </div>
+            <div class="relative">
+              <picture>
+                <source srcset={webp("cantieri-dashboard")} type="image/webp" />
+                <img src={src("cantieri-dashboard")} alt="Dashboard del modulo Cantieri" width="1512" height="770" class="block w-full" loading="lazy" />
+              </picture>
+              <span class="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-all duration-200 group-hover:bg-on-surface/10 group-hover:opacity-100">
+                <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-on-surface shadow-lg"><Fragment set:html={zoomIcon} /></span>
+              </span>
+            </div>
+          </button>
+        </div>
+
+        <div>
+          <div class="flex items-center gap-3">
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
+              <svg class="h-6 w-6" viewBox="0 0 512 512" fill="none" stroke="currentColor" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M436.67,184.11a27.17,27.17,0,0,1-38.3,0l-22.48-22.49a27.15,27.15,0,0,1,0-38.29l50.89-50.89a.85.85,0,0,0-.26-1.38C393.68,57,351.09,64.15,324.05,91c-25.88,25.69-27.35,64.27-17.87,98a27,27,0,0,1-7.67,27.14l-173,160.76a40.76,40.76,0,1,0,57.57,57.54l162.15-173.3A27,27,0,0,1,372,253.44c33.46,8.94,71.49,7.26,97.07-17.94,27.49-27.08,33.42-74.94,20.1-102.33a.85.85,0,0,0-1.36-.22Z" stroke-linejoin="miter" stroke-miterlimit="10"/>
+                <path d="M224,284c-17.48-17-25.49-24.91-31-30.29a18.24,18.24,0,0,1-3.33-21.35,20.76,20.76,0,0,1,3.5-4.62l15.68-15.29a18.66,18.66,0,0,1,5.63-3.87,18.11,18.11,0,0,1,20,3.62c5.45,5.29,15.43,15,33.41,32.52"/>
+                <path d="M317.07,291.3c40.95,38.1,90.62,83.27,110,99.41a13.46,13.46,0,0,1,.94,19.92L394.63,444a14,14,0,0,1-20.29-.76c-16.53-19.18-61.09-67.11-99.27-107"/>
+                <path d="M17.34,193.5l29.41-28.74a4.71,4.71,0,0,1,3.41-1.35,4.85,4.85,0,0,1,3.41,1.35h0a9.86,9.86,0,0,0,8.19,2.77c3.83-.42,7.92-1.6,10.57-4.12,6-5.8-.94-17.23,4.34-24.54a207,207,0,0,1,19.78-22.6c6-5.88,29.84-28.32,69.9-44.45A107.31,107.31,0,0,1,206.67,64c22.59,0,40,10,46.26,15.67a89.54,89.54,0,0,1,10.28,11.64A78.92,78.92,0,0,0,254,88.54,68.82,68.82,0,0,0,234,87.28c-13.33,1.09-29.41,7.26-38,14-13.9,11-19.87,25.72-20.81,44.71-.68,14.12,2.72,22.1,36.1,55.49a6.6,6.6,0,0,1-.34,9.16l-18.22,18a6.88,6.88,0,0,1-9.54.09c-21.94-21.94-36.65-33.09-45-38.16s-15.07-6.5-18.3-6.85a30.85,30.85,0,0,0-18.27,3.87,11.39,11.39,0,0,0-2.64,2,14.14,14.14,0,0,0,.42,20.08l1.71,1.6a4.63,4.63,0,0,1,0,6.64L71.73,246.6A4.71,4.71,0,0,1,68.32,248a4.86,4.86,0,0,1-3.41-1.35L17.34,200.22A4.88,4.88,0,0,1,17.34,193.5Z"/>
+              </svg>
+            </span>
+            <h3 class="text-2xl font-bold leading-tight tracking-tight text-on-surface sm:text-3xl">Modulo Cantieri</h3>
+          </div>
+          <p class="mt-4 text-base leading-relaxed text-on-surface-variant">
+            Per imprese edili, di installazione e manutenzione. Gli addetti registrano dal telefono le attività
+            di cantiere; tu ottieni un riepilogo mensile per ogni cantiere e il report pronto da inviare al
+            committente o al direttore lavori.
+          </p>
+          <ul class="mt-5 space-y-3">
+            {cantieriPoints.map((p) => (
+              <li class="flex items-start gap-2.5 text-sm leading-relaxed text-on-surface">
+                <Fragment set:html={check} />
+                <span>{p}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div class="mt-6 flex flex-wrap items-center gap-3">
+            <a
+              href="#contact"
+              data-module-cta
+              data-module="Cantieri"
+              class="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-container"
+            >
+              Richiedi il modulo Cantieri
+            </a>
+            <span class="inline-flex items-center gap-1.5 text-xs font-medium text-on-surface-variant">
+              <svg class="h-4 w-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+              A consumo mensile, in aggiunta all'abbonamento
+            </span>
+          </div>
+          <p class="mt-3 text-xs leading-relaxed text-on-surface-variant">
+            Se gestisci sonoQui tramite un <a href="/it/partner/" class="font-semibold text-primary hover:underline">partner</a>, è il partner ad abilitarli per la tua azienda.
+          </p>
+        </div>
+      </div>
+
+      <!-- Module video (specific to Cantieri) -->
+      <div class="mt-10 border-t border-gray-200 pt-8">
+        <video
+          controls
+          playsinline
+          preload="none"
+          poster="/cantieri-video-poster.jpg"
+          aria-label="Il modulo Cantieri in un minuto"
+          class="block aspect-video w-full rounded-2xl bg-on-surface shadow-xl ring-1 ring-black/5"
+        >
+          <source src="/sonoqui-cantieri.mp4?v=2" type="video/mp4" />
+        </video>
+      </div>
+
+      <!-- Field crew: mobile entry -->
+      <div class="mt-10 border-t border-gray-200 pt-8">
+        <div class="grid items-center gap-8 lg:grid-cols-[1fr_auto] lg:gap-12">
+          <div>
+            <span class="text-xs font-semibold uppercase tracking-wide text-secondary">Sul cantiere</span>
+            <h4 class="mt-2 text-xl font-bold tracking-tight text-on-surface sm:text-2xl">
+              I dati arrivano dal campo, dal telefono
+            </h4>
+            <p class="mt-3 text-base leading-relaxed text-on-surface-variant">
+              Chi lavora in cantiere compila il rapportino direttamente dall'app sonoQui: sceglie il cantiere,
+              indica gli orari, il mezzo e i campi richiesti. Niente carta, niente fogli a fine giornata —
+              i dati sono subito in dashboard per chi amministra.
+            </p>
+            <ul class="mt-5 space-y-3">
+              {mobileShots.map((m) => (
+                <li class="flex items-start gap-2.5 text-sm leading-relaxed text-on-surface">
+                  <Fragment set:html={check} />
+                  <span><strong class="font-semibold">{m.label}.</strong> {m.desc}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div class="flex justify-center gap-5 sm:gap-8">
+            {mobileShots.map((m) => (
+              <button
+                type="button"
+                data-zoom
+                data-src={msrc(m.file)}
+                data-label={m.label}
+                aria-label={`Ingrandisci: ${m.label}`}
+                class="group relative block w-36 shrink-0 cursor-zoom-in rounded-[1.8rem] transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:w-44"
+              >
+                <div class="rounded-[1.3rem] border-[4px] border-on-surface bg-on-surface p-0.5 shadow-xl">
+                  <picture>
+                    <source srcset={mwebp(m.file)} type="image/webp" />
+                    <img src={msrc(m.file)} alt={m.label} width="1170" height="2532" class="block w-full rounded-[1.1rem] bg-on-surface" loading="lazy" />
+                  </picture>
+                </div>
+                <span class="pointer-events-none absolute inset-0 flex items-center justify-center rounded-[1.8rem] opacity-0 transition-all duration-200 group-hover:bg-on-surface/20 group-hover:opacity-100">
+                  <span class="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-on-surface shadow-lg"><Fragment set:html={zoomIcon} /></span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <!-- Supporting Cantieri web screens -->
+      <div class="mt-10 grid gap-6 border-t border-gray-200 pt-8 sm:grid-cols-3">
+        {cantieriShots.map((shot) => (
+          <div class="flex flex-col">
+            <button
+              type="button"
+              data-zoom
+              data-src={src(shot.file)}
+              data-label={shot.label}
+              aria-label={`Ingrandisci: ${shot.label}`}
+              class="group block w-full cursor-zoom-in overflow-hidden rounded-xl border border-gray-200 bg-gray-100 text-left shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              <div class="flex items-center gap-1 border-b border-gray-200 bg-gray-50 px-3 py-1.5">
+                <span class="h-2 w-2 rounded-full bg-red-400"></span>
+                <span class="h-2 w-2 rounded-full bg-yellow-400"></span>
+                <span class="h-2 w-2 rounded-full bg-green-400"></span>
+              </div>
+              <div class="relative">
+                <picture>
+                  <source srcset={webp(shot.file)} type="image/webp" />
+                  <img src={src(shot.file)} alt={shot.label} width="1512" height="770" class="block w-full" loading="lazy" />
+                </picture>
+                <span class="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                  <span class="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-on-surface shadow-md"><Fragment set:html={zoomIcon} /></span>
+                </span>
+              </div>
+            </button>
+            <h4 class="mt-3 text-base font-semibold text-on-surface">{shot.label}</h4>
+            <p class="mt-1 text-sm leading-relaxed text-on-surface-variant">{shot.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <!-- Custom modules -->
+    <div class="mt-8 flex flex-col items-start gap-5 rounded-3xl border-2 border-dashed border-gray-300 bg-white p-8 sm:flex-row sm:items-center sm:gap-8">
+      <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+      </div>
+      <div class="flex-1">
+        <h3 class="text-xl font-bold text-on-surface">Ti serve un modulo su misura?</h3>
+        <p class="mt-2 text-base leading-relaxed text-on-surface-variant">
+          Hai un flusso specifico del tuo settore? Progettiamo e sviluppiamo moduli dedicati sopra sonoQui,
+          integrati con presenze, ferie e dati della tua azienda. Raccontaci cosa ti serve e valutiamo insieme
+          fattibilità, tempi e prezzo.
+        </p>
+      </div>
+      <a
+        href="#contact"
+        data-module-cta
+        data-module="su misura"
+        class="inline-flex shrink-0 items-center justify-center rounded-full border border-primary px-5 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
+      >
+        Proponi un modulo
+      </a>
+    </div>
+  </div>
+
+  <!-- Zoom lightbox (same behaviour as the Dashboard section) -->
+  <div
+    id="mod-lightbox"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-on-surface/80 p-4 backdrop-blur-sm sm:p-8"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Anteprima schermata"
+  >
+    <button
+      type="button"
+      id="mod-lightbox-close"
+      class="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-on-surface shadow-lg transition-colors hover:bg-white"
+      aria-label="Chiudi anteprima"
+    >
+      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+    <figure class="mx-auto flex max-w-6xl flex-col items-center">
+      <img id="mod-lightbox-img" src="" alt="" class="block max-h-[82vh] w-auto max-w-full rounded-xl object-contain shadow-2xl" />
+      <figcaption id="mod-lightbox-cap" class="mt-4 text-center text-sm font-semibold text-white"></figcaption>
+    </figure>
+  </div>
+</section>
+
+<script>
+  // Pre-fill the contact form so module enquiries arrive labelled with the module.
+  function initModuleCtas() {
+    document.querySelectorAll<HTMLAnchorElement>("[data-module-cta]").forEach((cta) => {
+      cta.addEventListener("click", () => {
+        const subject = document.querySelector<HTMLInputElement>(
+          '#contact-form input[name="subject"]'
+        );
+        if (subject && !subject.value) {
+          const mod = cta.dataset.module || "";
+          subject.value = mod === "su misura"
+            ? "Richiesta modulo su misura per sonoQui"
+            : `Richiesta modulo ${mod} per sonoQui`;
+        }
+      });
+    });
+  }
+
+  function closeModLightbox() {
+    const box = document.getElementById("mod-lightbox");
+    const img = document.getElementById("mod-lightbox-img") as HTMLImageElement | null;
+    if (!box) return;
+    box.classList.add("hidden");
+    box.classList.remove("flex");
+    if (img) img.src = "";
+    document.body.style.overflow = "";
+  }
+
+  function initModLightbox() {
+    const box = document.getElementById("mod-lightbox");
+    const img = document.getElementById("mod-lightbox-img") as HTMLImageElement | null;
+    const cap = document.getElementById("mod-lightbox-cap");
+    const closeBtn = document.getElementById("mod-lightbox-close");
+    if (!box || !img || !cap || !closeBtn) return;
+
+    document.querySelectorAll<HTMLButtonElement>("#moduli [data-zoom]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        img.src = btn.dataset.src || "";
+        img.alt = btn.dataset.label || "";
+        cap.textContent = btn.dataset.label || "";
+        box.classList.remove("hidden");
+        box.classList.add("flex");
+        document.body.style.overflow = "hidden";
+        (closeBtn as HTMLButtonElement).focus();
+      });
+    });
+
+    closeBtn.addEventListener("click", closeModLightbox);
+    box.addEventListener("click", (e) => {
+      if (e.target === box) closeModLightbox();
+    });
+  }
+
+  document.addEventListener("keydown", (e) => {
+    const box = document.getElementById("mod-lightbox");
+    if (e.key === "Escape" && box && !box.classList.contains("hidden")) closeModLightbox();
+  });
+
+  initModuleCtas();
+  initModLightbox();
+  document.addEventListener("astro:page-load", () => {
+    initModuleCtas();
+    initModLightbox();
+  });
+</script>

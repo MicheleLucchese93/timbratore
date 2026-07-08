@@ -9,6 +9,7 @@ export const ui = {
     'nav.video': 'Demo',
     'nav.screenshots': 'App',
     'nav.web': 'Dashboard',
+    'nav.moduli': 'Moduli',
     'nav.pricing': 'Prezzi',
     'nav.faq': 'FAQ',
     'nav.partner': 'Partner',
@@ -132,6 +133,10 @@ export const ui = {
     'partner.b4.title': 'Pensiamo noi al resto',
     'partner.b4.desc':
       "Infrastruttura, aggiornamenti, sicurezza e backup sono a carico nostro. Tu segui i clienti, noi teniamo in piedi la piattaforma.",
+    'partner.modules.badge': 'Novità · Moduli',
+    'partner.modules.title': 'I moduli li gestisci tu, azienda per azienda',
+    'partner.modules.desc':
+      "Dalla console attivi e disattivi i moduli aggiuntivi (come Cantieri) per ogni singola azienda cliente, in autonomia e senza passare da noi. Li rivendi a consumo mensile insieme all'abbonamento, con il tuo margine.",
     'partner.cta.join': 'Diventa partner',
     'partner.cta.login': 'Accedi alla console',
     'partner.cta.note': 'Hai già un account partner?',

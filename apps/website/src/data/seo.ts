@@ -105,7 +105,12 @@ export const homeFaq: Record<Lang, FaqItem[]> = {
     {
       question: "Quanto costa sonoQui?",
       answer:
-        "sonoQui parte da 24,99 €/mese per le aziende fino a 10 dipendenti (massimo 3 sedi) e 39,99 €/mese fino a 20 dipendenti (massimo 5 sedi). Tutte le funzionalità sono incluse in entrambi i piani, senza moduli a pagamento né costi nascosti. Con la fatturazione annuale hai 1 mese gratis. Oltre i limiti del piano aggiungi singoli dipendenti a 1,99 €/mese e sedi a 2,99 €/mese. Prezzi IVA esclusa; l'app è gratuita da scaricare e l'attivazione del servizio avviene su richiesta.",
+        "sonoQui parte da 24,99 €/mese per le aziende fino a 10 dipendenti (massimo 3 sedi) e 39,99 €/mese fino a 20 dipendenti (massimo 5 sedi). Il prezzo dipende dai tuoi dipendenti e tutta la rilevazione presenze è inclusa in entrambi i piani, senza costi nascosti. Con la fatturazione annuale hai 1 mese gratis. Oltre i limiti del piano aggiungi singoli dipendenti a 1,99 €/mese e sedi a 2,99 €/mese. I moduli aggiuntivi (come Cantieri) sono opzionali, si attivano a parte e si pagano a consumo mensile con prezzo su richiesta. Prezzi IVA esclusa; l'app è gratuita da scaricare e l'attivazione del servizio avviene su richiesta.",
+    },
+    {
+      question: "Cosa sono i moduli aggiuntivi?",
+      answer:
+        "Oltre alla rilevazione presenze (inclusa in ogni piano), sonoQui offre moduli opzionali per esigenze specifiche di settore. Il primo disponibile è Cantieri: gli addetti registrano dal telefono le attività di cantiere (tempo di viaggio, ore di lavoro, mezzi e campi su misura) e l'azienda ottiene report mensili per cantiere in PDF o via email. I moduli si attivano su richiesta e si fatturano a consumo mensile in aggiunta all'abbonamento, con prezzo su richiesta. Possiamo anche sviluppare moduli su misura per il tuo settore.",
     },
     {
       question: "Come iniziamo a usare sonoQui?",
@@ -136,6 +141,11 @@ export const partnerFaq: Record<Lang, FaqItem[]> = {
       question: "Come gestisco le aziende dei miei clienti?",
       answer:
         "Da una console dedicata su partners.sonoqui.pro: crei nuovi account azienda, imposti i limiti, sospendi e riattivi i servizi in autonomia, senza dover passare da noi per ogni operazione.",
+    },
+    {
+      question: "Posso gestire i moduli aggiuntivi dei miei clienti?",
+      answer:
+        "Sì. Dalla console attivi e disattivi i moduli aggiuntivi (come Cantieri) per ogni singola azienda cliente, in autonomia. I moduli si fatturano a consumo mensile in aggiunta all'abbonamento e li rivendi al cliente finale con il tuo margine.",
     },
     {
       question: "Come divento partner sonoQui?",
@@ -206,6 +216,7 @@ export function buildHomeSchema(lang: Lang) {
       'Export XLSX per il commercialista',
       'Documenti dei dipendenti con presa visione',
       'Smart working e sedi multiple',
+      'Modulo Cantieri opzionale (a consumo mensile)',
       "Conforme all'art. 4 dello Statuto dei Lavoratori e al GDPR",
     ],
     screenshot: [
@@ -220,14 +231,14 @@ export function buildHomeSchema(lang: Lang) {
       highPrice: '39.99',
       offerCount: 2,
       url: `${SITE_URL}/it/#pricing`,
-      description: 'Due piani in abbonamento mensile, tutte le funzionalità incluse. Fatturazione annuale con 1 mese gratis. Dipendenti aggiuntivi 1,99 €/mese, sedi aggiuntive 2,99 €/mese. Prezzi IVA esclusa.',
+      description: 'Due piani in abbonamento mensile con tutta la rilevazione presenze inclusa; prezzo in base ai dipendenti. Fatturazione annuale con 1 mese gratis. Dipendenti aggiuntivi 1,99 €/mese, sedi aggiuntive 2,99 €/mese. Moduli aggiuntivi opzionali (es. Cantieri) a consumo mensile, prezzo su richiesta. Prezzi IVA esclusa.',
       offers: [
         {
           '@type': 'Offer',
           name: 'Piccola',
           price: '24.99',
           priceCurrency: 'EUR',
-          description: 'Fino a 10 dipendenti, massimo 3 sedi. Tutte le funzionalità incluse, al mese.',
+          description: 'Fino a 10 dipendenti, massimo 3 sedi. Rilevazione presenze completa inclusa, al mese.',
           url: `${SITE_URL}/it/#pricing`,
         },
         {
@@ -235,7 +246,7 @@ export function buildHomeSchema(lang: Lang) {
           name: 'Media',
           price: '39.99',
           priceCurrency: 'EUR',
-          description: 'Fino a 20 dipendenti, massimo 5 sedi. Tutte le funzionalità incluse, al mese.',
+          description: 'Fino a 20 dipendenti, massimo 5 sedi. Rilevazione presenze completa inclusa, al mese.',
           url: `${SITE_URL}/it/#pricing`,
         },
       ],
@@ -391,14 +402,14 @@ export const contentPages: ContentPage[] = [
     breadcrumb: 'Rilevazione presenze per PMI',
     title: 'Software di rilevazione presenze per PMI italiane | sonoQui',
     description:
-      'Software di rilevazione presenze pensato per le PMI italiane: timbratura GPS, ferie, permessi, anomalie ed export per il commercialista. Da 24,99 €/mese, tutto incluso.',
+      'Software di rilevazione presenze pensato per le PMI italiane: timbratura GPS, ferie, permessi, anomalie ed export per il commercialista. Da 24,99 €/mese, prezzo in base ai dipendenti.',
     h1: 'Il software di rilevazione presenze pensato per le PMI italiane',
     intro:
-      "sonoQui è il sistema di rilevazione presenze su misura per le piccole e medie imprese italiane: semplice per chi timbra, completo per chi amministra e già pronto per il commercialista. Tutte le funzionalità sono incluse, senza moduli a pagamento.",
+      "sonoQui è il sistema di rilevazione presenze su misura per le piccole e medie imprese italiane: semplice per chi timbra, completo per chi amministra e già pronto per il commercialista. Tutta la rilevazione presenze è inclusa in ogni piano; i moduli aggiuntivi, come Cantieri, sono opzionali.",
     highlights: [
       'Timbratura, ferie, permessi e anomalie in un’unica app',
       'Export XLSX mensile pronto per le paghe italiane',
-      'Prezzo fisso per fascia, tutto incluso, da 24,99 €/mese',
+      'Prezzo per fascia di dipendenti, rilevazione presenze inclusa, da 24,99 €/mese',
     ],
     sections: [
       {
@@ -418,7 +429,7 @@ export const contentPages: ContentPage[] = [
       {
         heading: 'Prezzi trasparenti, pensati per le PMI',
         body: [
-          "sonoQui parte da 24,99 €/mese per le aziende fino a 10 dipendenti (massimo 3 sedi) e 39,99 €/mese fino a 20 dipendenti (massimo 5 sedi). Tutte le funzionalità sono incluse in entrambi i piani, senza moduli aggiuntivi né costi nascosti.",
+          "sonoQui parte da 24,99 €/mese per le aziende fino a 10 dipendenti (massimo 3 sedi) e 39,99 €/mese fino a 20 dipendenti (massimo 5 sedi). Tutta la rilevazione presenze è inclusa in entrambi i piani, senza costi nascosti; i moduli aggiuntivi (come Cantieri) sono opzionali e si pagano a consumo mensile.",
           "Con la fatturazione annuale hai 1 mese gratis. Oltre i limiti del piano aggiungi singoli dipendenti a 1,99 €/mese e sedi a 2,99 €/mese. Prezzi IVA esclusa; l'app è gratuita da scaricare e l'attivazione avviene su richiesta.",
         ],
       },
@@ -468,7 +479,7 @@ export const contentPages: ContentPage[] = [
       {
         heading: 'sonoQui',
         body: [
-          "Pensata specificamente per le PMI italiane: timbratura GPS al tap, gestione di ferie, permessi e anomalie, ed export XLSX pronto per il commercialista. Il focus è la conformità all'art. 4 (posizione solo al tap, nessun dato biometrico, GPS mascherato dopo 90 giorni) e un prezzo fisso per fascia — da 24,99 €/mese, tutte le funzionalità incluse, senza hardware.",
+          "Pensata specificamente per le PMI italiane: timbratura GPS al tap, gestione di ferie, permessi e anomalie, ed export XLSX pronto per il commercialista. Il focus è la conformità all'art. 4 (posizione solo al tap, nessun dato biometrico, GPS mascherato dopo 90 giorni) e un prezzo per fascia di dipendenti — da 24,99 €/mese, rilevazione presenze inclusa, senza hardware.",
         ],
       },
       {
@@ -528,7 +539,7 @@ export const contentPages: ContentPage[] = [
       {
         question: "Quanto costa un'app di rilevazione presenze?",
         answer:
-          "I modelli variano tra prezzo per dipendente e prezzo fisso per fascia. sonoQui parte da 24,99 €/mese fino a 10 dipendenti e 39,99 €/mese fino a 20, con tutte le funzionalità incluse e nessun costo hardware; altre soluzioni adottano listini a consumo per dipendente.",
+          "I modelli variano tra prezzo per dipendente e prezzo per fascia. sonoQui parte da 24,99 €/mese fino a 10 dipendenti e 39,99 €/mese fino a 20, con la rilevazione presenze inclusa e nessun costo hardware; eventuali moduli aggiuntivi sono opzionali. Altre soluzioni adottano listini a consumo per dipendente.",
       },
     ],
     cta: {

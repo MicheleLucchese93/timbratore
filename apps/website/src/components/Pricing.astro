@@ -89,10 +89,10 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
         Prezzi
       </span>
       <h2 class="mt-4 text-3xl font-bold tracking-tight text-on-surface sm:text-4xl">
-        Prezzi chiari, tutto incluso
+        Prezzi chiari, senza sorprese
       </h2>
       <p class="mx-auto mt-4 max-w-2xl text-lg text-on-surface-variant">
-        Ogni piano include <strong class="font-semibold text-on-surface">tutte le funzionalità</strong>. Nessun modulo a pagamento, nessun costo nascosto. Cambi piano quando cresci.
+        Paghi in base ai <strong class="font-semibold text-on-surface">tuoi dipendenti</strong>: ogni piano include tutta la rilevazione presenze, senza costi nascosti. Cambi piano quando cresci. I <a href="#moduli" class="font-semibold text-primary hover:underline">moduli aggiuntivi</a> sono opzionali, a consumo mensile.
       </p>
 
       <div class="mt-8 flex flex-col items-center gap-3">
@@ -170,7 +170,7 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
           </a>
 
           <div class="mt-8 border-t border-gray-100 pt-6">
-            <p class="text-sm font-semibold text-on-surface">{p.custom ? "Su misura per te" : "Tutte le funzionalità incluse"}</p>
+            <p class="text-sm font-semibold text-on-surface">{p.custom ? "Su misura per te" : "Rilevazione presenze completa"}</p>
             <ul class="mt-4 space-y-3">
               {(p.custom ? enterpriseIncluded : included).map((f) => (
                 <li class="flex items-start gap-2.5 text-sm text-on-surface-variant">
@@ -212,6 +212,17 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
           </div>
         ))}
       </div>
+    </div>
+
+    <div class="mx-auto mt-6 flex max-w-4xl flex-col items-center justify-between gap-3 rounded-2xl bg-secondary/5 px-6 py-4 text-center sm:flex-row sm:text-left">
+      <p class="text-sm text-on-surface-variant">
+        <span class="font-semibold text-on-surface">Cerchi funzionalità per il tuo settore?</span>
+        Aggiungi un modulo (es. Cantieri), a consumo mensile sopra l'abbonamento.
+      </p>
+      <a href="#moduli" class="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-sm font-semibold text-secondary hover:underline">
+        Scopri i moduli
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+      </a>
     </div>
 
     <p class="mx-auto mt-8 max-w-2xl text-center text-xs text-on-surface-variant">
