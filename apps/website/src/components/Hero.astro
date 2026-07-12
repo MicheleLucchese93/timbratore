@@ -15,22 +15,22 @@ const t = useTranslations(lang);
   <div class="relative mx-auto max-w-6xl px-4 sm:px-6">
     <div class="grid items-center gap-12 lg:grid-cols-2">
       <div class="mx-auto max-w-xl text-center lg:mx-0 lg:text-left">
-        <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+        <span class="hero-in inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary" style="--hero-delay:80ms">
           Per PMI italiane
         </span>
-        <h1 class="mt-4 text-3xl font-extrabold leading-tight tracking-tight text-on-surface text-balance sm:text-5xl lg:text-6xl">
+        <h1 class="hero-in mt-4 text-3xl font-extrabold leading-tight tracking-tight text-on-surface text-balance sm:text-5xl lg:text-6xl" style="--hero-delay:160ms">
           {t("hero.tagline")}
         </h1>
-        <p class="mt-6 text-lg leading-relaxed text-on-surface-variant sm:text-xl">
+        <p class="hero-in mt-6 text-lg leading-relaxed text-on-surface-variant sm:text-xl" style="--hero-delay:280ms">
           {t("hero.subtitle")}
         </p>
 
-        <div class="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div class="hero-in mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3" style="--hero-delay:380ms">
           <a
             href={APP_STORE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex items-center justify-center gap-2 rounded-lg bg-on-surface px-3 py-2 text-white hover:bg-on-surface/90 transition-colors"
+            class="btn-lift inline-flex items-center justify-center gap-2 rounded-lg bg-on-surface px-3 py-2 text-white hover:bg-on-surface/90 transition-colors"
             aria-label="Scarica su App Store"
           >
             <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
@@ -45,7 +45,7 @@ const t = useTranslations(lang);
             href={PLAY_STORE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex items-center justify-center gap-2 rounded-lg bg-on-surface px-3 py-2 text-white hover:bg-on-surface/90 transition-colors"
+            class="btn-lift inline-flex items-center justify-center gap-2 rounded-lg bg-on-surface px-3 py-2 text-white hover:bg-on-surface/90 transition-colors"
             aria-label="Scarica su Google Play"
           >
             <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
@@ -60,7 +60,7 @@ const t = useTranslations(lang);
             href={WEB_APP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex items-center justify-center gap-2 rounded-lg bg-on-surface px-3 py-2 text-white hover:bg-on-surface/90 transition-colors"
+            class="btn-lift inline-flex items-center justify-center gap-2 rounded-lg bg-on-surface px-3 py-2 text-white hover:bg-on-surface/90 transition-colors"
             aria-label={t("hero.cta.web")}
           >
             <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
@@ -73,7 +73,7 @@ const t = useTranslations(lang);
           </a>
         </div>
 
-        <p class="mt-6 text-sm text-on-surface-variant">
+        <p class="hero-in mt-6 text-sm text-on-surface-variant" style="--hero-delay:480ms">
           Progettata nel rispetto del GDPR e dell'art. 4 dello Statuto dei Lavoratori · Posizione rilevata solo al momento della timbratura
         </p>
       </div>

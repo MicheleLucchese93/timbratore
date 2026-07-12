@@ -42,6 +42,8 @@ const schemas = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Flag JS early so reveal elements only start hidden when JS can reveal them. -->
+    <script is:inline>document.documentElement.classList.add("js");</script>
     <meta name="description" content={description} />
     <meta name="theme-color" content="#15569e" />
     <meta name="color-scheme" content="light" />
@@ -83,11 +85,98 @@ const schemas = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
     ))}
   </head>
   <body class="bg-white text-on-surface antialiased">
+    <div id="scroll-progress"></div>
     <Header />
     <main>
       <slot />
     </main>
     <Footer />
     <CookieBanner />
+
+    <script>
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      // --- Scroll reveal ---------------------------------------------------
+      const revealEls = document.querySelectorAll("[data-reveal]");
+      if (reduce || !("IntersectionObserver" in window)) {
+        revealEls.forEach((el) => el.classList.add("is-visible"));
+      } else {
+        const io = new IntersectionObserver(
+          (entries, obs) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("is-visible");
+                obs.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
+        );
+        revealEls.forEach((el) => io.observe(el));
+      }
+
+      // --- Count-up (data-count-to) ---------------------------------------
+      const counters = document.querySelectorAll("[data-count-to]");
+      const runCount = (el) => {
+        const target = Number(el.getAttribute("data-count-to")) || 0;
+        const prefix = el.getAttribute("data-count-prefix") || "";
+        const suffix = el.getAttribute("data-count-suffix") || "";
+        if (reduce) { el.textContent = prefix + target + suffix; return; }
+        const dur = 1400;
+        let start = null;
+        const step = (t) => {
+          if (start === null) start = t;
+          const p = Math.min((t - start) / dur, 1);
+          const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
+          el.textContent = prefix + Math.round(target * eased) + suffix;
+          if (p < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      };
+      if (counters.length) {
+        const co = new IntersectionObserver((entries, obs) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) { runCount(e.target); obs.unobserve(e.target); }
+          });
+        }, { threshold: 0.6 });
+        counters.forEach((el) => co.observe(el));
+      }
+
+      // --- Scroll progress bar --------------------------------------------
+      const bar = document.getElementById("scroll-progress");
+      if (bar) {
+        let ticking = false;
+        const update = () => {
+          const h = document.documentElement;
+          const max = h.scrollHeight - h.clientHeight;
+          const p = max > 0 ? h.scrollTop / max : 0;
+          bar.style.transform = `scaleX(${p})`;
+          ticking = false;
+        };
+        window.addEventListener("scroll", () => {
+          if (!ticking) { requestAnimationFrame(update); ticking = true; }
+        }, { passive: true });
+        update();
+      }
+
+      // --- Scroll-spy: highlight active nav link --------------------------
+      const navLinks = document.querySelectorAll("[data-nav]");
+      if (navLinks.length) {
+        const byId = new Map();
+        navLinks.forEach((l) => byId.set(l.getAttribute("data-nav"), l));
+        const sections = [...byId.keys()]
+          .map((id) => document.getElementById(id))
+          .filter(Boolean);
+        const spy = new IntersectionObserver((entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              navLinks.forEach((l) => l.classList.remove("is-active"));
+              byId.get(e.target.id)?.classList.add("is-active");
+            }
+          });
+        }, { rootMargin: "-45% 0px -50% 0px", threshold: 0 });
+        sections.forEach((s) => spy.observe(s));
+      }
+    </script>
   </body>
 </html>

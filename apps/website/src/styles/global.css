@@ -38,3 +38,84 @@ body {
   background-color: #ffffff;
   overflow-x: clip;
 }
+
+/* ============================================================
+   Motion system — zero-dep, IntersectionObserver-driven.
+   Everything sits behind prefers-reduced-motion: no-preference,
+   and the hidden initial state is gated on `html.js` so content
+   stays visible if JS is disabled or fails.
+   ============================================================ */
+:root { --ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1); }
+
+/* Scroll progress bar (top hairline). */
+#scroll-progress {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  z-index: 60;
+  pointer-events: none;
+}
+
+/* Animated underline for nav links + active state (scroll-spy). */
+.nav-link { position: relative; }
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -3px;
+  height: 2px;
+  background: var(--color-primary);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.nav-link:hover { color: var(--color-primary); }
+.nav-link.is-active { color: var(--color-primary); }
+
+@media (prefers-reduced-motion: no-preference) {
+  #scroll-progress { transition: transform 0.1s linear; }
+
+  .nav-link::after { transition: transform 0.28s var(--ease-out-soft); }
+  .nav-link:hover::after,
+  .nav-link.is-active::after { transform: scaleX(1); }
+
+  /* Scroll reveal — fade + slight travel. Direction via data-reveal value. */
+  .js [data-reveal] {
+    opacity: 0;
+    transform: translateY(22px);
+    transition:
+      opacity 0.7s var(--ease-out-soft),
+      transform 0.7s var(--ease-out-soft);
+    transition-delay: var(--reveal-delay, 0ms);
+    will-change: opacity, transform;
+  }
+  .js [data-reveal="left"]  { transform: translateX(-28px); }
+  .js [data-reveal="right"] { transform: translateX(28px); }
+  .js [data-reveal="scale"] { transform: scale(0.94); }
+  .js [data-reveal].is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Hero entrance on page load — staggered via --hero-delay. */
+  .hero-in {
+    opacity: 0;
+    transform: translateY(26px);
+    animation: heroIn 0.85s var(--ease-out-soft) forwards;
+    animation-delay: var(--hero-delay, 0ms);
+  }
+  @keyframes heroIn { to { opacity: 1; transform: none; } }
+
+  /* Slow ken-burns drift on a feature image (settles, then stops). */
+  .kenburns { animation: kenburns 9s var(--ease-out-soft) forwards; }
+  @keyframes kenburns {
+    from { transform: scale(1.1); }
+    to   { transform: scale(1); }
+  }
+}
+
+/* Buttons + interactive cards get a consistent micro-lift. */
+.btn-lift { transition: transform 0.2s var(--ease-out-soft), box-shadow 0.2s var(--ease-out-soft); }
+.btn-lift:hover { transform: translateY(-2px); }
+.btn-lift:active { transform: translateY(0); }

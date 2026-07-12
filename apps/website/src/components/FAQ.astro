@@ -9,14 +9,14 @@ const subtitle = "Risposte rapide su timbratura GPS, conformità, costi e gestio
 
 <section id="faq" class="scroll-mt-16 bg-white py-20 sm:py-28">
   <div class="mx-auto max-w-4xl px-4 sm:px-6">
-    <div class="text-center">
+    <div class="text-center" data-reveal>
       <h2 class="text-3xl font-bold tracking-tight text-on-surface sm:text-4xl">{title}</h2>
       <p class="mx-auto mt-4 max-w-2xl text-lg text-on-surface-variant">{subtitle}</p>
     </div>
 
     <div class="mt-12 divide-y divide-gray-100 rounded-lg border border-gray-100 bg-white">
-      {homeFaq[lang].map((item) => (
-        <details class="group p-6">
+      {homeFaq[lang].map((item, i) => (
+        <details class="group p-6" data-reveal style={`--reveal-delay:${(i % 3) * 90}ms`}>
           <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-base font-semibold text-on-surface">
             <span>{item.question}</span>
             <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface text-primary transition-transform group-open:rotate-45">+</span>

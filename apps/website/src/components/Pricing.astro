@@ -83,7 +83,7 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
   </div>
 
   <div class="relative mx-auto max-w-6xl px-4 sm:px-6">
-    <div class="text-center">
+    <div class="text-center" data-reveal>
       <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
         Prezzi
@@ -120,8 +120,8 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
     </div>
 
     <div id="pricing-scroller" class="mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pt-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] lg:mx-auto lg:grid lg:max-w-6xl lg:grid-cols-3 lg:gap-6 lg:overflow-visible lg:px-0 lg:pt-0 lg:pb-0">
-      {plans.map((p) => (
-        <div data-plan-card class={`relative flex w-[82%] shrink-0 snap-center flex-col rounded-3xl bg-white p-8 sm:w-[58%] lg:w-auto ${p.recommended ? "border-2 border-primary shadow-xl lg:scale-[1.02]" : "border border-gray-200 shadow-sm"}`}>
+      {plans.map((p, i) => (
+        <div data-plan-card data-reveal style={`--reveal-delay:${(i % 3) * 90}ms`} class={`relative flex w-[82%] shrink-0 snap-center flex-col rounded-3xl bg-white p-8 sm:w-[58%] lg:w-auto ${p.recommended ? "border-2 border-primary shadow-xl lg:scale-[1.02]" : "border border-gray-200 shadow-sm"}`}>
           <h3 class="text-xl font-bold text-on-surface">{p.name}</h3>
           <p class="mt-1 text-sm text-on-surface-variant">{p.tagline}</p>
 
@@ -165,7 +165,7 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
           </div>
 
           <a href="#contact"
-            class={`mt-6 inline-flex items-center justify-center rounded-full px-6 py-3 text-base font-semibold transition-colors ${p.custom ? "bg-primary text-white hover:bg-primary-container" : "border border-primary text-primary hover:bg-primary/5"}`}>
+            class={`btn-lift mt-6 inline-flex items-center justify-center rounded-full px-6 py-3 text-base font-semibold transition-colors ${p.custom ? "bg-primary text-white hover:bg-primary-container" : "border border-primary text-primary hover:bg-primary/5"}`}>
             {p.ctaLabel ?? "Inizia ora"}
           </a>
 

@@ -104,7 +104,7 @@ const webp = (file: string) => `/screenshots-web/${file}.webp`;
 
 <section id="web" class="bg-surface py-20 sm:py-28 scroll-mt-20">
   <div class="mx-auto max-w-6xl px-4 sm:px-6">
-    <div class="text-center">
+    <div class="text-center" data-reveal>
       <span class="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-success">
         <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2h4l-1 2v1h8v-1l-1-2h4a2 2 0 002-2z"/></svg>
         {t("web.badge")}
@@ -120,7 +120,7 @@ const webp = (file: string) => `/screenshots-web/${file}.webp`;
     <div class="mt-16 space-y-16 sm:mt-20 sm:space-y-24">
       {rows.map((row, idx) => (
         <div class="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
-          <div class={idx % 2 === 1 ? "lg:order-2" : ""}>
+          <div class={idx % 2 === 1 ? "lg:order-2" : ""} data-reveal={idx % 2 === 1 ? "right" : "left"}>
             <button
               type="button"
               data-zoom
@@ -148,7 +148,7 @@ const webp = (file: string) => `/screenshots-web/${file}.webp`;
             </button>
           </div>
 
-          <div class={idx % 2 === 1 ? "lg:order-1" : ""}>
+          <div class={idx % 2 === 1 ? "lg:order-1" : ""} data-reveal={idx % 2 === 1 ? "left" : "right"}>
             <span class="text-xs font-semibold uppercase tracking-wide text-primary">{row.eyebrow}</span>
             <h3 class="mt-2 text-2xl font-bold tracking-tight text-on-surface sm:text-3xl">{row.label}</h3>
             <p class="mt-3 text-base leading-relaxed text-on-surface-variant">{row.desc}</p>
@@ -168,8 +168,8 @@ const webp = (file: string) => `/screenshots-web/${file}.webp`;
     <div class="mt-20 sm:mt-28">
       <p class="text-center text-sm font-semibold uppercase tracking-wide text-on-surface-variant">E tutto il resto della gestione</p>
       <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {more.map((shot) => (
-          <div class="flex flex-col">
+        {more.map((shot, i) => (
+          <div class="flex flex-col" data-reveal style={`--reveal-delay:${(i % 3) * 90}ms`}>
             <button
               type="button"
               data-zoom
