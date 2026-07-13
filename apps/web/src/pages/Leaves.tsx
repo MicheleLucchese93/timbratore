@@ -374,6 +374,11 @@ function CalendarTab() {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [showBulk, setShowBulk] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // Range currently on screen, so the refresh button and post-mutation reloads
+  // can refetch exactly what the user is looking at. The calendar only re-emits
+  // its range when the year changes, so we can't derive it any other way.
+  const [range, setRange] = useState<{ from: string; to: string } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     api<UserRow[]>('/api/v1/users')
@@ -382,6 +387,7 @@ function CalendarTab() {
   }, []);
 
   const load = useCallback(async (from: string, to: string) => {
+    setRange({ from, to });
     try {
       const r = await api<LeaveRequest[]>(`/api/v1/leaves?scope=all&from=${from}&to=${to}`);
       setAll(r);
@@ -390,6 +396,15 @@ function CalendarTab() {
       setErr(e instanceof Error ? e.message : t('common:state.error'));
     }
   }, [t]);
+
+  // Re-pull the visible range on demand (someone else may have approved/created
+  // a leave while this tab stayed open). No-op until the calendar emits a range.
+  async function refresh() {
+    if (!range) return;
+    setRefreshing(true);
+    await load(range.from, range.to);
+    setRefreshing(false);
+  }
 
   const events = useMemo(
     () => all.filter((r) => !hidden.has(r.user_id)).map(toCalEvent),
@@ -416,9 +431,20 @@ function CalendarTab() {
       {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
       <div className="flex items-center justify-between gap-2">
         <p className="muted text-sm">{t('calendar.intro')}</p>
-        <button type="button" className="btn btn-primary" onClick={() => setShowBulk(true)}>
-          {t('calendar.addEvent')}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={refresh}
+            disabled={!range || refreshing}
+            title={t('common:btn.refresh')}
+          >
+            {refreshing ? t('common:state.loading') : t('common:btn.refresh')}
+          </button>
+          <button type="button" className="btn btn-primary" onClick={() => setShowBulk(true)}>
+            {t('calendar.addEvent')}
+          </button>
+        </div>
       </div>
 
       {presentUsers.length > 0 && (
@@ -467,9 +493,13 @@ function CalendarTab() {
           onClose={() => setShowBulk(false)}
           onDone={() => {
             setShowBulk(false);
-            // Reload current year so the new event appears immediately.
-            const y = new Date().getFullYear();
-            void load(`${y}-01-01`, `${y}-12-31`);
+            // Reload the visible range so the new event appears immediately
+            // (falling back to the current year before the calendar has emitted).
+            if (range) void load(range.from, range.to);
+            else {
+              const y = new Date().getFullYear();
+              void load(`${y}-01-01`, `${y}-12-31`);
+            }
           }}
         />
       )}

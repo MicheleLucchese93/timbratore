@@ -718,6 +718,7 @@ export const MAIN_EN = `
         <p>A calendar view of all the company's absences, with a <strong>Day / Week / Month / Year</strong> selector. Each event is coloured by type (Holiday, Leave, Sick leave, Absence, Closure) and the <strong>Italian national public holidays</strong> (New Year, Easter, 25 April, 15 August, Christmas…) are highlighted automatically. In the <strong>Day</strong> and <strong>Week</strong> views, hourly leave and holiday show their time window (e.g. <em>09:00–11:00</em>); full-day absences show no time.</p>
         <ul class="tidy">
           <li><strong>User filter</strong> — the chips at the top enable/disable the individual employees; "All"/"None" for quick selection.</li>
+          <li><strong>Refresh</strong> — reloads the absences for the displayed year, handy when someone else approves or inserts a request while you stay on the calendar.</li>
           <li><strong>+ Insert event</strong> — opens the form to assign an event to several employees at once (e.g. <em>August company closure</em>).</li>
         </ul>
       </div>
