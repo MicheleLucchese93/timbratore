@@ -225,6 +225,7 @@
     "modeRemote": "Remote",
     "modesEdit": "{{label}} · Edit",
     "approversEdit": "Edit",
+    "approversDefault": "All admins",
     "leaveApproversTitle": "Configure who can approve this user's holiday/leave",
     "correctionApproversTitle": "Configure who can approve this user's correction requests"
   },

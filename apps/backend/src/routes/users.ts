@@ -83,7 +83,41 @@ usersRouter.get(
                   WHERE bm.user_id = m.user_id
                     AND bm.tenant_id = current_setting('app.current_tenant_id')::uuid),
                 ARRAY[]::uuid[]
-              ) AS branch_ids
+              ) AS branch_ids,
+              -- Configured approvers (name + id) so the grid can show at a glance
+              -- who is set, without a per-row fetch. Empty = any admin decides.
+              COALESCE(
+                (SELECT jsonb_agg(
+                          jsonb_build_object(
+                            'user_id', la.approver_user_id,
+                            'name', COALESCE(lau.display_name,
+                                             NULLIF(TRIM(CONCAT(lau.first_name, ' ', lau.last_name)), ''),
+                                             lau.email, la.approver_user_id::text)
+                          )
+                          ORDER BY COALESCE(lau.display_name, lau.email)
+                        )
+                   FROM leave_approvers la
+                   LEFT JOIN auth_users lau ON lau.id = la.approver_user_id
+                  WHERE la.user_id = m.user_id
+                    AND la.tenant_id = current_setting('app.current_tenant_id')::uuid),
+                '[]'::jsonb
+              ) AS leave_approvers,
+              COALESCE(
+                (SELECT jsonb_agg(
+                          jsonb_build_object(
+                            'user_id', ca.approver_user_id,
+                            'name', COALESCE(cau.display_name,
+                                             NULLIF(TRIM(CONCAT(cau.first_name, ' ', cau.last_name)), ''),
+                                             cau.email, ca.approver_user_id::text)
+                          )
+                          ORDER BY COALESCE(cau.display_name, cau.email)
+                        )
+                   FROM correction_approvers ca
+                   LEFT JOIN auth_users cau ON cau.id = ca.approver_user_id
+                  WHERE ca.user_id = m.user_id
+                    AND ca.tenant_id = current_setting('app.current_tenant_id')::uuid),
+                '[]'::jsonb
+              ) AS correction_approvers
        FROM memberships m
        LEFT JOIN auth_users au ON au.id = m.user_id
        WHERE m.deleted_at IS NULL

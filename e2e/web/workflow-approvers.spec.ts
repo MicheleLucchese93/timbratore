@@ -4,13 +4,16 @@ import { test, expect, type Page, type Locator } from '@playwright/test';
 // window are not in the DOM at all. The approver columns ("Approvatori ferie",
 // "Approvatori correzioni") sit to the right of the anagrafica columns
 // (Nome/Cognome/Codice fiscale), so at the 1280px viewport they start off the
-// right edge and their "Modifica" buttons never mount. Scroll the grid right in
+// right edge and their edit buttons never mount. Scroll the grid right in
 // steps and stop as soon as the target button mounts — robust to column order,
 // widths and viewport changes (a fixed scrollTo(9999) can over-shoot and leave
 // the wanted column just off the *left* edge).
+// Match on aria-label (the stable action description) rather than the title:
+// the cell's title now carries the configured approver *names* when any are
+// set, so it can't be used to locate the column-specific button.
 async function revealApproverButton(page: Page, titleSubstr: string): Promise<Locator> {
   const grid = page.locator('.MuiDataGrid-virtualScroller').first();
-  const btn = page.locator(`button[title*="${titleSubstr}" i]`).first();
+  const btn = page.locator(`button[aria-label*="${titleSubstr}" i]`).first();
   for (let left = 0; left <= 6000; left += 300) {
     if (await btn.count()) break;
     await grid.evaluate((el, l) => el.scrollTo({ left: l }), left);

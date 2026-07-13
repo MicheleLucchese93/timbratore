@@ -530,7 +530,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Approvatori</h3>
-        <p>Cliccando <strong>Configura</strong> sotto la colonna Approvatori per un utente si apre un dialog dove indicare, per ciascun tipo (correzioni, ferie, permessi, malattia), uno o più utenti admin che devono decidere.</p>
+        <p>Le colonne <strong>Approvatori ferie</strong> e <strong>Approvatori correzioni</strong> mostrano a colpo d'occhio chi è impostato per ogni utente (i nomi, con <em>+N</em> se sono più di due); se non è configurato nessuno appare <strong>Tutti gli admin</strong>. Cliccando sulla cella (icona matita) si apre un dialog dove indicare, per ciascun tipo (correzioni, ferie, permessi, malattia), uno o più utenti admin che devono decidere.</p>
         <div class="callout callout-tip">
           <p><strong>Regola fondamentale</strong>: se nessun approvatore è configurato, qualunque admin può decidere. Se almeno uno è configurato, solo quelli elencati possono. <em>Vince il primo che decide.</em></p>
         </div>

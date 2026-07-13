@@ -182,7 +182,7 @@
   },
   "cantieriRole": {
     "label": "Ruolo Cantieri",
-    "none": "— Nessun accesso —",
+    "none": "— Nessuno —",
     "user": "Utente",
     "admin": "Admin",
     "hint": "Utente: registra le attività di cantiere dall'app. Admin: gestisce cantieri, mezzi e report dal web. Indipendente dal ruolo aziendale."
@@ -225,6 +225,7 @@
     "modeRemote": "Remoto",
     "modesEdit": "{{label}} · Modifica",
     "approversEdit": "Modifica",
+    "approversDefault": "Tutti gli admin",
     "leaveApproversTitle": "Configura chi può approvare ferie/permessi di questo utente",
     "correctionApproversTitle": "Configura chi può approvare le richieste di correzione di questo utente"
   },

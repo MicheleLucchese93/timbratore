@@ -523,7 +523,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>Approvers</h3>
-        <p>Clicking <strong>Configure</strong> under the Approvers column for a user opens a dialog where you indicate, for each type (corrections, holiday, leave, sick leave), one or more admin users who must decide.</p>
+        <p>The <strong>Leave approvers</strong> and <strong>Correction approvers</strong> columns show at a glance who is set for each user (the names, with <em>+N</em> when there are more than two); if none is configured it shows <strong>All admins</strong>. Clicking the cell (pencil icon) opens a dialog where you indicate, for each type (corrections, holiday, leave, sick leave), one or more admin users who must decide.</p>
         <div class="callout callout-tip">
           <p><strong>Key rule</strong>: if no approver is configured, any admin can decide. If at least one is configured, only those listed can. <em>The first to decide wins.</em></p>
         </div>

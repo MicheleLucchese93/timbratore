@@ -42,6 +42,15 @@ interface UserRow {
   qualifica2: string | null;
   // Optional per-employee unique identifier (migration 050).
   external_id: string | null;
+  // Configured approvers (name + id), surfaced by the list endpoint so the grid
+  // shows who is set without a per-row fetch. Empty = any admin decides.
+  leave_approvers?: ApproverBrief[];
+  correction_approvers?: ApproverBrief[];
+}
+
+interface ApproverBrief {
+  user_id: string;
+  name: string;
 }
 
 interface UserPatch {
@@ -818,7 +827,10 @@ export function Users() {
           kind={approverEditor.kind}
           allUsers={list.filter((u) => u.user_id !== approverEditor.user.user_id && u.active)}
           onClose={() => setApproverEditor(null)}
-          onSaved={() => setApproverEditor(null)}
+          onSaved={() => {
+            setApproverEditor(null);
+            void load();
+          }}
         />
       )}
     </div>
@@ -826,6 +838,72 @@ export function Users() {
 }
 
 type ApproverKind = 'leave' | 'correction';
+
+// Small inline pencil (matches IconButton's 'edit' glyph) for the approver cells.
+function PencilGlyph() {
+  return (
+    <svg
+      width={14}
+      height={14}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      style={{ flex: '0 0 auto', opacity: 0.65 }}
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
+    </svg>
+  );
+}
+
+// Condense a list of approver names: up to two, then "+N".
+function approverSummary(list: ApproverBrief[]): string {
+  const names = list.map((a) => a.name);
+  if (names.length <= 2) return names.join(', ');
+  return `${names.slice(0, 2).join(', ')} +${names.length - 2}`;
+}
+
+// Grid cell for an approver column: shows who is configured (names, truncated)
+// plus an edit pencil. Empty state ("any admin decides") is muted, not an error.
+function ApproverCell({
+  list,
+  emptyLabel,
+  editTitle,
+  onClick,
+}: {
+  list: ApproverBrief[];
+  emptyLabel: string;
+  editTitle: string;
+  onClick: () => void;
+}) {
+  const has = list.length > 0;
+  const label = has ? approverSummary(list) : emptyLabel;
+  const full = has ? list.map((a) => a.name).join(', ') : editTitle;
+  return (
+    <button
+      type="button"
+      className="btn btn-ghost btn-sm"
+      onClick={onClick}
+      title={full}
+      // Stable label for the action (independent of who is configured) so the
+      // hover title can carry the dynamic name list without moving the target.
+      aria-label={editTitle}
+      style={{ maxWidth: '100%', minWidth: 0, gap: '0.375rem' }}
+    >
+      <span
+        className="truncate"
+        style={has ? undefined : { color: 'var(--color-on-surface-variant)' }}
+      >
+        {label}
+      </span>
+      <PencilGlyph />
+    </button>
+  );
+}
 
 const APPROVER_KIND_META: Record<
   ApproverKind,
@@ -2196,7 +2274,13 @@ function UsersDataGrid({
           return (
             <select
               className="input"
-              style={{ minHeight: '1.875rem', padding: '0 0.5rem', fontSize: '0.75rem' }}
+              style={{
+                minHeight: '1.875rem',
+                padding: '0 0.5rem',
+                fontSize: '0.75rem',
+                width: '100%',
+                maxWidth: '100%',
+              }}
               value={u.role}
               onChange={(e) => onSetRole(u, e.target.value as 'admin' | 'user')}
               disabled={u.user_id === me?.user.id}
@@ -2223,7 +2307,7 @@ function UsersDataGrid({
             {
               field: 'cantieri_role',
               headerName: t('col.cantieriRole'),
-              width: 120,
+              width: 140,
               type: 'singleSelect',
               valueOptions: [
                 { value: '', label: t('cantieriRole.none') },
@@ -2236,7 +2320,13 @@ function UsersDataGrid({
                 return (
                   <select
                     className="input"
-                    style={{ minHeight: '1.875rem', padding: '0 0.5rem', fontSize: '0.75rem' }}
+                    style={{
+                      minHeight: '1.875rem',
+                      padding: '0 0.5rem',
+                      fontSize: '0.75rem',
+                      width: '100%',
+                      maxWidth: '100%',
+                    }}
                     value={u.cantieri_role ?? ''}
                     onChange={(e) =>
                       onSetCantieriRole(u, (e.target.value || null) as 'admin' | 'user' | null)
@@ -2280,11 +2370,14 @@ function UsersDataGrid({
               className="btn btn-ghost btn-sm"
               onClick={() => onEditBranches(p.row)}
               title={t('grid.branchesTitle')}
+              style={{ maxWidth: '100%', minWidth: 0 }}
             >
               {n === 0 ? (
-                <span style={{ color: 'var(--color-error)' }}>{t('grid.branchesNone')}</span>
+                <span className="truncate" style={{ color: 'var(--color-error)' }}>
+                  {t('grid.branchesNone')}
+                </span>
               ) : (
-                t('grid.branchesCount', { count: n })
+                <span className="truncate">{t('grid.branchesCount', { count: n })}</span>
               )}
             </button>
           );
@@ -2308,11 +2401,14 @@ function UsersDataGrid({
             className="btn btn-ghost btn-sm"
             onClick={() => onEditShift(p.row)}
             title={t('grid.shiftTitle')}
+            style={{ maxWidth: '100%', minWidth: 0 }}
           >
             {p.value ? (
-              p.value
+              <span className="truncate">{p.value as string}</span>
             ) : (
-              <span style={{ color: 'var(--color-error)' }}>{t('grid.shiftNone')}</span>
+              <span className="truncate" style={{ color: 'var(--color-error)' }}>
+                {t('grid.shiftNone')}
+              </span>
             )}
           </button>
         ),
@@ -2336,11 +2432,14 @@ function UsersDataGrid({
               className="btn btn-ghost btn-sm"
               onClick={() => onEditModes(p.row)}
               title={t('grid.modesTitle')}
+              style={{ maxWidth: '100%', minWidth: 0 }}
             >
               {modes.length === 0 ? (
-                <span style={{ color: 'var(--color-error)' }}>{t('grid.modesEdit', { label })}</span>
+                <span className="truncate" style={{ color: 'var(--color-error)' }}>
+                  {t('grid.modesEdit', { label })}
+                </span>
               ) : (
-                t('grid.modesEdit', { label })
+                <span className="truncate">{t('grid.modesEdit', { label })}</span>
               )}
             </button>
           );
@@ -2349,35 +2448,31 @@ function UsersDataGrid({
       {
         field: 'leave_approvers',
         headerName: t('col.leaveApprovers'),
-        width: 150,
+        width: 200,
         sortable: false,
         filterable: false,
         renderCell: (p) => (
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
+          <ApproverCell
+            list={p.row.leave_approvers ?? []}
+            emptyLabel={t('grid.approversDefault')}
+            editTitle={t('grid.leaveApproversTitle')}
             onClick={() => onEditApprovers(p.row, 'leave')}
-            title={t('grid.leaveApproversTitle')}
-          >
-            {t('grid.approversEdit')}
-          </button>
+          />
         ),
       },
       {
         field: 'correction_approvers',
         headerName: t('col.correctionApprovers'),
-        width: 170,
+        width: 200,
         sortable: false,
         filterable: false,
         renderCell: (p) => (
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
+          <ApproverCell
+            list={p.row.correction_approvers ?? []}
+            emptyLabel={t('grid.approversDefault')}
+            editTitle={t('grid.correctionApproversTitle')}
             onClick={() => onEditApprovers(p.row, 'correction')}
-            title={t('grid.correctionApproversTitle')}
-          >
-            {t('grid.approversEdit')}
-          </button>
+          />
         ),
       },
       {
