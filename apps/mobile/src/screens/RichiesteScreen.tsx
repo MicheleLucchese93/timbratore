@@ -23,6 +23,7 @@ import { fmtDateTime, fmtDate, fmtTime } from '../i18n/format';
 import { api } from '../lib/api';
 import { useNotifications } from '../lib/notifications';
 import { useSession } from '../store/session';
+import { useRichieste } from '../store/richieste';
 import { AppHeader } from '../components/AppHeader';
 import { EmptyState } from '../components/EmptyState';
 import { WorkStateChip } from '../components/WorkStateChip';
@@ -130,6 +131,12 @@ function typeLabel(t: LeaveType): string {
   return i18n.t(`common:leaveType.${t}`);
 }
 
+// Inbox rows still needing an approver decision — a new request or a
+// cancellation request on an already-approved leave. Drives both the "Da
+// approvare · N" tab count and the tab-bar badge.
+const isAwaitingDecision = (r: LeaveRequest): boolean =>
+  r.status === 'pending' || r.status === 'cancellation_pending';
+
 type RichiesteTab = 'mine' | 'calendar' | 'inbox';
 
 interface CalUser {
@@ -143,11 +150,14 @@ export function RichiesteScreen() {
   const { me } = useSession();
   const isAdmin = me?.user.role === 'admin';
   const refreshNotif = useNotifications((s) => s.refresh);
+  const setPendingBadge = useRichieste((s) => s.setPending);
   const [tab, setTab] = useState<RichiesteTab>('mine');
   const [mineRows, setMineRows] = useState<LeaveRequest[]>([]);
   const [inboxRows, setInboxRows] = useState<LeaveRequest[]>([]);
   const [calendarRows, setCalendarRows] = useState<LeaveRequest[]>([]);
   const [calUsers, setCalUsers] = useState<CalUser[]>([]);
+  const [calRange, setCalRange] = useState<{ from: string; to: string } | null>(null);
+  const [refreshingCal, setRefreshingCal] = useState(false);
   const [hiddenUsers, setHiddenUsers] = useState<Set<string>>(new Set());
   const [loadingMine, setLoadingMine] = useState(true);
   const [loadingInbox, setLoadingInbox] = useState(true);
@@ -156,6 +166,10 @@ export function RichiesteScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [quotas, setQuotas] = useState<QuotaSummary[]>([]);
   const [myApprovers, setMyApprovers] = useState<Approver[]>([]);
+  // Quick status filter on the "mine" tab. Keyed by the status i18n label key
+  // (so the two "cancelled" variants collapse into one chip). null = show all.
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [inboxFilter, setInboxFilter] = useState<string | null>(null);
 
   const loadMine = useCallback(async () => {
     try {
@@ -181,17 +195,24 @@ export function RichiesteScreen() {
     try {
       const list = await api<LeaveRequest[]>('/api/v1/leaves?scope=inbox');
       setInboxRows(list);
+      // Keep the tab-bar "da approvare" badge in sync — same figure the inbox
+      // tab shows, refreshed after every approve/reject/cancel decision.
+      setPendingBadge(list.filter(isAwaitingDecision).length);
     } catch {
       /* ignore */
     } finally {
       setLoadingInbox(false);
       setRefreshingInbox(false);
     }
-  }, []);
+  }, [setPendingBadge]);
 
   // Calendar: admins see everyone (scope=all), users see their own (scope=mine).
   const loadCalendar = useCallback(
     async (from: string, to: string) => {
+      // Remember the visible range so mutations (approve/reject/create/…) and
+      // pull-to-refresh can refetch it — the calendar itself only re-emits the
+      // range when the year changes.
+      setCalRange({ from, to });
       try {
         const scope = isAdmin ? 'all' : 'mine';
         const list = await api<LeaveRequest[]>(
@@ -205,9 +226,16 @@ export function RichiesteScreen() {
     [isAdmin]
   );
 
+  // Refetch the calendar for the range currently on screen. No-op until the
+  // calendar has emitted its first range (i.e. after mount).
+  const reloadCalendar = useCallback(() => {
+    if (calRange) void loadCalendar(calRange.from, calRange.to);
+  }, [calRange, loadCalendar]);
+
   const load = useCallback(async () => {
     await Promise.all([loadMine(), loadInbox()]);
-  }, [loadMine, loadInbox]);
+    reloadCalendar();
+  }, [loadMine, loadInbox, reloadCalendar]);
 
   useEffect(() => {
     loadMine();
@@ -299,7 +327,7 @@ export function RichiesteScreen() {
   }
 
   const pendingInboxCount = useMemo(
-    () => inboxRows.filter((r) => r.status === 'pending').length,
+    () => inboxRows.filter(isAwaitingDecision).length,
     [inboxRows]
   );
 
@@ -307,6 +335,66 @@ export function RichiesteScreen() {
     () => myApprovers.map((a) => a.display_name || a.email).join(', '),
     [myApprovers]
   );
+
+  // Distinct statuses present in the user's own requests, keyed by their i18n
+  // label (STATUS_KEY) so the two "cancelled" variants collapse into one chip.
+  // Order follows first appearance in the list. Drives the quick-filter strip.
+  const statusFilters = useMemo(() => {
+    const seen = new Map<string, LeaveStatus>();
+    for (const r of mineRows) {
+      const k = STATUS_KEY[r.status];
+      if (!seen.has(k)) seen.set(k, r.status);
+    }
+    return Array.from(seen.entries()).map(([key, status]) => ({ key, status }));
+  }, [mineRows]);
+
+  const filteredMine = useMemo(
+    () =>
+      statusFilter
+        ? mineRows.filter((r) => STATUS_KEY[r.status] === statusFilter)
+        : mineRows,
+    [mineRows, statusFilter]
+  );
+
+  // Drop a filter that no longer matches any row (e.g. after a refresh removes
+  // the last request of that status) so the list can't get stuck on empty.
+  useEffect(() => {
+    if (statusFilter && !statusFilters.some((f) => f.key === statusFilter)) {
+      setStatusFilter(null);
+    }
+  }, [statusFilter, statusFilters]);
+
+  // Inbox default order: rows still awaiting the approver's decision first
+  // (pending / cancellation_pending), then the already-decided ones. Stable
+  // within each group so the backend's newest-first order is preserved.
+  const sortedInbox = useMemo(() => {
+    const awaiting = inboxRows.filter(isAwaitingDecision);
+    const decided = inboxRows.filter((r) => !isAwaitingDecision(r));
+    return [...awaiting, ...decided];
+  }, [inboxRows]);
+
+  const inboxStatusFilters = useMemo(() => {
+    const seen = new Map<string, LeaveStatus>();
+    for (const r of sortedInbox) {
+      const k = STATUS_KEY[r.status];
+      if (!seen.has(k)) seen.set(k, r.status);
+    }
+    return Array.from(seen.entries()).map(([key, status]) => ({ key, status }));
+  }, [sortedInbox]);
+
+  const filteredInbox = useMemo(
+    () =>
+      inboxFilter
+        ? sortedInbox.filter((r) => STATUS_KEY[r.status] === inboxFilter)
+        : sortedInbox,
+    [sortedInbox, inboxFilter]
+  );
+
+  useEffect(() => {
+    if (inboxFilter && !inboxStatusFilters.some((f) => f.key === inboxFilter)) {
+      setInboxFilter(null);
+    }
+  }, [inboxFilter, inboxStatusFilters]);
 
   // KPI sub-line: "Totale X · Usate Y", plus "· In attesa: Zh" only when the
   // quota has hours pending approval (used_pending > 0).
@@ -354,12 +442,35 @@ export function RichiesteScreen() {
   }
 
   const renderCalendarPage = (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshingCal}
+          onRefresh={async () => {
+            setRefreshingCal(true);
+            if (calRange) await loadCalendar(calRange.from, calRange.to);
+            setRefreshingCal(false);
+          }}
+        />
+      }>
       {isAdmin && presentUsers.length > 0 && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 6, paddingHorizontal: space.s3, paddingBottom: space.s2 }}>
+          // flexGrow:0 + centered content stop the pills from stretching to fill
+          // the vertical space this horizontal strip inherits inside the page
+          // ScrollView (which otherwise renders them as tall blobs).
+          style={{ flexGrow: 0 }}
+          contentContainerStyle={{
+            gap: 6,
+            paddingHorizontal: space.s3,
+            paddingBottom: space.s2,
+            alignItems: 'center',
+            flexGrow: 1,
+            justifyContent: 'center',
+          }}>
           {presentUsers.map((u) => {
             const on = !hiddenUsers.has(u.user_id);
             return (
@@ -412,6 +523,36 @@ export function RichiesteScreen() {
           fg={typeFg('permessi')}
         />
       </View>
+      {!loadingMine && statusFilters.length > 1 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          // flexGrow:0 + centered content stop the chips stretching into tall
+          // blobs inside the vertical page ScrollView (same fix as the calendar
+          // user strip above).
+          style={{ flexGrow: 0 }}
+          contentContainerStyle={styles.filterStrip}>
+          <StatusFilterChip
+            label={t('common:state.all')}
+            active={statusFilter === null}
+            onPress={() => setStatusFilter(null)}
+          />
+          {statusFilters.map((f) => {
+            const b = statusBadge(f.status);
+            const active = statusFilter === f.key;
+            return (
+              <StatusFilterChip
+                key={f.key}
+                label={b.label}
+                bg={b.bg}
+                fg={b.fg}
+                active={active}
+                onPress={() => setStatusFilter(active ? null : f.key)}
+              />
+            );
+          })}
+        </ScrollView>
+      )}
       {loadingMine && (
         <View style={styles.centered}>
           <ActivityIndicator />
@@ -420,7 +561,10 @@ export function RichiesteScreen() {
       {!loadingMine && mineRows.length === 0 && (
         <EmptyState icon="calendar-outline" title={t('empty.mine')} subtitle={t('empty.mineSub')} fill bare />
       )}
-      {mineRows.map((r) => (
+      {!loadingMine && mineRows.length > 0 && filteredMine.length === 0 && (
+        <EmptyState icon="funnel-outline" title={t('empty.filtered')} fill bare />
+      )}
+      {filteredMine.map((r) => (
         <LeaveCard
           key={r.id}
           row={r}
@@ -450,6 +594,33 @@ export function RichiesteScreen() {
           }}
         />
       }>
+      {!loadingInbox && inboxStatusFilters.length > 1 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ flexGrow: 0 }}
+          contentContainerStyle={styles.filterStrip}>
+          <StatusFilterChip
+            label={t('common:state.all')}
+            active={inboxFilter === null}
+            onPress={() => setInboxFilter(null)}
+          />
+          {inboxStatusFilters.map((f) => {
+            const b = statusBadge(f.status);
+            const active = inboxFilter === f.key;
+            return (
+              <StatusFilterChip
+                key={f.key}
+                label={b.label}
+                bg={b.bg}
+                fg={b.fg}
+                active={active}
+                onPress={() => setInboxFilter(active ? null : f.key)}
+              />
+            );
+          })}
+        </ScrollView>
+      )}
       {loadingInbox && (
         <View style={styles.centered}>
           <ActivityIndicator />
@@ -458,7 +629,10 @@ export function RichiesteScreen() {
       {!loadingInbox && inboxRows.length === 0 && (
         <EmptyState icon="calendar-outline" title={t('empty.inbox')} subtitle={t('empty.inboxSub')} fill bare />
       )}
-      {inboxRows.map((r) => (
+      {!loadingInbox && inboxRows.length > 0 && filteredInbox.length === 0 && (
+        <EmptyState icon="funnel-outline" title={t('empty.filtered')} fill bare />
+      )}
+      {filteredInbox.map((r) => (
         <LeaveCard
           key={r.id}
           row={r}
@@ -1203,6 +1377,43 @@ function KpiTile({
   );
 }
 
+// One chip in the "mine" tab quick status filter. Active chips take the status
+// badge colours (or primary for the "all" chip) plus a matching border; inactive
+// chips sit dimmed in the neutral surface colour.
+function StatusFilterChip({
+  label,
+  active,
+  bg,
+  fg,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  bg?: string;
+  fg?: string;
+  onPress: () => void;
+}) {
+  const activeFg = fg ?? color.primary;
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.filterChip,
+        active
+          ? { backgroundColor: bg ?? color.primaryContainer, borderColor: activeFg }
+          : { backgroundColor: color.surfaceVariant, opacity: 0.6 },
+      ]}>
+      <Text
+        style={[
+          styles.filterChipText,
+          { color: active ? activeFg : color.onSurfaceVariant },
+        ]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 // Hours, trimmed: 120 → "120h", 15.75 → "15.75h".
 function fmtH(n: number): string {
   const r = Math.round(n * 100) / 100;
@@ -1337,6 +1548,21 @@ const styles = StyleSheet.create({
     color: color.onSurfaceVariant,
     paddingHorizontal: 4,
   },
+
+  filterStrip: {
+    gap: 6,
+    paddingHorizontal: 4,
+    paddingBottom: space.s2,
+    alignItems: 'center',
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  filterChipText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
 
   subtypeBtn: {
     flexDirection: 'row',

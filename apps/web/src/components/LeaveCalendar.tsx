@@ -11,6 +11,7 @@ import {
   sameDay,
   isWeekend,
   leaveCoversDay,
+  leaveDaySlice,
   leaveTypeColor,
   HOLIDAY_COLOR,
   holidayMapForRange,
@@ -48,6 +49,16 @@ function viewTitleLocal(view: CalView, anchor: Date): string {
 
 function eventLabel(e: CalendarEvent, t: TFunction): string {
   return e.title || e.user_label || t(`common:leaveType.${e.type}`);
+}
+
+// Time window of a partial-day ("a ore") ferie/permesso on `iso`, e.g.
+// "09:00–11:00". Null for full-day leaves (malattia / assenza / full ferie).
+function eventTimeLabel(e: CalendarEvent, iso: string, t: TFunction): string | null {
+  const s = leaveDaySlice(e.from_ts, e.to_ts, iso);
+  if (s.allDay) return null;
+  if (s.startsBefore && !s.endsAfter) return t('time.until', { time: s.end });
+  if (s.endsAfter && !s.startsBefore) return t('time.from', { time: s.start });
+  return `${s.start}–${s.end}`;
 }
 
 export interface CalendarEvent {
@@ -141,15 +152,16 @@ export function LeaveCalendar({
   );
 }
 
-function EventChip({ e, faded, t }: { e: CalendarEvent; faded?: boolean; t: TFunction }) {
+function EventChip({ e, faded, iso, t }: { e: CalendarEvent; faded?: boolean; iso?: string; t: TFunction }) {
   const pending = e.status === 'pending';
+  const time = iso ? eventTimeLabel(e, iso, t) : null;
   return (
     <div
-      title={`${eventLabel(e, t)} — ${t(`common:leaveType.${e.type}`)}${pending ? t('pending') : ''}`}
+      title={`${time ? `${time} — ` : ''}${eventLabel(e, t)} — ${t(`common:leaveType.${e.type}`)}${pending ? t('pending') : ''}`}
       style={{ ['--cal-chip-color' as string]: leaveTypeColor(e.type), opacity: faded ? 0.5 : 1 }}
       className={`cal-chip truncate ${pending ? 'cal-chip--pending' : 'cal-chip--solid'}`}
     >
-      {eventLabel(e, t)}
+      {time ? `${time} · ${eventLabel(e, t)}` : eventLabel(e, t)}
     </div>
   );
 }
@@ -258,7 +270,7 @@ function WeekView({
             </button>
             {hol && <div className="mb-1 truncate text-[10px]" style={{ color: HOLIDAY_COLOR }} title={hol}>{hol}</div>}
             <div className="space-y-1">
-              {dayEvents.map((e) => <EventChip key={e.id} e={e} t={t} />)}
+              {dayEvents.map((e) => <EventChip key={e.id} e={e} iso={iso} t={t} />)}
             </div>
           </div>
         );
@@ -278,13 +290,17 @@ function DayView({ anchor, events, t }: { anchor: Date; events: CalendarEvent[];
         <div className="text-sm opacity-60">{t('noEvents')}</div>
       ) : (
         <div className="space-y-2">
-          {dayEvents.map((e) => (
-            <div key={e.id} className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-sm" style={{ background: leaveTypeColor(e.type) }} />
-              <span className="text-sm">{eventLabel(e, t)}</span>
-              <span className="text-xs opacity-60">· {t(`common:leaveType.${e.type}`)}{e.status === 'pending' ? t('pending') : ''}</span>
-            </div>
-          ))}
+          {dayEvents.map((e) => {
+            const time = eventTimeLabel(e, iso, t);
+            return (
+              <div key={e.id} className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-sm" style={{ background: leaveTypeColor(e.type) }} />
+                <span className="text-sm">{eventLabel(e, t)}</span>
+                {time && <span className="text-xs font-semibold" style={{ color: 'var(--color-primary)' }}>{time}</span>}
+                <span className="text-xs opacity-60">· {t(`common:leaveType.${e.type}`)}{e.status === 'pending' ? t('pending') : ''}</span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -5,18 +5,23 @@ import { ActivityIndicator, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../../store/session';
 import { useBacheca } from '../../store/bacheca';
+import { useRichieste } from '../../store/richieste';
 import { CustomTabBar } from '../../components/CustomTabBar';
 
 export default function TabsLayout() {
   const { t } = useTranslation('components');
   const { me, loading } = useSession();
   const refreshBacheca = useBacheca((s) => s.refresh);
+  const refreshRichieste = useRichieste((s) => s.refresh);
 
-  // Seed the Bacheca unread badge once a session is present, so the dot shows
-  // even before the member opens the tab.
+  // Seed the Bacheca unread and Richieste "da approvare" badges once a session
+  // is present, so the counts show even before the member opens the tabs.
   useEffect(() => {
-    if (me) void refreshBacheca();
-  }, [me, refreshBacheca]);
+    if (me) {
+      void refreshBacheca();
+      void refreshRichieste();
+    }
+  }, [me, refreshBacheca, refreshRichieste]);
   if (loading && !me) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>

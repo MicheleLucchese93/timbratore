@@ -722,7 +722,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Tab Calendario</h3>
-        <p>Una vista calendario di tutte le assenze aziendali, con selettore <strong>Giorno / Settimana / Mese / Anno</strong>. Ogni evento è colorato per tipo (Ferie, Permesso, Malattia, Assenza, Chiusura) e le <strong>festività nazionali italiane</strong> (Capodanno, Pasqua, 25 aprile, Ferragosto, Natale…) sono evidenziate automaticamente.</p>
+        <p>Una vista calendario di tutte le assenze aziendali, con selettore <strong>Giorno / Settimana / Mese / Anno</strong>. Ogni evento è colorato per tipo (Ferie, Permesso, Malattia, Assenza, Chiusura) e le <strong>festività nazionali italiane</strong> (Capodanno, Pasqua, 25 aprile, Ferragosto, Natale…) sono evidenziate automaticamente. Nelle viste <strong>Giorno</strong> e <strong>Settimana</strong> i permessi e le ferie <em>a ore</em> mostrano la fascia oraria (es. <em>09:00–11:00</em>); le assenze di intera giornata restano senza orario.</p>
         <ul class="tidy">
           <li><strong>Filtro utenti</strong> — i chip in alto attivano/disattivano i singoli dipendenti; "Tutti"/"Nessuno" per selezione rapida.</li>
           <li><strong>+ Inserisci evento</strong> — apre il modulo per assegnare un evento a più dipendenti in una volta (es. <em>Chiusura aziendale agosto</em>).</li>
@@ -1324,7 +1324,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Tab "Calendario"</h3>
-        <p>Vista calendario delle assenze con selettore <strong>Giorno / Settimana / Mese / Anno</strong>. I giorni con assenze mostrano puntini colorati per tipo e le <strong>festività nazionali</strong> sono evidenziate. Il dipendente vede le proprie assenze; l'amministratore vede tutti, con i chip in alto per filtrare per dipendente.</p>
+        <p>Vista calendario delle assenze con selettore <strong>Giorno / Settimana / Mese / Anno</strong>. I giorni con assenze mostrano puntini colorati per tipo e le <strong>festività nazionali</strong> sono evidenziate. Nelle viste <strong>Giorno</strong> e <strong>Settimana</strong> i permessi e le ferie <em>a ore</em> mostrano la fascia oraria (es. <em>09:00–11:00</em>). Il dipendente vede le proprie assenze; l'amministratore vede tutti, con i chip in alto per filtrare per dipendente.</p>
       </div>
 
       <div class="feature">

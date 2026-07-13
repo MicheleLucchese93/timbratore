@@ -12,6 +12,10 @@
   },
   "pending": " (in attesa)",
   "noEvents": "Nessun evento.",
+  "time": {
+    "from": "dalle {{time}}",
+    "until": "fino alle {{time}}"
+  },
   "legend": {
     "holiday": "Festività"
   }

@@ -715,7 +715,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>Calendar tab</h3>
-        <p>A calendar view of all the company's absences, with a <strong>Day / Week / Month / Year</strong> selector. Each event is coloured by type (Holiday, Leave, Sick leave, Absence, Closure) and the <strong>Italian national public holidays</strong> (New Year, Easter, 25 April, 15 August, Christmas…) are highlighted automatically.</p>
+        <p>A calendar view of all the company's absences, with a <strong>Day / Week / Month / Year</strong> selector. Each event is coloured by type (Holiday, Leave, Sick leave, Absence, Closure) and the <strong>Italian national public holidays</strong> (New Year, Easter, 25 April, 15 August, Christmas…) are highlighted automatically. In the <strong>Day</strong> and <strong>Week</strong> views, hourly leave and holiday show their time window (e.g. <em>09:00–11:00</em>); full-day absences show no time.</p>
         <ul class="tidy">
           <li><strong>User filter</strong> — the chips at the top enable/disable the individual employees; "All"/"None" for quick selection.</li>
           <li><strong>+ Insert event</strong> — opens the form to assign an event to several employees at once (e.g. <em>August company closure</em>).</li>
@@ -1312,7 +1312,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>"Calendar" tab</h3>
-        <p>Calendar view of the absences with a <strong>Day / Week / Month / Year</strong> selector. The days with absences show coloured dots by type and the <strong>national public holidays</strong> are highlighted. The employee sees their own absences; the administrator sees everyone's, with the chips at the top to filter by employee.</p>
+        <p>Calendar view of the absences with a <strong>Day / Week / Month / Year</strong> selector. The days with absences show coloured dots by type and the <strong>national public holidays</strong> are highlighted. In the <strong>Day</strong> and <strong>Week</strong> views, hourly leave and holiday show their time window (e.g. <em>09:00–11:00</em>). The employee sees their own absences; the administrator sees everyone's, with the chips at the top to filter by employee.</p>
       </div>
 
       <div class="feature">

@@ -117,6 +117,52 @@ export function leaveCoversDay(fromTs: string, toTs: string, dayISO: string): bo
   return from < dayEnd && to > dayStart;
 }
 
+/** The slice of a leave that falls on local calendar day `dayISO`. */
+export interface LeaveDaySlice {
+  /** True when the leave covers the whole local day (00:00 → 24:00). No time is
+   *  worth showing then — the common case for malattia / assenza and full-day
+   *  ferie / permessi. */
+  allDay: boolean;
+  /** Local "HH:MM" of the clipped start (== "00:00" when the leave began earlier). */
+  start: string;
+  /** Local "HH:MM" of the clipped end (== "00:00" of next day when it continues). */
+  end: string;
+  /** The leave began on an earlier day. */
+  startsBefore: boolean;
+  /** The leave continues past this day. */
+  endsAfter: boolean;
+}
+
+/**
+ * Break a leave down to what it looks like on one local day, so calendars can
+ * show the time window of a partial-day ("a ore") ferie/permesso — e.g. a 2h
+ * request renders "09:00–11:00" instead of an indistinguishable all-day block.
+ * A full-day leave (00:00 → within a minute of midnight) reports `allDay: true`.
+ */
+export function leaveDaySlice(fromTs: string, toTs: string, dayISO: string): LeaveDaySlice {
+  const dayStart = fromISODate(dayISO).getTime();
+  const dayEnd = addDays(fromISODate(dayISO), 1).getTime();
+  const from = new Date(fromTs).getTime();
+  const to = new Date(toTs).getTime();
+  const clipStart = Math.max(from, dayStart);
+  const clipEnd = Math.min(to, dayEnd);
+  // Whole day = starts at (or before) midnight and runs to within a minute of
+  // the next midnight. The form stores full days as 00:00 → 23:59.
+  const allDay = clipStart <= dayStart && clipEnd >= dayEnd - 60_000;
+  return {
+    allDay,
+    start: localHM(clipStart),
+    end: localHM(clipEnd),
+    startsBefore: from < dayStart,
+    endsAfter: to >= dayEnd,
+  };
+}
+
+function localHM(ms: number): string {
+  const d = new Date(ms);
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
 /** Human label for the current view's header (e.g. "Agosto 2026"). */
 export function viewTitle(view: CalView, anchor: Date): string {
   if (view === 'year') return String(anchor.getFullYear());

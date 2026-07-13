@@ -28,7 +28,8 @@
     "mine": "You have no requests.",
     "mineSub": "Requests you submit will appear here.",
     "inbox": "No requests to approve.",
-    "inboxSub": "When a colleague sends a request, you'll find it here."
+    "inboxSub": "When a colleague sends a request, you'll find it here.",
+    "filtered": "No requests with this status."
   },
   "fab": "New request",
   "card": {

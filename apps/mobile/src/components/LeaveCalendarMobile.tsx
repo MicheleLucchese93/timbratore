@@ -14,6 +14,7 @@ import {
   isWeekend,
   viewTitle,
   leaveCoversDay,
+  leaveDaySlice,
   leaveTypeColor,
   leaveTypeLabel,
   HOLIDAY_COLOR,
@@ -51,6 +52,16 @@ function eventsForDay(events: MobileCalEvent[], iso: string): MobileCalEvent[] {
 
 function eventLabel(e: MobileCalEvent): string {
   return e.title || e.user_label || leaveTypeLabel(e.type);
+}
+
+// Time window of a partial-day ("a ore") ferie/permesso on `iso`, e.g.
+// "09:00–11:00". Null for full-day leaves (malattia / assenza / full ferie).
+function eventTimeLabel(e: MobileCalEvent, iso: string): string | null {
+  const s = leaveDaySlice(e.from_ts, e.to_ts, iso);
+  if (s.allDay) return null;
+  if (s.startsBefore && !s.endsAfter) return `fino alle ${s.end}`;
+  if (s.endsAfter && !s.startsBefore) return `dalle ${s.start}`;
+  return `${s.start}–${s.end}`;
 }
 
 export function LeaveCalendarMobile({
@@ -191,7 +202,7 @@ function DayList({ anchor, events }: { anchor: Date; events: MobileCalEvent[] })
       {dayEvents.length === 0 ? (
         <Text style={styles.empty}>Nessun evento.</Text>
       ) : (
-        dayEvents.map((e) => <EventRow key={e.id} e={e} />)
+        dayEvents.map((e) => <EventRow key={e.id} e={e} iso={iso} />)
       )}
     </ScrollView>
   );
@@ -215,7 +226,7 @@ function WeekList({ anchor, events }: { anchor: Date; events: MobileCalEvent[] }
             {dayEvents.length === 0 ? (
               <Text style={styles.weekEmpty}>—</Text>
             ) : (
-              dayEvents.map((e) => <EventRow key={e.id} e={e} />)
+              dayEvents.map((e) => <EventRow key={e.id} e={e} iso={iso} />)
             )}
           </View>
         );
@@ -256,7 +267,8 @@ function YearGrid({
   );
 }
 
-function EventRow({ e }: { e: MobileCalEvent }) {
+function EventRow({ e, iso }: { e: MobileCalEvent; iso: string }) {
+  const time = eventTimeLabel(e, iso);
   return (
     <View style={styles.eventRow}>
       <View style={[styles.eventBar, { backgroundColor: leaveTypeColor(e.type) }]} />
@@ -266,6 +278,7 @@ function EventRow({ e }: { e: MobileCalEvent }) {
           {leaveTypeLabel(e.type)}{e.status === 'pending' ? ' · in attesa' : ''}
         </Text>
       </View>
+      {time && <Text style={styles.eventTime}>{time}</Text>}
     </View>
   );
 }
@@ -332,6 +345,7 @@ const styles = StyleSheet.create({
   eventBar: { width: 4, height: 28, borderRadius: 2 },
   eventLabel: { fontSize: 14, fontWeight: '600', color: color.onSurface },
   eventMeta: { fontSize: 12, color: color.onSurfaceVariant, marginTop: 1 },
+  eventTime: { fontSize: 13, fontWeight: '700', color: color.primary, fontVariant: ['tabular-nums'] },
 
   yearGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   yearCell: {

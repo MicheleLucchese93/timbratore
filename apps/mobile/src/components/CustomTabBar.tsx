@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { color } from '@sonoqui/shared';
 import { useSession } from '../store/session';
 import { useBacheca } from '../store/bacheca';
+import { useRichieste } from '../store/richieste';
 
 const TAB_BAR_CONTENT_HEIGHT = 54;
 const TAB_ICON_SIZE = 24;
@@ -28,6 +29,7 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
   const bottomInset = Math.max(insets.bottom, 4);
   const me = useSession((s) => s.me);
   const bachecaUnread = useBacheca((s) => s.unread);
+  const richiestePending = useRichieste((s) => s.pending);
   const isAdmin = me?.user.role === 'admin';
   const canStamp = (me?.user.stamp_modes ?? []).length > 0;
   const hasCantieri =
@@ -99,6 +101,13 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
                       <View style={styles.badge}>
                         <Text style={styles.badgeText}>
                           {bachecaUnread > 9 ? '9+' : String(bachecaUnread)}
+                        </Text>
+                      </View>
+                    )}
+                    {route.name === 'richieste' && richiestePending > 0 && (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>
+                          {richiestePending > 9 ? '9+' : String(richiestePending)}
                         </Text>
                       </View>
                     )}
