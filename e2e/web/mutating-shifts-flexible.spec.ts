@@ -9,6 +9,7 @@ import {
   deleteShiftTemplate,
   deleteStampAdmin,
   listLeaves,
+  listStampsAdmin,
   loadHandleFromStorage,
   type ApiHandle,
 } from '../fixtures/api-client';
@@ -81,6 +82,20 @@ test.describe('web — Orario flessibile anomalies (mutating)', () => {
     });
     for (const lv of overlapping) {
       await adminRevokeLeave(admin.token, lv.id, 'e2e flex isolation').catch(() => {});
+    }
+
+    // Isolation: clear any pre-existing stamps on the seeded day. Several other
+    // mutating specs (mutating-anomalies-*) seed this same user on the same
+    // "last weekday" and clean up best-effort (swallowed catch). A leftover
+    // punch on this date would be re-evaluated under our template and surface
+    // spurious late_clock_in / short_hours anomalies, so start the day empty.
+    const staleStamps = await listStampsAdmin(admin.token, {
+      user_id: user.userId,
+      from: validFrom,
+      to: validFrom,
+    }).catch(() => [] as Awaited<ReturnType<typeof listStampsAdmin>>);
+    for (const s of staleStamps) {
+      await deleteStampAdmin(admin.token, s.id).catch(() => {});
     }
 
     const tpl = await createShiftTemplate(admin.token, tplBody);
