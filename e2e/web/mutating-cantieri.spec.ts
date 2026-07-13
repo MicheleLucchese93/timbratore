@@ -42,6 +42,40 @@ function localMonth(): string {
   return localDate().slice(0, 7);
 }
 
+// Placeholder value for a required custom field, per its type. Lets the seed
+// satisfy any required field defs the tenant already carries (e.g. a "Descrizione"
+// mezzo field left over from manual testing) instead of failing 400 VALIDATION.
+function placeholderFieldValue(f: CantieriFieldDefRecord): unknown {
+  switch (f.field_type) {
+    case 'number':
+      return 1;
+    case 'date':
+      return localDate();
+    case 'time':
+      return '08:00';
+    case 'boolean':
+      return true;
+    case 'select':
+      return f.options?.[0] ?? 'e2e';
+    default:
+      return 'e2e';
+  }
+}
+
+// custom_values covering every required field for a given scope, so a create
+// does not depend on the tenant having zero required custom fields.
+async function requiredFieldValues(
+  token: string,
+  scope: 'entry' | 'mezzo',
+): Promise<Record<string, unknown>> {
+  const { fields } = await getCantieriFields(token, scope);
+  const values: Record<string, unknown> = {};
+  for (const f of fields) {
+    if (f.required) values[f.key] = placeholderFieldValue(f);
+  }
+  return values;
+}
+
 test.describe.configure({ mode: 'serial' });
 
 test.describe('web — Cantieri: seed, UI, dashboard, PDF', () => {
@@ -103,7 +137,13 @@ test.describe('web — Cantieri: seed, UI, dashboard, PDF', () => {
     });
     expect(field.scope).toBe('entry');
 
-    mezzo = await createCantiereMezzo(admin.token, { name: `e2e-mezzo-${stamp}` });
+    // Fill any required mezzo-scoped custom fields the tenant already carries
+    // (manual-testing drift) so the create is not tenant-config-dependent.
+    const mezzoFieldValues = await requiredFieldValues(admin.token, 'mezzo');
+    mezzo = await createCantiereMezzo(admin.token, {
+      name: `e2e-mezzo-${stamp}`,
+      custom_values: mezzoFieldValues,
+    });
 
     await setCantiereAssignments(admin.token, site.id, [admin.userId]);
     await setMezzoAssignments(admin.token, mezzo.id, [admin.userId]);
@@ -135,6 +175,7 @@ test.describe('web — Cantieri: seed, UI, dashboard, PDF', () => {
     test.skip(!ready, 'cantieri module not provisioned on the test tenant yet');
     const month = localMonth();
 
+    const entryFieldValues = await requiredFieldValues(admin.token, 'entry');
     const entry = await createCantiereEntry(admin.token, {
       cantiere_id: site!.id,
       entry_date: localDate(),
@@ -144,7 +185,7 @@ test.describe('web — Cantieri: seed, UI, dashboard, PDF', () => {
       activity_end: '12:30',
       activity_text: 'e2e-attività di prova',
       mezzo_id: mezzo!.id,
-      custom_values: { [field!.key]: 'valore di prova' },
+      custom_values: { ...entryFieldValues, [field!.key]: 'valore di prova' },
     });
     entries.push(entry.id);
 
@@ -159,7 +200,9 @@ test.describe('web — Cantieri: seed, UI, dashboard, PDF', () => {
     await expect(page.getByRole('heading', { name: 'Dashboard cantieri' })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByText(site!.name)).toBeVisible();
+    // The site name also appears as an <option> in the "Filtra per cantiere"
+    // select, so target the dashboard row button to avoid a strict-mode clash.
+    await expect(page.getByRole('button', { name: site!.name })).toBeVisible();
 
     const pdf = await getCantiereReportPdf(admin.token, site!.id, month);
     expect(pdf.status).toBe(200);
