@@ -2370,14 +2370,17 @@ function UsersDataGrid({
               className="btn btn-ghost btn-sm"
               onClick={() => onEditBranches(p.row)}
               title={t('grid.branchesTitle')}
-              style={{ maxWidth: '100%', minWidth: 0 }}
+              style={{ maxWidth: '100%', minWidth: 0, gap: '0.375rem' }}
             >
               {n === 0 ? (
                 <span className="truncate" style={{ color: 'var(--color-error)' }}>
                   {t('grid.branchesNone')}
                 </span>
               ) : (
-                <span className="truncate">{t('grid.branchesCount', { count: n })}</span>
+                <>
+                  <span className="truncate">{t('grid.branchesCount', { count: n })}</span>
+                  <PencilGlyph />
+                </>
               )}
             </button>
           );
@@ -2401,10 +2404,13 @@ function UsersDataGrid({
             className="btn btn-ghost btn-sm"
             onClick={() => onEditShift(p.row)}
             title={t('grid.shiftTitle')}
-            style={{ maxWidth: '100%', minWidth: 0 }}
+            style={{ maxWidth: '100%', minWidth: 0, gap: '0.375rem' }}
           >
             {p.value ? (
-              <span className="truncate">{p.value as string}</span>
+              <>
+                <span className="truncate">{p.value as string}</span>
+                <PencilGlyph />
+              </>
             ) : (
               <span className="truncate" style={{ color: 'var(--color-error)' }}>
                 {t('grid.shiftNone')}
@@ -2432,15 +2438,15 @@ function UsersDataGrid({
               className="btn btn-ghost btn-sm"
               onClick={() => onEditModes(p.row)}
               title={t('grid.modesTitle')}
-              style={{ maxWidth: '100%', minWidth: 0 }}
+              style={{ maxWidth: '100%', minWidth: 0, gap: '0.375rem' }}
             >
-              {modes.length === 0 ? (
-                <span className="truncate" style={{ color: 'var(--color-error)' }}>
-                  {t('grid.modesEdit', { label })}
-                </span>
-              ) : (
-                <span className="truncate">{t('grid.modesEdit', { label })}</span>
-              )}
+              <span
+                className="truncate"
+                style={modes.length === 0 ? { color: 'var(--color-error)' } : undefined}
+              >
+                {label}
+              </span>
+              <PencilGlyph />
             </button>
           );
         },
