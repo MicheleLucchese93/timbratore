@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { api, getToken, getTenantId, apiUrl } from '../lib/api.ts';
+import { isoLocalDate } from '../lib/dates.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { fmtDateTime } from '../i18n/format.ts';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
@@ -257,10 +258,10 @@ function firstOfPrevMonth(): string {
   const d = new Date();
   d.setDate(1);
   d.setMonth(d.getMonth() - 1);
-  return d.toISOString().slice(0, 10);
+  return isoLocalDate(d);
 }
 function lastOfPrevMonth(): string {
   const d = new Date();
   d.setDate(0);
-  return d.toISOString().slice(0, 10);
+  return isoLocalDate(d);
 }

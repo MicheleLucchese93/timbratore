@@ -2,6 +2,7 @@ import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState 
 import { useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef, type GridRowSelectionModel } from '@mui/x-data-grid';
 import { api, apiUrl, getToken, getTenantId, type ApiError } from '../lib/api.ts';
+import { isoLocalDate } from '../lib/dates.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { useSession } from '../store/session.ts';
 import { IconButton } from '../components/IconButton.tsx';
@@ -401,7 +402,7 @@ export function Users() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = t('export.fileName', { date: new Date().toISOString().slice(0, 10) });
+      a.download = t('export.fileName', { date: isoLocalDate() });
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
@@ -1053,7 +1054,7 @@ function ShiftAssignEditor({
   useEscapeKey(onClose);
   const [templateId, setTemplateId] = useState<string>(current?.shift_template_id ?? '');
   const [validFrom, setValidFrom] = useState<string>(
-    new Date().toISOString().slice(0, 10)
+    isoLocalDate()
   );
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -1498,7 +1499,7 @@ function BulkShiftDialog({
   const { t } = useTranslation(['users', 'common']);
   useEscapeKey(onClose);
   const [templateId, setTemplateId] = useState('');
-  const [validFrom, setValidFrom] = useState(new Date().toISOString().slice(0, 10));
+  const [validFrom, setValidFrom] = useState(isoLocalDate());
   const [busy, setBusy] = useState(false);
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50">

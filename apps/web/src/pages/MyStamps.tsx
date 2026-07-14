@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
+import { isoLocalDate, isoLocalDaysAgo } from '../lib/dates.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { fmtDateTime } from '../i18n/format.ts';
 import { PageHeader } from '../components/PageHeader.tsx';
@@ -21,8 +22,8 @@ export function MyStamps() {
 
   async function load() {
     const params = new URLSearchParams();
-    params.set('from', isoNDaysAgo(90));
-    params.set('to', isoToday());
+    params.set('from', isoLocalDaysAgo(90));
+    params.set('to', isoLocalDate());
     setList(await api<Stamp[]>(`/api/v1/stamps/me?${params}`));
   }
   useEffect(() => {
@@ -111,9 +112,4 @@ function sourceLabel(s: string, t: (k: string) => string): string {
       : s === 'admin_manual'
         ? t('common:origin.admin')
         : s;
-}
-function isoToday(): string { return new Date().toISOString().slice(0, 10); }
-function isoNDaysAgo(n: number): string {
-  const d = new Date(); d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
 }

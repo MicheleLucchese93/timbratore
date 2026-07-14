@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import { z } from 'zod';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 import { tenantHandler } from '../lib/route-helpers.js';
+import { TENANT_TZ_SQL } from '../lib/tz.js';
 import { ok } from '../lib/api-response.js';
 import { logAudit } from '../lib/audit.js';
 import { ConflictError, NotFoundError, ValidationError } from '../errors/index.js';
@@ -133,11 +134,16 @@ adminStampsRouter.post(
     await client.query(`SELECT set_config('app.change_reason', $1, true)`, [
       'bulk_apply_standard',
     ]);
+    // The schedule carries wall-clock times ('09:00') for a calendar day. Both
+    // the duplicate check and the inserts resolve them in the tenant zone: a
+    // bare ::timestamptz cast would read them against the server clock (UTC in
+    // production) and file every punch 2h late in summer.
     for (const date of b.dates) {
       const existing = await client.query(
         `SELECT 1 FROM stamps
          WHERE user_id = $1 AND deleted_at IS NULL
-           AND occurred_at >= $2::date AND occurred_at < ($2::date + interval '1 day')`,
+           AND occurred_at >= ($2::timestamp AT TIME ZONE ${TENANT_TZ_SQL})
+           AND occurred_at <  (($2::date + 1)::timestamp AT TIME ZONE ${TENANT_TZ_SQL})`,
         [b.user_id, date]
       );
       if (existing.rowCount && existing.rowCount > 0) {
@@ -148,20 +154,20 @@ adminStampsRouter.post(
         await client.query(
           `INSERT INTO stamps(tenant_id, user_id, event_type, occurred_at, source, branch_id, notes)
            VALUES (current_setting('app.current_tenant_id')::uuid, $1, 'clock_in',
-                   ($2 || ' ' || $3 || ':00')::timestamptz, 'admin_manual', $4, 'bulk_apply_standard')`,
+                   ($2 || ' ' || $3 || ':00')::timestamp AT TIME ZONE ${TENANT_TZ_SQL}, 'admin_manual', $4, 'bulk_apply_standard')`,
           [b.user_id, date, b.schedule.clock_in, b.branch_id ?? null]
         );
         if (b.schedule.break_start && b.schedule.break_end) {
           await client.query(
             `INSERT INTO stamps(tenant_id, user_id, event_type, occurred_at, source, branch_id, notes)
              VALUES (current_setting('app.current_tenant_id')::uuid, $1, 'break_start',
-                     ($2 || ' ' || $3 || ':00')::timestamptz, 'admin_manual', $4, 'bulk_apply_standard')`,
+                     ($2 || ' ' || $3 || ':00')::timestamp AT TIME ZONE ${TENANT_TZ_SQL}, 'admin_manual', $4, 'bulk_apply_standard')`,
             [b.user_id, date, b.schedule.break_start, b.branch_id ?? null]
           );
           await client.query(
             `INSERT INTO stamps(tenant_id, user_id, event_type, occurred_at, source, branch_id, notes)
              VALUES (current_setting('app.current_tenant_id')::uuid, $1, 'break_end',
-                     ($2 || ' ' || $3 || ':00')::timestamptz, 'admin_manual', $4, 'bulk_apply_standard')`,
+                     ($2 || ' ' || $3 || ':00')::timestamp AT TIME ZONE ${TENANT_TZ_SQL}, 'admin_manual', $4, 'bulk_apply_standard')`,
             [b.user_id, date, b.schedule.break_end, b.branch_id ?? null]
           );
         }
@@ -169,20 +175,20 @@ adminStampsRouter.post(
           await client.query(
             `INSERT INTO stamps(tenant_id, user_id, event_type, occurred_at, source, branch_id, notes)
              VALUES (current_setting('app.current_tenant_id')::uuid, $1, 'lunch_start',
-                     ($2 || ' ' || $3 || ':00')::timestamptz, 'admin_manual', $4, 'bulk_apply_standard')`,
+                     ($2 || ' ' || $3 || ':00')::timestamp AT TIME ZONE ${TENANT_TZ_SQL}, 'admin_manual', $4, 'bulk_apply_standard')`,
             [b.user_id, date, b.schedule.lunch_start, b.branch_id ?? null]
           );
           await client.query(
             `INSERT INTO stamps(tenant_id, user_id, event_type, occurred_at, source, branch_id, notes)
              VALUES (current_setting('app.current_tenant_id')::uuid, $1, 'lunch_end',
-                     ($2 || ' ' || $3 || ':00')::timestamptz, 'admin_manual', $4, 'bulk_apply_standard')`,
+                     ($2 || ' ' || $3 || ':00')::timestamp AT TIME ZONE ${TENANT_TZ_SQL}, 'admin_manual', $4, 'bulk_apply_standard')`,
             [b.user_id, date, b.schedule.lunch_end, b.branch_id ?? null]
           );
         }
         await client.query(
           `INSERT INTO stamps(tenant_id, user_id, event_type, occurred_at, source, branch_id, notes)
            VALUES (current_setting('app.current_tenant_id')::uuid, $1, 'clock_out',
-                   ($2 || ' ' || $3 || ':00')::timestamptz, 'admin_manual', $4, 'bulk_apply_standard')`,
+                   ($2 || ' ' || $3 || ':00')::timestamp AT TIME ZONE ${TENANT_TZ_SQL}, 'admin_manual', $4, 'bulk_apply_standard')`,
           [b.user_id, date, b.schedule.clock_out, b.branch_id ?? null]
         );
         results.push({ date, status: 'created' });
@@ -254,7 +260,8 @@ adminStampsRouter.post(
       const existing = await client.query(
         `SELECT 1 FROM stamps
          WHERE user_id = $1 AND deleted_at IS NULL AND event_type = $2
-           AND occurred_at::date = $3::timestamptz::date`,
+           AND (occurred_at AT TIME ZONE ${TENANT_TZ_SQL})::date
+             = ($3::timestamptz AT TIME ZONE ${TENANT_TZ_SQL})::date`,
         [b.user_id, ev.event_type, ev.occurred_at]
       );
       if (existing.rowCount && existing.rowCount > 0) {

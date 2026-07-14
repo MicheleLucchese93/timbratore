@@ -1,5 +1,6 @@
 import type { PoolClient } from 'pg';
 import { ValidationError } from '../errors/index.js';
+import { TENANT_TZ_SQL } from './tz.js';
 
 export type LeaveType = 'ferie' | 'permessi' | 'malattia' | 'assenza';
 
@@ -233,8 +234,8 @@ export async function assertPerDayCap(
        FROM leave_requests
       WHERE user_id = $1
         AND status IN ('pending','approved','cancellation_pending')
-        AND to_ts > $2::date::timestamptz
-        AND from_ts < $3::date::timestamptz
+        AND to_ts   >  ($2::timestamp AT TIME ZONE ${TENANT_TZ_SQL})
+        AND from_ts <  ($3::timestamp AT TIME ZONE ${TENANT_TZ_SQL})
         ${exclude}`,
     params
   );

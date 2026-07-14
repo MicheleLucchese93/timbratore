@@ -11,6 +11,7 @@ import {
   applyMalattiaOverlap,
   assertPerDayCap,
 } from '../lib/leave-quota.js';
+import { TENANT_TZ_SQL } from '../lib/tz.js';
 import {
   notifyLeaveSubmitted,
   notifyLeaveDecided,
@@ -390,11 +391,13 @@ leavesRouter.get(
     }
     if (q.from) {
       params.push(q.from);
-      where.push(`lr.to_ts >= $${params.length}::timestamptz`);
+      where.push(`lr.to_ts >= ($${params.length}::timestamp AT TIME ZONE ${TENANT_TZ_SQL})`);
     }
     if (q.to) {
       params.push(q.to);
-      where.push(`lr.from_ts < ($${params.length}::date + INTERVAL '1 day')::timestamptz`);
+      where.push(
+        `lr.from_ts < (($${params.length}::date + 1)::timestamp AT TIME ZONE ${TENANT_TZ_SQL})`
+      );
     }
 
     const sql = `

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { api, type ApiError } from '../lib/api.ts';
+import { isoLocalDate, isoLocalDaysAgo } from '../lib/dates.ts';
 import { fmtDate as fmtDateI18n, fmtTime as fmtTimeI18n } from '../i18n/format.ts';
 import { PageHeader } from '../components/PageHeader.tsx';
 
@@ -65,15 +66,8 @@ const JUSTIFIABLE_KINDS: Anomaly['kind'][] = [
   'early_clock_out',
 ];
 
-function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
 function defaultRange(): { from: string; to: string } {
-  const today = new Date();
-  const start = new Date(today);
-  start.setDate(start.getDate() - 30);
-  return { from: isoDate(start), to: isoDate(today) };
+  return { from: isoLocalDaysAgo(30), to: isoLocalDate() };
 }
 
 function fmtTime(iso: string | null): string {

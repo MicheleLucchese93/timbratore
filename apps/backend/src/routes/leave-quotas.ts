@@ -6,6 +6,7 @@ import { ok } from '../lib/api-response.js';
 import { logAudit } from '../lib/audit.js';
 import { ConflictError, NotFoundError, ValidationError } from '../errors/index.js';
 import { getQuotaSummary } from '../lib/leave-quota.js';
+import { tenantToday } from '../lib/tz.js';
 
 export const leaveQuotasRouter = Router();
 leaveQuotasRouter.use(authenticate);
@@ -293,7 +294,7 @@ leaveQuotasRouter.post(
     if (tpl.rowCount === 0) throw new NotFoundError('template');
     const type = tpl.rows[0].type as 'ferie' | 'permessi';
     const initial = b.initial_balance ?? 0;
-    const startedOn = b.started_on ?? new Date().toISOString().slice(0, 10);
+    const startedOn = b.started_on ?? (await tenantToday(client));
 
     // Close any existing active assignment for this (user, type) before opening a new one.
     await client.query(
@@ -500,7 +501,7 @@ leaveQuotasRouter.post(
         a.rows[0].user_id,
         a.rows[0].type,
         b.hours,
-        b.accrued_on ?? new Date().toISOString().slice(0, 10),
+        b.accrued_on ?? (await tenantToday(client)),
         b.source,
         b.note ?? null,
       ]

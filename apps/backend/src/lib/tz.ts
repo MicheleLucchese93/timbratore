@@ -1,3 +1,5 @@
+import type { PoolClient } from 'pg';
+
 // Timezone-aware wall-clock ↔ UTC conversion.
 //
 // Schedule slot times (shift_template_slots.start_time/end_time) are stored as
@@ -77,6 +79,31 @@ export function startOfZonedDayUtcMs(dateStr: string, timeZone: string = DEFAULT
 export function nextIsoDate(dateStr: string): string {
   const [y, mo, d] = dateStr.split('-').map(Number) as [number, number, number];
   return new Date(Date.UTC(y, mo - 1, d + 1)).toISOString().slice(0, 10);
+}
+
+// SQL scalar for the current tenant's zone, for use inside a tenantHandler
+// (RLS on `tenants` restricts it to the caller's row).
+//
+// Filter bounds arrive as 'YYYY-MM-DD' wall-clock days but the columns they
+// filter (occurred_at, created_at, …) are timestamptz. Comparing them with
+// `$1::date` makes Postgres promote the date using the *server* clock — UTC in
+// production — so the window runs 00:00Z..00:00Z while the business day it
+// stands for runs 22:00Z..22:00Z. Resolve the bound on the parameter instead:
+// the comparison value stays a constant, so the index is still usable.
+//
+//   occurred_at >= ($1::timestamp AT TIME ZONE ${TENANT_TZ_SQL})            -- from 00:00 local
+//   occurred_at <  (($2::date + 1)::timestamp AT TIME ZONE ${TENANT_TZ_SQL}) -- to 24:00 local
+export const TENANT_TZ_SQL =
+  `(SELECT timezone FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid)`;
+
+// Today's calendar day in the current tenant's zone, as 'YYYY-MM-DD'. For
+// defaulting a `date` column the user left blank: `new Date().toISOString()`
+// would answer in UTC and pick yesterday for the first hours of a local day.
+export async function tenantToday(client: PoolClient): Promise<string> {
+  const r = await client.query<{ d: string }>(
+    `SELECT to_char((now() AT TIME ZONE ${TENANT_TZ_SQL})::date, 'YYYY-MM-DD') AS d`
+  );
+  return r.rows[0]!.d;
 }
 
 // The business day ('YYYY-MM-DD') a UTC instant falls on in `timeZone`.

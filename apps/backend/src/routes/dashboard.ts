@@ -3,7 +3,7 @@ import { authenticate, requireAdmin } from '../middleware/auth.js';
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { computeAnomalies, type AnomalyRow, type Anomaly } from './shifts.js';
-import { DEFAULT_TZ } from '../lib/tz.js';
+import { DEFAULT_TZ, TENANT_TZ_SQL } from '../lib/tz.js';
 
 export const dashboardRouter = Router();
 dashboardRouter.use(authenticate);
@@ -127,10 +127,11 @@ dashboardRouter.get(
 
     // Anomalies last 7 full days (yesterday inclusive — today still in progress).
     const anomaliesPromise = client.query<AnomalyRow>(
-      `WITH range AS (
+      `WITH today AS (SELECT (now() AT TIME ZONE ${TENANT_TZ_SQL})::date AS d),
+       range AS (
          SELECT generate_series(
-           (now()::date - INTERVAL '7 days')::date,
-           (now()::date - INTERVAL '1 day')::date,
+           ((SELECT d FROM today) - INTERVAL '7 days')::date,
+           ((SELECT d FROM today) - INTERVAL '1 day')::date,
            INTERVAL '1 day'
          )::date AS d
        ),

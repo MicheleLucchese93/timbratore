@@ -7,6 +7,7 @@ import {
   type GridRowSelectionModel,
 } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
+import { isoLocalDate } from '../lib/dates.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { fmtDate, fmtTime, localeTag } from '../i18n/format.ts';
 import { IconButton } from '../components/IconButton.tsx';
@@ -859,7 +860,7 @@ function BulkAssignQuotaModal({
   const byType = useMemo(() => templates.filter((tpl) => tpl.type === type), [templates, type]);
   const [templateId, setTemplateId] = useState<string>('');
   const [initialBalance, setInitialBalance] = useState<number>(0);
-  const [startedOn, setStartedOn] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [startedOn, setStartedOn] = useState<string>(isoLocalDate());
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -1006,7 +1007,7 @@ function AssignmentEditor({
     existing?.initial_balance ?? 0
   );
   const [startedOn, setStartedOn] = useState<string>(
-    existing?.started_on ?? new Date().toISOString().slice(0, 10)
+    existing?.started_on ?? isoLocalDate()
   );
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -1162,7 +1163,7 @@ function ManualAdjustModal({
   const [type, setType] = useState<'ferie' | 'permessi'>(available[0] ?? 'ferie');
   const [direction, setDirection] = useState<'add' | 'remove'>('add');
   const [hours, setHours] = useState<number>(0);
-  const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState<string>(isoLocalDate());
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);

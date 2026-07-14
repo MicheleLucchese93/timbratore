@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
+import { isoLocalDate, isoLocalDaysAgo, localDateTimeInputValue } from '../lib/dates.ts';
 import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { fmtDateTime } from '../i18n/format.ts';
@@ -31,8 +32,8 @@ export function Stamps() {
   const [branchId, setBranchId] = useState('');
   const [eventType, setEventType] = useState('');
   const [source, setSource] = useState('');
-  const [from, setFrom] = useState(() => isoNDaysAgo(90));
-  const [to, setTo] = useState(() => isoToday());
+  const [from, setFrom] = useState(() => isoLocalDaysAgo(90));
+  const [to, setTo] = useState(() => isoLocalDate());
 
   const userById = useMemo(
     () => new Map(users.map((u) => [u.user_id, u])),
@@ -263,11 +264,6 @@ function StampIconButton({
 }
 
 const DATETIME_OPTS: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
-function isoToday(): string { return new Date().toISOString().slice(0, 10); }
-function isoNDaysAgo(n: number): string {
-  const d = new Date(); d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
-}
 
 function StampForm({
   stamp, branches, users, onClose, onSaved,
@@ -282,10 +278,9 @@ function StampForm({
   useEscapeKey(onClose);
   const [userId, setUserId] = useState(stamp?.user_id ?? users[0]?.user_id ?? '');
   const [eventType, setEventType] = useState<Stamp['event_type']>(stamp?.event_type ?? 'clock_in');
-  const [occurredAt, setOccurredAt] = useState(() => {
-    const d = stamp ? new Date(stamp.occurred_at) : new Date();
-    return d.toISOString().slice(0, 16);
-  });
+  const [occurredAt, setOccurredAt] = useState(() =>
+    localDateTimeInputValue(stamp ? new Date(stamp.occurred_at) : new Date())
+  );
   const [branchId, setBranchId] = useState(stamp?.branch_id ?? branches[0]?.id ?? '');
   const [justification, setJustification] = useState(stamp?.notes ?? '');
   const [busy, setBusy] = useState(false);

@@ -11,6 +11,7 @@ import {
   startOfZonedDayUtcMs,
   nextIsoDate,
   hhmmInZone,
+  TENANT_TZ_SQL,
 } from '../lib/tz.js';
 import { uncoveredSlotIntervals } from '@sonoqui/shared';
 import { logAudit } from '../lib/audit.js';
@@ -700,11 +701,12 @@ shiftsRouter.get(
                  FROM stamps s
                 WHERE s.user_id = m.user_id
                   AND s.deleted_at IS NULL
-                  -- Day bucketing stays UTC-based (DB session tz is UTC) while
-                  -- expected slot times resolve in the tenant zone. Safe because
-                  -- no schedule places punches in the 00:00–00:59 local window.
-                  AND s.occurred_at >= r.d::timestamptz
-                  AND s.occurred_at <  (r.d + INTERVAL '1 day')::timestamptz),
+                  -- r.d is a tenant-local calendar day; occurred_at is a UTC
+                  -- instant. Casting r.d straight to timestamptz resolved it
+                  -- against the server clock (UTC in prod), so the bucket ran
+                  -- 00:00Z..00:00Z instead of the local day it stands for.
+                  AND s.occurred_at >= (r.d::timestamp AT TIME ZONE ${TENANT_TZ_SQL})
+                  AND s.occurred_at <  ((r.d + 1)::timestamp AT TIME ZONE ${TENANT_TZ_SQL})),
                 '[]'::json
               ) AS stamps,
               COALESCE(

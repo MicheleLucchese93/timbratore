@@ -7,6 +7,7 @@ import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '.
 import { idempotencyMiddleware } from '../middleware/idempotency.js';
 import { computeCurrentState, evaluateStamp } from '../services/stamp-service.js';
 import type { StampEventType } from '@sonoqui/shared';
+import { TENANT_TZ_SQL } from '../lib/tz.js';
 
 export const stampsRouter = Router();
 stampsRouter.use(authenticate);
@@ -85,10 +86,15 @@ stampsRouter.get(
     const from = req.query.from ? String(req.query.from) : null;
     const to = req.query.to ? String(req.query.to) : null;
     const r = await client.query(
+      // from/to are the device's local calendar days; occurred_at is a UTC
+      // instant. Resolving them with a bare ::date compared them against the
+      // server clock (UTC in prod), so an employee asking for "today" between
+      // midnight and 02:00 local was served the previous local day and could
+      // not see the punch they had just made.
       `SELECT * FROM stamps
        WHERE user_id = $1 AND deleted_at IS NULL
-         AND ($2::date IS NULL OR occurred_at >= $2::date)
-         AND ($3::date IS NULL OR occurred_at < ($3::date + interval '1 day'))
+         AND ($2::date IS NULL OR occurred_at >= ($2::timestamp AT TIME ZONE ${TENANT_TZ_SQL}))
+         AND ($3::date IS NULL OR occurred_at < (($3::date + 1)::timestamp AT TIME ZONE ${TENANT_TZ_SQL}))
        ORDER BY occurred_at DESC
        LIMIT 1000`,
       [req.user!.id, from, to]
@@ -122,13 +128,16 @@ stampsRouter.get(
       params.push(String(req.query.branch_id));
       filters.push(`branch_id = $${params.length}`);
     }
+    // from/to are tenant-local calendar days; occurred_at is a UTC instant.
     if (req.query.from) {
-      params.push(String(req.query.from));
-      filters.push(`occurred_at >= $${params.length}::date`);
+      params.push(`${String(req.query.from)} 00:00:00`);
+      filters.push(`occurred_at >= ($${params.length}::timestamp AT TIME ZONE ${TENANT_TZ_SQL})`);
     }
     if (req.query.to) {
       params.push(String(req.query.to));
-      filters.push(`occurred_at < ($${params.length}::date + interval '1 day')`);
+      filters.push(
+        `occurred_at < (($${params.length}::date + 1)::timestamp AT TIME ZONE ${TENANT_TZ_SQL})`
+      );
     }
     const limit = Math.min(Number(req.query.limit ?? 200), 1000);
     const r = await client.query(
