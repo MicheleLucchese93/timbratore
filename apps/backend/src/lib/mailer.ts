@@ -4,6 +4,7 @@ import { env } from '../env.js';
 import { createLogger } from './logger.js';
 import { renderTemplate, escapeHtml, stripHeader } from './template-renderer.js';
 import { htmlToPlainText } from './bulletin-sanitize.js';
+import { DEFAULT_TZ } from './tz.js';
 
 const logger = createLogger('mailer');
 
@@ -125,10 +126,25 @@ function cancellationVerb(accepted: boolean, language: 'it' | 'en'): string {
 function fmtRange(fromIso: string, toIso: string, type: string, language: 'it' | 'en'): string {
   const from = new Date(fromIso);
   const to = new Date(toIso);
-  const sameDay = from.toDateString() === to.toDateString();
+  const sameDay =
+    from.toLocaleDateString('en-CA', { timeZone: DEFAULT_TZ }) ===
+    to.toLocaleDateString('en-CA', { timeZone: DEFAULT_TZ });
   const locale = language === 'it' ? 'it-IT' : 'en-GB';
-  const dOpts: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
-  const tOpts: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
+  // Stamps/leave bounds are UTC instants; the app stores them as Rome wall-clock
+  // (e.g. a 17 Aug closure is 16 Aug 22:00Z in summer). The prod server runs in
+  // UTC, so formatting without an explicit timeZone renders the previous day for
+  // any Rome-midnight start. Pin to DEFAULT_TZ so emails match the calendar.
+  const dOpts: Intl.DateTimeFormatOptions = {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: DEFAULT_TZ,
+  };
+  const tOpts: Intl.DateTimeFormatOptions = {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: DEFAULT_TZ,
+  };
   if (type === 'permessi' && sameDay) {
     return `${from.toLocaleDateString(locale, dOpts)} ${from.toLocaleTimeString(locale, tOpts)}–${to.toLocaleTimeString(locale, tOpts)}`;
   }
@@ -350,6 +366,7 @@ function fmtMoment(iso: string, language: 'it' | 'en'): string {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: DEFAULT_TZ,
   });
 }
 
