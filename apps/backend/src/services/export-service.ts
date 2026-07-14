@@ -2,7 +2,14 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import ExcelJS from 'exceljs';
 import { putObject, getObject, deleteObject } from '../lib/storage.js';
-import { DEFAULT_TZ, zonedWallClock } from '../lib/tz.js';
+import {
+  DEFAULT_TZ,
+  zonedWallClock,
+  zonedDateKey,
+  eachZonedDateKeyInclusive,
+  startOfZonedDayUtcMs,
+  nextIsoDate,
+} from '../lib/tz.js';
 import { effectiveCentroPagheMap, centroPagheKeyForLeave, uncoveredSlotIntervals } from '@sonoqui/shared';
 import { env } from '../env.js';
 import {
@@ -91,34 +98,56 @@ export async function generateExportFile(job: ExportJobRow): Promise<ExportResul
 // Paid-break cutoff: breaks at/under this duration count as paid, above as unpaid.
 const PAID_BREAK_THRESHOLD_MIN = 30;
 
+// The export period as true UTC instants: [00:00 of period_from, 00:00 of the day
+// after period_to) in the tenant's zone.
+//
+// The old `$2::date` / `$3::date + INTERVAL '1 day'` bounds resolved against the
+// server clock, which is UTC in production — so the window ran 00:00Z..00:00Z
+// while the business days it was meant to describe run 22:00Z..22:00Z (summer).
+// Every day key below is now tenant-local, and the window has to agree with them
+// or the first day loses its 00:00–02:00 punches and the day after period_to
+// leaks in as a phantom.
+export async function loadTenantTimeZone(tenantId: string): Promise<string> {
+  const tzRow = await adminPool.query<{ timezone: string }>(
+    `SELECT timezone FROM tenants WHERE id = $1`,
+    [tenantId]
+  );
+  return tzRow.rows[0]?.timezone || DEFAULT_TZ;
+}
+
+function periodWindow(job: ExportJobRow, timeZone: string): { start: Date; end: Date } {
+  return {
+    start: new Date(startOfZonedDayUtcMs(job.period_from, timeZone)),
+    end: new Date(startOfZonedDayUtcMs(nextIsoDate(job.period_to), timeZone)),
+  };
+}
+
 async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
+  // Tenant timezone drives both the period window and every business-day key, so
+  // it has to be resolved before the first query. Also used to resolve schedule
+  // wall-clock times against stamps in the late/early breach deductions below.
+  const timeZone = await loadTenantTimeZone(job.tenant_id);
+  const { start: periodStart, end: periodEnd } = periodWindow(job, timeZone);
+
   const rows = await adminPool.query(
     `SELECT s.user_id, s.event_type, s.occurred_at, s.deleted_at,
             COALESCE(au.email, s.user_id::text) AS email
      FROM stamps s
      LEFT JOIN auth_users au ON au.id = s.user_id
      WHERE s.tenant_id = $1
-       AND s.occurred_at >= $2::date
-       AND s.occurred_at < ($3::date + INTERVAL '1 day')
+       AND s.occurred_at >= $2::timestamptz
+       AND s.occurred_at <  $3::timestamptz
        AND s.deleted_at IS NULL
      ORDER BY s.user_id, s.occurred_at`,
-    [job.tenant_id, job.period_from, job.period_to]
+    [job.tenant_id, periodStart.toISOString(), periodEnd.toISOString()]
   );
-
-  // Tenant timezone for resolving schedule wall-clock times against stamps in
-  // the late/early breach deductions below (defaults to Europe/Rome).
-  const tzRow = await adminPool.query<{ timezone: string }>(
-    `SELECT timezone FROM tenants WHERE id = $1`,
-    [job.tenant_id]
-  );
-  const timeZone = tzRow.rows[0]?.timezone || DEFAULT_TZ;
 
   const shiftByUser = await loadShiftConfigs(job);
-  const leavesByUserDay = await loadLeavesPerDay(job);
+  const leavesByUserDay = await loadLeavesPerDay(job, timeZone);
   // Raw approved-leave intervals (windowed), used to waive late-in / early-out
   // breach deductions when an approved ferie/permesso covers the stretch —
   // mirroring the presence-anomaly logic in routes/shifts.ts (leaveOverlapMin).
-  const leaveIntervalsByUser = await loadLeaveIntervals(job);
+  const leaveIntervalsByUser = await loadLeaveIntervals(job, timeZone);
 
   type UserBucket = { email: string; stamps: Array<{ event: string; at: Date }> };
   const byUser = new Map<string, UserBucket>();
@@ -152,7 +181,7 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
     let openLunch: Date | null = null;
 
     for (const s of u.stamps) {
-      const dayKey = s.at.toISOString().slice(0, 10);
+      const dayKey = zonedDateKey(s.at, timeZone);
       const day =
         days.get(dayKey) ?? {
           day: dayKey,
@@ -367,23 +396,25 @@ interface DayLeaveBucket {
 }
 
 async function loadLeavesPerDay(
-  job: ExportJobRow
+  job: ExportJobRow,
+  timeZone: string
 ): Promise<Map<string, Map<string, DayLeaveBucket>>> {
+  const { start: periodFrom, end: periodEnd } = periodWindow(job, timeZone);
   // approved + cancellation_pending count as "user is out" for export purposes.
   const r = await adminPool.query(
     `SELECT lr.user_id, lr.type, lr.from_ts, lr.to_ts, lr.duration_hours
        FROM leave_requests lr
       WHERE lr.tenant_id = $1
         AND lr.status IN ('approved','cancellation_pending')
-        AND lr.to_ts >  $2::date
-        AND lr.from_ts < ($3::date + INTERVAL '1 day')`,
-    [job.tenant_id, job.period_from, job.period_to]
+        AND lr.to_ts   >  $2::timestamptz
+        AND lr.from_ts <  $3::timestamptz`,
+    [job.tenant_id, periodFrom.toISOString(), periodEnd.toISOString()]
   );
   const result = new Map<string, Map<string, DayLeaveBucket>>();
   if (r.rowCount === 0) return result;
 
-  const periodFrom = new Date(job.period_from + 'T00:00:00Z');
-  const periodTo = new Date(job.period_to + 'T23:59:59Z');
+  // Last instant still inside the period, for clipping a leave that overruns it.
+  const periodTo = new Date(periodEnd.getTime() - 1);
 
   for (const row of r.rows) {
     const from = new Date(row.from_ts);
@@ -395,7 +426,7 @@ async function loadLeavesPerDay(
 
     if (row.type === 'permessi') {
       // single-day, distribute minutes precisely
-      const dayKey = clipFrom.toISOString().slice(0, 10);
+      const dayKey = zonedDateKey(clipFrom, timeZone);
       const minutes = Math.max(0, Math.round((clipTo.getTime() - clipFrom.getTime()) / 60000));
       const bucket = userMap.get(dayKey) ?? { ferie: 0, permessi: 0, malattia: 0 };
       bucket.permessi += minutes;
@@ -403,15 +434,7 @@ async function loadLeavesPerDay(
     } else {
       // ferie / malattia: span multiple days. Distribute duration_hours evenly
       // across the inclusive day count — close enough for payroll display.
-      const days: string[] = [];
-      const cur = new Date(clipFrom);
-      cur.setUTCHours(12, 0, 0, 0);
-      const end = new Date(clipTo);
-      end.setUTCHours(12, 0, 0, 0);
-      while (cur.getTime() <= end.getTime()) {
-        days.push(cur.toISOString().slice(0, 10));
-        cur.setUTCDate(cur.getUTCDate() + 1);
-      }
+      const days = eachZonedDateKeyInclusive(clipFrom, clipTo, timeZone);
       if (days.length === 0) continue;
       const perDayMin = Math.round((Number(row.duration_hours) * 60) / days.length);
       for (const d of days) {
@@ -432,8 +455,10 @@ interface LeaveInterval {
 }
 
 async function loadLeaveIntervals(
-  job: ExportJobRow
+  job: ExportJobRow,
+  timeZone: string
 ): Promise<Map<string, LeaveInterval[]>> {
+  const { start: periodFrom, end: periodEnd } = periodWindow(job, timeZone);
   // Raw approved-leave windows per user overlapping the period. Mirrors the
   // leaves subquery feeding computeAnomalies in routes/shifts.ts (status =
   // 'approved', any type), so breach deductions and presence anomalies agree
@@ -443,9 +468,9 @@ async function loadLeaveIntervals(
        FROM leave_requests lr
       WHERE lr.tenant_id = $1
         AND lr.status = 'approved'
-        AND lr.to_ts   >  $2::date
-        AND lr.from_ts < ($3::date + INTERVAL '1 day')`,
-    [job.tenant_id, job.period_from, job.period_to]
+        AND lr.to_ts   >  $2::timestamptz
+        AND lr.from_ts <  $3::timestamptz`,
+    [job.tenant_id, periodFrom.toISOString(), periodEnd.toISOString()]
   );
   const result = new Map<string, LeaveInterval[]>();
   for (const row of r.rows) {
@@ -621,6 +646,15 @@ function fmtRome(d: Date | string | null | undefined, withTime = true): string {
   }).format(date);
 }
 
+// A plain calendar date ('YYYY-MM-DD', e.g. a `date` column) as dd/MM/yyyy.
+// It carries no instant, so it must not be round-tripped through `new Date()`:
+// that parse resolves against the server clock and re-reading it in Rome shifts
+// the day for any server zone east of Rome.
+function fmtIsoDate(dateStr: string): string {
+  const [y, mo, d] = dateStr.split('-');
+  return y && mo && d ? `${d}/${mo}/${y}` : '';
+}
+
 function boolLabel(v: boolean | null | undefined): string {
   if (v === null || v === undefined) return '';
   return v ? 'Sì' : 'No';
@@ -683,7 +717,8 @@ interface StampDetailRow {
   notes: string | null;
 }
 
-async function loadStampsDetail(job: ExportJobRow): Promise<StampDetailRow[]> {
+async function loadStampsDetail(job: ExportJobRow, timeZone: string): Promise<StampDetailRow[]> {
+  const { start, end } = periodWindow(job, timeZone);
   const r = await adminPool.query(
     `SELECT user_id, event_type, occurred_at, source, branch_id,
             latitude, longitude, gps_accuracy_m,
@@ -691,10 +726,10 @@ async function loadStampsDetail(job: ExportJobRow): Promise<StampDetailRow[]> {
        FROM stamps
       WHERE tenant_id = $1
         AND deleted_at IS NULL
-        AND occurred_at >= $2::date
-        AND occurred_at < ($3::date + INTERVAL '1 day')
+        AND occurred_at >= $2::timestamptz
+        AND occurred_at <  $3::timestamptz
       ORDER BY user_id, occurred_at`,
-    [job.tenant_id, job.period_from, job.period_to]
+    [job.tenant_id, start.toISOString(), end.toISOString()]
   );
   return r.rows as StampDetailRow[];
 }
@@ -712,17 +747,18 @@ interface CorrectionRow {
   created_at: Date;
 }
 
-async function loadCorrections(job: ExportJobRow): Promise<CorrectionRow[]> {
+async function loadCorrections(job: ExportJobRow, timeZone: string): Promise<CorrectionRow[]> {
+  const { start, end } = periodWindow(job, timeZone);
   // Corrections about stamps that fall inside the payroll period.
   const r = await adminPool.query(
     `SELECT user_id, claimed_event_type, claimed_occurred_at, claimed_branch_id,
             justification, status, resolved_by, resolved_at, resolution_note, created_at
        FROM correction_requests
       WHERE tenant_id = $1
-        AND claimed_occurred_at >= $2::date
-        AND claimed_occurred_at < ($3::date + INTERVAL '1 day')
+        AND claimed_occurred_at >= $2::timestamptz
+        AND claimed_occurred_at <  $3::timestamptz
       ORDER BY user_id, claimed_occurred_at`,
-    [job.tenant_id, job.period_from, job.period_to]
+    [job.tenant_id, start.toISOString(), end.toISOString()]
   );
   return r.rows as CorrectionRow[];
 }
@@ -744,7 +780,8 @@ interface LeaveDetailRow {
   created_by_admin: boolean;
 }
 
-async function loadLeaveDetail(job: ExportJobRow): Promise<LeaveDetailRow[]> {
+async function loadLeaveDetail(job: ExportJobRow, timeZone: string): Promise<LeaveDetailRow[]> {
+  const { start, end } = periodWindow(job, timeZone);
   // Individual leave events overlapping the period. Company-wide closures
   // (chiusura) go to the dedicated "Eventi aziendali" sheet instead.
   const r = await adminPool.query(
@@ -754,10 +791,10 @@ async function loadLeaveDetail(job: ExportJobRow): Promise<LeaveDetailRow[]> {
        FROM leave_requests
       WHERE tenant_id = $1
         AND type IN ('ferie','permessi','malattia','assenza')
-        AND to_ts > $2::date
-        AND from_ts < ($3::date + INTERVAL '1 day')
+        AND to_ts   > $2::timestamptz
+        AND from_ts < $3::timestamptz
       ORDER BY user_id, from_ts`,
-    [job.tenant_id, job.period_from, job.period_to]
+    [job.tenant_id, start.toISOString(), end.toISOString()]
   );
   return r.rows as LeaveDetailRow[];
 }
@@ -795,7 +832,8 @@ interface EventRow {
   total_hours: string;
 }
 
-async function loadEventi(job: ExportJobRow): Promise<EventRow[]> {
+async function loadEventi(job: ExportJobRow, timeZone: string): Promise<EventRow[]> {
+  const { start, end } = periodWindow(job, timeZone);
   // Admin-pushed events: company closures + any batch the admin created.
   // Grouped by batch (one logical event = many per-user rows).
   const r = await adminPool.query(
@@ -808,11 +846,11 @@ async function loadEventi(job: ExportJobRow): Promise<EventRow[]> {
        FROM leave_requests
       WHERE tenant_id = $1
         AND (type = 'chiusura' OR (created_by_admin = true AND batch_id IS NOT NULL))
-        AND to_ts > $2::date
-        AND from_ts < ($3::date + INTERVAL '1 day')
+        AND to_ts   > $2::timestamptz
+        AND from_ts < $3::timestamptz
       GROUP BY COALESCE(batch_id::text, id::text)
       ORDER BY MIN(from_ts)`,
-    [job.tenant_id, job.period_from, job.period_to]
+    [job.tenant_id, start.toISOString(), end.toISOString()]
   );
   return r.rows as EventRow[];
 }
@@ -880,10 +918,11 @@ function setHourFormat(ws: ExcelJS.Worksheet, keys: string[]): void {
 }
 
 async function writeJson(job: ExportJobRow, data: UserAgg[]): Promise<ExportResult> {
+  const timeZone = await loadTenantTimeZone(job.tenant_id);
   // Aggregates feed the `users` array; leaves + justifications carry the
   // provenance of any admin correction (created_by_admin / note-only fixes).
   const [leaves, justifications] = await Promise.all([
-    loadLeaveDetail(job),
+    loadLeaveDetail(job, timeZone),
     loadJustifications(job),
   ]);
   const body = {
@@ -915,16 +954,17 @@ async function writeJson(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
 }
 
 async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResult> {
+  const timeZone = await loadTenantTimeZone(job.tenant_id);
   // Load all payroll detail in parallel — each is a single tenant-scoped query.
   const [userMeta, branchMeta, residueByUser, stamps, corrections, leaves, eventi, justifications] =
     await Promise.all([
       loadUserMeta(job),
       loadBranchMeta(job),
       loadResidue(job),
-      loadStampsDetail(job),
-      loadCorrections(job),
-      loadLeaveDetail(job),
-      loadEventi(job),
+      loadStampsDetail(job, timeZone),
+      loadCorrections(job, timeZone),
+      loadLeaveDetail(job, timeZone),
+      loadEventi(job, timeZone),
       loadJustifications(job),
     ]);
 
@@ -1132,7 +1172,7 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
   for (const j of justifications) {
     gj.addRow({
       name: metaName(userMeta, j.user_id),
-      date: fmtRome(j.anomaly_date + 'T00:00:00', false),
+      date: fmtIsoDate(j.anomaly_date),
       kind: ANOMALY_KIND_LABEL[j.anomaly_kind] ?? j.anomaly_kind,
       note: j.note,
       by: j.created_by ? metaName(userMeta, j.created_by, j.created_by) : '',
@@ -1284,22 +1324,23 @@ interface DetailedLeave {
  *  (which buckets into ferie/permessi/malattia for the xlsx), this keeps the full
  *  type + assenza subtype so each maps to its own giustificativo code. */
 async function loadLeavesPerDayDetailed(
-  job: ExportJobRow
+  job: ExportJobRow,
+  timeZone: string
 ): Promise<Map<string, Map<string, DetailedLeave[]>>> {
+  const { start: periodFrom, end: periodEnd } = periodWindow(job, timeZone);
   const r = await adminPool.query(
     `SELECT lr.user_id, lr.type, lr.assenza_subtype, lr.from_ts, lr.to_ts, lr.duration_hours
        FROM leave_requests lr
       WHERE lr.tenant_id = $1
         AND lr.status IN ('approved','cancellation_pending')
-        AND lr.to_ts >  $2::date
-        AND lr.from_ts < ($3::date + INTERVAL '1 day')`,
-    [job.tenant_id, job.period_from, job.period_to]
+        AND lr.to_ts   >  $2::timestamptz
+        AND lr.from_ts <  $3::timestamptz`,
+    [job.tenant_id, periodFrom.toISOString(), periodEnd.toISOString()]
   );
   const result = new Map<string, Map<string, DetailedLeave[]>>();
   if (r.rowCount === 0) return result;
 
-  const periodFrom = new Date(job.period_from + 'T00:00:00Z');
-  const periodTo = new Date(job.period_to + 'T23:59:59Z');
+  const periodTo = new Date(periodEnd.getTime() - 1);
 
   for (const row of r.rows) {
     const from = new Date(row.from_ts);
@@ -1316,18 +1357,12 @@ async function loadLeavesPerDayDetailed(
     };
 
     if (row.type === 'permessi') {
-      const dayKey = clipFrom.toISOString().slice(0, 10);
-      push(dayKey, Math.max(0, Math.round((clipTo.getTime() - clipFrom.getTime()) / 60000)));
+      push(
+        zonedDateKey(clipFrom, timeZone),
+        Math.max(0, Math.round((clipTo.getTime() - clipFrom.getTime()) / 60000))
+      );
     } else {
-      const days: string[] = [];
-      const cur = new Date(clipFrom);
-      cur.setUTCHours(12, 0, 0, 0);
-      const end = new Date(clipTo);
-      end.setUTCHours(12, 0, 0, 0);
-      while (cur.getTime() <= end.getTime()) {
-        days.push(cur.toISOString().slice(0, 10));
-        cur.setUTCDate(cur.getUTCDate() + 1);
-      }
+      const days = eachZonedDateKeyInclusive(clipFrom, clipTo, timeZone);
       if (days.length > 0) {
         const perDayMin = Math.round((Number(row.duration_hours) * 60) / days.length);
         for (const d of days) push(d, perDayMin);
@@ -1339,7 +1374,11 @@ async function loadLeavesPerDayDetailed(
 }
 
 /** Malattia events with an INPS protocol → record type 3. */
-async function loadInpsEvents(job: ExportJobRow): Promise<Map<string, CentroPagheInpsEvent[]>> {
+async function loadInpsEvents(
+  job: ExportJobRow,
+  timeZone: string
+): Promise<Map<string, CentroPagheInpsEvent[]>> {
+  const { start: periodFrom, end: periodEnd } = periodWindow(job, timeZone);
   const r = await adminPool.query(
     `SELECT user_id, from_ts, to_ts, inps_protocol
        FROM leave_requests
@@ -1347,10 +1386,10 @@ async function loadInpsEvents(job: ExportJobRow): Promise<Map<string, CentroPagh
         AND type = 'malattia'
         AND status IN ('approved','cancellation_pending')
         AND inps_protocol IS NOT NULL AND length(inps_protocol) > 0
-        AND to_ts >  $2::date
-        AND from_ts < ($3::date + INTERVAL '1 day')
+        AND to_ts   >  $2::timestamptz
+        AND from_ts <  $3::timestamptz
       ORDER BY user_id, from_ts`,
-    [job.tenant_id, job.period_from, job.period_to]
+    [job.tenant_id, periodFrom.toISOString(), periodEnd.toISOString()]
   );
   const map = new Map<string, CentroPagheInpsEvent[]>();
   for (const row of r.rows) {
@@ -1358,8 +1397,8 @@ async function loadInpsEvents(job: ExportJobRow): Promise<Map<string, CentroPagh
     list.push({
       tipo: 'PR',
       code: String(row.inps_protocol),
-      start: new Date(row.from_ts).toISOString().slice(0, 10),
-      end: new Date(row.to_ts).toISOString().slice(0, 10),
+      start: zonedDateKey(new Date(row.from_ts), timeZone),
+      end: zonedDateKey(new Date(row.to_ts), timeZone),
     });
     map.set(row.user_id, list);
   }
@@ -1416,12 +1455,14 @@ async function writeCentroPaghe(job: ExportJobRow, data: UserAgg[]): Promise<Exp
     );
   }
 
+  const timeZone = await loadTenantTimeZone(job.tenant_id);
+
   const [anagrafica, shiftByUser, leavesDetailed, inpsByUser, stampsDetail] = await Promise.all([
     loadAnagrafica(job),
     loadShiftConfigs(job),
-    loadLeavesPerDayDetailed(job),
-    loadInpsEvents(job),
-    loadStampsDetail(job),
+    loadLeavesPerDayDetailed(job, timeZone),
+    loadInpsEvents(job, timeZone),
+    loadStampsDetail(job, timeZone),
   ]);
 
   // Per-user DayAgg lookup (worked + overtime, already deducted/rounded).
@@ -1432,11 +1473,11 @@ async function writeCentroPaghe(job: ExportJobRow, data: UserAgg[]): Promise<Exp
     aggByUser.set(u.user_id, m);
   }
 
-  // Per-user raw stamps grouped by UTC day (matches DayAgg day keys).
+  // Per-user raw stamps grouped by tenant-local day (matches DayAgg day keys).
   const stampsByUserDay = new Map<string, Map<string, Array<{ event: string; at: Date }>>>();
   for (const s of stampsDetail) {
     const at = new Date(s.occurred_at);
-    const dayKey = at.toISOString().slice(0, 10);
+    const dayKey = zonedDateKey(at, timeZone);
     const byDay = stampsByUserDay.get(s.user_id) ?? new Map();
     const list = byDay.get(dayKey) ?? [];
     list.push({ event: s.event_type, at });

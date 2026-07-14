@@ -79,6 +79,43 @@ export function nextIsoDate(dateStr: string): string {
   return new Date(Date.UTC(y, mo - 1, d + 1)).toISOString().slice(0, 10);
 }
 
+// The business day ('YYYY-MM-DD') a UTC instant falls on in `timeZone`.
+//
+// Reading the day off `toISOString().slice(0, 10)` instead answers in UTC. Every
+// Europe/Rome instant from 22:00Z (23:00Z in winter) to midnight belongs to the
+// NEXT local day, so a leave starting at Rome midnight — stored as the previous
+// day 22:00Z — buckets one day early and payroll grows a phantom day.
+export function zonedDateKey(at: Date | number, timeZone: string = DEFAULT_TZ): string {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const f: Record<string, string> = {};
+  for (const p of dtf.formatToParts(typeof at === 'number' ? new Date(at) : at)) {
+    if (p.type !== 'literal') f[p.type] = p.value;
+  }
+  return `${f.year}-${f.month}-${f.day}`;
+}
+
+// Inclusive list of `timeZone` business days spanned by the instants `from`..`to`.
+// Iterates on the date string, not on a UTC instant stepped by 24h: a DST
+// transition day is 23 or 25 hours long, so instant arithmetic drifts across it.
+export function eachZonedDateKeyInclusive(
+  from: Date | number,
+  to: Date | number,
+  timeZone: string = DEFAULT_TZ
+): string[] {
+  const out: string[] = [];
+  const last = zonedDateKey(to, timeZone);
+  // Zero-padded YYYY-MM-DD compares lexicographically in chronological order.
+  for (let cur = zonedDateKey(from, timeZone); cur <= last; cur = nextIsoDate(cur)) {
+    out.push(cur);
+  }
+  return out;
+}
+
 // Wall-clock 'HH:MM' of a UTC instant (ms) rendered in `timeZone`.
 export function hhmmInZone(ms: number, timeZone: string = DEFAULT_TZ): string {
   return new Intl.DateTimeFormat('en-GB', {
