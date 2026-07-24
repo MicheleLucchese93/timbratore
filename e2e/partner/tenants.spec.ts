@@ -62,6 +62,20 @@ test.describe('partner admin · tenants', () => {
     await page.getByTestId('confirm-ok').click();
     await expect(page.getByText(/Azienda riattivata|Company resumed/)).toBeVisible();
     await expect(row(page, tenantName)).toContainText(/Attiva|Active/);
+
+    // --- counter drill-downs: click a counter to open its read-only list ---
+    // Users → members list contains the admin (name falls back to email here).
+    await row(page, tenantName).getByTestId('count-users').click();
+    await expect(page.getByTestId('members-list')).toContainText(adminEmail);
+    await page.getByRole('button', { name: /Chiudi|Close/ }).click();
+    // Admins → reuses the admin-management dialog (scoped to its list row).
+    await row(page, tenantName).getByTestId('count-admins').click();
+    await expect(page.locator('.admin-row-email', { hasText: adminEmail })).toBeVisible();
+    await page.getByRole('button', { name: /Chiudi|Close/ }).click();
+    // Branches → fresh tenant has none, so the empty state shows.
+    await row(page, tenantName).getByTestId('count-branches').click();
+    await expect(page.getByText(/Nessun risultato|No results/)).toBeVisible();
+    await page.getByRole('button', { name: /Chiudi|Close/ }).click();
   });
 
   // The Delete action is super-user-only (SUPER_ADMIN_EMAIL). It's shown only

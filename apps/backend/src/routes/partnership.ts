@@ -736,6 +736,47 @@ partnershipRouter.get(
   })
 );
 
+// GET the tenant's members (read-only). Matches the `used_members` counter
+// exactly (every non-deleted membership, admins included), and carries the
+// role/documentale/active flags the console filters on — the Documentali view
+// reuses this list filtered to `is_documentale`.
+partnershipRouter.get(
+  '/tenants/:id/members',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const t = await loadOwnedTenant(p, String(req.params.id));
+    const r = await adminPool.query(
+      `SELECT au.id AS user_id, au.email,
+              COALESCE(au.display_name,
+                       NULLIF(TRIM(CONCAT(au.first_name, ' ', au.last_name)), ''),
+                       au.email) AS name,
+              m.role, m.is_documentale, m.active
+         FROM memberships m JOIN auth_users au ON au.id = m.user_id
+        WHERE m.tenant_id = $1 AND m.deleted_at IS NULL
+        ORDER BY (m.role = 'admin') DESC, name ASC`,
+      [t.id]
+    );
+    ok(res, { members: r.rows, count: r.rowCount ?? 0 });
+  })
+);
+
+// GET the tenant's branches (read-only). Matches the `used_branches` counter.
+partnershipRouter.get(
+  '/tenants/:id/branches',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const t = await loadOwnedTenant(p, String(req.params.id));
+    const r = await adminPool.query(
+      `SELECT b.id, b.name, b.address, b.active
+         FROM branches b
+        WHERE b.tenant_id = $1 AND b.deleted_at IS NULL
+        ORDER BY b.ordering ASC, b.name ASC`,
+      [t.id]
+    );
+    ok(res, { branches: r.rows, count: r.rowCount ?? 0 });
+  })
+);
+
 // Add an admin (invites a brand-new email), bounded by tenant.max_admins.
 const AddAdmin = z.object({
   email: z.string().email(),

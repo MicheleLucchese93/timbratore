@@ -63,6 +63,25 @@ function ModuleChips({ row }: { row: TenantRow }) {
   );
 }
 
+// A `used/max` counter that opens its drill-down list on click.
+function CountCell({
+  used,
+  max,
+  onClick,
+  testId,
+}: {
+  used: number;
+  max: number;
+  onClick: () => void;
+  testId: string;
+}) {
+  return (
+    <button type="button" className="count-link" data-testid={testId} onClick={onClick}>
+      {used}/{max}
+    </button>
+  );
+}
+
 export function Tenants() {
   const { t } = useTranslation();
   const me = useSession((s) => s.me);
@@ -84,6 +103,9 @@ export function Tenants() {
   const [managingAdmins, setManagingAdmins] = useState<TenantRow | null>(null);
   const [managingModules, setManagingModules] = useState<TenantRow | null>(null);
   const [deleting, setDeleting] = useState<TenantRow | null>(null);
+  // Read-only drill-downs opened from the counter cells.
+  const [viewingMembers, setViewingMembers] = useState<{ tenant: TenantRow; documentaliOnly: boolean } | null>(null);
+  const [viewingBranches, setViewingBranches] = useState<TenantRow | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -206,25 +228,53 @@ export function Tenants() {
       field: 'used_members',
       headerName: t('tenants.col.users'),
       width: 100,
-      renderCell: (p) => `${p.row.used_members}/${p.row.max_users}`,
+      renderCell: (p) => (
+        <CountCell
+          used={p.row.used_members}
+          max={p.row.max_users}
+          testId="count-users"
+          onClick={() => setViewingMembers({ tenant: p.row, documentaliOnly: false })}
+        />
+      ),
     },
     {
       field: 'used_admins',
       headerName: t('tenants.col.admins'),
       width: 90,
-      renderCell: (p) => `${p.row.used_admins}/${p.row.max_admins}`,
+      renderCell: (p) => (
+        <CountCell
+          used={p.row.used_admins}
+          max={p.row.max_admins}
+          testId="count-admins"
+          onClick={() => setManagingAdmins(p.row)}
+        />
+      ),
     },
     {
       field: 'used_documentali',
       headerName: t('tenants.col.documentali'),
       width: 110,
-      renderCell: (p) => `${p.row.used_documentali}/${p.row.max_documentali}`,
+      renderCell: (p) => (
+        <CountCell
+          used={p.row.used_documentali}
+          max={p.row.max_documentali}
+          testId="count-documentali"
+          onClick={() => setViewingMembers({ tenant: p.row, documentaliOnly: true })}
+        />
+      ),
     },
     {
       field: 'used_branches',
       headerName: t('tenants.col.branches'),
       width: 90,
-      renderCell: (p) => `${p.row.used_branches}/${p.row.max_branches}`,
+      renderCell: (p) => (
+        <CountCell
+          used={p.row.used_branches}
+          max={p.row.max_branches}
+          testId="count-branches"
+          onClick={() => setViewingBranches(p.row)}
+        />
+      ),
     },
     {
       field: 'modules',
@@ -305,10 +355,40 @@ export function Tenants() {
                 ...(isAdmin
                   ? [{ label: t('tenants.col.owner'), value: r.owner_name || r.owner_email || t('tenants.platform') }]
                   : []),
-                { label: t('tenants.col.users'), value: `${r.used_members}/${r.max_users}` },
-                { label: t('tenants.col.admins'), value: `${r.used_admins}/${r.max_admins}` },
-                { label: t('tenants.col.documentali'), value: `${r.used_documentali}/${r.max_documentali}` },
-                { label: t('tenants.col.branches'), value: `${r.used_branches}/${r.max_branches}` },
+                {
+                  label: t('tenants.col.users'),
+                  value: (
+                    <CountCell
+                      used={r.used_members}
+                      max={r.max_users}
+                      testId="count-users"
+                      onClick={() => setViewingMembers({ tenant: r, documentaliOnly: false })}
+                    />
+                  ),
+                },
+                {
+                  label: t('tenants.col.admins'),
+                  value: (
+                    <CountCell used={r.used_admins} max={r.max_admins} testId="count-admins" onClick={() => setManagingAdmins(r)} />
+                  ),
+                },
+                {
+                  label: t('tenants.col.documentali'),
+                  value: (
+                    <CountCell
+                      used={r.used_documentali}
+                      max={r.max_documentali}
+                      testId="count-documentali"
+                      onClick={() => setViewingMembers({ tenant: r, documentaliOnly: true })}
+                    />
+                  ),
+                },
+                {
+                  label: t('tenants.col.branches'),
+                  value: (
+                    <CountCell used={r.used_branches} max={r.max_branches} testId="count-branches" onClick={() => setViewingBranches(r)} />
+                  ),
+                },
                 { label: t('modules.col'), value: activeModuleNames(t, r) },
                 ...(r.note ? [{ label: t('tenants.col.note'), value: r.note }] : []),
               ]}
@@ -381,7 +461,160 @@ export function Tenants() {
           }}
         />
       )}
+      {viewingMembers && (
+        <MembersList
+          tenant={viewingMembers.tenant}
+          documentaliOnly={viewingMembers.documentaliOnly}
+          onClose={() => setViewingMembers(null)}
+        />
+      )}
+      {viewingBranches && <BranchesList tenant={viewingBranches} onClose={() => setViewingBranches(null)} />}
     </>
+  );
+}
+
+interface MemberRow {
+  user_id: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'user';
+  is_documentale: boolean;
+  active: boolean;
+}
+
+// Read-only drill-down behind the Utenti / Documentali counters. Fetches every
+// member once; the Documentali view is the same list filtered to is_documentale
+// (matching the counter). Titles reuse the column labels.
+function MembersList({
+  tenant,
+  documentaliOnly,
+  onClose,
+}: {
+  tenant: TenantRow;
+  documentaliOnly: boolean;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const [members, setMembers] = useState<MemberRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const r = await api<{ members: MemberRow[] }>(`/api/v1/partnership/tenants/${tenant.id}/members`);
+        if (alive) setMembers(r.members);
+      } catch (e) {
+        if (alive) toast(errMsg(t, e), true);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [tenant.id, t, toast]);
+
+  const rows = documentaliOnly ? members.filter((m) => m.is_documentale) : members;
+  const title = documentaliOnly ? t('tenants.col.documentali') : t('tenants.col.users');
+
+  return (
+    <Modal title={`${title} · ${tenant.ragione_sociale}`} onClose={onClose}>
+      <div className="modal-body">
+        {loading ? (
+          <div className="muted">{t('common.loading')}</div>
+        ) : rows.length === 0 ? (
+          <div className="muted">{t('common.empty')}</div>
+        ) : (
+          <div className="admin-list" data-testid="members-list">
+            {rows.map((m) => (
+              <div className="entity-row" key={m.user_id}>
+                <span className="entity-row-main">
+                  <span className="entity-row-name">{m.name}</span>
+                  {m.name !== m.email && <span className="entity-row-sub">{m.email}</span>}
+                </span>
+                <span className="entity-row-badges">
+                  {m.role === 'admin' && <span className="badge badge-muted">{t('admins.label')}</span>}
+                  {!documentaliOnly && m.is_documentale && (
+                    <span className="badge badge-ok">{t('lists.badge_documentale')}</span>
+                  )}
+                  {!m.active && <span className="badge badge-warn">{t('lists.badge_inactive')}</span>}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="modal-foot">
+        <button type="button" className="btn btn-secondary" onClick={onClose}>
+          {t('actions.close')}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+interface BranchRow {
+  id: string;
+  name: string;
+  address: string | null;
+  active: boolean;
+}
+
+// Read-only drill-down behind the Sedi counter.
+function BranchesList({ tenant, onClose }: { tenant: TenantRow; onClose: () => void }) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const [branches, setBranches] = useState<BranchRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const r = await api<{ branches: BranchRow[] }>(`/api/v1/partnership/tenants/${tenant.id}/branches`);
+        if (alive) setBranches(r.branches);
+      } catch (e) {
+        if (alive) toast(errMsg(t, e), true);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [tenant.id, t, toast]);
+
+  return (
+    <Modal title={`${t('tenants.col.branches')} · ${tenant.ragione_sociale}`} onClose={onClose}>
+      <div className="modal-body">
+        {loading ? (
+          <div className="muted">{t('common.loading')}</div>
+        ) : branches.length === 0 ? (
+          <div className="muted">{t('common.empty')}</div>
+        ) : (
+          <div className="admin-list" data-testid="branches-list">
+            {branches.map((b) => (
+              <div className="entity-row" key={b.id}>
+                <span className="entity-row-main">
+                  <span className="entity-row-name">{b.name}</span>
+                  {b.address && <span className="entity-row-sub">{b.address}</span>}
+                </span>
+                <span className="entity-row-badges">
+                  {!b.active && <span className="badge badge-warn">{t('lists.badge_inactive')}</span>}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="modal-foot">
+        <button type="button" className="btn btn-secondary" onClick={onClose}>
+          {t('actions.close')}
+        </button>
+      </div>
+    </Modal>
   );
 }
 

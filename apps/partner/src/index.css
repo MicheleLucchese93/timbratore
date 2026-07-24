@@ -148,6 +148,16 @@ select.input { background-color: white; }
 .admin-row-email { font-size: 0.875rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .admin-row-actions { display: flex; gap: 0.375rem; flex-shrink: 0; }
 .admin-add { display: flex; gap: 0.5rem; }
+/* Read-only member/branch drill-down rows (name over email/address + badges). */
+.entity-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.5rem 0.75rem; }
+.entity-row + .entity-row { border-top: 1px solid var(--color-surface-variant); }
+.entity-row-main { display: flex; flex-direction: column; min-width: 0; }
+.entity-row-name { font-size: 0.875rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.entity-row-sub { font-size: 0.75rem; color: var(--color-on-surface-variant); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.entity-row-badges { display: flex; gap: 0.375rem; flex-shrink: 0; }
+/* Counter cell rendered as an inline link that opens its drill-down list. */
+.count-link { background: transparent; border: 0; padding: 0; font: inherit; color: var(--color-primary); cursor: pointer; }
+.count-link:hover { text-decoration: underline; }
 /* Per-tenant module activation rows (ManageModules dialog). */
 .module-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.625rem 0.75rem; cursor: pointer; }
 .module-row + .module-row { border-top: 1px solid var(--color-surface-variant); }

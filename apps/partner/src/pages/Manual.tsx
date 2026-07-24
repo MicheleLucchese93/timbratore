@@ -198,7 +198,7 @@ const MAIN_IT = `
           <li><strong>Ragione sociale</strong> — il nome dell'azienda.</li>
           <li><strong>Email admin</strong> — l'amministratore principale. Se l'azienda ha più di un admin compare un suffisso <em>+N</em>.</li>
           <li><strong>Partner</strong> <span class="badge badge-admin">admin</span> — il rivenditore a cui l'azienda è assegnata, oppure <em>Piattaforma</em> se nessuno. Colonna visibile solo all'amministratore.</li>
-          <li><strong>Utenti</strong>, <strong>Admin</strong>, <strong>Documentali</strong>, <strong>Sedi</strong> — utilizzo attuale / massimo (es. <code>4/20</code>).</li>
+          <li><strong>Utenti</strong>, <strong>Admin</strong>, <strong>Documentali</strong>, <strong>Sedi</strong> — utilizzo attuale / massimo (es. <code>4/20</code>). <strong>Clicca su un contatore</strong> per aprire l'elenco: Utenti mostra tutti i membri (con nome, email e ruolo), Documentali e Sedi il relativo dettaglio, Admin apre la gestione amministratori.</li>
           <li><strong>Stato</strong> — <span class="pill pill-ok">Attiva</span> o <span class="pill pill-warn">Sospesa</span>.</li>
           <li><strong>Note</strong> — annotazione libera.</li>
           <li><strong>Azioni</strong> — modifica, sospendi/riattiva, amministratori e (solo super-utente) elimina.</li>

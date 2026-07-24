@@ -195,7 +195,7 @@ export const MAIN_EN = `
           <li><strong>Company name</strong> — the name of the company.</li>
           <li><strong>Admin email</strong> — the main administrator. If the company has more than one admin a <em>+N</em> suffix appears.</li>
           <li><strong>Partner</strong> <span class="badge badge-admin">admin</span> — the reseller the company is assigned to, or <em>Platform</em> if none. Visible only to the administrator.</li>
-          <li><strong>Users</strong>, <strong>Admins</strong>, <strong>Documentali</strong>, <strong>Branches</strong> — current usage / maximum (e.g. <code>4/20</code>).</li>
+          <li><strong>Users</strong>, <strong>Admins</strong>, <strong>Documentali</strong>, <strong>Branches</strong> — current usage / maximum (e.g. <code>4/20</code>). <strong>Click a counter</strong> to open its list: Users shows every member (name, email and role), Documentali and Branches their detail, Admins opens admin management.</li>
           <li><strong>Status</strong> — <span class="pill pill-ok">Active</span> or <span class="pill pill-warn">Suspended</span>.</li>
           <li><strong>Note</strong> — free-text annotation.</li>
           <li><strong>Actions</strong> — edit, suspend/resume, administrators and (super-user only) delete.</li>
