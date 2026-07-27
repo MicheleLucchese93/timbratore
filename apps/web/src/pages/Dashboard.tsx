@@ -597,6 +597,16 @@ function AbsenceRow({
   mode: 'now' | 'upcoming';
 }) {
   const { t } = useTranslation(['dashboard', 'common']);
+  // In "now" mode a half-day leave (ferie/permesso with a clock window) shows
+  // the hours the person is off today (e.g. 09:00–13:00); an all-day / multi-day
+  // one falls back to "Fino al <date>".
+  const nowWindow = mode === 'now' ? leaveTimeWindow(row.from_ts, row.to_ts) : null;
+  const meta =
+    mode === 'now'
+      ? nowWindow
+        ? `${fmtTime(nowWindow.from, HM)}–${fmtTime(nowWindow.to, HM)}`
+        : t('absences.until', { date: fmtDateShort(row.to_ts) })
+      : fmtRange(row.from_ts, row.to_ts, row.type);
   return (
     <li className="absence-row">
       <span className="absence-row-badge">
@@ -606,11 +616,7 @@ function AbsenceRow({
       </span>
       <span className="absence-row-body">
         <span className="absence-row-name">{row.user_display_name || row.user_email}</span>
-        <span className="absence-row-meta">
-          {mode === 'now'
-            ? t('absences.until', { date: fmtDateShort(row.to_ts) })
-            : fmtRange(row.from_ts, row.to_ts, row.type)}
-        </span>
+        <span className="absence-row-meta">{meta}</span>
       </span>
       <span className="absence-row-hours num">{fmtNumber(Number(row.duration_hours), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{t('common:unit.hoursShort')}</span>
     </li>
@@ -955,15 +961,31 @@ function fmtDateShort(iso: string): string {
   });
 }
 
-function fmtRange(from: string, to: string, type: LeaveType): string {
+const HM: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
+
+// A leave carries a real clock window (a "mezza giornata" / permesso orario)
+// when it lives inside one calendar day and isn't the all-day sentinel the
+// request forms emit (00:00 → 23:59). Applies to ferie and permessi alike —
+// both can be filed with "Tutto il giorno" unticked. from_ts/to_ts are built
+// and rendered in the browser zone, so the wall-clock round-trips for the
+// Rome-based admin. Returns null for all-day / multi-day leaves.
+function leaveTimeWindow(from: string, to: string): { from: Date; to: Date } | null {
+  const f = new Date(from);
+  const tt = new Date(to);
+  if (f.toDateString() !== tt.toDateString()) return null;
+  const startsAtMidnight = f.getHours() === 0 && f.getMinutes() === 0;
+  const endsAtDayEnd = tt.getHours() === 23 && tt.getMinutes() === 59;
+  if (startsAtMidnight && endsAtDayEnd) return null;
+  return { from: f, to: tt };
+}
+
+function fmtRange(from: string, to: string, _type: LeaveType): string {
   const f = new Date(from);
   const tt = new Date(to);
   const sameDay = f.toDateString() === tt.toDateString();
   const d: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: '2-digit' };
-  const h: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
-  if (type === 'permessi' && sameDay) {
-    return `${fmtDate(f, d)} ${fmtTime(f, h)}–${fmtTime(tt, h)}`;
-  }
+  const win = leaveTimeWindow(from, to);
+  if (win) return `${fmtDate(f, d)} ${fmtTime(win.from, HM)}–${fmtTime(win.to, HM)}`;
   if (sameDay) return fmtDate(f, d);
   return `${fmtDate(f, d)} → ${fmtDate(tt, d)}`;
 }
