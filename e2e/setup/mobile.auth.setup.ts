@@ -1,6 +1,7 @@
 import { test as setup, expect } from '@playwright/test';
 import { CREDS, STORAGE, URLS } from '../fixtures/test-data';
 import { ensureRecentAdminStorico, loadHandleFromStorage } from '../fixtures/api-client';
+import { chooseTenantIfPrompted } from '../fixtures/choose-tenant';
 
 // Mobile Expo web uses react-native-web. Inputs map to native <input> with
 // placeholder text we can target. Saves storage state for downstream specs.
@@ -11,8 +12,12 @@ setup('authenticate mobile user', async ({ page }) => {
   await page.getByPlaceholder('email@azienda.it').fill(CREDS.admin.email);
   await page.getByPlaceholder('••••••••').fill(CREDS.admin.password);
   await page.getByRole('button', { name: 'Accedi' }).click();
-  // Admins land on the Dashboard recap (its first stat card is "Presenti ora").
-  await expect(page.getByText('Presenti ora').first()).toBeVisible({ timeout: 30_000 });
+  // Admins land on the Dashboard recap (its first stat card is "Presenti ora"),
+  // unless the account is in more than one company — test1 is, so pick the
+  // fixture company first (same reasoning as web.auth.setup.ts).
+  const dashboard = page.getByText('Presenti ora').first();
+  await chooseTenantIfPrompted(page, dashboard);
+  await expect(dashboard).toBeVisible({ timeout: 30_000 });
   await page.context().storageState({ path: STORAGE.mobileAuth });
 
   // Guarantee the mobile admin has recent Storico data so storico.spec renders

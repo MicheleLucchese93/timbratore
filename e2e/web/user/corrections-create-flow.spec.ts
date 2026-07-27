@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { CREDS, STORAGE } from '../../fixtures/test-data';
 import {
+  apiFetch,
   createCorrection,
   loadHandleFromStorage,
   rejectCorrection,
@@ -68,10 +69,7 @@ test.describe('web — Correzioni create flow submit (employee, via modal)', () 
     // marker-sweep wipes it. No DELETE endpoint exists for corrections.
     try {
       if (!createdId) {
-        const list = await fetch(
-          `${process.env.E2E_API_URL ?? 'https://api-sonoqui.xdevapp.it'}/api/v1/correction-requests?status=pending`,
-          { headers: { Authorization: `Bearer ${admin.token}` } },
-        );
+        const list = await apiFetch(admin.token, '/api/v1/correction-requests?status=pending');
         const body = (await list.json()) as { data?: Array<{ id: string; justification?: string }> };
         createdId = body.data?.find((r) => (r.justification ?? '').includes(marker))?.id ?? null;
       }
@@ -97,10 +95,7 @@ test.describe('web — Correzioni create flow submit (employee, via modal)', () 
     await page.getByRole('button', { name: 'Invia richiesta' }).click();
     await expect(dialog).toHaveCount(0, { timeout: 10_000 });
     // The employee can see their own request via the list endpoint.
-    const list = await fetch(
-      `${process.env.E2E_API_URL ?? 'https://api-sonoqui.xdevapp.it'}/api/v1/correction-requests?status=pending`,
-      { headers: { Authorization: `Bearer ${user.token}` } },
-    );
+    const list = await apiFetch(user.token, '/api/v1/correction-requests?status=pending');
     const body = (await list.json()) as {
       data?: Array<{ id: string; justification?: string; status: string }>;
     };

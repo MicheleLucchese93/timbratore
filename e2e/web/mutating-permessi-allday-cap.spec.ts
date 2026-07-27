@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { CREDS, STORAGE } from '../fixtures/test-data';
 import {
   adminRevokeLeave,
+  apiFetch,
   assignShift,
   createLeave,
   createShiftTemplate,
@@ -20,7 +21,6 @@ import {
 // Proves end-to-end that the backend's computeDurationHours() caps permessi at
 // the shift template and that all_day bypasses the 15-min validation.
 const ENABLED = process.env.E2E_MUTATING === '1';
-const API = process.env.E2E_API_URL ?? 'https://api-sonoqui.xdevapp.it';
 
 // Europe/Rome UTC offset ("+01:00"/"+02:00") for a YYYY-MM-DD, so we can pin
 // 00:00–23:59 to a single Rome calendar day regardless of DST.
@@ -45,9 +45,7 @@ function futureDow(targetDow: number): string {
 }
 
 async function durationOf(adminToken: string, userId: string, leaveId: string): Promise<number> {
-  const r = await fetch(`${API}/api/v1/leaves?user_id=${userId}`, {
-    headers: { Authorization: `Bearer ${adminToken}` },
-  });
+  const r = await apiFetch(adminToken, `/api/v1/leaves?user_id=${userId}`);
   const body = (await r.json()) as {
     data?: Array<{ id: string; duration_hours: number | string }>;
   };

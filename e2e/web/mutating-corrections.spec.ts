@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { CREDS, STORAGE } from '../fixtures/test-data';
 import {
+  apiFetch,
   approveCorrection,
   createCorrection,
   deleteStampAdmin,
@@ -51,9 +52,9 @@ test.describe('web — Correzioni approve cycle (admin)', () => {
     try {
       const fromDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const toDate = new Date().toISOString().slice(0, 10);
-      const stamps = await fetch(
-        `${process.env.E2E_API_URL ?? 'https://api-sonoqui.xdevapp.it'}/api/v1/stamps?user_id=${user.userId}&from=${fromDate}&to=${toDate}`,
-        { headers: { Authorization: `Bearer ${admin.token}` } },
+      const stamps = await apiFetch(
+        admin.token,
+        `/api/v1/stamps?user_id=${user.userId}&from=${fromDate}&to=${toDate}`,
       );
       const body = (await stamps.json()) as { data?: Array<{ id: string; notes?: string | null }> };
       const ours = body.data?.find((s) => (s.notes ?? '').includes(marker));
@@ -76,10 +77,7 @@ test.describe('web — Correzioni approve cycle (admin)', () => {
     // The DataGrid view filter swallows the row depending on pagination /
     // sort, so a UI-only badge check is flaky on a busy tenant — API is
     // the source of truth.
-    const list = await fetch(
-      `${process.env.E2E_API_URL ?? 'https://api-sonoqui.xdevapp.it'}/api/v1/correction-requests?status=approved`,
-      { headers: { Authorization: `Bearer ${admin.token}` } },
-    );
+    const list = await apiFetch(admin.token, '/api/v1/correction-requests?status=approved');
     const body = (await list.json()) as {
       data?: Array<{ id: string; justification?: string; status: string }>;
     };
@@ -130,6 +128,39 @@ test.describe('web — Correzioni multi-approver race (API-level)', () => {
   });
 });
 
+test.describe('web — Correzioni pausa pranzo events (API-level)', () => {
+  test.skip(!ENABLED, 'set E2E_MUTATING=1 to enable mutating specs');
+
+  // Regression: migration 023 widened stamps.event_type to lunch_start/lunch_end
+  // but left correction_requests.claimed_event_type on the original four, so every
+  // pausa-pranzo correction died at INSERT with 23514 while passing zod. Fixed by
+  // migration 056 — this asserts all six event types are accepted end to end.
+  for (const eventType of ['lunch_start', 'lunch_end'] as const) {
+    test(`${eventType} correction is accepted (not rejected by the DB check)`, async () => {
+      const admin = await loadHandleFromStorage(STORAGE.webAuth, CREDS.admin);
+      const user = await loadHandleFromStorage(STORAGE.webUserAuth, CREDS.user);
+      const branchId = admin.branches[0]?.id ?? null;
+      const occurredAt = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString();
+      let createdId: string | null = null;
+      try {
+        const created = await createCorrection(user.token, {
+          original_stamp_id: null,
+          claimed_event_type: eventType,
+          claimed_occurred_at: occurredAt,
+          claimed_branch_id: branchId,
+          justification: `e2e ${eventType} ${Date.now()}: avevo dimenticato di timbrare la pausa pranzo`,
+        });
+        createdId = created.id;
+        expect(created.status).toBe('pending');
+      } finally {
+        // Reject rather than approve: no stamp gets created, so there is
+        // nothing to clean up beyond the request row itself.
+        if (createdId) await rejectCorrection(admin.token, createdId).catch(() => {});
+      }
+    });
+  }
+});
+
 test.describe('web — Correzioni create flow submit (admin, via modal)', () => {
   test.skip(!ENABLED, 'set E2E_MUTATING=1 to enable mutating specs');
 
@@ -151,10 +182,7 @@ test.describe('web — Correzioni create flow submit (admin, via modal)', () => 
     // the pending queue; the globalTeardown marker-sweep wipes it entirely.
     try {
       if (!createdId) {
-        const res = await fetch(
-          `${process.env.E2E_API_URL ?? 'https://api-sonoqui.xdevapp.it'}/api/v1/correction-requests?status=pending`,
-          { headers: { Authorization: `Bearer ${admin.token}` } },
-        );
+        const res = await apiFetch(admin.token, '/api/v1/correction-requests?status=pending');
         const body = (await res.json()) as { data?: Array<{ id: string; justification?: string }> };
         createdId = body.data?.find((r) => (r.justification ?? '').includes(marker))?.id ?? null;
       }
@@ -182,10 +210,7 @@ test.describe('web — Correzioni create flow submit (admin, via modal)', () => 
     // On success the modal closes.
     await expect(dialog).toHaveCount(0, { timeout: 10_000 });
     // Source of truth: the API confirms a pending row carrying our marker.
-    const res = await fetch(
-      `${process.env.E2E_API_URL ?? 'https://api-sonoqui.xdevapp.it'}/api/v1/correction-requests?status=pending`,
-      { headers: { Authorization: `Bearer ${admin.token}` } },
-    );
+    const res = await apiFetch(admin.token, '/api/v1/correction-requests?status=pending');
     const body = (await res.json()) as {
       data?: Array<{ id: string; justification?: string; status: string }>;
     };

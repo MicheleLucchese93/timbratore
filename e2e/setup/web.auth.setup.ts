@@ -1,6 +1,7 @@
 import { test as setup, expect } from '@playwright/test';
 import { CREDS, STORAGE, URLS } from '../fixtures/test-data';
 import { apiPatch, loginAs } from '../fixtures/api-client';
+import { chooseTenantIfPrompted } from '../fixtures/choose-tenant';
 
 // Runs once before the `web` project. Logs in via the real Login form and
 // persists localStorage to STORAGE.webAuth so each spec can reuse the session
@@ -19,6 +20,12 @@ setup('authenticate web admin', async ({ page }) => {
   await page.locator('input#email').fill(CREDS.admin.email);
   await page.locator('input#password').fill(CREDS.admin.password);
   await page.getByRole('button', { name: 'Accedi' }).click();
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 15_000 });
+  // test1 is an admin on a second company too, so login stops on the company
+  // chooser. Pick the fixture company before waiting for the Dashboard — the
+  // choice is stored in localStorage, so storageState below carries it and
+  // every spec reusing this session stays on the right company.
+  const dashboard = page.getByRole('heading', { name: 'Dashboard' });
+  await chooseTenantIfPrompted(page, dashboard, 15_000);
+  await expect(dashboard).toBeVisible({ timeout: 15_000 });
   await page.context().storageState({ path: STORAGE.webAuth });
 });

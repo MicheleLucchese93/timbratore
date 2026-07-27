@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { CREDS, URLS } from '../fixtures/test-data';
+import { chooseTenantIfPrompted } from '../fixtures/choose-tenant';
 
 // Use a fresh context here — the project's saved storageState would skip the
 // form entirely. We want to exercise the actual login flow.
@@ -54,7 +55,12 @@ test.describe('web — login', () => {
     await page.locator('input#email').fill(CREDS.admin.email);
     await page.locator('input#password').fill(CREDS.admin.password);
     await page.getByRole('button', { name: 'Accedi' }).click();
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 15_000 });
+    // The admin fixture belongs to more than one company, so login legitimately
+    // stops on the chooser first — pick the fixture company, then assert the
+    // landing. Single-company accounts skip straight through.
+    const dashboard = page.getByRole('heading', { name: 'Dashboard' });
+    await chooseTenantIfPrompted(page, dashboard, 15_000);
+    await expect(dashboard).toBeVisible({ timeout: 15_000 });
   });
 
   test('forgot password link routes to recovery page', async ({ page }) => {

@@ -12,6 +12,7 @@
  */
 
 import { romeWallClockISO } from './time';
+import { TENANT } from './test-data';
 
 const AUTH_BASE = process.env.E2E_AUTH_URL ?? 'https://auth-sonoqui.xdevapp.it';
 const API_BASE = process.env.E2E_API_URL ?? 'https://api-sonoqui.xdevapp.it';
@@ -21,6 +22,76 @@ export interface ApiHandle {
   userId: string;
   tenantId: string;
   branches: Array<{ id: string; name: string; smart_working: boolean }>;
+}
+
+/**
+ * Resolved company per access token, so every request carries X-Tenant-Id.
+ *
+ * Without the header the backend falls back to the most-recent active
+ * membership (middleware/auth.ts → fetchMembership `ORDER BY m.created_at
+ * DESC`). test1 is an admin on a second company added later than the fixture
+ * one, so an unpinned admin call lands on the WRONG company and every read
+ * comes back empty / every write goes to the wrong tenant — silently, with a
+ * 200. Populated by `resolveTenantId` on the first call for a token.
+ */
+const tenantByToken = new Map<string, string>();
+
+function authHeaders(token: string, extra?: Record<string, string>): Record<string, string> {
+  const tenantId = tenantByToken.get(token);
+  return {
+    Authorization: `Bearer ${token}`,
+    ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}),
+    ...extra,
+  };
+}
+
+interface TenantOption {
+  tenant_id: string;
+  ragione_sociale: string;
+  role: string;
+}
+
+/**
+ * Pick the company this token should act on: the only one when the account is
+ * single-company, otherwise the fixture company from TENANT. Cached per token.
+ */
+async function resolveTenantId(token: string): Promise<string> {
+  const cached = tenantByToken.get(token);
+  if (cached) return cached;
+  // Deliberately unpinned — reading our own company list must not depend on a
+  // company already being chosen.
+  const { tenants } = await apiGet<{ tenants: TenantOption[] }>(token, '/api/v1/me/tenants');
+  const picked =
+    tenants.length === 1
+      ? tenants[0]
+      : TENANT.id
+        ? tenants.find((t) => t.tenant_id === TENANT.id)
+        : tenants.find((t) => t.ragione_sociale === TENANT.name);
+  if (!picked) {
+    const names = tenants.map((t) => `${t.ragione_sociale} (${t.tenant_id})`).join(', ');
+    throw new Error(
+      `e2e: cannot pick a company — wanted ${TENANT.id ?? TENANT.name}, account has: ${names || 'none'}. ` +
+        'Set E2E_TENANT_ID / E2E_TENANT_NAME to match this stack.',
+    );
+  }
+  tenantByToken.set(token, picked.tenant_id);
+  return picked.tenant_id;
+}
+
+/**
+ * Raw `fetch` against the API with auth + company headers already applied.
+ * Use this instead of a bare `fetch` in specs — a bare one omits X-Tenant-Id
+ * and silently resolves to the wrong company for multi-company accounts.
+ */
+export async function apiFetch(
+  token: string,
+  path: string,
+  init?: RequestInit & { headers?: Record<string, string> },
+): Promise<Response> {
+  return fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: authHeaders(token, init?.headers),
+  });
 }
 
 export async function loginAs(email: string, password: string): Promise<ApiHandle> {
@@ -66,6 +137,10 @@ export async function loadHandleFromStorage(
 }
 
 async function handleFromToken(token: string): Promise<ApiHandle> {
+  // Pin the company BEFORE the first scoped call, so /me (and everything after
+  // it) describes the fixture company rather than whichever membership the
+  // backend happens to consider most recent.
+  await resolveTenantId(token);
   const me = await apiGet<{
     user: { id: string };
     tenant: { id: string };
@@ -81,7 +156,7 @@ async function handleFromToken(token: string): Promise<ApiHandle> {
 
 export async function apiGet<T>(token: string, path: string): Promise<T> {
   const r = await fetch(`${API_BASE}${path}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: authHeaders(token),
   });
   const body = (await r.json()) as { ok: boolean; data?: T; error?: { message?: string } };
   if (!r.ok || body.ok === false) {
@@ -97,10 +172,7 @@ export async function apiPost<T = unknown>(
 ): Promise<{ status: number; data: T | null; code?: string; message?: string }> {
   const r = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+    headers: authHeaders(token, { 'Content-Type': 'application/json' }),
     body: JSON.stringify(json),
   });
   const text = await r.text();
@@ -125,10 +197,7 @@ export async function apiPatch<T = unknown>(
 ): Promise<T> {
   const r = await fetch(`${API_BASE}${path}`, {
     method: 'PATCH',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+    headers: authHeaders(token, { 'Content-Type': 'application/json' }),
     body: JSON.stringify(json),
   });
   const body = (await r.json()) as { ok: boolean; data?: T; error?: { message?: string } };
@@ -141,7 +210,7 @@ export async function apiPatch<T = unknown>(
 export async function apiDelete(token: string, path: string): Promise<void> {
   const r = await fetch(`${API_BASE}${path}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: authHeaders(token),
   });
   // 404 on cleanup is fine — already gone.
   if (!r.ok && r.status !== 404) {
@@ -154,7 +223,13 @@ export async function apiDelete(token: string, path: string): Promise<void> {
 
 export interface CorrectionCreateBody {
   original_stamp_id: string | null;
-  claimed_event_type: 'clock_in' | 'clock_out' | 'break_start' | 'break_end';
+  claimed_event_type:
+    | 'clock_in'
+    | 'clock_out'
+    | 'break_start'
+    | 'break_end'
+    | 'lunch_start'
+    | 'lunch_end';
   claimed_occurred_at: string;
   claimed_branch_id: string | null;
   justification: string;
@@ -200,10 +275,7 @@ export async function deleteStampAdmin(adminToken: string, stampId: string): Pro
   // expects.
   const r = await fetch(`${API_BASE}/api/v1/admin/stamps/${stampId}`, {
     method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${adminToken}`,
-      'Content-Type': 'application/json',
-    },
+    headers: authHeaders(adminToken, { 'Content-Type': 'application/json' }),
     body: JSON.stringify({ deletion_reason: 'e2e cleanup' }),
   });
   if (!r.ok && r.status !== 404) {
@@ -675,7 +747,7 @@ export async function downloadExportText(
   id: string,
 ): Promise<{ ok: boolean; status: number; contentType: string | null; disposition: string | null; text: string }> {
   const r = await fetch(`${API_BASE}/api/v1/exports/${id}/download`, {
-    headers: { Authorization: `Bearer ${adminToken}` },
+    headers: authHeaders(adminToken),
   });
   const text = r.ok ? Buffer.from(await r.arrayBuffer()).toString('latin1') : '';
   return {
@@ -700,7 +772,7 @@ export async function downloadExport(
   id: string,
 ): Promise<{ ok: boolean; status: number; contentType: string | null; isZip: boolean }> {
   const r = await fetch(`${API_BASE}/api/v1/exports/${id}/download`, {
-    headers: { Authorization: `Bearer ${adminToken}` },
+    headers: authHeaders(adminToken),
   });
   let isZip = false;
   if (r.ok) {
@@ -728,7 +800,7 @@ export interface ExportJson {
 /** Download a JSON-format export and parse its body (the per-user/day aggregate). */
 export async function downloadExportJson(adminToken: string, id: string): Promise<ExportJson> {
   const r = await fetch(`${API_BASE}/api/v1/exports/${id}/download`, {
-    headers: { Authorization: `Bearer ${adminToken}` },
+    headers: authHeaders(adminToken),
   });
   if (!r.ok) throw new Error(`downloadExportJson failed: ${r.status}`);
   return JSON.parse(await r.text()) as ExportJson;
@@ -845,10 +917,7 @@ export async function uploadDocument(
   });
   const r = await fetch(`${API_BASE}/api/v1/documents?${qs.toString()}`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${adminToken}`,
-      'Content-Type': 'application/pdf',
-    },
+    headers: authHeaders(adminToken, { 'Content-Type': 'application/pdf' }),
     // Uint8Array view keeps fetch's BodyInit type happy for a Node Buffer.
     body: new Uint8Array(buf),
   });
@@ -908,7 +977,7 @@ export async function setDocumentale(
 ): Promise<{ status: number; code?: string; message?: string }> {
   const r = await fetch(`${API_BASE}/api/v1/users/${userId}`, {
     method: 'PATCH',
-    headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
+    headers: authHeaders(adminToken, { 'Content-Type': 'application/json' }),
     body: JSON.stringify({ is_documentale: value }),
   });
   let parsed: { error?: { code?: string; message?: string } } = {};
@@ -969,7 +1038,7 @@ export async function listDocumentsAllRaw(
 ): Promise<{ status: number; code?: string; data: DocumentAdminItem[] | null }> {
   const qs = userId ? `?user_id=${encodeURIComponent(userId)}` : '';
   const r = await fetch(`${API_BASE}/api/v1/documents${qs}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: authHeaders(token),
   });
   let parsed: { data?: DocumentAdminItem[]; error?: { code?: string } } = {};
   try {
@@ -986,7 +1055,7 @@ export async function downloadDocumentRaw(
   id: string,
 ): Promise<{ status: number; code?: string; url?: string }> {
   const r = await fetch(`${API_BASE}/api/v1/documents/${id}/download`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: authHeaders(token),
   });
   let parsed: { data?: { url?: string }; error?: { code?: string } } = {};
   try {
@@ -1103,10 +1172,7 @@ export async function setLeaveApprovers(
 ): Promise<void> {
   const r = await fetch(`${API_BASE}/api/v1/users/${userId}/approvers`, {
     method: 'PUT',
-    headers: {
-      Authorization: `Bearer ${adminToken}`,
-      'Content-Type': 'application/json',
-    },
+    headers: authHeaders(adminToken, { 'Content-Type': 'application/json' }),
     body: JSON.stringify({ approver_user_ids: approverUserIds }),
   });
   if (!r.ok) {
@@ -1214,10 +1280,7 @@ async function putAssignments(
 ): Promise<void> {
   const r = await fetch(`${API_BASE}${path}`, {
     method: 'PUT',
-    headers: {
-      Authorization: `Bearer ${adminToken}`,
-      'Content-Type': 'application/json',
-    },
+    headers: authHeaders(adminToken, { 'Content-Type': 'application/json' }),
     body: JSON.stringify({ user_ids: userIds }),
   });
   if (!r.ok) {
@@ -1364,7 +1427,7 @@ export async function getCantiereReportPdf(
   month: string,
 ): Promise<{ status: number; contentType: string | null; magic: string }> {
   const r = await fetch(`${API_BASE}/api/v1/cantieri/sites/${siteId}/report?month=${month}`, {
-    headers: { Authorization: `Bearer ${adminToken}` },
+    headers: authHeaders(adminToken),
   });
   const buf = Buffer.from(await r.arrayBuffer());
   return {

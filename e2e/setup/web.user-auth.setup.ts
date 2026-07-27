@@ -1,6 +1,7 @@
 import { test as setup, expect } from '@playwright/test';
 import { CREDS, STORAGE, URLS } from '../fixtures/test-data';
 import { apiPatch, loginAs } from '../fixtures/api-client';
+import { chooseTenantIfPrompted } from '../fixtures/choose-tenant';
 
 // Logs in test3 (the only non-admin on the test tenant) and persists the
 // session to STORAGE.webUserAuth. Used by the `web-user` project for
@@ -18,6 +19,11 @@ setup('authenticate web user', async ({ page }) => {
   await page.locator('input#password').fill(CREDS.user.password);
   await page.getByRole('button', { name: 'Accedi' }).click();
   // Employee lands on MyDashboard at /, which renders "Ciao, <email prefix>".
-  await expect(page.getByRole('heading', { name: /Ciao,/ })).toBeVisible({ timeout: 15_000 });
+  // test3 is single-company today, so the chooser normally never appears — the
+  // call is a no-op then, and keeps the setup working if test3 is ever added
+  // to a second company like test1 was.
+  const home = page.getByRole('heading', { name: /Ciao,/ });
+  await chooseTenantIfPrompted(page, home, 15_000);
+  await expect(home).toBeVisible({ timeout: 15_000 });
   await page.context().storageState({ path: STORAGE.webUserAuth });
 });

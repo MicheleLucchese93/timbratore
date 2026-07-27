@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { CREDS, STORAGE } from '../fixtures/test-data';
 import {
   adminRevokeLeave,
+  apiFetch,
   assignShift,
   createLeave,
   createShiftTemplate,
@@ -109,10 +110,7 @@ test.describe('web — Ferie weekend-skip via shift template (mutating)', () => 
 
     // Re-fetch the row via the admin list endpoint to read the persisted
     // duration_hours value (not always echoed in the create response).
-    const r = await fetch(
-      `${process.env.E2E_API_URL ?? 'https://api-sonoqui.xdevapp.it'}/api/v1/leaves?user_id=${user.userId}`,
-      { headers: { Authorization: `Bearer ${admin.token}` } },
-    );
+    const r = await apiFetch(admin.token, `/api/v1/leaves?user_id=${user.userId}`);
     const body = (await r.json()) as { data?: Array<{ id: string; duration_hours: number | string }> };
     const ours = body.data?.find((row) => row.id === leaveId);
     expect(ours, 'expected the seeded leave row to be listed').toBeDefined();

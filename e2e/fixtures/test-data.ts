@@ -52,6 +52,20 @@ export const PARTNER_CAPS = {
   cap_branches_per_tenant: 3,
 } as const;
 
+// The company every spec asserts against. It has to be named explicitly because
+// test1 is an admin on a SECOND company too (manual multi-company product
+// testing on the shared prod tenant), which makes both entry points ambiguous:
+//   - the UI stops on the "Scegli l'azienda" chooser instead of landing on the
+//     Dashboard (see fixtures/choose-tenant.ts);
+//   - the API resolves the MOST RECENT membership when no X-Tenant-Id header is
+//     sent (backend middleware/auth.ts → fetchMembership), so admin calls
+//     silently operate on the wrong company.
+// Set E2E_TENANT_ID when pointing the suite at a stack where the name differs.
+export const TENANT = {
+  id: process.env.E2E_TENANT_ID ?? null,
+  name: process.env.E2E_TENANT_NAME ?? 'ACME Srl',
+} as const;
+
 export const URLS = {
   web: process.env.E2E_WEB_URL ?? 'http://localhost:5173',
   mobile: process.env.E2E_MOBILE_URL ?? 'http://localhost:8082',

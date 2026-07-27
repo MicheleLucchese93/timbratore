@@ -1,12 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { CREDS, STORAGE } from '../fixtures/test-data';
-import { apiGet, apiPatch, loadHandleFromStorage, type ApiHandle } from '../fixtures/api-client';
+import { apiFetch, apiGet, apiPatch, loadHandleFromStorage, type ApiHandle } from '../fixtures/api-client';
 
 // Per-user stamp_modes: admin PATCH round-trip + server-side enforcement.
 // Mutates test3's stamp_modes during the run and restores the seeded {gps}
 // default in afterAll (best-effort, per the mutating-spec convention).
 const ENABLED = process.env.E2E_MUTATING === '1';
-const API_BASE = process.env.E2E_API_URL ?? 'https://api-sonoqui.xdevapp.it';
 
 interface UserRow {
   user_id: string;
@@ -21,15 +20,14 @@ async function modesOf(adminToken: string, userId: string): Promise<string[]> {
 }
 
 // /api/v1/stamps requires an Idempotency-Key header (which api-client.apiPost
-// does not set), so use a raw fetch and surface { status, code }.
+// does not set), so use apiFetch and surface { status, code }.
 async function tryStamp(
   token: string,
   platform: string
 ): Promise<{ status: number; code?: string }> {
-  const r = await fetch(`${API_BASE}/api/v1/stamps`, {
+  const r = await apiFetch(token, '/api/v1/stamps', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
       'Idempotency-Key': `e2e-modes-${platform}-${Date.now()}-${Math.floor(Math.random() * 1e9)}`,
     },
@@ -77,9 +75,9 @@ test.describe('web — per-user stamp_modes (mutating)', () => {
   });
 
   test('invalid mode (wifi, not yet implemented) is rejected with 400', async () => {
-    const r = await fetch(`${API_BASE}/api/v1/users/${user.userId}`, {
+    const r = await apiFetch(admin.token, `/api/v1/users/${user.userId}`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${admin.token}`, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ stamp_modes: ['wifi'] }),
     });
     expect(r.status).toBe(400);

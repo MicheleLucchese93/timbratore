@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { CREDS, STORAGE } from '../fixtures/test-data';
 import {
+  apiFetch,
   createCorrection,
   deleteStampAdmin,
   loadHandleFromStorage,
@@ -110,9 +111,9 @@ test.describe('web — Correzioni (admin) — seeded pending row', () => {
     try {
       const fromDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const toDate = new Date().toISOString().slice(0, 10);
-      const stamps = await fetch(
-        `${process.env.E2E_API_URL ?? 'https://api-sonoqui.xdevapp.it'}/api/v1/stamps?user_id=${user.userId}&from=${fromDate}&to=${toDate}`,
-        { headers: { Authorization: `Bearer ${admin.token}` } },
+      const stamps = await apiFetch(
+        admin.token,
+        `/api/v1/stamps?user_id=${user.userId}&from=${fromDate}&to=${toDate}`,
       );
       const body = (await stamps.json()) as { data?: Array<{ id: string; notes?: string | null }> };
       const ours = body.data?.find((s) => (s.notes ?? '').includes(marker));

@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { CREDS, STORAGE } from '../fixtures/test-data';
 import {
   adminRevokeLeave,
+  apiFetch,
   apiPost,
   assignShift,
   createShiftTemplate,
@@ -22,7 +23,6 @@ import { romeWallClockISO } from '../fixtures/time';
 //   4. Shortfall 240 > default tolerance_out 10 → backend computes
 //      `short_hours` when /api/v1/shifts/anomalies is queried.
 const ENABLED = process.env.E2E_MUTATING === '1';
-const API_BASE = process.env.E2E_API_URL ?? 'https://api-sonoqui.xdevapp.it';
 
 function lastWeekdayISOAt(hour: number, minute: number): { iso: string; date: string } {
   const d = new Date();
@@ -122,7 +122,7 @@ test.describe('web — Anomalie short_hours via seeded under-worked day (mutatin
     if (templateId) await deleteShiftTemplate(admin.token, templateId).catch(() => {});
   });
 
-  test('API returns short_hours for the seeded day', async ({ request }) => {
+  test('API returns short_hours for the seeded day', async () => {
     const from = new Date();
     from.setUTCDate(from.getUTCDate() - 7);
     const to = new Date();
@@ -131,10 +131,10 @@ test.describe('web — Anomalie short_hours via seeded under-worked day (mutatin
       to: to.toISOString().slice(0, 10),
       user_id: user.userId,
     });
-    const res = await request.get(`${API_BASE}/api/v1/shifts/anomalies?${params}`, {
-      headers: { Authorization: `Bearer ${admin.token}` },
-    });
-    expect(res.status()).toBe(200);
+    // apiFetch, not the Playwright request context: it adds X-Tenant-Id, which
+    // a multi-company admin needs to be scoped to the fixture company.
+    const res = await apiFetch(admin.token, `/api/v1/shifts/anomalies?${params}`);
+    expect(res.status).toBe(200);
     const json = (await res.json()) as { data: Array<{ kind: string; date: string }> };
     const list = Array.isArray(json) ? (json as unknown as Array<{ kind: string; date: string }>) : json.data;
     const dayList = list.filter((a) => a.date === validFrom);

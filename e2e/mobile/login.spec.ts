@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { CREDS, URLS } from '../fixtures/test-data';
+import { chooseTenantIfPrompted } from '../fixtures/choose-tenant';
 
 // Fresh context — bypass the saved storageState so the form is exercised.
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -38,6 +39,10 @@ test.describe('mobile — login', () => {
     await page.getByPlaceholder('email@azienda.it').fill(CREDS.admin.email);
     await page.getByPlaceholder('••••••••').fill(CREDS.admin.password);
     await page.getByRole('button', { name: 'Accedi' }).click();
-    await expect(page.getByText('Presenti ora').first()).toBeVisible({ timeout: 30_000 });
+    // The admin fixture is in more than one company, so login legitimately
+    // stops on the chooser first (see fixtures/choose-tenant.ts).
+    const dashboard = page.getByText('Presenti ora').first();
+    await chooseTenantIfPrompted(page, dashboard);
+    await expect(dashboard).toBeVisible({ timeout: 30_000 });
   });
 });
