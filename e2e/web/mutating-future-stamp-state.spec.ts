@@ -29,7 +29,13 @@ test.describe('web — Future-dated clock_out vs current-state (mutating)', () =
   test.skip(!ENABLED, 'set E2E_MUTATING=1 to enable mutating specs');
 
   let admin: ApiHandle;
-  const today = new Date().toISOString().slice(0, 10);
+  // Calendar days in the TENANT zone (Europe/Rome), not UTC: GET /stamps bounds
+  // from/to with `AT TIME ZONE Europe/Rome`. Run this spec after ~18:00 Rome and
+  // the +6h stamp lands past Rome midnight, so a UTC `to` excluded the very row
+  // the assertion below looks for — a clock-dependent failure, every evening.
+  const romeDay = (d: Date): string =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(d);
+  const today = romeDay(new Date());
   const seeded: string[] = [];
 
   // Admin-manual stamps bypass geofence/mode/transition checks, so seeding the
@@ -81,10 +87,12 @@ test.describe('web — Future-dated clock_out vs current-state (mutating)', () =
 
     // The future clock_out is genuinely stored (this is a state-derivation bug,
     // not a write that was rejected) — both rows come back from the admin list.
+    // The window runs to the Rome day the future stamp falls on, which is
+    // tomorrow whenever the run happens late in the afternoon.
     const rows = await listStampsAdmin(admin.token, {
       user_id: admin.userId,
       from: today,
-      to: today,
+      to: romeDay(new Date(futureOut)),
       limit: 1000,
     });
     expect(rows.map((r) => r.id).sort()).toEqual([inRes.data!.id, outRes.data!.id].sort());
