@@ -285,7 +285,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Assenti ora e Prossime 14 giorni</h3>
-        <p>Due colonne ti mostrano chi è assente in questo momento e chi lo sarà nelle prossime due settimane. Per ogni voce: tipo assenza, nome, range date e ore totali.</p>
+        <p>Due colonne ti mostrano chi è assente in questo momento e chi lo sarà nelle prossime due settimane. Per ogni voce: tipo assenza, nome, range date e ore totali. Per una mezza giornata (ferie o permesso con orario specifico) in <strong>Assenti ora</strong> compare la fascia oraria in cui la persona è assente (es. 09:00–13:00) al posto di «Fino al…».</p>
       </div>
 
       <div class="feature">
@@ -374,7 +374,7 @@ const MAIN_IT = `
           <li><strong>Evento</strong> — badge colorato (Ingresso, Uscita, Inizio/Fine pausa, Inizio/Fine pausa pranzo).</li>
           <li><strong>Origine</strong> — <em>app</em> (mobile), <em>correz.</em> (correzione approvata), <em>admin</em> (inserimento manuale) o <em>auto</em> (generata dal sistema, es. chiusura automatica oltre 15h).</li>
           <li><strong>Sede</strong> — la filiale registrata, o "—" se nessuna.</li>
-          <li><strong>Note</strong> — eventuali annotazioni. Compare un indicatore <em>mock</em> se la posizione GPS è sospetta e <em>fuori area</em> se l'uscita è stata timbrata fuori dall'area della sede.</li>
+          <li><strong>Note</strong> — eventuali annotazioni. Compare un indicatore <em>mock</em> se la posizione GPS è sospetta e <em>fuori area</em> se la timbratura è stata registrata fuori dall'area della sede (uscita, pause o pranzo).</li>
           <li><strong>Azioni</strong> — modifica e elimina.</li>
         </ul>
       </div>
@@ -557,7 +557,7 @@ const MAIN_IT = `
           <li>Altrimenti imposta latitudine, longitudine (già popolate dall'indirizzo o dal punto sulla mappa).</li>
           <li>Decidi se <strong>limitare la timbratura entro un raggio</strong>:
             <ul class="tidy">
-              <li><strong>Attivo</strong> (default): imposta il <strong>raggio</strong> in metri (default 300m). La timbratura di ingresso fuori dal raggio viene rifiutata; l'uscita viene accettata ma segnalata come anomalia.</li>
+              <li><strong>Attivo</strong> (default): imposta il <strong>raggio</strong> in metri (default 300m). Solo l'<strong>ingresso</strong> fuori dal raggio viene rifiutato; pause, pranzo e uscita vengono sempre accettate e, se fuori area, segnalate — l'uscita come anomalia.</li>
               <li><strong>Disattivo</strong>: la timbratura è accettata indipendentemente dalla distanza dalla sede. Il GPS viene comunque registrato sulla timbratura per audit. La sede non viene auto-rilevata: il dipendente deve selezionarla manualmente nell'app.</li>
             </ul>
           </li>
@@ -1066,7 +1066,7 @@ const MAIN_IT = `
             <tr><td><span class="pill pill-warn">In pausa pranzo</span></td><td><strong>Termina pausa pranzo</strong></td></tr>
           </tbody>
         </table>
-        <p>Appena timbrato hai <strong>60 secondi</strong> per annullare con <em>Annulla ultima timbratura</em>. Se sei assegnato a più sedi puoi sceglierla; una volta timbrato l'ingresso la sede resta bloccata fino all'uscita.</p>
+        <p>Appena timbrato hai <strong>60 secondi</strong> per annullare con <em>Annulla ultima timbratura</em>. Se sei assegnato a più sedi puoi sceglierla, anche a turno aperto: puoi timbrare l'ingresso in una sede e l'uscita in un'altra. Durante il turno la sede della timbratura viene rilevata dalla posizione (app mobile con GPS), quindi non devi ricordarti di cambiare la selezione.</p>
         <div class="callout callout-info">
           La timbratura da web è <strong>"da remoto"</strong>: non richiede il GPS e non applica il controllo dell'area (geofence). Per questo è disponibile solo se l'amministratore ti ha assegnato la modalità <strong>remoto</strong>. Se non ce l'hai, vedrai l'avviso <em>"La timbratura da web non è abilitata"</em> e dovrai usare l'app mobile.
         </div>
@@ -1218,7 +1218,7 @@ const MAIN_IT = `
           <li>Mostra "Timbratura riuscita" e aggiorna la schermata.</li>
         </ol>
         <div class="callout callout-info">
-          <strong>Uscita sempre possibile.</strong> La <strong>Timbra uscita</strong> non viene mai bloccata dal controllo dell'area: se hai dimenticato di timbrare e sei lontano dalla sede (es. da casa), l'uscita viene comunque registrata. Se la posizione risulta fuori area, vedrai l'avviso <em>"Uscita fuori area"</em> e la timbratura viene salvata con un'<strong>anomalia</strong> visibile all'amministratore. Ingresso e pause restano invece soggetti al controllo dell'area.
+          <strong>Solo l'ingresso è vincolato all'area.</strong> Il controllo della posizione blocca soltanto la <strong>Timbra ingresso</strong>: è il momento in cui viene verificato che sei in sede. Tutte le timbrature successive del turno (pause, pranzo, uscita) passano sempre, da qualunque posizione — così puoi spostarti da una sede all'altra, o chiudere da casa un turno che avevi dimenticato aperto. Se la posizione non risulta dentro il raggio di nessuna sede assegnata, la timbratura viene comunque salvata ma marcata <strong>fuori area</strong>: per l'uscita vedrai l'avviso <em>"Uscita fuori area"</em> e viene generata un'<strong>anomalia</strong> visibile all'amministratore. Se invece ti trovi dentro il raggio di un'altra sede a cui sei assegnato, la timbratura viene registrata su quella sede e non genera anomalia. Le sedi in <strong>smart working</strong> non hanno controllo dell'area: non generano mai anomalie.
         </div>
       </div>
 
@@ -1611,13 +1611,18 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Geofence</h3>
-        <p>Per ogni sede l'admin definisce coordinate GPS e — opzionalmente — un <strong>raggio</strong> in metri. Quando il raggio è attivo, la timbratura è valida solo se sei entro questa area circolare.</p>
-        <p>Se sei fuori vedi il messaggio <em>"Sei fuori dell'area consentita"</em>: la timbratura di <strong>ingresso</strong> viene rifiutata, mentre l'<strong>uscita</strong> viene sempre accettata ma segnalata come anomalia.</p>
+        <p>Per ogni sede l'admin definisce coordinate GPS e — opzionalmente — un <strong>raggio</strong> in metri. Quando il raggio è attivo, l'<strong>ingresso</strong> è valido solo se sei entro questa area circolare: fuori dal raggio vedi il messaggio <em>"Sei fuori dell'area consentita"</em> e la timbratura viene rifiutata.</p>
+        <p>Il blocco riguarda <strong>solo l'ingresso</strong>. Pause, pranzo e uscita vengono sempre accettate, da qualunque posizione: se non sei dentro l'area di nessuna sede assegnata, la timbratura viene salvata e marcata <strong>fuori area</strong> — per l'uscita questo genera l'anomalia <em>Uscita fuori area</em> con la distanza dalla sede.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Cambio sede durante il turno</h3>
+        <p>Puoi timbrare l'ingresso in una sede e proseguire (pause, uscita) da un'altra sede a cui sei assegnato. Durante il turno la sede di ogni timbratura viene <strong>rilevata dalla posizione</strong>: se sei dentro il raggio di un'altra sede assegnata, la timbratura viene registrata su quella sede e non genera anomalia, indipendentemente dalla sede selezionata nell'app. Se non sei vicino a nessuna sede, la timbratura resta attribuita alla sede in cui hai aperto il turno e viene marcata fuori area.</p>
       </div>
 
       <div class="feature">
         <h3>Sede senza raggio</h3>
-        <p>Se l'admin disattiva il raggio per una sede, la timbratura viene accettata ovunque tu sia: la posizione GPS è comunque registrata sulla timbratura per audit, ma senza confronto con un'area. La sede non compare nell'auto-rilevamento: per usarla devi selezionarla manualmente nell'app prima di timbrare.</p>
+        <p>Se l'admin disattiva il raggio per una sede, la timbratura viene accettata ovunque tu sia: la posizione GPS è comunque registrata sulla timbratura per audit, ma senza confronto con un'area. Nell'auto-rilevamento questa sede viene usata come ripiego, cioè solo quando la tua posizione non ricade nell'area di nessun'altra sede assegnata.</p>
       </div>
 
       <div class="feature">
@@ -1631,7 +1636,7 @@ const MAIN_IT = `
         <ul class="tidy">
           <li><strong>Consenti</strong> — la timbratura passa.</li>
           <li><strong>Contrassegna</strong> — la timbratura passa con marcatura visibile all'admin.</li>
-          <li><strong>Blocca</strong> — la timbratura viene rifiutata.</li>
+          <li><strong>Blocca</strong> — l'<strong>ingresso</strong> viene rifiutato. Le timbrature successive del turno (pause, pranzo, uscita) passano comunque, contrassegnate: una posizione sospetta non deve impedire di chiudere un turno già aperto.</li>
         </ul>
       </div>
     </section>

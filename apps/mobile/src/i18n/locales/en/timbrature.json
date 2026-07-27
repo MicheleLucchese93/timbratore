@@ -19,7 +19,7 @@
   },
   "branch": {
     "title": "Location",
-    "lockedUntilExit": "Locked until clock-out",
+    "autoDetected": "Detected from your location",
     "offSite": "Off-site"
   },
   "action": {

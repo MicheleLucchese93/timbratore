@@ -15,7 +15,6 @@
   },
   "branch": {
     "title": "Location",
-    "lockedUntilExit": "Locked until clock-out",
     "offSite": "Off-site"
   },
   "action": {

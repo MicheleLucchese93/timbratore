@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -137,16 +137,22 @@ export function TimbratureScreen() {
     return () => clearInterval(id);
   }, []);
 
-  // When a shift is open the branch is locked to the one clocked into — keep the
-  // selection pinned to it. Declared here (not after the `!me` early return) so
-  // the hook order stays stable; derives lock state from state/todayStamps.
+  // Opening a shift snaps the picker onto the sede it was stamped against, so
+  // it shows where the shift is running — but only once per shift: switching
+  // branch mid-shift is allowed and the manual choice must stick. Declared here
+  // (not after the `!me` early return) so the hook order stays stable.
+  const pinnedShiftBranch = useRef<string | null>(null);
   useEffect(() => {
-    const cs = state?.state ?? stateFromLastEvent(null);
-    const lockedId = cs !== 'nothing' ? openShiftBranchId(todayStamps) : null;
-    if (lockedId && selectedBranchId !== lockedId) {
-      setSelectedBranchId(lockedId);
+    const openId = openShiftBranchId(todayStamps);
+    if (!openId) {
+      pinnedShiftBranch.current = null;
+      return;
     }
-  }, [state, todayStamps, selectedBranchId]);
+    if (pinnedShiftBranch.current !== openId) {
+      pinnedShiftBranch.current = openId;
+      setSelectedBranchId(openId);
+    }
+  }, [todayStamps]);
 
   async function onRefresh() {
     setRefreshing(true);
@@ -168,14 +174,22 @@ export function TimbratureScreen() {
     };
     try {
       if (needsGps && !selectedBranch.smart_working) {
-        const loc = await acquireLocation();
-        payload = {
-          ...payload,
-          latitude: loc.latitude,
-          longitude: loc.longitude,
-          gps_accuracy_m: loc.accuracyM,
-          is_mock_location: loc.isMockLocation,
-        };
+        try {
+          const loc = await acquireLocation();
+          payload = {
+            ...payload,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            gps_accuracy_m: loc.accuracyM,
+            is_mock_location: loc.isMockLocation,
+          };
+        } catch (err) {
+          // Only the entry needs a verified position. If the GPS can't be read
+          // for any later event we still send the stamp: the server records it
+          // without coordinates and flags it out-of-area, which is far better
+          // than leaving the worker unable to close the shift.
+          if (event === 'clock_in') throw err;
+        }
       }
       try {
         const created = await api<{ id: string; out_of_geofence?: boolean }>('/api/v1/stamps', {
@@ -232,7 +246,10 @@ export function TimbratureScreen() {
   }
 
   const currentState = state?.state ?? stateFromLastEvent(null);
-  const branchLocked = currentState !== 'nothing';
+  // Mid-shift the sede of a stamp is decided by the position, not by this
+  // picker (see stamp-service.ts) — tell the worker so the selection doesn't
+  // look like it was ignored.
+  const branchAutoDetected = currentState !== 'nothing' && needsGps;
   const totals = computeCountedDay(todayStamps, assignment, now, leaves);
 
   // Today's assigned shift: the slots scheduled for this weekday + their total,
@@ -342,35 +359,23 @@ export function TimbratureScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>{t('branch.title')}</Text>
-              {branchLocked && (
-                <View style={styles.lockHint}>
-                  <Ionicons name="lock-closed" size={11} color={color.onSurfaceVariant} />
-                  <Text style={styles.lockHintText}>{t('branch.lockedUntilExit')}</Text>
+              {branchAutoDetected && (
+                <View style={styles.hintPill}>
+                  <Ionicons name="navigate-outline" size={11} color={color.onSurfaceVariant} />
+                  <Text style={styles.hintPillText}>{t('branch.autoDetected')}</Text>
                 </View>
               )}
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillRow}>
               {branches.map((b) => {
                 const sel = b.id === selectedBranch?.id;
-                const disabled = branchLocked && !sel;
                 return (
                   <Pressable
                     key={b.id}
-                    onPress={() => !branchLocked && setSelectedBranchId(b.id)}
-                    disabled={branchLocked}
-                    style={[
-                      styles.pill,
-                      sel && styles.pillActive,
-                      disabled && styles.pillDisabled,
-                    ]}>
+                    onPress={() => setSelectedBranchId(b.id)}
+                    style={[styles.pill, sel && styles.pillActive]}>
                     <Ionicons
-                      name={
-                        sel && branchLocked
-                          ? 'lock-closed'
-                          : b.smart_working
-                          ? 'laptop-outline'
-                          : 'business-outline'
-                      }
+                      name={b.smart_working ? 'laptop-outline' : 'business-outline'}
                       size={14}
                       color={sel ? color.onPrimary : color.onSurfaceVariant}
                     />
@@ -667,7 +672,6 @@ const styles = StyleSheet.create({
     borderColor: color.surfaceVariant,
   },
   pillActive: { backgroundColor: color.primary, borderColor: color.primary },
-  pillDisabled: { opacity: 0.4 },
   pillText: { fontSize: 14, fontWeight: '600', color: color.onSurfaceVariant },
   pillTextActive: { color: color.onPrimary },
 
@@ -722,12 +726,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.s2,
     marginBottom: space.s2,
   },
-  lockHint: {
+  hintPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  lockHintText: {
+  hintPillText: {
     fontSize: 11,
     fontWeight: '600',
     color: color.onSurfaceVariant,

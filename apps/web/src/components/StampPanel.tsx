@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { stateFromLastEvent } from '@sonoqui/shared';
@@ -95,13 +95,21 @@ export function StampPanel({ onStamped }: { onStamped?: () => void }) {
     if (!selectedBranchId && branches.length > 0) setSelectedBranchId(branches[0]!.id);
   }, [branches, selectedBranchId]);
 
-  // While a shift is open, lock the branch to the one the clock-in was recorded
-  // against — mirrors mobile so the user can't switch sede mid-shift.
+  // Opening a shift snaps the picker onto the sede it was stamped against, so
+  // it shows where the shift is running — but only once per shift: switching
+  // sede mid-shift is allowed (mirrors mobile) and the manual choice must stick.
+  const pinnedShiftBranch = useRef<string | null>(null);
   useEffect(() => {
-    if ((state?.state ?? 'nothing') === 'nothing') return;
-    const locked = openShiftBranchId(todayStamps);
-    if (locked && selectedBranchId !== locked) setSelectedBranchId(locked);
-  }, [state, todayStamps, selectedBranchId]);
+    const openId = openShiftBranchId(todayStamps);
+    if (!openId) {
+      pinnedShiftBranch.current = null;
+      return;
+    }
+    if (pinnedShiftBranch.current !== openId) {
+      pinnedShiftBranch.current = openId;
+      setSelectedBranchId(openId);
+    }
+  }, [todayStamps]);
 
   async function stamp(event: StampEventType) {
     if (working || !canStampWeb || !selectedBranch) return;
@@ -148,7 +156,6 @@ export function StampPanel({ onStamped }: { onStamped?: () => void }) {
   if (!me) return null;
 
   const currentState = state?.state ?? stateFromLastEvent(null);
-  const branchLocked = currentState !== 'nothing';
   const totals = computeCountedDay(todayStamps, assignment, now, leaves);
 
   const todayDow = now.getDay() === 0 ? 7 : now.getDay();
@@ -269,7 +276,6 @@ export function StampPanel({ onStamped }: { onStamped?: () => void }) {
         <div className="card space-y-2">
           <div className="flex items-center justify-between gap-2">
             <h3 className="section-title m-0">{t('branch.title')}</h3>
-            {branchLocked && <span className="text-xs muted">🔒 {t('branch.lockedUntilExit')}</span>}
           </div>
           <div className="flex flex-wrap gap-2">
             {branches.map((b) => {
@@ -279,8 +285,7 @@ export function StampPanel({ onStamped }: { onStamped?: () => void }) {
                   key={b.id}
                   type="button"
                   className={`btn btn-sm ${sel ? 'btn-primary' : 'btn-secondary'}`}
-                  disabled={branchLocked && !sel}
-                  onClick={() => !branchLocked && setSelectedBranchId(b.id)}
+                  onClick={() => setSelectedBranchId(b.id)}
                 >
                   {b.name}
                   {b.smart_working ? ` · ${t('branch.offSite')}` : ''}

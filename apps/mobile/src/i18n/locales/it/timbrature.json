@@ -19,7 +19,7 @@
   },
   "branch": {
     "title": "Sede",
-    "lockedUntilExit": "Bloccata fino all'uscita",
+    "autoDetected": "Rilevata dalla posizione",
     "offSite": "Fuori sede"
   },
   "action": {

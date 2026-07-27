@@ -30,13 +30,94 @@ export interface EvaluateInput {
 export interface EvaluateResult {
   branchId: string | null;
   suspiciousMockLocation: boolean;
-  // clock_out is never blocked by the geofence: a worker who forgot to stamp
-  // out (e.g. a leaver) must always be able to close an open shift, even from
-  // home. When the exit can't be confirmed inside the branch radius we let it
-  // through but flag it — surfaced to admins as a 'clock_out_out_of_area'
-  // anomaly. distance is null when GPS was missing entirely.
+  // Only clock_in is blocked by the geofence — see the comment on the geofence
+  // block below. Every later event of the shift is accepted from anywhere and
+  // flagged instead when the position can't be confirmed inside a branch
+  // radius; for clock_out that flag surfaces to admins as a
+  // 'clock_out_out_of_area' anomaly. distance is null when GPS was missing
+  // entirely or the branch has no coordinates.
   outOfGeofence: boolean;
   geofenceDistanceM: number | null;
+}
+
+interface BranchGeo {
+  id: string;
+  latitude: number | null;
+  longitude: number | null;
+  radius_m: number;
+  enforce_radius: boolean;
+  smart_working: boolean;
+}
+
+const BRANCH_COLS = `b.id, b.latitude, b.longitude, b.radius_m, b.enforce_radius, b.smart_working`;
+
+// A branch that never constrains the position: smart working, or one the tenant
+// configured without a radius. Stamping against it is always "in area".
+function unrestricted(b: BranchGeo): boolean {
+  return b.smart_working || !b.enforce_radius;
+}
+
+interface PositionMatch {
+  // Assigned branch the worker is standing in — or an unrestricted one as
+  // fallback. Null when the position matches none of them.
+  branch: BranchGeo | null;
+  // Distance to `branch`, null when it is unrestricted (nothing to measure).
+  distanceM: number | null;
+  // Distance to the nearest assigned branch with coordinates, matched or not —
+  // what the OUT_OF_GEOFENCE payload reports.
+  closestDistanceM: number | null;
+}
+
+// Resolve the branch from the position over every branch assigned to the user.
+// Physical branches win over smart-working / no-radius ones: short-circuiting
+// on the first smart-working branch (as this used to) meant `out_of_geofence`
+// could never fire for anyone assigned to one.
+async function resolveByPosition(
+  client: PoolClient,
+  userId: string,
+  at: { lat: number; lng: number }
+): Promise<PositionMatch> {
+  const r = await client.query<BranchGeo>(
+    `SELECT ${BRANCH_COLS}
+       FROM branches b
+       JOIN branch_memberships bm ON bm.branch_id = b.id AND bm.user_id = $1
+      WHERE b.deleted_at IS NULL AND b.active = TRUE`,
+    [userId]
+  );
+  let best: { branch: BranchGeo; distanceM: number } | null = null;
+  let fallback: BranchGeo | null = null;
+  let closest: number | null = null;
+  for (const b of r.rows) {
+    if (unrestricted(b)) {
+      fallback ??= b;
+      continue;
+    }
+    if (b.latitude == null || b.longitude == null) continue;
+    const distance = distanceMeters(at, { lat: b.latitude, lng: b.longitude });
+    if (closest === null || distance < closest) closest = distance;
+    if (distance <= b.radius_m && (best === null || distance < best.distanceM)) {
+      best = { branch: b, distanceM: distance };
+    }
+  }
+  if (best) return { branch: best.branch, distanceM: best.distanceM, closestDistanceM: closest };
+  return { branch: fallback, distanceM: null, closestDistanceM: closest };
+}
+
+// The sede the currently open shift was started on — used to attribute a
+// break/lunch/exit stamped away from every branch, so the row still carries a
+// "Sede" for the grid, the presence board and the payroll export.
+async function openShiftBranch(client: PoolClient, userId: string): Promise<BranchGeo | null> {
+  const r = await client.query<BranchGeo>(
+    `SELECT ${BRANCH_COLS}
+       FROM stamps s
+       JOIN branches b ON b.id = s.branch_id
+      WHERE s.user_id = $1 AND s.deleted_at IS NULL
+        AND s.event_type = 'clock_in' AND s.occurred_at <= now()
+      ORDER BY s.occurred_at DESC, s.created_at DESC
+      LIMIT 1`,
+    [userId]
+  );
+  return r.rows[0] ?? null;
 }
 
 export async function evaluateStamp(
@@ -62,7 +143,6 @@ export async function evaluateStamp(
   };
 
   let branchId: string | null = body.branch_id ?? null;
-  let smartWorking = false;
   let enforceGeofence = false;
 
   if (input.source !== 'admin_manual') {
@@ -88,109 +168,89 @@ export async function evaluateStamp(
     enforceGeofence = !isWeb && modes.includes('gps');
   }
 
-  // clock_out is allowed even when the geofence check fails — see EvaluateResult.
-  const allowOutOfArea = body.event_type === 'clock_out';
+  // Only clock_in is gated by the position: it is the single point where being
+  // on site is verified. Every later event of the shift — breaks, lunch, exit —
+  // is accepted from anywhere, so a worker who moves between branches mid-shift
+  // or closes a forgotten shift from home is never stuck. When the position
+  // can't be confirmed inside a branch radius the stamp goes through flagged
+  // `out_of_geofence`; only clock_out turns that flag into an admin anomaly
+  // ('clock_out_out_of_area', routes/shifts.ts).
+  const isClockIn = body.event_type === 'clock_in';
   let outOfGeofence = false;
   let geofenceDistanceM: number | null = null;
+  const at =
+    body.latitude != null && body.longitude != null
+      ? { lat: body.latitude, lng: body.longitude }
+      : null;
+
+  // A branch declared by the client must always belong to the worker, whatever
+  // the event type or the stamp mode.
+  let declared: BranchGeo | null = null;
+  if (branchId && input.source !== 'admin_manual') {
+    const b = await client.query<BranchGeo>(
+      `SELECT ${BRANCH_COLS}
+         FROM branches b
+         JOIN branch_memberships bm ON bm.branch_id = b.id AND bm.user_id = $1
+        WHERE b.id = $2 AND b.deleted_at IS NULL AND b.active = TRUE`,
+      [input.userId, branchId]
+    );
+    if (b.rowCount === 0) throw new ForbiddenError('Branch not assigned', 'FORBIDDEN');
+    declared = b.rows[0]!;
+  }
 
   if (enforceGeofence) {
-    if (branchId) {
-      const b = await client.query(
-        `SELECT b.id, b.latitude, b.longitude, b.radius_m, b.enforce_radius, b.smart_working
-         FROM branches b
-         JOIN branch_memberships bm ON bm.branch_id = b.id AND bm.user_id = $1
-         WHERE b.id = $2 AND b.deleted_at IS NULL AND b.active = TRUE`,
-        [input.userId, branchId]
-      );
-      if (b.rowCount === 0) throw new ForbiddenError('Branch not assigned', 'FORBIDDEN');
-      smartWorking = b.rows[0].smart_working;
-      if (!smartWorking) {
-        if (body.latitude == null || body.longitude == null) {
-          if (allowOutOfArea) {
-            outOfGeofence = true; // exit with no GPS — location unverifiable
-          } else {
-            throw new ValidationError('GPS required', { code: 'GPS_REQUIRED' });
-          }
-        } else if (b.rows[0].enforce_radius) {
-          const gf = withinGeofence({
-            user: { lat: body.latitude, lng: body.longitude },
-            branch: {
-              lat: b.rows[0].latitude,
-              lng: b.rows[0].longitude,
-              radiusM: b.rows[0].radius_m,
-              smartWorking: false,
-            },
-          });
-          if (!gf.allowed) {
-            if (allowOutOfArea) {
-              outOfGeofence = true;
-              geofenceDistanceM = gf.distanceM;
-            } else {
-              throw new ConflictError(
-                'Out of geofence',
-                'OUT_OF_GEOFENCE',
-                { distance_m: gf.distanceM, branch_id: branchId }
-              );
-            }
-          }
-        }
+    const match = at ? await resolveByPosition(client, input.userId, at) : null;
+
+    if (isClockIn) {
+      // Entry honours the declared sede as-is (the worker picked it); with no
+      // declaration the position decides which branch is entered.
+      const target = declared ?? match?.branch ?? null;
+      if (!target) {
+        if (!at) throw new ValidationError('GPS required', { code: 'GPS_REQUIRED' });
+        throw new ConflictError('Out of geofence', 'OUT_OF_GEOFENCE', {
+          distance_m: match?.closestDistanceM ?? null,
+        });
       }
-    } else if (body.latitude == null || body.longitude == null) {
-      if (allowOutOfArea) {
-        outOfGeofence = true; // exit with no GPS — location unverifiable
-      } else {
-        throw new ValidationError('GPS required', { code: 'GPS_REQUIRED' });
-      }
-    } else {
-      const branches = await client.query(
-        `SELECT b.id, b.latitude, b.longitude, b.radius_m, b.enforce_radius, b.smart_working
-         FROM branches b
-         JOIN branch_memberships bm ON bm.branch_id = b.id AND bm.user_id = $1
-         WHERE b.deleted_at IS NULL AND b.active = TRUE`,
-        [input.userId]
-      );
-      let best: { id: string; distance: number } | null = null;
-      for (const b of branches.rows) {
-        if (b.smart_working) {
-          best = { id: b.id, distance: 0 };
-          smartWorking = true;
-          break;
-        }
-        if (!b.enforce_radius) continue;
-        if (b.latitude == null || b.longitude == null) continue;
+      if (!unrestricted(target)) {
+        if (!at) throw new ValidationError('GPS required', { code: 'GPS_REQUIRED' });
         const gf = withinGeofence({
-          user: { lat: body.latitude, lng: body.longitude },
+          user: at,
           branch: {
-            lat: b.latitude,
-            lng: b.longitude,
-            radiusM: b.radius_m,
+            lat: target.latitude,
+            lng: target.longitude,
+            radiusM: target.radius_m,
             smartWorking: false,
           },
         });
-        if (gf.allowed && gf.distanceM != null && (best === null || gf.distanceM < best.distance)) {
-          best = { id: b.id, distance: gf.distanceM };
-        }
-      }
-      if (!best) {
-        const fallbackDistance =
-          branches.rows.length > 0 && branches.rows[0].latitude != null
-            ? distanceMeters(
-                { lat: body.latitude, lng: body.longitude },
-                { lat: branches.rows[0].latitude, lng: branches.rows[0].longitude }
-              )
-            : null;
-        if (allowOutOfArea) {
-          outOfGeofence = true;
-          geofenceDistanceM = fallbackDistance;
-        } else {
+        if (!gf.allowed) {
           throw new ConflictError('Out of geofence', 'OUT_OF_GEOFENCE', {
-            distance_m: fallbackDistance,
+            distance_m: gf.distanceM,
+            branch_id: target.id,
           });
         }
-      } else {
-        branchId = best.id;
+      }
+      branchId = target.id;
+    } else if (match?.branch) {
+      // Mid-shift the position decides the sede, not the picker: a worker who
+      // clocked in at A and is now inside B's radius is stamped on B instead of
+      // being flagged out of area at A. `geofence_distance_m` stays null — it
+      // only ever carries the distance of an out-of-area stamp.
+      branchId = match.branch.id;
+    } else {
+      // Near none of the assigned branches (or no GPS at all): keep the stamp
+      // attributed to the sede the shift was opened on, and flag it.
+      const target = declared ?? (await openShiftBranch(client, input.userId));
+      branchId = target?.id ?? null;
+      if (!target || !unrestricted(target)) {
+        outOfGeofence = true;
+        geofenceDistanceM =
+          at && target && target.latitude != null && target.longitude != null
+            ? distanceMeters(at, { lat: target.latitude, lng: target.longitude })
+            : null;
       }
     }
+  } else if (declared) {
+    branchId = declared.id;
   }
 
   if (input.source !== 'admin_manual') {
@@ -220,10 +280,13 @@ export async function evaluateStamp(
 
   let suspiciousMock = false;
   if (body.is_mock_location) {
-    if (t.mock_location_action === 'block') {
+    // A spoofed position must not trap a worker inside an open shift: with
+    // 'block' only the entry is refused, later events are recorded and flagged
+    // — same rule as the geofence above.
+    if (t.mock_location_action === 'block' && isClockIn) {
       throw new ForbiddenError('Mock location blocked', 'MOCK_LOCATION_BLOCKED');
     }
-    if (t.mock_location_action === 'flag') {
+    if (t.mock_location_action !== 'allow') {
       suspiciousMock = true;
     }
   }
