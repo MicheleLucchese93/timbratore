@@ -46,7 +46,9 @@ async function stampAs(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Idempotency-Key': `e2e-break-${eventType}-${Date.now()}-${Math.floor(Math.random() * 1e9)}`,
+      // The middleware only accepts [a-zA-Z0-9-], so the event's underscore
+      // has to go or the request dies at 400 before reaching the pausa gate.
+      'Idempotency-Key': `e2e-break-${eventType.replace(/_/g, '-')}-${Date.now()}-${Math.floor(Math.random() * 1e9)}`,
     },
     body: JSON.stringify({
       event_type: eventType,
@@ -152,10 +154,13 @@ test.describe('web (employee) — pausa disabilitata sull\'orario (mutating)', (
 
   test('pausa pranzo is not gated by the pausa switch', async () => {
     const r = await stampAs(user.token, 'lunch_start');
-    if (r.id) strayStampIds.push(r.id);
     // Whatever the current shift state produces (201, or a transition/geofence
     // refusal), it must never be the pausa refusal — lunch is a separate event.
     expect(r.code).not.toBe('BREAK_DISABLED');
+    // Undo straight away, not in afterAll: if test3 was mid-shift this lands a
+    // real lunch_start and leaves the account `on_lunch`, which would change
+    // which buttons the dashboard test below finds on screen.
+    if (r.id) await deleteStampAdmin(admin.token, r.id).catch(() => strayStampIds.push(r.id!));
   });
 
   test('a correction request claiming a break is refused, clock_in is not', async () => {
@@ -186,10 +191,12 @@ test.describe('web (employee) — pausa disabilitata sull\'orario (mutating)', (
   test('the employee dashboard drops "Inizia pausa" mid-shift', async ({ page }) => {
     // Seed an open shift so the mid-shift buttons are the ones on screen.
     // Admin manual entry bypasses the pausa gate by design.
+    // `now`, not a fixed 09:00: the state machine reads the LATEST event, so an
+    // earlier timestamp would be shadowed by whatever test3 already has today.
     const seed = await apiPost<{ id: string }>(admin.token, '/api/v1/admin/stamps', {
       user_id: user.userId,
       event_type: 'clock_in',
-      occurred_at: romeWallClockISO(new Date(), 9).iso,
+      occurred_at: new Date().toISOString(),
       justification: 'e2e pausa disabilitata seed',
     });
     expect(seed.status).toBe(201);
