@@ -264,13 +264,18 @@ export function TimbratureScreen() {
   const autoLunchToday = (assignment?.day_lunch ?? []).some(
     (d) => d.day_of_week === todayDow && d.lunch_min > 0
   );
+  // Pausa switched off on this orario. Undefined (no assignment, or a payload
+  // from a backend older than the switch) means enabled — the server default.
+  const breakEnabled = assignment?.break_enabled !== false;
 
   const buttons: Array<{ event: StampEventType; label: string; icon: keyof typeof Ionicons.glyphMap; variant: 'primary' | 'secondary' }> = [];
   if (currentState === 'nothing') {
     buttons.push({ event: 'clock_in', label: t('action.clockIn'), icon: 'log-in-outline', variant: 'primary' });
   } else if (currentState === 'clocked_in') {
     buttons.push({ event: 'clock_out', label: t('action.clockOut'), icon: 'log-out-outline', variant: 'primary' });
-    buttons.push({ event: 'break_start', label: t('action.breakStart'), icon: 'pause-outline', variant: 'secondary' });
+    if (breakEnabled) {
+      buttons.push({ event: 'break_start', label: t('action.breakStart'), icon: 'pause-outline', variant: 'secondary' });
+    }
     if (!autoLunchToday) {
       buttons.push({ event: 'lunch_start', label: t('action.lunchStart'), icon: 'restaurant-outline', variant: 'secondary' });
     }
@@ -588,6 +593,7 @@ function humanError(err: unknown, t: TFunction): string {
     case 'GPS_REQUIRED': return t('common:errors.GPS_REQUIRED');
     case 'MOCK_LOCATION_BLOCKED': return t('common:errors.MOCK_LOCATION_BLOCKED');
     case 'STAMPING_DISABLED': return t('common:errors.STAMPING_DISABLED');
+    case 'BREAK_DISABLED': return t('common:errors.BREAK_DISABLED');
     case 'LOCATION_PERMISSION_DENIED': return t('error.LOCATION_PERMISSION_DENIED');
     case 'ACQUISITION_TIMEOUT': return t('error.ACQUISITION_TIMEOUT');
     case 'WEB_CLOCK_IN_DISABLED': return t('error.WEB_CLOCK_IN_DISABLED');

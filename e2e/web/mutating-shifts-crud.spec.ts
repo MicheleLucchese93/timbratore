@@ -81,6 +81,41 @@ test.describe('web — Orari template CRUD (mutating)', () => {
     await expect(page.getByText(name).first()).toBeVisible({ timeout: 15_000 });
   });
 
+  test('pausa toggle persists through the edit form and hides the min/max fields', async ({ page }) => {
+    await page.goto('/shifts');
+    const card = page.locator('li.card', { hasText: name });
+    await expect(card).toBeVisible({ timeout: 15_000 });
+    await card.getByRole('button', { name: 'Modifica' }).click();
+
+    const toggle = page.getByRole('checkbox', { name: /Abilita la pausa/ });
+    await expect(toggle).toBeChecked(); // default for a freshly created template
+    await expect(page.getByText('Pausa min', { exact: true })).toBeVisible();
+
+    await toggle.uncheck();
+    // The window is meaningless without the pausa, so the inputs go away.
+    await expect(page.getByText('Pausa min', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Pausa max', { exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: /Salva/ }).click();
+
+    // Persisted, and the card summary says so instead of printing a range.
+    await expect
+      .poll(
+        async () => {
+          const one = await apiGet<{ break_enabled: boolean }>(
+            admin.token,
+            `/api/v1/shifts/templates/${templateId}`,
+          );
+          return one.break_enabled;
+        },
+        { timeout: 10_000 },
+      )
+      .toBe(false);
+    await page.reload();
+    await expect(
+      page.locator('li.card', { hasText: name }).getByText(/pausa disattivata/),
+    ).toBeVisible({ timeout: 15_000 });
+  });
+
   test('Duplica icon clones the template under "Copia di …"', async ({ page }) => {
     await page.goto('/shifts');
     const card = page.locator('li.card', { hasText: name });

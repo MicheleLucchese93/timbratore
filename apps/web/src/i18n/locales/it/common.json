@@ -147,6 +147,7 @@
     "GPS_REQUIRED": "Posizione GPS richiesta per timbrare",
     "WEB_CLOCK_IN_DISABLED": "La timbratura da web non è abilitata",
     "STAMPING_DISABLED": "Timbratura non abilitata",
+    "BREAK_DISABLED": "La pausa non è prevista dal tuo orario di lavoro",
     "CLOCK_SKEW": "L'orario del dispositivo non è allineato al server",
     "UNDO_WINDOW_EXPIRED": "Finestra di annullamento scaduta",
     "LIMIT_REACHED": "Limite del piano raggiunto",

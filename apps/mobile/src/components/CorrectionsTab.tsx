@@ -356,6 +356,25 @@ export function NewCorrectionModal({
     }
   }, [visible, branches]);
 
+  // An orario with pausa switched off has no break events to claim — the
+  // backend refuses a break_start correction, so don't offer either half of the
+  // pair. Admins keep the full list in the web manual-entry form.
+  const [breakEnabled, setBreakEnabled] = useState(true);
+  useEffect(() => {
+    if (!visible) return;
+    void api<{ break_enabled?: boolean } | null>('/api/v1/shifts/assignments/me')
+      .then((a) => setBreakEnabled(a?.break_enabled !== false))
+      .catch(() => setBreakEnabled(true));
+  }, [visible]);
+  const eventOptions =
+    breakEnabled ? EVENT_OPTIONS : (
+      // `eventType` survives the filter so editing a break stamped before the
+      // switch was flipped doesn't leave the grid with nothing selected.
+      EVENT_OPTIONS.filter(
+        (e) => (e.value !== 'break_start' && e.value !== 'break_end') || e.value === eventType
+      )
+    );
+
   async function goToPickStamp() {
     setLoadingDay(true);
     try {
@@ -524,7 +543,7 @@ export function NewCorrectionModal({
             <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
               <Text style={styles.fieldLabel}>{t('field.eventType')}</Text>
               <View style={styles.eventGrid}>
-                {EVENT_OPTIONS.map((e) => {
+                {eventOptions.map((e) => {
                   const sel = e.value === eventType;
                   return (
                     <Pressable
@@ -639,12 +658,16 @@ function promptNote(title: string, fn: (note: string | null) => void): void {
 }
 
 function showError(err: unknown): void {
-  const e = err as { message?: string };
+  const e = err as { message?: string; code?: string };
+  // The pausa refusal is the one code reachable from this form (a screen opened
+  // before the orario changed) — show it translated, not as the raw API text.
+  const msg =
+    e.code === 'BREAK_DISABLED' ? i18n.t('common:errors.BREAK_DISABLED') : e.message;
   if (Platform.OS === 'web') {
-    window.alert(e.message ?? i18n.t('common:state.error'));
+    window.alert(msg ?? i18n.t('common:state.error'));
     return;
   }
-  Alert.alert(i18n.t('common:state.error'), e.message ?? i18n.t('correzioni:errorFallback'));
+  Alert.alert(i18n.t('common:state.error'), msg ?? i18n.t('correzioni:errorFallback'));
 }
 
 function eventIcon(e: StampEventType): keyof typeof Ionicons.glyphMap {

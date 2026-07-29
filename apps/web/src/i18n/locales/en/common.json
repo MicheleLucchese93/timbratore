@@ -147,6 +147,7 @@
     "GPS_REQUIRED": "GPS location required to stamp",
     "WEB_CLOCK_IN_DISABLED": "Web clock-in is not enabled",
     "STAMPING_DISABLED": "Stamping not enabled",
+    "BREAK_DISABLED": "Break stamping is not part of your work schedule",
     "CLOCK_SKEW": "Device clock is not in sync with the server",
     "UNDO_WINDOW_EXPIRED": "Undo window has expired",
     "LIMIT_REACHED": "Plan limit reached",

@@ -7,6 +7,7 @@ import {
 } from '@sonoqui/shared';
 import type { StampEventType, MockLocationAction, StampMode } from '@sonoqui/shared';
 import { ConflictError, ValidationError, ForbiddenError } from '../errors/index.js';
+import { TENANT_TZ_SQL } from '../lib/tz.js';
 
 export interface StampInputBody {
   event_type: StampEventType;
@@ -120,6 +121,45 @@ async function openShiftBranch(client: PoolClient, userId: string): Promise<Bran
   return r.rows[0] ?? null;
 }
 
+// Pausa (coffee break) stamping is switched on or off per shift template.
+// Resolve the template that governs the day the event belongs to — a correction
+// filed for last week must be judged by the schedule in force back then, not by
+// today's. A user with no assignment has no flag to read and keeps the break:
+// the column defaults true, exactly like every template predating the switch.
+export async function isBreakStampingEnabled(
+  client: PoolClient,
+  userId: string,
+  occurredAtIso: string
+): Promise<boolean> {
+  const localDay = `($2::timestamptz AT TIME ZONE ${TENANT_TZ_SQL})::date`;
+  const r = await client.query<{ break_enabled: boolean }>(
+    `SELECT st.break_enabled
+       FROM user_shift_assignments a
+       JOIN shift_templates st ON st.id = a.shift_template_id
+      WHERE a.user_id = $1
+        AND a.valid_from <= ${localDay}
+        AND (a.valid_to IS NULL OR a.valid_to >= ${localDay})
+      ORDER BY a.valid_from DESC
+      LIMIT 1`,
+    [userId, occurredAtIso]
+  );
+  return r.rows[0]?.break_enabled !== false;
+}
+
+// Only the OPENING of a break is refused. `break_end` always goes through, so a
+// break started before the flag was flipped can still be closed and the worker
+// is never trapped in the `on_break` state.
+export async function assertBreakStampAllowed(
+  client: PoolClient,
+  userId: string,
+  eventType: StampEventType,
+  occurredAtIso: string
+): Promise<void> {
+  if (eventType !== 'break_start') return;
+  if (await isBreakStampingEnabled(client, userId, occurredAtIso)) return;
+  throw new ForbiddenError('Break stamping disabled for this shift', 'BREAK_DISABLED');
+}
+
 export async function evaluateStamp(
   client: PoolClient,
   input: EvaluateInput
@@ -166,6 +206,10 @@ export async function evaluateStamp(
     // Geofence is enforced only for mobile GPS clock-in. Remote clock-in
     // (web, or mobile for a user without the 'gps' mode) skips the geofence.
     enforceGeofence = !isWeb && modes.includes('gps');
+    // A client that predates the pausa switch (an app install still on an older
+    // JS bundle) keeps showing "Inizio pausa"; refuse it here rather than
+    // recording a break the orario says doesn't exist.
+    await assertBreakStampAllowed(client, input.userId, body.event_type, body.occurred_at);
   }
 
   // Only clock_in is gated by the position: it is the single point where being

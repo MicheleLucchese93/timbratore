@@ -166,13 +166,18 @@ export function StampPanel({ onStamped }: { onStamped?: () => void }) {
   const autoLunchToday = (assignment?.day_lunch ?? []).some(
     (d) => d.day_of_week === todayDow && d.lunch_min > 0
   );
+  // Pausa is switched off on this orario. Undefined (no assignment, or a payload
+  // from a backend older than the switch) means enabled — the server default.
+  const breakEnabled = assignment?.break_enabled !== false;
 
   const buttons: ButtonSpec[] = [];
   if (currentState === 'nothing') {
     buttons.push({ event: 'clock_in', label: t('action.clockIn'), variant: 'primary' });
   } else if (currentState === 'clocked_in') {
     buttons.push({ event: 'clock_out', label: t('action.clockOut'), variant: 'primary' });
-    buttons.push({ event: 'break_start', label: t('action.breakStart'), variant: 'secondary' });
+    if (breakEnabled) {
+      buttons.push({ event: 'break_start', label: t('action.breakStart'), variant: 'secondary' });
+    }
     if (!autoLunchToday) {
       buttons.push({ event: 'lunch_start', label: t('action.lunchStart'), variant: 'secondary' });
     }
@@ -391,6 +396,7 @@ function humanError(err: unknown, t: TFunction): string {
     'INVALID_TRANSITION',
     'DUPLICATE_TOO_FAST',
     'STAMPING_DISABLED',
+    'BREAK_DISABLED',
     'WEB_CLOCK_IN_DISABLED',
     'CLOCK_SKEW',
     'UNDO_WINDOW_EXPIRED',

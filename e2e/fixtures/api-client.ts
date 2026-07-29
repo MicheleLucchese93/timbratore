@@ -825,6 +825,8 @@ export async function createShiftTemplate(
     tolerance_in_breach_deduct_min?: number;
     tolerance_out_breach_deduct_min?: number;
     count_extraordinary?: boolean;
+    // Pausa (coffee break) stamping — omitted = true (server default).
+    break_enabled?: boolean;
     // Orario flessibile (flextime) + per-weekday auto-deduct lunch.
     flexible_enabled?: boolean;
     flex_in_before_min?: number;

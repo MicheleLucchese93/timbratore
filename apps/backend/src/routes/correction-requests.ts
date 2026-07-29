@@ -6,6 +6,7 @@ import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
 import { logAudit } from '../lib/audit.js';
+import { assertBreakStampAllowed } from '../services/stamp-service.js';
 import {
   notifyCorrectionSubmitted,
   notifyCorrectionDecided,
@@ -28,6 +29,15 @@ correctionRequestsRouter.post(
     const parse = CreateBody.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     const b = parse.data;
+    // An employee can't request a pausa that the orario in force that day
+    // doesn't have. Admins keep the full event list in the manual entry form,
+    // so data recorded before the switch was flipped stays fixable.
+    await assertBreakStampAllowed(
+      client,
+      req.user!.id,
+      b.claimed_event_type,
+      b.claimed_occurred_at
+    );
     const r = await client.query(
       `INSERT INTO correction_requests(
          tenant_id, user_id, original_stamp_id, claimed_event_type, claimed_occurred_at,

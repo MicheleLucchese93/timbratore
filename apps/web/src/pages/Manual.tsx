@@ -384,7 +384,7 @@ const MAIN_IT = `
         <ol class="steps">
           <li>Premi <strong>Nuova timbratura</strong> in alto a destra.</li>
           <li>Seleziona l'<strong>utente</strong> per cui inserire.</li>
-          <li>Scegli l'<strong>evento</strong> (Ingresso / Uscita / Inizio pausa / Fine pausa / Inizio pausa pranzo / Fine pausa pranzo).</li>
+          <li>Scegli l'<strong>evento</strong> (Ingresso / Uscita / Inizio pausa / Fine pausa / Inizio pausa pranzo / Fine pausa pranzo). L'elenco resta completo anche per gli utenti il cui orario ha la pausa disattivata, così puoi correggere le giornate registrate prima della modifica.</li>
           <li>Imposta <strong>data e ora</strong> tramite il campo datetime.</li>
           <li>Opzionale: seleziona la <strong>sede</strong>.</li>
           <li>Indica una <strong>motivazione</strong> (es. "timbratura dimenticata").</li>
@@ -586,13 +586,28 @@ const MAIN_IT = `
           <li>Premi <strong>Nuovo orario</strong>.</li>
           <li>Indica <strong>nome</strong> e <strong>descrizione</strong> opzionale.</li>
           <li>Imposta le <strong>tolleranze</strong> in minuti per entrata e uscita (default ±10').</li>
-          <li>Definisci pausa minima/massima e pausa pranzo minima/massima attese.</li>
+          <li>Decidi se abilitare la <strong>pausa</strong> per questo orario (vedi sotto). Se è abilitata, definisci pausa minima/massima attesa.</li>
+          <li>Definisci pausa pranzo minima/massima attesa.</li>
           <li>Scegli se conteggiare gli <strong>straordinari</strong> e il <strong>blocco</strong> di calcolo (15, 30 o 60 minuti): il tempo oltre l'orario previsto è contato in blocchi interi, un blocco non completo non viene contato (es. uscita prevista 18:00, reale 18:28 → con blocchi da 30 min nessuno straordinario, da 15 min vengono contati 15 minuti).</li>
           <li>Per ogni giorno della settimana aggiungi uno o più <strong>slot</strong> (orario inizio - orario fine). Aggiungendo un secondo slot nello stesso giorno, gli orari del precedente vengono copiati come punto di partenza, così basta modificarli.</li>
           <li>Imposta le <strong>penalità</strong> per superamento tolleranze su entrata, uscita e pausa. Un permesso o una ferie approvati che coprono lo scostamento (es. permesso 16:00–18:00 a fine turno) annullano la penalità su entrata/uscita.</li>
           <li>Opzionale: attiva <strong>Orario flessibile</strong> e/o imposta la pausa pranzo automatica per giorno (vedi sotto).</li>
           <li>Premi <strong>Salva</strong>.</li>
         </ol>
+      </div>
+
+      <div class="feature">
+        <h3>Abilitare o disabilitare la pausa</h3>
+        <p>Nel riquadro <strong>Pausa</strong> dell'orario trovi l'opzione <strong>Abilita la pausa (Inizio/Fine pausa)</strong>, attiva per impostazione predefinita. Toglila se in azienda si timbrano solo ingresso, uscita ed eventuale pausa pranzo: la pausa breve sparisce dall'esperienza del dipendente.</p>
+        <ul class="tidy">
+          <li>Nell'<strong>app mobile</strong> e nella <strong>timbratura da web</strong> il pulsante <strong>Inizia pausa</strong> non compare più per chi ha questo orario.</li>
+          <li>Nelle <strong>richieste di correzione</strong> del dipendente gli eventi <em>Inizio/Fine pausa</em> non sono più selezionabili. L'amministratore continua a vederli nell'inserimento manuale, così le giornate registrate prima della modifica restano correggibili.</li>
+          <li>Le anomalie <em>Pausa troppo breve</em> e <em>Pausa troppo lunga</em> non vengono più generate. I valori di pausa min/max restano memorizzati: se riattivi la pausa, tornano quelli di prima.</li>
+          <li>La <strong>pausa pranzo</strong> non è toccata: continua a funzionare come sempre.</li>
+        </ul>
+        <div class="callout callout-info">
+          Una pausa <strong>già aperta</strong> può sempre essere chiusa: il pulsante <strong>Termina pausa</strong> resta disponibile anche dopo aver disattivato l'opzione, così nessuno resta bloccato in stato "In pausa". Chi non ha nessun orario assegnato continua a vedere la pausa.
+        </div>
       </div>
 
       <div class="feature">
@@ -1066,6 +1081,7 @@ const MAIN_IT = `
             <tr><td><span class="pill pill-warn">In pausa pranzo</span></td><td><strong>Termina pausa pranzo</strong></td></tr>
           </tbody>
         </table>
+        <p><strong>Inizia pausa</strong> compare solo se il tuo <strong>orario di lavoro</strong> prevede la pausa: se l'amministratore l'ha disattivata per il tuo orario, il pulsante non c'è.</p>
         <p>Appena timbrato hai <strong>60 secondi</strong> per annullare con <em>Annulla ultima timbratura</em>. Se sei assegnato a più sedi puoi sceglierla, anche a turno aperto: puoi timbrare l'ingresso in una sede e l'uscita in un'altra. Durante il turno la sede della timbratura viene rilevata dalla posizione (app mobile con GPS), quindi non devi ricordarti di cambiare la selezione.</p>
         <div class="callout callout-info">
           La timbratura da web è <strong>"da remoto"</strong>: non richiede il GPS e non applica il controllo dell'area (geofence). Per questo è disponibile solo se l'amministratore ti ha assegnato la modalità <strong>remoto</strong>. Se non ce l'hai, vedrai l'avviso <em>"La timbratura da web non è abilitata"</em> e dovrai usare l'app mobile.
@@ -1210,6 +1226,7 @@ const MAIN_IT = `
             <tr><td><span class="pill pill-warn">In pausa pranzo</span></td><td><strong>Termina pausa pranzo</strong></td></tr>
           </tbody>
         </table>
+        <p><strong>Inizia pausa</strong> compare solo se il tuo <strong>orario di lavoro</strong> prevede la pausa: se l'amministratore l'ha disattivata per il tuo orario, il pulsante non c'è. <strong>Inizia pausa pranzo</strong> è nascosto nei giorni con pausa pranzo automatica.</p>
         <p>Tocca il pulsante e l'app:</p>
         <ol class="steps">
           <li>Verifica lo stato corrente.</li>

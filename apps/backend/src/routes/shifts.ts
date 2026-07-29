@@ -95,6 +95,10 @@ const TemplateBody = z.object({
     .union([z.literal(15), z.literal(30), z.literal(60)])
     .default(15),
   count_extraordinary: z.boolean().default(false),
+  // Pausa (coffee break) stamping. Off hides the button on web + mobile and
+  // makes the backend refuse break_start; defaults on so existing templates and
+  // any user without an assigned template keep it.
+  break_enabled: z.boolean().default(true),
   tolerance_in_breach_deduct_min: z.number().int().min(0).max(240).default(0),
   tolerance_out_breach_deduct_min: z.number().int().min(0).max(240).default(0),
   tolerance_break_breach_deduct_min: z.number().int().min(0).max(240).default(0),
@@ -176,7 +180,7 @@ shiftsRouter.get(
       `SELECT id, name, description, tolerance_in_min, tolerance_out_min,
               expected_break_min_min, expected_break_max_min,
               expected_lunch_min_min, expected_lunch_max_min,
-              extraordinary_threshold_min, count_extraordinary,
+              extraordinary_threshold_min, count_extraordinary, break_enabled,
               tolerance_in_breach_deduct_min, tolerance_out_breach_deduct_min,
               tolerance_break_breach_deduct_min,
               flexible_enabled, flex_in_before_min, flex_in_after_min,
@@ -270,9 +274,10 @@ shiftsRouter.post(
                                      tolerance_break_breach_deduct_min,
                                      flexible_enabled, flex_in_before_min, flex_in_after_min,
                                      flex_out_before_min, flex_out_after_min,
-                                     flex_lunch_before_min, flex_lunch_after_min)
+                                     flex_lunch_before_min, flex_lunch_after_min,
+                                     break_enabled)
          VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
-                 $14, $15, $16, $17, $18, $19, $20)
+                 $14, $15, $16, $17, $18, $19, $20, $21)
          RETURNING *`,
         [
           b.name,
@@ -295,6 +300,7 @@ shiftsRouter.post(
           b.flex_out_after_min,
           b.flex_lunch_before_min,
           b.flex_lunch_after_min,
+          b.break_enabled,
         ]
       );
     } catch (err) {
@@ -455,6 +461,7 @@ shiftsRouter.get(
               st.expected_break_min_min, st.expected_break_max_min,
               st.expected_lunch_min_min, st.expected_lunch_max_min,
               st.extraordinary_threshold_min, st.count_extraordinary,
+              st.break_enabled,
               st.tolerance_in_breach_deduct_min, st.tolerance_out_breach_deduct_min,
               st.tolerance_break_breach_deduct_min,
               st.flexible_enabled, st.flex_in_before_min, st.flex_in_after_min,
@@ -669,6 +676,7 @@ shiftsRouter.get(
               st.tolerance_in_min, st.tolerance_out_min,
               st.expected_break_min_min, st.expected_break_max_min,
               st.expected_lunch_min_min, st.expected_lunch_max_min,
+              st.break_enabled,
               st.flexible_enabled, st.flex_in_before_min, st.flex_in_after_min,
               st.flex_out_before_min, st.flex_out_after_min,
               st.flex_lunch_before_min, st.flex_lunch_after_min,
@@ -840,6 +848,9 @@ export interface AnomalyRow {
   expected_break_max_min: number | null;
   expected_lunch_min_min: number | null;
   expected_lunch_max_min: number | null;
+  // Optional: rows built before the switch existed (fixtures, older callers)
+  // read as enabled, matching the column default.
+  break_enabled?: boolean | null;
   flexible_enabled: boolean | null;
   flex_in_before_min: number | null;
   flex_in_after_min: number | null;
@@ -1156,8 +1167,12 @@ export function computeAnomalies(
     const bMin = row.expected_break_min_min ?? 0;
     const bMax = row.expected_break_max_min ?? Number.POSITIVE_INFINITY;
     // Auto-lunch days don't track stamped break/lunch (the lunch is a flat
-    // deduction), so duration anomalies don't apply.
-    if (firstIn && lastOut && autoLunchMin === 0) {
+    // deduction), so duration anomalies don't apply. Neither do they when the
+    // template has pausa switched off: nobody can stamp a break, so a positive
+    // `expected_break_min_min` left over from before the switch would raise
+    // break_too_short on every single day.
+    const breakStampingOn = row.break_enabled !== false;
+    if (firstIn && lastOut && autoLunchMin === 0 && breakStampingOn) {
       if (breakTotal < bMin) {
         const a = buildAnomaly(
           row,

@@ -100,6 +100,7 @@
     "CLOCK_SKEW": "Device clock is not in sync with the server",
     "UNDO_WINDOW_EXPIRED": "Undo window has expired",
     "STAMPING_DISABLED": "Stamping not enabled",
+    "BREAK_DISABLED": "Break stamping is not part of your work schedule",
     "LIMIT_REACHED": "Plan limit reached",
     "LAST_ADMIN": "Cannot remove the last administrator",
     "NO_ACTIVE_TENANT": "No active company linked to your account",

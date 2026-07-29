@@ -100,6 +100,7 @@
     "CLOCK_SKEW": "L'orario del dispositivo non è allineato al server",
     "UNDO_WINDOW_EXPIRED": "Finestra di annullamento scaduta",
     "STAMPING_DISABLED": "Timbratura non abilitata",
+    "BREAK_DISABLED": "La pausa non è prevista dal tuo orario di lavoro",
     "LIMIT_REACHED": "Limite del piano raggiunto",
     "LAST_ADMIN": "Non puoi rimuovere l'ultimo amministratore",
     "NO_ACTIVE_TENANT": "Nessuna azienda attiva associata al tuo account",

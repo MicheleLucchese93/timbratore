@@ -64,6 +64,22 @@ export function NewCorrectionModal({
     setBranchId((cur) => cur ?? branches[0]?.id ?? null);
   }, [branches]);
 
+  // An orario with pausa switched off has no break events to claim — the
+  // backend refuses a break_start correction, so don't offer either half of the
+  // pair. Admins keep the full list in the manual-entry form.
+  const [breakEnabled, setBreakEnabled] = useState(true);
+  useEffect(() => {
+    void api<{ break_enabled?: boolean } | null>('/api/v1/shifts/assignments/me')
+      .then((a) => setBreakEnabled(a?.break_enabled !== false))
+      .catch(() => setBreakEnabled(true));
+  }, []);
+  const eventTypes =
+    breakEnabled ? EVENT_TYPES : (
+      // `eventType` survives the filter so editing a break stamped before the
+      // switch was flipped doesn't land on an empty select.
+      EVENT_TYPES.filter((e) => (e !== 'break_start' && e !== 'break_end') || e === eventType)
+    );
+
   const today = isoLocalDate(new Date());
 
   async function goToPickStamp() {
@@ -118,7 +134,13 @@ export function NewCorrectionModal({
       });
       onDone();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : t('error.generic'));
+      // The pausa refusal is the one code an employee can realistically hit
+      // here (a stale tab whose orario changed) — show it translated.
+      if ((e as { code?: string }).code === 'BREAK_DISABLED') {
+        setErr(t('common:errors.BREAK_DISABLED'));
+      } else {
+        setErr(e instanceof Error ? e.message : t('error.generic'));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -243,7 +265,7 @@ export function NewCorrectionModal({
                 value={eventType}
                 onChange={(e) => setEventType(e.target.value as StampEventType)}
               >
-                {EVENT_TYPES.map((value) => (
+                {eventTypes.map((value) => (
                   <option key={value} value={value}>{t(`common:stampEvent.${value}`)}</option>
                 ))}
               </select>

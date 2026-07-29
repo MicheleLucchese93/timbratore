@@ -377,7 +377,7 @@ export const MAIN_EN = `
         <ol class="steps">
           <li>Press <strong>New stamp</strong> at the top right.</li>
           <li>Select the <strong>user</strong> to enter it for.</li>
-          <li>Choose the <strong>event</strong> (Clock-in / Clock-out / Break start / Break end / Lunch start / Lunch end).</li>
+          <li>Choose the <strong>event</strong> (Clock-in / Clock-out / Break start / Break end / Lunch start / Lunch end). The list stays complete even for users whose schedule has the break disabled, so days recorded before the change remain fixable.</li>
           <li>Set the <strong>date and time</strong> using the datetime field.</li>
           <li>Optional: select the <strong>branch</strong>.</li>
           <li>Provide a <strong>reason</strong> (e.g. "forgotten stamp").</li>
@@ -579,13 +579,28 @@ export const MAIN_EN = `
           <li>Press <strong>New shift</strong>.</li>
           <li>Provide an optional <strong>name</strong> and <strong>description</strong>.</li>
           <li>Set the <strong>tolerances</strong> in minutes for clock-in and clock-out (default ±10').</li>
-          <li>Define the expected minimum/maximum break and minimum/maximum lunch break.</li>
+          <li>Decide whether to enable the <strong>break</strong> for this schedule (see below). If enabled, define the expected minimum/maximum break.</li>
+          <li>Define the expected minimum/maximum lunch break.</li>
           <li>Choose whether to count <strong>overtime</strong> and the calculation <strong>block</strong> (15, 30 or 60 minutes): time beyond the planned shift is counted in whole blocks, an incomplete block is not counted (e.g. planned clock-out 18:00, actual 18:28 → with 30-min blocks no overtime, with 15-min blocks 15 minutes are counted).</li>
           <li>For each day of the week add one or more <strong>slots</strong> (start time - end time). When you add a second slot on the same day, the times of the previous one are copied as a starting point, so you just need to adjust them.</li>
           <li>Set the <strong>penalties</strong> for exceeding the tolerances on clock-in, clock-out and break. An approved leave or holiday that covers the deviation (e.g. leave 16:00–18:00 at the end of the shift) cancels the penalty on clock-in/clock-out.</li>
           <li>Optional: enable <strong>Flexible schedule</strong> and/or set the per-day auto lunch break (see below).</li>
           <li>Press <strong>Save</strong>.</li>
         </ol>
+      </div>
+
+      <div class="feature">
+        <h3>Enabling or disabling the break</h3>
+        <p>The <strong>Break</strong> box of the schedule holds the <strong>Enable break (Start/End break)</strong> option, on by default. Turn it off when the company only stamps clock-in, clock-out and possibly the lunch break: the short break disappears from the employee experience.</p>
+        <ul class="tidy">
+          <li>In the <strong>mobile app</strong> and in <strong>web stamping</strong> the <strong>Start break</strong> button no longer appears for anyone on this schedule.</li>
+          <li>In the employee's <strong>correction requests</strong> the <em>Break start / Break end</em> events are no longer selectable. Administrators still see them in manual entry, so days recorded before the change stay fixable.</li>
+          <li>The <em>Break too short</em> and <em>Break too long</em> anomalies are no longer raised. The min/max break values stay stored: re-enable the break and your numbers come back.</li>
+          <li>The <strong>lunch break</strong> is untouched and keeps working as before.</li>
+        </ul>
+        <div class="callout callout-info">
+          A break that is <strong>already open</strong> can always be closed: the <strong>End break</strong> button stays available even after the option is turned off, so nobody is stuck "On break". Users with no schedule assigned keep the break.
+        </div>
       </div>
 
       <div class="feature">
@@ -1054,6 +1069,7 @@ export const MAIN_EN = `
             <tr><td><span class="pill pill-warn">On lunch break</span></td><td><strong>End lunch break</strong></td></tr>
           </tbody>
         </table>
+        <p><strong>Start break</strong> only appears if your <strong>work schedule</strong> includes the break: if the administrator disabled it for your schedule, the button is not there.</p>
         <p>Right after stamping you have <strong>60 seconds</strong> to undo with <em>Undo last stamp</em>. If you are assigned to several locations you can pick one, mid-shift too: you may clock in at one location and clock out at another. During the shift the location of each stamp is detected from your position (mobile app with GPS), so you don't have to remember to change the selection.</p>
         <div class="callout callout-info">
           Web stamping is <strong>"remote"</strong>: it requires no GPS and does not apply the area check (geofence). For this reason it is available only if the administrator assigned you the <strong>remote</strong> mode. If you don't have it, you'll see the notice <em>"Web stamping is not enabled"</em> and you'll need to use the mobile app.
@@ -1198,6 +1214,7 @@ export const MAIN_EN = `
             <tr><td><span class="pill pill-warn">On lunch break</span></td><td><strong>End lunch</strong></td></tr>
           </tbody>
         </table>
+        <p><strong>Start break</strong> only appears if your <strong>work schedule</strong> includes the break: if the administrator disabled it for your schedule, the button is not there. <strong>Start lunch</strong> is hidden on days with an automatic lunch break.</p>
         <p>Tap the button and the app:</p>
         <ol class="steps">
           <li>Checks the current status.</li>

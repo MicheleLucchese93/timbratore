@@ -33,6 +33,9 @@ export interface ActiveAssignment {
   expected_lunch_max_min: number;
   extraordinary_threshold_min: 15 | 30 | 60;
   count_extraordinary: boolean;
+  /** Pausa (coffee break) stamping. Optional so a payload cached by a client
+   *  older than the switch reads as enabled — the server default. */
+  break_enabled?: boolean;
   tolerance_in_breach_deduct_min: number;
   tolerance_out_breach_deduct_min: number;
   tolerance_break_breach_deduct_min: number;

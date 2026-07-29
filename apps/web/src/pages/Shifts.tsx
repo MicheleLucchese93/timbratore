@@ -31,6 +31,7 @@ interface ShiftTemplate {
   expected_lunch_max_min: number;
   extraordinary_threshold_min: 15 | 30 | 60;
   count_extraordinary: boolean;
+  break_enabled: boolean;
   tolerance_in_breach_deduct_min: number;
   tolerance_out_breach_deduct_min: number;
   tolerance_break_breach_deduct_min: number;
@@ -120,6 +121,7 @@ export function Shifts() {
           expected_lunch_max_min: tpl.expected_lunch_max_min,
           extraordinary_threshold_min: tpl.extraordinary_threshold_min,
           count_extraordinary: tpl.count_extraordinary,
+          break_enabled: tpl.break_enabled,
           tolerance_in_breach_deduct_min: tpl.tolerance_in_breach_deduct_min,
           tolerance_out_breach_deduct_min: tpl.tolerance_out_breach_deduct_min,
           tolerance_break_breach_deduct_min: tpl.tolerance_break_breach_deduct_min,
@@ -179,7 +181,9 @@ export function Shifts() {
                   <div className="text-xs muted">{tpl.description}</div>
                 )}
                 <div className="text-xs muted mt-1">
-                  {t('summary', {
+                  {/* With pausa switched off the min/max window is meaningless —
+                      say so instead of printing a range nobody can hit. */}
+                  {t(tpl.break_enabled === false ? 'summaryNoBreak' : 'summary', {
                     toleranceIn: tpl.tolerance_in_min,
                     toleranceOut: tpl.tolerance_out_min,
                     breakMin: tpl.expected_break_min_min,
@@ -328,6 +332,7 @@ interface FormState {
   expected_lunch_max_min: number;
   extraordinary_threshold_min: 15 | 30 | 60;
   count_extraordinary: boolean;
+  break_enabled: boolean;
   tolerance_in_breach_deduct_min: number;
   tolerance_out_breach_deduct_min: number;
   tolerance_break_breach_deduct_min: number;
@@ -365,6 +370,8 @@ function ShiftForm({
     expected_lunch_max_min: initial?.expected_lunch_max_min ?? 90,
     extraordinary_threshold_min: initial?.extraordinary_threshold_min ?? 15,
     count_extraordinary: initial?.count_extraordinary ?? false,
+    // Undefined on a template saved before the switch existed → enabled.
+    break_enabled: initial?.break_enabled ?? true,
     tolerance_in_breach_deduct_min: initial?.tolerance_in_breach_deduct_min ?? 0,
     tolerance_out_breach_deduct_min: initial?.tolerance_out_breach_deduct_min ?? 0,
     tolerance_break_breach_deduct_min: initial?.tolerance_break_breach_deduct_min ?? 0,
@@ -416,12 +423,18 @@ function ShiftForm({
         description: state.description.trim() || null,
         tolerance_in_min: state.tolerance_in_min,
         tolerance_out_min: state.tolerance_out_min,
+        // The pausa window is kept as stored even while the switch is off: the
+        // backend ignores it (anomalies skip the break rules) and re-enabling
+        // pausa restores the admin's numbers instead of silent zeros. Note
+        // `tolerance_break_breach_deduct_min` is NOT break-only — it also pays
+        // for a pausa pranzo over its max — so it is never zeroed here.
         expected_break_min_min: state.expected_break_min_min,
         expected_break_max_min: state.expected_break_max_min,
         expected_lunch_min_min: state.expected_lunch_min_min,
         expected_lunch_max_min: state.expected_lunch_max_min,
         extraordinary_threshold_min: state.extraordinary_threshold_min,
         count_extraordinary: state.count_extraordinary,
+        break_enabled: state.break_enabled,
         tolerance_in_breach_deduct_min: state.tolerance_in_breach_deduct_min,
         tolerance_out_breach_deduct_min: state.tolerance_out_breach_deduct_min,
         tolerance_break_breach_deduct_min: state.tolerance_break_breach_deduct_min,
@@ -497,6 +510,19 @@ function ShiftForm({
           </div>
 
           <fieldset className="border border-neutral-200 rounded p-3 space-y-2">
+            <legend className="text-sm font-medium px-1">{t('form.pausa')}</legend>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={state.break_enabled}
+                onChange={(e) => setState({ ...state, break_enabled: e.target.checked })}
+              />
+              <span className="text-sm">{t('form.breakEnabled')}</span>
+            </label>
+            <p className="text-xs muted m-0">{t('form.breakEnabledHint')}</p>
+          </fieldset>
+
+          <fieldset className="border border-neutral-200 rounded p-3 space-y-2">
             <legend className="text-sm font-medium px-1">{t('form.tolerances')}</legend>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <label>
@@ -525,32 +551,36 @@ function ShiftForm({
                   }
                 />
               </label>
-              <label>
-                <span className="label">{t('form.breakMin')}</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={480}
-                  className="input"
-                  value={state.expected_break_min_min}
-                  onChange={(e) =>
-                    setState({ ...state, expected_break_min_min: Number(e.target.value) })
-                  }
-                />
-              </label>
-              <label>
-                <span className="label">{t('form.breakMax')}</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={480}
-                  className="input"
-                  value={state.expected_break_max_min}
-                  onChange={(e) =>
-                    setState({ ...state, expected_break_max_min: Number(e.target.value) })
-                  }
-                />
-              </label>
+              {state.break_enabled && (
+                <>
+                  <label>
+                    <span className="label">{t('form.breakMin')}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={480}
+                      className="input"
+                      value={state.expected_break_min_min}
+                      onChange={(e) =>
+                        setState({ ...state, expected_break_min_min: Number(e.target.value) })
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span className="label">{t('form.breakMax')}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={480}
+                      className="input"
+                      value={state.expected_break_max_min}
+                      onChange={(e) =>
+                        setState({ ...state, expected_break_max_min: Number(e.target.value) })
+                      }
+                    />
+                  </label>
+                </>
+              )}
               <label>
                 <span className="label">{t('form.lunchMin')}</span>
                 <input
