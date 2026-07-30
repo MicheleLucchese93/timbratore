@@ -1090,7 +1090,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Riepilogo della giornata</h3>
-        <p>In alto la card mostra <strong>Ore lavorate</strong> e <strong>Ore conteggiate</strong> (in base all'orario assegnato, arrotondate per difetto a blocchi di 15 minuti) più <strong>Entrata</strong>, <strong>Pause</strong> e <strong>Uscita</strong> della giornata. Si aggiorna in tempo reale.</p>
+        <p>In alto la card mostra <strong>Ore lavorate</strong> e <strong>Ore conteggiate</strong> (in base all'orario assegnato, arrotondate per difetto a blocchi di 15 minuti; l'eventuale straordinario è già compreso, non si somma) più <strong>Entrata</strong>, <strong>Pause</strong> e <strong>Uscita</strong> della giornata. Si aggiorna in tempo reale.</p>
       </div>
 
       <div class="feature">
@@ -1195,7 +1195,7 @@ const MAIN_IT = `
         <p>In alto vedi sempre:</p>
         <ul class="tidy">
           <li><strong>Ore lavorate</strong> — totale aggiornato in tempo reale.</li>
-          <li><strong>Ore conteggiate</strong> — basato sull'orario assegnato (se presente), arrotondato per difetto a blocchi di 15 minuti (es. 14 minuti = 0).</li>
+          <li><strong>Ore conteggiate</strong> — basato sull'orario assegnato (se presente), arrotondato per difetto a blocchi di 15 minuti (es. 14 minuti = 0). L'eventuale <strong>straordinario è già incluso</strong> in questo totale (non va sommato a parte): le ore conteggiate non superano mai le ore lavorate.</li>
           <li><strong>Entrata</strong>, <strong>Pause</strong>, <strong>Uscita</strong> — riepilogo della giornata.</li>
         </ul>
       </div>
@@ -1282,6 +1282,7 @@ const MAIN_IT = `
       <div class="feature">
         <h3>Riepilogo totale</h3>
         <p>Una card riassuntiva mostra il <strong>Totale conteggiato</strong> nel periodo (es. "156h 45m"), con sotto le <strong>Lavorate</strong> (somma grezza) e a destra il numero di <strong>giorni</strong> con almeno una timbratura.</p>
+        <p>Lo Storico si <strong>ricarica ogni volta che apri la scheda</strong> (o cambi periodo), quindi una timbratura appena registrata dalla tab Timbra è subito visibile; puoi comunque tirare giù la lista per aggiornarla a mano.</p>
       </div>
 
       <div class="feature">
@@ -1291,7 +1292,7 @@ const MAIN_IT = `
           <li>Etichetta: "Oggi", "Ieri" o data per esteso ("giovedì 23 maggio").</li>
           <li>Tempo di pausa se &gt; 0.</li>
           <li><strong>Lavorate</strong> — ore effettive del giorno (somma grezza dei segmenti).</li>
-          <li><strong>Conteggiate</strong> — ore valide a fini busta paga: <strong>Lavorate</strong> meno le decurtazioni per sforamento (ritardo in entrata, uscita anticipata, pause oltre il massimo) più gli straordinari, il tutto arrotondato per difetto a blocchi di 15 minuti. La decurtazione per ritardo o uscita anticipata non si applica se un permesso o una ferie approvati coprono quello scostamento. Se ci sono straordinari, una riga lo specifica ("di cui …").</li>
+          <li><strong>Conteggiate</strong> — ore valide a fini busta paga: <strong>Lavorate</strong> meno le decurtazioni per sforamento (ritardo in entrata, uscita anticipata, pause oltre il massimo), arrotondate per difetto a blocchi di 15 minuti. La decurtazione per ritardo o uscita anticipata non si applica se un permesso o una ferie approvati coprono quello scostamento. Se ci sono straordinari, una riga lo specifica ("di cui …"): sono la <strong>quota straordinaria delle ore già conteggiate</strong>, non ore aggiuntive da sommare.</li>
         </ul>
         <p>Senza orario di lavoro assegnato le <strong>Conteggiate</strong> coincidono con le <strong>Lavorate</strong> (solo arrotondate a 15 min). Tocca la card per espanderla e vedere ogni singola timbratura del giorno con icona colorata (verde ingresso, rosso uscita, arancione pausa) e ora HH:MM.</p>
       </div>
@@ -1580,7 +1581,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Dashboard e report</h3>
-        <p>La <strong>Dashboard cantieri</strong> mostra una scheda per ogni cantiere con numero di attività, addetti coinvolti e totali di viaggio e attività. In alto filtri per <strong>cantiere</strong> e scegli il periodo: <strong>per mese</strong> (con le frecce per spostarti tra i mesi) o <strong>tutto il periodo</strong>. Aprendo una scheda vedi il dettaglio delle registrazioni. Da ogni scheda, con le icone dedicate, puoi <strong>scaricare il PDF</strong> del report mensile o <strong>inviarlo via email</strong> (le azioni report sono disponibili in modalità «per mese»). Nell'invio indichi i <strong>destinatari</strong> e, se vuoi, gli indirizzi in <strong>CC</strong> e <strong>CCN</strong> e una <strong>nota</strong> formattata che compare nel corpo del messaggio; il PDF resta in allegato.</p>
+        <p>La <strong>Dashboard cantieri</strong> mostra una scheda per ogni cantiere con numero di attività, addetti coinvolti e totali di viaggio e attività. In alto filtri per <strong>cantiere</strong> e scegli il periodo: <strong>per giorno</strong> (con le frecce per spostarti tra i giorni e il pulsante <strong>Oggi</strong>), <strong>per mese</strong> (con le frecce per spostarti tra i mesi) o <strong>tutto il periodo</strong>. Aprendo una scheda vedi il dettaglio delle registrazioni del periodo scelto. Da ogni scheda, con le icone dedicate, puoi <strong>scaricare il PDF</strong> del report mensile o <strong>inviarlo via email</strong> (il report è sempre mensile, quindi le azioni report compaiono solo in modalità «per mese»). Nell'invio indichi i <strong>destinatari</strong> e, se vuoi, gli indirizzi in <strong>CC</strong> e <strong>CCN</strong> e una <strong>nota</strong> formattata che compare nel corpo del messaggio; il PDF resta in allegato.</p>
       </div>
 
       <div class="callout callout-info">
@@ -1594,7 +1595,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Le mie attività</h3>
-        <p>La scheda <strong>Cantieri</strong> elenca le tue registrazioni, raggruppate per giorno. In alto filtri per <strong>cantiere</strong> e scegli il periodo: <strong>Mese</strong> (con le frecce per cambiare mese) o <strong>Tutto</strong> (tutte le attività). Toccando un'attività la <strong>modifichi</strong>; con il cestino la <strong>elimini</strong>. Il pulsante <strong>+</strong> in basso a destra apre il modulo per registrarne una nuova.</p>
+        <p>La scheda <strong>Cantieri</strong> elenca le tue registrazioni, raggruppate per giorno. In alto filtri per <strong>cantiere</strong> e scegli il periodo: toccando il secondo chip passi da <strong>Mese</strong> a <strong>Giorno</strong> (in entrambi i casi le frecce spostano il periodo) e poi a <strong>Tutto</strong> (tutte le attività). Toccando un'attività la <strong>modifichi</strong>; con il cestino la <strong>elimini</strong>. Il pulsante <strong>+</strong> in basso a destra apre il modulo per registrarne una nuova.</p>
       </div>
 
       <div class="feature">

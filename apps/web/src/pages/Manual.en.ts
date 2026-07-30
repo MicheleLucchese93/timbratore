@@ -1078,7 +1078,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>Day summary</h3>
-        <p>At the top the card shows <strong>Hours worked</strong> and <strong>Counted hours</strong> (based on your assigned shift, rounded down to 15-minute blocks) plus the day's <strong>Clock-in</strong>, <strong>Breaks</strong> and <strong>Clock-out</strong>. It updates in real time.</p>
+        <p>At the top the card shows <strong>Hours worked</strong> and <strong>Counted hours</strong> (based on your assigned shift, rounded down to 15-minute blocks; any overtime is already included, it is not added on top) plus the day's <strong>Clock-in</strong>, <strong>Breaks</strong> and <strong>Clock-out</strong>. It updates in real time.</p>
       </div>
 
       <div class="feature">
@@ -1183,7 +1183,7 @@ export const MAIN_EN = `
         <p>At the top you always see:</p>
         <ul class="tidy">
           <li><strong>Hours worked</strong> — total updated in real time.</li>
-          <li><strong>Counted hours</strong> — based on the assigned shift (if any), rounded down to 15-minute blocks (e.g. 14 minutes = 0).</li>
+          <li><strong>Counted hours</strong> — based on the assigned shift (if any), rounded down to 15-minute blocks (e.g. 14 minutes = 0). Any <strong>overtime is already included</strong> in this total (do not add it separately): counted hours never exceed hours worked.</li>
           <li><strong>Clock-in</strong>, <strong>Breaks</strong>, <strong>Clock-out</strong> — summary of the day.</li>
         </ul>
       </div>
@@ -1270,6 +1270,7 @@ export const MAIN_EN = `
       <div class="feature">
         <h3>Total summary</h3>
         <p>A summary card shows the <strong>Total counted</strong> in the period (e.g. "156h 45m"), with below the <strong>Worked</strong> (raw sum) and on the right the number of <strong>days</strong> with at least one stamp.</p>
+        <p>History <strong>reloads every time you open the tab</strong> (or change the period), so a stamp you have just recorded from the Timbra tab shows up immediately; you can also pull the list down to refresh it by hand.</p>
       </div>
 
       <div class="feature">
@@ -1279,7 +1280,7 @@ export const MAIN_EN = `
           <li>Label: "Today", "Yesterday" or the full date ("Thursday 23 May").</li>
           <li>Break time if &gt; 0.</li>
           <li><strong>Worked</strong> — actual hours of the day (raw sum of the segments).</li>
-          <li><strong>Counted</strong> — hours valid for payroll: <strong>Worked</strong> minus the deductions for overruns (late clock-in, early clock-out, breaks over the maximum) plus overtime, all rounded down to 15-minute blocks. The deduction for lateness or early clock-out does not apply if an approved leave or holiday covers that deviation. If there is overtime, a row specifies it ("of which …").</li>
+          <li><strong>Counted</strong> — hours valid for payroll: <strong>Worked</strong> minus the deductions for overruns (late clock-in, early clock-out, breaks over the maximum), rounded down to 15-minute blocks. The deduction for lateness or early clock-out does not apply if an approved leave or holiday covers that deviation. If there is overtime, a row specifies it ("of which …"): it is the <strong>extraordinary share of the hours already counted</strong>, not extra hours to add on top.</li>
         </ul>
         <p>Without an assigned work shift the <strong>Counted</strong> hours match the <strong>Worked</strong> ones (only rounded to 15 min). Tap the card to expand it and see each individual stamp of the day with a coloured icon (green clock-in, red clock-out, orange break) and the time HH:MM.</p>
       </div>
@@ -1564,7 +1565,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>Dashboard and reports</h3>
-        <p>The <strong>Cantieri dashboard</strong> shows a card per site with the number of activities, workers involved and travel/work totals. At the top you filter by <strong>work site</strong> and pick the period: <strong>by month</strong> (arrows move between months) or <strong>all time</strong>. Opening a card shows the individual entries. From each card, using the dedicated icons, you can <strong>download the PDF</strong> monthly report or <strong>send it by email</strong> (the report actions are available in "by month" mode). When sending you set the <strong>recipients</strong> and, optionally, <strong>CC</strong> and <strong>BCC</strong> addresses and a formatted <strong>note</strong> that appears in the message body; the PDF stays attached.</p>
+        <p>The <strong>Cantieri dashboard</strong> shows a card per site with the number of activities, workers involved and travel/work totals. At the top you filter by <strong>work site</strong> and pick the period: <strong>by day</strong> (arrows move between days, plus a <strong>Today</strong> button), <strong>by month</strong> (arrows move between months) or <strong>all time</strong>. Opening a card shows the individual entries of the chosen period. From each card, using the dedicated icons, you can <strong>download the PDF</strong> monthly report or <strong>send it by email</strong> (the report is always monthly, so those actions only appear in "by month" mode). When sending you set the <strong>recipients</strong> and, optionally, <strong>CC</strong> and <strong>BCC</strong> addresses and a formatted <strong>note</strong> that appears in the message body; the PDF stays attached.</p>
       </div>
 
       <div class="callout callout-info">
@@ -1578,7 +1579,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>My activities</h3>
-        <p>The <strong>Cantieri</strong> tab lists your entries, grouped by day. At the top you filter by <strong>work site</strong> and pick the period: <strong>Month</strong> (arrows change month) or <strong>All time</strong> (every activity). Tap an entry to <strong>edit</strong> it; use the trash icon to <strong>delete</strong> it. The <strong>+</strong> button at the bottom right opens the form to log a new one.</p>
+        <p>The <strong>Cantieri</strong> tab lists your entries, grouped by day. At the top you filter by <strong>work site</strong> and pick the period: tapping the second chip cycles <strong>Month</strong> → <strong>Day</strong> (in both cases the arrows move the period) → <strong>All time</strong> (every activity). Tap an entry to <strong>edit</strong> it; use the trash icon to <strong>delete</strong> it. The <strong>+</strong> button at the bottom right opens the form to log a new one.</p>
       </div>
 
       <div class="feature">

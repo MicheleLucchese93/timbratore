@@ -49,6 +49,18 @@ type MyEntry = CantiereEntryRecord & {
 // boolean for switches) and converted to typed custom_values on submit.
 type RawCustomMap = Record<string, string | boolean>;
 
+// Which period the list covers. The chip cycles through them in this order —
+// starting from the default 'month' it narrows to a day first, then widens to
+// everything.
+type PeriodMode = 'day' | 'month' | 'all';
+const PERIOD_CYCLE: PeriodMode[] = ['month', 'day', 'all'];
+
+// Server-side period filter: at most one of the two is set ('all' sends none).
+interface PeriodQuery {
+  month: string | null;
+  date: string | null;
+}
+
 export function CantieriScreen() {
   const { t } = useTranslation(['cantieri', 'common']);
   const { me } = useSession();
@@ -72,13 +84,15 @@ export function CantieriScreen() {
   const [fields, setFields] = useState<CantieriFieldDef[]>([]);
   const [loadingMeta, setLoadingMeta] = useState(true);
 
-  // Own entries, one month at a time.
+  // Own entries, one period at a time.
   const [month, setMonth] = useState(() => currentMonth());
+  const [day, setDay] = useState(() => isoLocal(new Date()));
   const [entries, setEntries] = useState<MyEntry[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  // List filters: period (a single month with arrows, or all time) + cantiere.
-  const [allTime, setAllTime] = useState(false);
+  // List filters: period (one day or one month with arrows, or all time) +
+  // cantiere.
+  const [periodMode, setPeriodMode] = useState<PeriodMode>('month');
   const [filterCantiereId, setFilterCantiereId] = useState<string | null>(null);
   const [filterPickerOpen, setFilterPickerOpen] = useState(false);
 
@@ -115,10 +129,11 @@ export function CantieriScreen() {
     }
   }, []);
 
-  const loadEntries = useCallback(async (m: string | null, cantiereId: string | null) => {
+  const loadEntries = useCallback(async (p: PeriodQuery, cantiereId: string | null) => {
     try {
       const qs = new URLSearchParams();
-      if (m) qs.set('month', m);
+      if (p.month) qs.set('month', p.month);
+      if (p.date) qs.set('date', p.date);
       if (cantiereId) qs.set('cantiere_id', cantiereId);
       const { entries: list } = await api<{ entries: MyEntry[] }>(
         `/api/v1/cantieri/my/entries?${qs.toString()}`
@@ -137,11 +152,19 @@ export function CantieriScreen() {
     void loadMeta();
   }, [enabled, loadMeta]);
 
+  const periodQ = useMemo<PeriodQuery>(
+    () => ({
+      month: periodMode === 'month' ? month : null,
+      date: periodMode === 'day' ? day : null,
+    }),
+    [periodMode, month, day]
+  );
+
   useEffect(() => {
     if (!enabled) return;
     setLoadingEntries(true);
-    void loadEntries(allTime ? null : month, filterCantiereId);
-  }, [enabled, month, allTime, filterCantiereId, loadEntries]);
+    void loadEntries(periodQ, filterCantiereId);
+  }, [enabled, periodQ, filterCantiereId, loadEntries]);
 
   const resetForm = useCallback(() => {
     setEditing(null);
@@ -199,7 +222,7 @@ export function CantieriScreen() {
       try {
         await api(`/api/v1/cantieri/entries/${e.id}`, { method: 'DELETE' });
         if (editing?.id === e.id) resetForm();
-        await loadEntries(allTime ? null : month, filterCantiereId);
+        await loadEntries(periodQ, filterCantiereId);
       } catch (err) {
         showError(err);
       }
@@ -279,7 +302,7 @@ export function CantieriScreen() {
       setFormOpen(false);
       resetForm();
       setLoadingEntries(true);
-      void loadEntries(allTime ? null : month, filterCantiereId);
+      void loadEntries(periodQ, filterCantiereId);
       notify(
         t(wasEdit ? 'form.savedTitle' : 'form.createdTitle'),
         t(wasEdit ? 'form.savedMessage' : 'form.createdMessage')
@@ -547,21 +570,58 @@ export function CantieriScreen() {
           </Text>
           <Ionicons name="chevron-down" size={14} color={color.onSurfaceVariant} />
         </Pressable>
+        {/* Period chip: tapping it cycles month → day → all time. The arrows
+            row below follows the chosen unit. */}
         <Pressable
-          style={[styles.filterChip, allTime && styles.filterChipActive]}
-          onPress={() => setAllTime((a) => !a)}>
+          style={[styles.filterChip, periodMode !== 'month' && styles.filterChipActive]}
+          accessibilityRole="button"
+          accessibilityLabel={t('filter.periodA11y')}
+          onPress={() => setPeriodMode((m) => nextPeriodMode(m))}>
           <Ionicons
-            name={allTime ? 'infinite' : 'calendar-outline'}
+            name={
+              periodMode === 'all'
+                ? 'infinite'
+                : periodMode === 'day'
+                  ? 'today-outline'
+                  : 'calendar-outline'
+            }
             size={14}
-            color={allTime ? color.primary : color.onSurfaceVariant}
+            color={periodMode !== 'month' ? color.primary : color.onSurfaceVariant}
           />
-          <Text style={[styles.filterChipText, allTime && styles.filterChipTextActive]}>
-            {allTime ? t('filter.allTime') : t('filter.byMonth')}
+          <Text
+            style={[styles.filterChipText, periodMode !== 'month' && styles.filterChipTextActive]}>
+            {t(
+              periodMode === 'all'
+                ? 'filter.allTime'
+                : periodMode === 'day'
+                  ? 'filter.byDay'
+                  : 'filter.byMonth'
+            )}
           </Text>
         </Pressable>
       </View>
 
-      {!allTime && (
+      {periodMode === 'day' && (
+        <View style={styles.monthRow}>
+          <TouchableOpacity
+            onPress={() => setDay((d) => shiftDay(d, -1))}
+            style={styles.monthBtn}
+            hitSlop={8}
+            accessibilityLabel={t('list.prevDayA11y')}>
+            <Ionicons name="chevron-back" size={20} color={color.onSurface} />
+          </TouchableOpacity>
+          <Text style={styles.monthLabel}>{fmtDay(day)}</Text>
+          <TouchableOpacity
+            onPress={() => setDay((d) => shiftDay(d, 1))}
+            style={styles.monthBtn}
+            hitSlop={8}
+            accessibilityLabel={t('list.nextDayA11y')}>
+            <Ionicons name="chevron-forward" size={20} color={color.onSurface} />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {periodMode === 'month' && (
         <View style={styles.monthRow}>
           <TouchableOpacity
             onPress={() => setMonth((m) => shiftMonth(m, -1))}
@@ -588,7 +648,7 @@ export function CantieriScreen() {
             refreshing={refreshing}
             onRefresh={() => {
               setRefreshing(true);
-              void loadEntries(allTime ? null : month, filterCantiereId);
+              void loadEntries(periodQ, filterCantiereId);
             }}
           />
         }>
@@ -945,6 +1005,18 @@ function shiftMonth(month: string, delta: number): string {
   const [y, m] = month.split('-').map((s) => parseInt(s, 10));
   const d = new Date(y ?? 2000, (m ?? 1) - 1 + delta, 1);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+}
+
+// 'YYYY-MM-DD' ± n days, through a local Date so month/year borders and DST are
+// handled by the platform.
+function shiftDay(date: string, delta: number): string {
+  const [y, m, d] = date.split('-').map((s) => parseInt(s, 10));
+  return isoLocal(new Date(y ?? 2000, (m ?? 1) - 1, (d ?? 1) + delta));
+}
+
+function nextPeriodMode(mode: PeriodMode): PeriodMode {
+  const i = PERIOD_CYCLE.indexOf(mode);
+  return PERIOD_CYCLE[(i + 1) % PERIOD_CYCLE.length] ?? 'month';
 }
 
 function monthLabel(month: string): string {

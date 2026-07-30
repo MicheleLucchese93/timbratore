@@ -8,8 +8,10 @@
     "editTitle": "Modifica attività"
   },
   "filter": {
+    "byDay": "Giorno",
     "byMonth": "Mese",
     "allTime": "Tutto",
+    "periodA11y": "Cambia periodo: mese, giorno o tutto",
     "allSites": "Tutti i cantieri",
     "siteTitle": "Filtra per cantiere"
   },
@@ -66,7 +68,9 @@
     "deleteA11y": "Elimina attività",
     "prevMonthA11y": "Mese precedente",
     "nextMonthA11y": "Mese successivo",
-    "empty": "Nessuna attività nel mese",
+    "prevDayA11y": "Giorno precedente",
+    "nextDayA11y": "Giorno successivo",
+    "empty": "Nessuna attività nel periodo",
     "emptySub": "Le attività che registri compariranno qui."
   },
   "confirm": {

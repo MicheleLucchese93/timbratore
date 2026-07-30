@@ -16,6 +16,17 @@ import { sendMail, buildCantiereReportMail } from '../lib/mailer.js';
 import { sanitizeBulletinHtml } from '../lib/bulletin-sanitize.js';
 import { createLogger } from '../lib/logger.js';
 import {
+  ALL_TIME,
+  DATE_RE,
+  MONTH_RE,
+  isBounded,
+  isCalendarDate,
+  parseDatePeriod,
+  periodPredicate,
+  requireMonth,
+  type DatePeriod,
+} from '../lib/date-period.js';
+import {
   CANTIERE_NAME_MAX,
   CANTIERE_ADDRESS_MAX,
   CANTIERE_ACTIVITY_TEXT_MAX,
@@ -38,35 +49,13 @@ const logger = createLogger('cantieri');
 export const cantieriRouter = Router();
 cantieriRouter.use(authenticate);
 
-const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 // Strict wall-clock 'HH:MM' — the DB time columns reject e.g. '25:00' with a
 // raw pg error, so invalid values must die here as a 400 instead.
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-// [first day, first day of next month) — passed straight to date comparisons.
-function monthRange(month: string): { start: string; end: string } {
-  const y = Number(month.slice(0, 4));
-  const m = Number(month.slice(5, 7));
-  const end = m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, '0')}-01`;
-  return { start: `${month}-01`, end };
-}
-
-// Cap for unbounded ("all time") entry lists, newest first.
+// Cap for unbounded ("all time") entry lists, newest first. A day- or
+// month-bounded list is already small, so it stays uncapped.
 const ALL_TIME_LIMIT = 500;
-
-// Optional 'YYYY-MM' — undefined/empty means "all time" (no date filter).
-function optionalMonth(raw: unknown): string | null {
-  if (raw === undefined || raw === '') return null;
-  return requireMonth(raw);
-}
-
-function requireMonth(raw: unknown): string {
-  if (typeof raw !== 'string' || !MONTH_RE.test(raw)) {
-    throw new ValidationError("month must be 'YYYY-MM'");
-  }
-  return raw;
-}
 
 function requireUuid(raw: unknown): string {
   const parsed = z.string().uuid().safeParse(raw);
@@ -317,13 +306,14 @@ cantieriRouter.get(
   })
 );
 
-/* ----- GET /api/v1/cantieri/my/entries?month=&cantiere_id= — my entries ----- */
-/* month optional (omit = all time, capped); cantiere_id optional filter. */
+/* ----- GET /api/v1/cantieri/my/entries?month=|date=&cantiere_id= — my entries ----- */
+/* Period optional: `date` = one day, `month` = one month, neither = all time
+   (capped). cantiere_id is an independent optional filter. */
 cantieriRouter.get(
   '/my/entries',
   requireCantieri,
   tenantHandler(async (req, res, client) => {
-    const month = optionalMonth(req.query.month);
+    const period = parseDatePeriod(req.query);
     const cantiereId =
       typeof req.query.cantiere_id === 'string' && req.query.cantiere_id
         ? requireUuid(req.query.cantiere_id)
@@ -331,14 +321,8 @@ cantieriRouter.get(
 
     const params: unknown[] = [];
     const filters: string[] = ['e.deleted_at IS NULL'];
-    if (month) {
-      const { start, end } = monthRange(month);
-      params.push(start);
-      const si = params.length;
-      params.push(end);
-      const ei = params.length;
-      filters.push(`e.entry_date >= $${si} AND e.entry_date < $${ei}`);
-    }
+    const periodSql = periodPredicate(period, 'e.entry_date', params);
+    if (periodSql) filters.push(periodSql);
     if (cantiereId) {
       params.push(cantiereId);
       filters.push(`e.cantiere_id = $${params.length}`);
@@ -354,7 +338,7 @@ cantieriRouter.get(
          LEFT JOIN mezzi m ON m.id = e.mezzo_id
         WHERE ${filters.join(' AND ')}
         ORDER BY e.entry_date DESC, e.created_at DESC
-        ${month ? '' : `LIMIT ${ALL_TIME_LIMIT}`}`,
+        ${isBounded(period) ? '' : `LIMIT ${ALL_TIME_LIMIT}`}`,
       params
     );
     ok(res, { entries: r.rows });
@@ -363,15 +347,12 @@ cantieriRouter.get(
 
 const TimeField = z.string().regex(TIME_RE, "time must be 'HH:MM'").nullable().optional();
 
-// Regex + roundtrip so an impossible date (2026-02-31) dies here as a 400
-// instead of a raw pg error on the date column.
+// Regex + calendar roundtrip so an impossible date (2026-02-31) dies here as a
+// 400 instead of a raw pg error on the date column.
 const DateField = z
   .string()
   .regex(DATE_RE, "entry_date must be 'YYYY-MM-DD'")
-  .refine((v) => {
-    const d = new Date(`${v}T00:00:00Z`);
-    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
-  }, 'invalid date');
+  .refine(isCalendarDate, 'invalid date');
 
 const CreateEntry = z.object({
   cantiere_id: z.string().uuid(),
@@ -1223,24 +1204,21 @@ cantieriRouter.delete(
   })
 );
 
-/* ----- GET /api/v1/cantieri/dashboard?month= — per-site month aggregates ----- */
+/* ----- GET /api/v1/cantieri/dashboard?month=|date= — per-site aggregates ----- */
+/* Period optional: one day, one month, or all time (see parseDatePeriod). */
 cantieriRouter.get(
   '/dashboard',
   requireCantieriAdmin,
   asyncHandler(async (req, res) => {
-    const month = optionalMonth(req.query.month);
+    const period = parseDatePeriod(req.query);
     // Minutes are summed in SQL from the same null/inverted-range rule as
     // cantieriIntervalMinutes (missing or inverted bounds contribute 0).
     const minutesSql = (col: string): string =>
       `SUM(CASE WHEN ${col}_start IS NOT NULL AND ${col}_end IS NOT NULL AND ${col}_end >= ${col}_start
                 THEN EXTRACT(EPOCH FROM (${col}_end - ${col}_start)) / 60 ELSE 0 END)`;
     const params: unknown[] = [req.user!.tenantId];
-    let dateFilter = '';
-    if (month) {
-      const { start, end } = monthRange(month);
-      params.push(start, end);
-      dateFilter = `AND entry_date >= $${params.length - 1} AND entry_date < $${params.length}`;
-    }
+    const periodSql = periodPredicate(period, 'entry_date', params);
+    const dateFilter = periodSql ? `AND ${periodSql}` : '';
     const r = await adminPool.query(
       `SELECT c.id, c.name, c.address, c.status,
               COALESCE(s.entries_count, 0)::int AS entries_count,
@@ -1264,26 +1242,26 @@ cantieriRouter.get(
         ORDER BY c.name`,
       params
     );
-    ok(res, { month, sites: r.rows });
+    ok(res, { month: period.month, date: period.date, sites: r.rows });
   })
 );
 
-/* ----- Monthly per-site drill-in + PDF report ----- */
+/* ----- Per-site drill-in (day / month / all time) + monthly PDF report ----- */
 
-interface SiteMonthData {
+interface SitePeriodData {
   site: Record<string, unknown>;
   fields: FieldDefRow[];
   entries: Array<CantiereReportEntry & Record<string, unknown>>;
 }
 
 // Data shared by the drill-in list, the PDF download and the report email:
-// the site row, the entry-scope defs and the month's entries (chronological,
+// the site row, the entry-scope defs and the period's entries (chronological,
 // with author display name + vehicle name resolved).
-async function loadSiteMonth(
+async function loadSitePeriod(
   tenantId: string,
   siteId: string,
-  month: string | null
-): Promise<SiteMonthData> {
+  period: DatePeriod
+): Promise<SitePeriodData> {
   const site = await adminPool.query(
     `SELECT ${SITE_COLS} FROM cantieri
       WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL`,
@@ -1293,12 +1271,8 @@ async function loadSiteMonth(
   // Columns are the entry fields shown for THIS site (global + site-specific).
   const fields = entryDefsForCantiere(await loadFieldDefs(adminPool, 'entry', tenantId), siteId);
   const params: unknown[] = [tenantId, siteId];
-  let dateFilter = '';
-  if (month) {
-    const { start, end } = monthRange(month);
-    params.push(start, end);
-    dateFilter = `AND e.entry_date >= $${params.length - 1} AND e.entry_date < $${params.length}`;
-  }
+  const periodSql = periodPredicate(period, 'e.entry_date', params);
+  const dateFilter = periodSql ? `AND ${periodSql}` : '';
   const entries = await adminPool.query(
     `SELECT ${ENTRY_COLS('e.')},
             ${USER_NAME_SQL} AS user_name,
@@ -1308,20 +1282,20 @@ async function loadSiteMonth(
        LEFT JOIN mezzi m ON m.id = e.mezzo_id
       WHERE e.tenant_id = $1 AND e.cantiere_id = $2 AND e.deleted_at IS NULL ${dateFilter}
       ORDER BY e.entry_date ASC, e.created_at ASC
-      ${month ? '' : `LIMIT ${ALL_TIME_LIMIT}`}`,
+      ${isBounded(period) ? '' : `LIMIT ${ALL_TIME_LIMIT}`}`,
     params
   );
   return { site: site.rows[0], fields, entries: entries.rows };
 }
 
-/* ----- GET /api/v1/cantieri/sites/:id/entries?month= (month optional) ----- */
+/* ----- GET /api/v1/cantieri/sites/:id/entries?month=|date= (both optional) ----- */
 cantieriRouter.get(
   '/sites/:id/entries',
   requireCantieriAdmin,
   asyncHandler(async (req, res) => {
     const id = requireUuid(req.params.id);
-    const month = optionalMonth(req.query.month);
-    const { site, fields, entries } = await loadSiteMonth(req.user!.tenantId, id, month);
+    const period = parseDatePeriod(req.query);
+    const { site, fields, entries } = await loadSitePeriod(req.user!.tenantId, id, period);
     ok(res, { site, fields, entries });
   })
 );
@@ -1362,7 +1336,12 @@ async function buildSiteReport(
   month: string,
   language: 'it' | 'en'
 ): Promise<{ pdf: Buffer; siteName: string; tenantName: string; label: string }> {
-  const { site, fields, entries } = await loadSiteMonth(tenantId, siteId, month);
+  // The report is always a whole month (its cover + filename name one), so it
+  // never uses the day form of the period.
+  const { site, fields, entries } = await loadSitePeriod(tenantId, siteId, {
+    ...ALL_TIME,
+    month,
+  });
   const tenant = await adminPool.query(`SELECT ragione_sociale FROM tenants WHERE id = $1`, [
     tenantId,
   ]);

@@ -61,4 +61,43 @@ test.describe('web — Cantieri module gating', () => {
     await page.goto('/cantieri');
     await expect(page.getByRole('heading', { name: 'Dashboard cantieri' })).toBeVisible();
   });
+
+  // Period switch of the dashboard: day / month / all time. Structural only —
+  // that each mode filters the aggregates is asserted in mutating-cantieri.spec
+  // (it needs a seeded entry).
+  test('dashboard period switch exposes day, month and all-time controls', async ({ page }) => {
+    test.skip(!moduleOn, 'cantieri module off for this user');
+
+    await page.goto('/cantieri/dashboard');
+    await expect(page.getByRole('heading', { name: 'Dashboard cantieri' })).toBeVisible({
+      timeout: 15_000,
+    });
+
+    const byDay = page.getByRole('button', { name: 'Per giorno' });
+    const byMonth = page.getByRole('button', { name: 'Per mese' });
+    const allTime = page.getByRole('button', { name: 'Tutto il periodo' });
+    await expect(byDay).toBeVisible();
+    await expect(byMonth).toHaveAttribute('aria-pressed', 'true'); // default
+    await expect(page.getByRole('button', { name: 'Mese precedente' })).toBeVisible();
+
+    // Day mode: day arrows + "Oggi"; the monthly report actions disappear (the
+    // PDF / email report always covers a whole month).
+    await byDay.click();
+    await expect(byDay).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: 'Giorno precedente' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Giorno successivo' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Oggi' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Mese precedente' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Scarica PDF' })).toHaveCount(0);
+
+    // All time: no period arrows at all.
+    await allTime.click();
+    await expect(page.getByRole('button', { name: 'Giorno precedente' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Mese precedente' })).toHaveCount(0);
+
+    // Back to the month view.
+    await byMonth.click();
+    await expect(page.getByRole('button', { name: 'Mese precedente' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Mese corrente' })).toBeVisible();
+  });
 });

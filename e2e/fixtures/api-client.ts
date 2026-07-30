@@ -1404,11 +1404,26 @@ export async function deleteCantiereEntry(token: string, id: string): Promise<vo
   await apiDelete(token, `/api/v1/cantieri/entries/${id}`);
 }
 
+/** Aggregate/drill-in period: one month, one day, or {} for all time. */
+export interface CantieriPeriod {
+  month?: string;
+  date?: string;
+}
+
+function cantieriPeriodQuery(period: CantieriPeriod): string {
+  const qs = new URLSearchParams();
+  if (period.month) qs.set('month', period.month);
+  if (period.date) qs.set('date', period.date);
+  const s = qs.toString();
+  return s ? `?${s}` : '';
+}
+
 export async function getCantieriDashboard(
   adminToken: string,
-  month: string,
+  period: CantieriPeriod,
 ): Promise<{
-  month: string;
+  month: string | null;
+  date: string | null;
   sites: Array<{
     id: string;
     name: string;
@@ -1419,7 +1434,33 @@ export async function getCantieriDashboard(
     last_entry_date: string | null;
   }>;
 }> {
-  return apiGet(adminToken, `/api/v1/cantieri/dashboard?month=${month}`);
+  return apiGet(adminToken, `/api/v1/cantieri/dashboard${cantieriPeriodQuery(period)}`);
+}
+
+/** Admin drill-in: one site's entries over a period (day / month / all time). */
+export async function getCantiereSiteEntries(
+  adminToken: string,
+  siteId: string,
+  period: CantieriPeriod,
+): Promise<{
+  site: { id: string; name: string };
+  fields: CantieriFieldDefRecord[];
+  entries: Array<CantiereEntryApiRecord & { user_name: string; mezzo_name: string | null }>;
+}> {
+  return apiGet(
+    adminToken,
+    `/api/v1/cantieri/sites/${siteId}/entries${cantieriPeriodQuery(period)}`,
+  );
+}
+
+/** Raw GET for negative-path assertions (returns the status, never throws). */
+export async function tryGetCantieri(
+  token: string,
+  path: string,
+): Promise<{ status: number; code?: string }> {
+  const r = await fetch(`${API_BASE}${path}`, { headers: authHeaders(token) });
+  const body = (await r.json().catch(() => ({}))) as { error?: { code?: string } };
+  return { status: r.status, code: body.error?.code };
 }
 
 /** Fetch the per-site monthly PDF report; returns status + sniffed header. */

@@ -37,14 +37,31 @@ interface SiteEntriesResponse {
   entries: Array<CantiereEntryRecord & { user_name: string; mezzo_name: string | null }>;
 }
 
+// Which period the aggregates cover: one day, one month, or everything.
+type PeriodMode = 'day' | 'month' | 'all';
+
 function firstOfMonth(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), 1);
 }
 function addMonths(d: Date, n: number): Date {
   return new Date(d.getFullYear(), d.getMonth() + n, 1);
 }
+function startOfDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function addDays(d: Date, n: number): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+}
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
 function monthParam(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+}
+// Local calendar day, never toISOString() (that would shift to UTC and land on
+// the previous day for Rome evenings).
+function dateParam(d: Date): string {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
 // Minutes → "h:mm" (aggregates can exceed 24h, so no Date involved).
@@ -66,34 +83,38 @@ export function CantieriDashboard() {
   const { t } = useTranslation(['cantieri', 'common']);
   const navigate = useNavigate();
   const [month, setMonth] = useState<Date>(() => firstOfMonth(new Date()));
+  const [day, setDay] = useState<Date>(() => startOfDay(new Date()));
   const [sites, setSites] = useState<DashboardSite[]>([]);
   const [openSiteId, setOpenSiteId] = useState<string | null>(null);
   const [detail, setDetail] = useState<SiteEntriesResponse | null>(null);
   const [emailFor, setEmailFor] = useState<DashboardSite | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-  // Filters: all-time toggle (month arrows hidden when on) + cantiere focus
-  // ('' = all). The cantiere filter is applied client-side over the sites list.
-  const [allTime, setAllTime] = useState(false);
+  // Filters: period mode (day / month / all time — the matching arrows show
+  // below it) + cantiere focus ('' = all). The cantiere filter is applied
+  // client-side over the sites list.
+  const [periodMode, setPeriodMode] = useState<PeriodMode>('month');
   const [cantiereFilter, setCantiereFilter] = useState('');
 
   const mp = monthParam(month);
-  // Only the aggregate/drill-in queries drop the month for all-time; the PDF /
-  // email report stays monthly (a report needs a month), so those actions are
-  // hidden while all-time is on.
-  const monthQuery = allTime ? '' : `?month=${mp}`;
+  const dp = dateParam(day);
+  // Only the aggregate/drill-in queries follow the period mode; the PDF / email
+  // report stays monthly (a report names a month on its cover), so those
+  // actions are hidden outside "by month".
+  const periodQuery =
+    periodMode === 'month' ? `?month=${mp}` : periodMode === 'day' ? `?date=${dp}` : '';
 
   const load = useCallback(async () => {
     try {
-      const r = await api<{ month: string; sites: DashboardSite[] }>(
-        `/api/v1/cantieri/dashboard${monthQuery}`
+      const r = await api<{ month: string | null; date: string | null; sites: DashboardSite[] }>(
+        `/api/v1/cantieri/dashboard${periodQuery}`
       );
       setSites(r.sites);
       setErr(null);
     } catch (e) {
       setErr(e instanceof Error ? e.message : t('common:state.error'));
     }
-  }, [monthQuery, t]);
+  }, [periodQuery, t]);
 
   useEffect(() => {
     load();
@@ -107,7 +128,7 @@ export function CantieriDashboard() {
     }
     let cancelled = false;
     setDetail(null);
-    api<SiteEntriesResponse>(`/api/v1/cantieri/sites/${openSiteId}/entries${monthQuery}`)
+    api<SiteEntriesResponse>(`/api/v1/cantieri/sites/${openSiteId}/entries${periodQuery}`)
       .then((r) => {
         if (!cancelled) setDetail(r);
       })
@@ -117,7 +138,7 @@ export function CantieriDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [openSiteId, monthQuery, t]);
+  }, [openSiteId, periodQuery, t]);
 
   const shownSites = cantiereFilter ? sites.filter((s) => s.id === cantiereFilter) : sites;
 
@@ -149,6 +170,7 @@ export function CantieriDashboard() {
   }
 
   const monthLabel = fmtDate(month, { month: 'long', year: 'numeric' });
+  const dayLabel = fmtDate(day, { day: '2-digit', month: 'long', year: 'numeric' });
 
   return (
     <div className="space-y-5">
@@ -173,24 +195,60 @@ export function CantieriDashboard() {
               ))}
             </select>
             <div className="flex items-center gap-1" role="group" aria-label={t('dashboard.period')}>
-              <button
-                type="button"
-                className={`btn btn-sm ${allTime ? 'btn-secondary' : 'btn-primary'}`}
-                onClick={() => setAllTime(false)}
-                aria-pressed={!allTime}
-              >
-                {t('dashboard.byMonth')}
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm ${allTime ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setAllTime(true)}
-                aria-pressed={allTime}
-              >
-                {t('dashboard.allTime')}
-              </button>
+              {(['day', 'month', 'all'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={`btn btn-sm ${periodMode === mode ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setPeriodMode(mode)}
+                  aria-pressed={periodMode === mode}
+                >
+                  {t(
+                    mode === 'day'
+                      ? 'dashboard.byDay'
+                      : mode === 'month'
+                        ? 'dashboard.byMonth'
+                        : 'dashboard.allTime'
+                  )}
+                </button>
+              ))}
             </div>
-            {!allTime && (
+            {periodMode === 'day' && (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setDay((d) => addDays(d, -1))}
+                  aria-label={t('dashboard.prevDay')}
+                  title={t('dashboard.prevDay')}
+                >
+                  ‹
+                </button>
+                <span
+                  className="text-sm font-semibold"
+                  style={{ minWidth: '9rem', textAlign: 'center' }}
+                >
+                  {dayLabel}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setDay((d) => addDays(d, 1))}
+                  aria-label={t('dashboard.nextDay')}
+                  title={t('dashboard.nextDay')}
+                >
+                  ›
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setDay(startOfDay(new Date()))}
+                >
+                  {t('dashboard.today')}
+                </button>
+              </>
+            )}
+            {periodMode === 'month' && (
               <>
                 <button
                   type="button"
@@ -287,8 +345,8 @@ export function CantieriDashboard() {
                 </span>
               </div>
               {/* Monthly report actions — a report needs a month, so hide them
-                  while the all-time view is active. */}
-              {!allTime && (
+                  in the day and all-time views. */}
+              {periodMode === 'month' && (
                 <div className="flex gap-2 pt-1">
                   <button
                     type="button"

@@ -16,8 +16,10 @@ import {
   tryCreateCantiereEntry,
   deleteCantiereEntry,
   getCantieriDashboard,
+  getCantiereSiteEntries,
   getCantiereReportPdf,
   sendCantiereReportEmail,
+  tryGetCantieri,
   type ApiHandle,
   type CantiereSiteRecord,
   type CantiereMezzoRecord,
@@ -189,7 +191,7 @@ test.describe('web — Cantieri: seed, UI, dashboard, PDF', () => {
     });
     entries.push(entry.id);
 
-    const dash = await getCantieriDashboard(admin.token, month);
+    const dash = await getCantieriDashboard(admin.token, { month });
     const row = dash.sites.find((s) => s.id === site!.id);
     expect(row, 'seeded site on the dashboard').toBeTruthy();
     expect(row!.entries_count).toBeGreaterThanOrEqual(1);
@@ -208,6 +210,63 @@ test.describe('web — Cantieri: seed, UI, dashboard, PDF', () => {
     expect(pdf.status).toBe(200);
     expect(pdf.contentType).toContain('application/pdf');
     expect(pdf.magic).toBe('%PDF-');
+  });
+
+  test('day period narrows the aggregates, the drill-in and the UI controls', async ({ page }) => {
+    test.skip(!ready, 'cantieri module not provisioned on the test tenant yet');
+    const today = localDate();
+    // A day the seed can never have touched (the site is created today), so the
+    // "empty day" assertions do not depend on leftover fixtures.
+    const emptyDay = '2020-01-02';
+
+    // Today's aggregates carry the entry seeded by the previous test…
+    const dayDash = await getCantieriDashboard(admin.token, { date: today });
+    expect(dayDash.date).toBe(today);
+    expect(dayDash.month).toBeNull();
+    const dayRow = dayDash.sites.find((s) => s.id === site!.id);
+    expect(dayRow, 'seeded site on the day dashboard').toBeTruthy();
+    expect(dayRow!.entries_count).toBeGreaterThanOrEqual(1);
+    expect(dayRow!.activity_minutes).toBeGreaterThanOrEqual(240);
+
+    // …while another day counts nothing for it (the site itself still shows).
+    const emptyDash = await getCantieriDashboard(admin.token, { date: emptyDay });
+    expect(emptyDash.sites.find((s) => s.id === site!.id)?.entries_count).toBe(0);
+
+    // The drill-in follows the same period.
+    const dayEntries = await getCantiereSiteEntries(admin.token, site!.id, { date: today });
+    expect(dayEntries.entries.length).toBeGreaterThanOrEqual(1);
+    expect(dayEntries.entries.every((e) => e.entry_date === today)).toBe(true);
+    const emptyEntries = await getCantiereSiteEntries(admin.token, site!.id, { date: emptyDay });
+    expect(emptyEntries.entries).toHaveLength(0);
+
+    // month + date is a caller bug, not a precedence rule; an impossible
+    // calendar day is rejected before it reaches the date column.
+    const clash = await tryGetCantieri(
+      admin.token,
+      `/api/v1/cantieri/dashboard?month=${localMonth()}&date=${today}`,
+    );
+    expect(clash.status).toBe(400);
+    const bogus = await tryGetCantieri(admin.token, '/api/v1/cantieri/dashboard?date=2026-02-31');
+    expect(bogus.status).toBe(400);
+
+    // UI: the report actions are monthly-only, so switching to "Per giorno"
+    // hides them and shows the day arrows instead.
+    await page.goto('/cantieri/dashboard');
+    await expect(page.getByRole('heading', { name: 'Dashboard cantieri' })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByRole('button', { name: 'Scarica PDF' }).first()).toBeVisible();
+    await page.getByRole('button', { name: 'Per giorno' }).click();
+    await expect(page.getByRole('button', { name: 'Giorno precedente' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Mese precedente' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Scarica PDF' })).toHaveCount(0);
+    // The seeded site (an entry today) is still on the board in day mode.
+    await expect(page.getByRole('button', { name: site!.name })).toBeVisible();
+
+    // Back to "Per mese" restores the month arrows and the report actions.
+    await page.getByRole('button', { name: 'Per mese' }).click();
+    await expect(page.getByRole('button', { name: 'Mese precedente' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Scarica PDF' }).first()).toBeVisible();
   });
 
   test('per-cantiere field scoping + report email with CC/BCC/note', async () => {
