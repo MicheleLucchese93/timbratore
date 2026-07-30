@@ -95,6 +95,7 @@ export function CantieriScreen() {
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month');
   const [filterCantiereId, setFilterCantiereId] = useState<string | null>(null);
   const [filterPickerOpen, setFilterPickerOpen] = useState(false);
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
 
   // Form state. `editing` non-null = the form PATCHes that entry.
   const [editing, setEditing] = useState<MyEntry | null>(null);
@@ -610,7 +611,16 @@ export function CantieriScreen() {
             accessibilityLabel={t('list.prevDayA11y')}>
             <Ionicons name="chevron-back" size={20} color={color.onSurface} />
           </TouchableOpacity>
-          <Text style={styles.monthLabel}>{fmtDay(day)}</Text>
+          {/* The label is the picker: the arrows only step one day. */}
+          <DateField
+            mode="date"
+            variant="inline"
+            value={day}
+            onChange={setDay}
+            formatLabel={(d) => fmtDay(isoLocal(d))}
+            textStyle={styles.monthLabel}
+            a11yLabel={t('list.pickDayA11y')}
+          />
           <TouchableOpacity
             onPress={() => setDay((d) => shiftDay(d, 1))}
             style={styles.monthBtn}
@@ -630,7 +640,13 @@ export function CantieriScreen() {
             accessibilityLabel={t('list.prevMonthA11y')}>
             <Ionicons name="chevron-back" size={20} color={color.onSurface} />
           </TouchableOpacity>
-          <Text style={styles.monthLabel}>{monthLabel(month)}</Text>
+          <Pressable
+            onPress={() => setMonthPickerOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t('list.pickMonthA11y')}
+            style={styles.monthLabelBtn}>
+            <Text style={styles.monthLabel}>{monthLabel(month)}</Text>
+          </Pressable>
           <TouchableOpacity
             onPress={() => setMonth((m) => shiftMonth(m, 1))}
             style={styles.monthBtn}
@@ -748,6 +764,15 @@ export function CantieriScreen() {
           }
         }}
         onClose={() => setSitePickerOpen(false)}
+      />
+
+      {/* Month jump: the arrows step one month, this picks any month/year. */}
+      <MonthPickerModal
+        visible={monthPickerOpen}
+        month={month}
+        bottomInset={insets.bottom}
+        onSelect={setMonth}
+        onClose={() => setMonthPickerOpen(false)}
       />
 
       {/* List filter: which cantiere to show ("all" clears it). */}
@@ -942,6 +967,86 @@ function ListPickerModal({
               );
             })}
           </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+// Month/year jump sheet: a year stepper plus the twelve months of that year.
+// Tapping a month commits and closes (no confirm button — same one-tap contract
+// as ListPickerModal).
+function MonthPickerModal({
+  visible,
+  month,
+  bottomInset,
+  onSelect,
+  onClose,
+}: {
+  visible: boolean;
+  month: string; // 'YYYY-MM'
+  bottomInset: number;
+  onSelect: (next: string) => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation('cantieri');
+  const selectedYear = parseInt(month.slice(0, 4), 10) || new Date().getFullYear();
+  const selectedMonth = parseInt(month.slice(5, 7), 10) || 1;
+  // Year the sheet is showing — reset to the selected one on every open.
+  const [year, setYear] = useState(selectedYear);
+  useEffect(() => {
+    if (visible) setYear(selectedYear);
+  }, [visible, selectedYear]);
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.pickerOverlay} onPress={onClose}>
+        <Pressable
+          style={[styles.pickerSheet, { paddingBottom: bottomInset + 24 }]}
+          onPress={() => undefined}>
+          <View style={styles.pickerHeader}>
+            <Text style={styles.pickerTitle}>{t('list.monthPickerTitle')}</Text>
+            <TouchableOpacity onPress={onClose} hitSlop={8}>
+              <Ionicons name="close" size={22} color={color.onSurface} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.yearRow}>
+            <TouchableOpacity
+              onPress={() => setYear((y) => y - 1)}
+              style={styles.monthBtn}
+              hitSlop={8}
+              accessibilityLabel={t('list.prevYearA11y')}>
+              <Ionicons name="chevron-back" size={20} color={color.onSurface} />
+            </TouchableOpacity>
+            <Text style={styles.yearLabel}>{year}</Text>
+            <TouchableOpacity
+              onPress={() => setYear((y) => y + 1)}
+              style={styles.monthBtn}
+              hitSlop={8}
+              accessibilityLabel={t('list.nextYearA11y')}>
+              <Ionicons name="chevron-forward" size={20} color={color.onSurface} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.monthGrid}>
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
+              const sel = m === selectedMonth && year === selectedYear;
+              return (
+                <Pressable
+                  key={m}
+                  onPress={() => {
+                    onSelect(`${year}-${pad(m)}`);
+                    onClose();
+                  }}
+                  style={[styles.monthCell, sel && styles.monthCellSel]}>
+                  <Text style={[styles.monthCellText, sel && styles.monthCellTextSel]}>
+                    {fmtDate(new Date(year, m - 1, 1), { month: 'short' })}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </Pressable>
       </Pressable>
     </Modal>
@@ -1242,6 +1347,46 @@ const styles = StyleSheet.create({
     color: color.onSurface,
     textTransform: 'capitalize',
   },
+  monthLabelBtn: { paddingHorizontal: 8, paddingVertical: 4 },
+
+  yearRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    paddingTop: 10,
+  },
+  yearLabel: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: color.onSurface,
+    fontVariant: ['tabular-nums'],
+    minWidth: 64,
+    textAlign: 'center',
+  },
+  monthGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: 12,
+    gap: 8,
+  },
+  monthCell: {
+    width: '22%',
+    flexGrow: 1,
+    minHeight: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: color.surfaceVariant,
+  },
+  monthCellSel: { backgroundColor: color.primaryContainer },
+  monthCellText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: color.onSurfaceVariant,
+    textTransform: 'capitalize',
+  },
+  monthCellTextSel: { color: color.primary, fontWeight: '700' },
 
   dayHeader: {
     fontSize: 13,

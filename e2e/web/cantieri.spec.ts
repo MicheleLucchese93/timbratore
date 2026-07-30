@@ -34,32 +34,38 @@ test.describe('web — Cantieri module gating', () => {
 
     // Module on: a single sidebar entry; its three views live behind in-page
     // segmented tabs. The entry lands on the Dashboard (the module overview).
+    //
+    // Every heading assertion below carries an explicit timeout: each view is a
+    // lazily-loaded route chunk, so on a slow uplink the default 5s can expire
+    // while the app is still booting (the login shell renders meanwhile) — that
+    // produced a flake with an all-200 network trace.
+    const heading = (name: string, exact = false) =>
+      expect(page.getByRole('heading', exact ? { name, exact } : { name }).first()).toBeVisible({
+        timeout: 15_000,
+      });
+
     await expect(entry).toBeVisible();
     await entry.click();
     await expect(page).toHaveURL(/\/cantieri\/dashboard$/);
-    await expect(page.getByRole('heading', { name: 'Dashboard cantieri' })).toBeVisible();
+    await heading('Dashboard cantieri');
 
     // Switch views through the section tabs.
     await page.getByRole('tab', { name: 'Mezzi' }).click();
-    await expect(page.getByRole('heading', { name: 'Mezzi', exact: true })).toBeVisible();
+    await heading('Mezzi', true);
     await page.getByRole('tab', { name: 'Campi personalizzati' }).click();
-    await expect(
-      page.getByRole('heading', { name: 'Campi personalizzati' }).first(),
-    ).toBeVisible();
+    await heading('Campi personalizzati');
     await page.getByRole('tab', { name: 'Cantieri' }).click();
-    await expect(page.getByRole('heading', { name: 'Cantieri', exact: true })).toBeVisible();
+    await heading('Cantieri', true);
 
     // Deep links resolve; /cantieri redirects to the Dashboard tab.
     await page.goto('/cantieri/sites');
-    await expect(page.getByRole('heading', { name: 'Cantieri', exact: true })).toBeVisible();
+    await heading('Cantieri', true);
     await page.goto('/cantieri/campi');
-    await expect(
-      page.getByRole('heading', { name: 'Campi personalizzati' }).first(),
-    ).toBeVisible();
+    await heading('Campi personalizzati');
     await page.goto('/cantieri/mezzi');
-    await expect(page.getByRole('heading', { name: 'Mezzi', exact: true })).toBeVisible();
+    await heading('Mezzi', true);
     await page.goto('/cantieri');
-    await expect(page.getByRole('heading', { name: 'Dashboard cantieri' })).toBeVisible();
+    await heading('Dashboard cantieri');
   });
 
   // Period switch of the dashboard: day / month / all time. Structural only —
@@ -80,6 +86,18 @@ test.describe('web — Cantieri module gating', () => {
     await expect(byMonth).toHaveAttribute('aria-pressed', 'true'); // default
     await expect(page.getByRole('button', { name: 'Mese precedente' })).toBeVisible();
 
+    // Month + year selects, so a specific month is reachable without stepping
+    // through the arrows.
+    const monthSelect = page.getByLabel('Scegli il mese');
+    const yearSelect = page.getByLabel("Scegli l'anno");
+    const now = new Date();
+    await expect(monthSelect).toHaveValue(String(now.getMonth()));
+    await expect(yearSelect).toHaveValue(String(now.getFullYear()));
+    await monthSelect.selectOption('2'); // marzo
+    await expect(monthSelect).toHaveValue('2');
+    await page.getByRole('button', { name: 'Mese corrente' }).click();
+    await expect(monthSelect).toHaveValue(String(now.getMonth()));
+
     // Day mode: day arrows + "Oggi"; the monthly report actions disappear (the
     // PDF / email report always covers a whole month).
     await byDay.click();
@@ -89,6 +107,16 @@ test.describe('web — Cantieri module gating', () => {
     await expect(page.getByRole('button', { name: 'Oggi' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Mese precedente' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Scarica PDF' })).toHaveCount(0);
+
+    // Same for the day: the label is a date input that jumps anywhere, and
+    // "Oggi" brings it back.
+    const dayInput = page.getByLabel('Scegli il giorno');
+    const today = new Date().toLocaleDateString('sv-SE');
+    await expect(dayInput).toHaveValue(today);
+    await dayInput.fill('2026-03-17');
+    await expect(dayInput).toHaveValue('2026-03-17');
+    await page.getByRole('button', { name: 'Oggi' }).click();
+    await expect(dayInput).toHaveValue(today);
 
     // All time: no period arrows at all.
     await allTime.click();

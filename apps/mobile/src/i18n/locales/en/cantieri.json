@@ -70,6 +70,11 @@
     "nextMonthA11y": "Next month",
     "prevDayA11y": "Previous day",
     "nextDayA11y": "Next day",
+    "pickDayA11y": "Pick a day",
+    "pickMonthA11y": "Pick a month",
+    "monthPickerTitle": "Select month",
+    "prevYearA11y": "Previous year",
+    "nextYearA11y": "Next year",
     "empty": "No activities in this period",
     "emptySub": "Activities you log will appear here."
   },

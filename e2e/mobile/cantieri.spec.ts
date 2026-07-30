@@ -45,4 +45,31 @@ test.describe('mobile — Cantieri period filter', () => {
     await chip.click();
     await expect(prevMonth).toBeVisible();
   });
+
+  test('the period label jumps to a specific month / day', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: 'Timbrature' })).toBeVisible({ timeout: 30_000 });
+
+    const tab = page.getByRole('button', { name: 'Cantieri' });
+    test.skip((await tab.count()) === 0, 'cantieri module not enabled for this user');
+    await tab.click();
+
+    const chip = page.getByLabel('Cambia periodo: mese, giorno o tutto');
+    await expect(chip).toBeVisible({ timeout: 15_000 });
+
+    // Month mode: tapping the label opens the month/year sheet; picking a month
+    // commits it and closes the sheet.
+    await page.getByLabel('Scegli il mese').click();
+    await expect(page.getByText('Seleziona mese')).toBeVisible();
+    await page.getByText('gen', { exact: true }).click();
+    await expect(page.getByText('Seleziona mese')).toHaveCount(0);
+    await expect(page.getByLabel('Scegli il mese')).toContainText('gennaio');
+
+    // Day mode: the label is the date picker itself (a date input on RN-web).
+    await chip.click();
+    const dayInput = page.getByLabel('Scegli il giorno');
+    await expect(dayInput).toBeVisible();
+    await dayInput.fill('2026-03-17');
+    await expect(dayInput).toHaveValue('2026-03-17');
+  });
 });

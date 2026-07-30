@@ -63,6 +63,23 @@ function monthParam(d: Date): string {
 function dateParam(d: Date): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
+// Inverse of the two above, built field-by-field: `new Date('2026-07-30')`
+// parses as UTC midnight, which is the previous day west of Greenwich.
+function parseDateParam(v: string): Date | null {
+  const [y, m, d] = v.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+const MONTH_INDEXES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+// Years offered by the month picker: a window around today, widened to always
+// contain the selected year (a deep-linked / long-lived filter can sit outside).
+function yearsAround(selected: number): number[] {
+  const now = new Date().getFullYear();
+  const from = Math.min(now - 3, selected);
+  const to = Math.max(now + 1, selected);
+  return Array.from({ length: to - from + 1 }, (_, i) => from + i);
+}
 
 // Minutes → "h:mm" (aggregates can exceed 24h, so no Date involved).
 function hm(minutes: number): string {
@@ -171,6 +188,7 @@ export function CantieriDashboard() {
 
   const monthLabel = fmtDate(month, { month: 'long', year: 'numeric' });
   const dayLabel = fmtDate(day, { day: '2-digit', month: 'long', year: 'numeric' });
+  const yearOptions = yearsAround(month.getFullYear());
 
   return (
     <div className="space-y-5">
@@ -224,12 +242,20 @@ export function CantieriDashboard() {
                 >
                   ‹
                 </button>
-                <span
-                  className="text-sm font-semibold"
-                  style={{ minWidth: '9rem', textAlign: 'center' }}
-                >
-                  {dayLabel}
-                </span>
+                {/* Typing / picking a date jumps straight to it — the arrows
+                    only step one day at a time. */}
+                <input
+                  type="date"
+                  className="input"
+                  style={{ width: 'auto' }}
+                  value={dp}
+                  aria-label={t('dashboard.pickDay')}
+                  title={dayLabel}
+                  onChange={(e) => {
+                    const picked = parseDateParam(e.target.value);
+                    if (picked) setDay(picked);
+                  }}
+                />
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
@@ -259,12 +285,40 @@ export function CantieriDashboard() {
                 >
                   ‹
                 </button>
-                <span
-                  className="text-sm font-semibold"
-                  style={{ minWidth: '9rem', textAlign: 'center' }}
+                {/* Month + year selects rather than <input type="month">: that
+                    control renders its month names in the BROWSER's language
+                    (English in an Italian UI) and degrades to a raw text box
+                    outside Chromium. */}
+                <select
+                  className="input"
+                  style={{ width: 'auto' }}
+                  value={month.getMonth()}
+                  aria-label={t('dashboard.pickMonth')}
+                  onChange={(e) =>
+                    setMonth((m) => new Date(m.getFullYear(), Number(e.target.value), 1))
+                  }
                 >
-                  {monthLabel}
-                </span>
+                  {MONTH_INDEXES.map((mi) => (
+                    <option key={mi} value={mi}>
+                      {fmtDate(new Date(2000, mi, 1), { month: 'long' })}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="input"
+                  style={{ width: 'auto' }}
+                  value={month.getFullYear()}
+                  aria-label={t('dashboard.pickYear')}
+                  onChange={(e) =>
+                    setMonth((m) => new Date(Number(e.target.value), m.getMonth(), 1))
+                  }
+                >
+                  {yearOptions.map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"

@@ -3,8 +3,10 @@ import {
   Modal,
   Platform,
   Pressable,
+  StyleProp,
   StyleSheet,
   Text,
+  TextStyle,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -38,6 +40,18 @@ interface DateFieldProps {
    * accepts any minute, so we round the selection to the nearest slot.
    */
   minuteInterval?: 1 | 5 | 10 | 15 | 20 | 30;
+  /**
+   * 'field' (default) is the boxed form input. 'inline' drops the box and
+   * renders the label as tappable text — for a period header where the label
+   * itself is the affordance to jump to a specific date.
+   */
+  variant?: 'field' | 'inline';
+  /** Override the trigger label (e.g. "giovedì 30 luglio" in a period header). */
+  formatLabel?: (d: Date) => string;
+  /** Extra styling for the trigger label — only meaningful with 'inline'. */
+  textStyle?: StyleProp<TextStyle>;
+  /** Accessibility label of the trigger (the label text is the default). */
+  a11yLabel?: string;
 }
 
 function roundMinutes(d: Date, step: number): Date {
@@ -91,6 +105,10 @@ export function DateField({
   minimumDate,
   maximumDate,
   minuteInterval,
+  variant = 'field',
+  formatLabel,
+  textStyle,
+  a11yLabel,
 }: DateFieldProps) {
   // Hooks must run unconditionally on every render — call them before the
   // web-only early return below (Platform.OS is constant, but the linter and
@@ -98,21 +116,28 @@ export function DateField({
   const { t } = useTranslation(['components', 'common']);
   const [open, setOpen] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(() => parse(value, mode));
+  const inline = variant === 'inline';
+  const label = formatLabel ? formatLabel(parse(value, mode)) : displayLabel(value, mode);
 
   if (Platform.OS === 'web') {
+    // No native picker on web: the browser input IS the trigger, so the inline
+    // variant just sheds the box (the input renders the browser's own locale
+    // format instead of `formatLabel`).
     return (
-      <View style={styles.fieldBox}>
+      <View style={inline ? undefined : styles.fieldBox}>
         {createElement('input', {
           type: mode === 'date' ? 'date' : 'time',
           value,
+          'aria-label': a11yLabel,
           onChange: (e: { target: { value: string } }) =>
             onChange(e.target.value),
           style: {
             border: 'none',
             outline: 'none',
             background: 'transparent',
-            fontSize: 15,
-            width: '100%',
+            fontSize: inline ? 16 : 15,
+            fontWeight: inline ? 700 : undefined,
+            width: inline ? 'auto' : '100%',
             color: color.onSurface,
             fontFamily: 'inherit',
           },
@@ -163,8 +188,12 @@ export function DateField({
   if (Platform.OS === 'android') {
     return (
       <>
-        <Pressable onPress={openPicker} style={styles.fieldBox}>
-          <Text style={styles.fieldText}>{displayLabel(value, mode)}</Text>
+        <Pressable
+          onPress={openPicker}
+          accessibilityRole="button"
+          accessibilityLabel={a11yLabel}
+          style={inline ? styles.inlineBox : styles.fieldBox}>
+          <Text style={[inline ? styles.inlineText : styles.fieldText, textStyle]}>{label}</Text>
         </Pressable>
         {open && RNDateTimePicker ? (
           <RNDateTimePicker
@@ -186,8 +215,12 @@ export function DateField({
   // spinner picker and Annulla / Fatto buttons.
   return (
     <>
-      <Pressable onPress={openPicker} style={styles.fieldBox}>
-        <Text style={styles.fieldText}>{displayLabel(value, mode)}</Text>
+      <Pressable
+        onPress={openPicker}
+        accessibilityRole="button"
+        accessibilityLabel={a11yLabel}
+        style={inline ? styles.inlineBox : styles.fieldBox}>
+        <Text style={[inline ? styles.inlineText : styles.fieldText, textStyle]}>{label}</Text>
       </Pressable>
       <Modal
         visible={open}
@@ -242,6 +275,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: color.onSurface,
   },
+  // 'inline' variant: no box, just the tappable label (period headers).
+  inlineBox: { paddingHorizontal: 4, paddingVertical: 2, justifyContent: 'center' },
+  inlineText: { fontSize: 16, fontWeight: '700', color: color.onSurface },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.35)',

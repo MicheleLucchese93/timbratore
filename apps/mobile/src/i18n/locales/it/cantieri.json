@@ -70,6 +70,11 @@
     "nextMonthA11y": "Mese successivo",
     "prevDayA11y": "Giorno precedente",
     "nextDayA11y": "Giorno successivo",
+    "pickDayA11y": "Scegli il giorno",
+    "pickMonthA11y": "Scegli il mese",
+    "monthPickerTitle": "Seleziona mese",
+    "prevYearA11y": "Anno precedente",
+    "nextYearA11y": "Anno successivo",
     "empty": "Nessuna attività nel periodo",
     "emptySub": "Le attività che registri compariranno qui."
   },

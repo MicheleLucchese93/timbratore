@@ -1565,7 +1565,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>Dashboard and reports</h3>
-        <p>The <strong>Cantieri dashboard</strong> shows a card per site with the number of activities, workers involved and travel/work totals. At the top you filter by <strong>work site</strong> and pick the period: <strong>by day</strong> (arrows move between days, plus a <strong>Today</strong> button), <strong>by month</strong> (arrows move between months) or <strong>all time</strong>. Opening a card shows the individual entries of the chosen period. From each card, using the dedicated icons, you can <strong>download the PDF</strong> monthly report or <strong>send it by email</strong> (the report is always monthly, so those actions only appear in "by month" mode). When sending you set the <strong>recipients</strong> and, optionally, <strong>CC</strong> and <strong>BCC</strong> addresses and a formatted <strong>note</strong> that appears in the message body; the PDF stays attached.</p>
+        <p>The <strong>Cantieri dashboard</strong> shows a card per site with the number of activities, workers involved and travel/work totals. At the top you filter by <strong>work site</strong> and pick the period: <strong>by day</strong>, <strong>by month</strong> or <strong>all time</strong>. In the two bounded modes the ‹ › arrows step one day or one month, while the controls in the middle jump straight to a specific period: a <strong>calendar</strong> in day mode, <strong>month</strong> and <strong>year</strong> dropdowns in month mode; <strong>Today</strong> and <strong>Current month</strong> return to the current period. Opening a card shows the individual entries of the chosen period. From each card, using the dedicated icons, you can <strong>download the PDF</strong> monthly report or <strong>send it by email</strong> (the report is always monthly, so those actions only appear in "by month" mode). When sending you set the <strong>recipients</strong> and, optionally, <strong>CC</strong> and <strong>BCC</strong> addresses and a formatted <strong>note</strong> that appears in the message body; the PDF stays attached.</p>
       </div>
 
       <div class="callout callout-info">
@@ -1579,7 +1579,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>My activities</h3>
-        <p>The <strong>Cantieri</strong> tab lists your entries, grouped by day. At the top you filter by <strong>work site</strong> and pick the period: tapping the second chip cycles <strong>Month</strong> → <strong>Day</strong> (in both cases the arrows move the period) → <strong>All time</strong> (every activity). Tap an entry to <strong>edit</strong> it; use the trash icon to <strong>delete</strong> it. The <strong>+</strong> button at the bottom right opens the form to log a new one.</p>
+        <p>The <strong>Cantieri</strong> tab lists your entries, grouped by day. At the top you filter by <strong>work site</strong> and pick the period: tapping the second chip cycles <strong>Month</strong> → <strong>Day</strong> → <strong>All time</strong> (every activity). In Month and Day mode the arrows step one period at a time, and tapping the <strong>label</strong> in the middle picks a specific day (calendar) or month (month/year selector). Tap an entry to <strong>edit</strong> it; use the trash icon to <strong>delete</strong> it. The <strong>+</strong> button at the bottom right opens the form to log a new one.</p>
       </div>
 
       <div class="feature">
