@@ -212,13 +212,15 @@ export function StampPanel({ onStamped }: { onStamped?: () => void }) {
             <div className="text-xs uppercase tracking-wide" style={{ opacity: 0.75 }}>
               {t('hero.workedHours')}
             </div>
-            <div className="text-3xl font-bold num mt-1">{formatDuration(totals.workedMs)}</div>
+            <div data-testid="hero-worked" className="text-3xl font-bold num mt-1">
+              {formatDuration(totals.workedMs)}
+            </div>
           </div>
           <div className="text-right">
             <div className="text-xs uppercase tracking-wide" style={{ opacity: 0.75 }}>
               {t('hero.countedHours')}
             </div>
-            <div className="text-3xl font-bold num mt-1">
+            <div data-testid="hero-counted" className="text-3xl font-bold num mt-1">
               {assignment ? formatDuration(totals.countedTotalMs) : '—'}
             </div>
           </div>

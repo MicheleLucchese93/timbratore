@@ -296,11 +296,13 @@ export function TimbratureScreen() {
           <View style={styles.heroTopRow}>
             <View style={styles.heroTopCol}>
               <Text style={styles.heroLabel}>{t('hero.workedHours')}</Text>
-              <Text style={styles.heroAmount}>{formatDuration(totals.workedMs)}</Text>
+              <Text testID="hero-worked" style={styles.heroAmount}>
+                {formatDuration(totals.workedMs)}
+              </Text>
             </View>
             <View style={styles.heroTopColRight}>
               <Text style={styles.heroLabel}>{t('hero.countedHours')}</Text>
-              <Text style={styles.heroAmount}>
+              <Text testID="hero-counted" style={styles.heroAmount}>
                 {assignment ? formatDuration(totals.countedTotalMs) : '—'}
               </Text>
             </View>
@@ -468,7 +470,9 @@ export function TimbratureScreen() {
     />
   );
 
-  const storicoPage = <StoricoContent />;
+  // Pass the visibility flag so Storico refetches when the user swipes back to
+  // it — SwipeableTabs keeps every page mounted.
+  const storicoPage = <StoricoContent active={tab === 'storico'} />;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

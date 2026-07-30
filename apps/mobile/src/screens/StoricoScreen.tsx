@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
 import type { StampEventType } from '@sonoqui/shared';
@@ -32,7 +33,10 @@ const RANGES = [
 
 // History body, rendered as the "Storico" sub-tab inside Timbrature (which
 // already provides the SafeAreaView + AppHeader chrome).
-export function StoricoContent() {
+// `active` = this sub-tab is the visible one. SwipeableTabs keeps all three
+// children mounted, so the flag is what tells us the user actually came back to
+// Storico and the list needs fresh data.
+export function StoricoContent({ active = true }: { active?: boolean }) {
   const { t: tr } = useTranslation(['storico', 'common']);
   const [days, setDays] = useState(30);
   const [stamps, setStamps] = useState<DayStamp[]>([]);
@@ -64,10 +68,18 @@ export function StoricoContent() {
     }
   }, []);
 
-  useEffect(() => {
-    setLoading(true);
-    fetchStamps(days);
-  }, [fetchStamps, days]);
+  // Refetch on every (re)entry instead of once on mount. The body stays mounted
+  // behind the Timbra tab, so a mount-only fetch went stale as soon as the user
+  // stamped: an uscita punched while sitting on Timbra was missing from Storico
+  // — and its day then showed only the closed morning segment. useFocusEffect
+  // also re-runs when `days` or `active` change while the screen is focused,
+  // which covers the range pills and the sub-tab switch.
+  useFocusEffect(
+    useCallback(() => {
+      if (!active) return;
+      fetchStamps(days);
+    }, [active, days, fetchStamps])
+  );
 
   // Hide rest days (no shift slot for that weekday) unless work was actually
   // logged on them; scheduled work days always show. Without an assignment the
@@ -99,7 +111,11 @@ export function StoricoContent() {
           return (
             <TouchableOpacity
               key={r.id}
-              onPress={() => setDays(r.id)}
+              onPress={() => {
+                if (r.id === days) return;
+                setLoading(true);
+                setDays(r.id);
+              }}
               activeOpacity={0.7}
               style={[styles.tabPill, sel && styles.tabPillActive]}>
               <Text style={[styles.tabPillText, sel && styles.tabPillTextActive]}>

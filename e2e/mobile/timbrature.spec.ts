@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test';
 
+// "10h 05m" → 605. Returns null for the "—" placeholder shown when the user has
+// no shift assignment.
+function durationToMinutes(text: string): number | null {
+  const m = text.match(/(\d+)h\s*(\d+)m/);
+  if (!m) return null;
+  return Number(m[1]) * 60 + Number(m[2]);
+}
+
 test.describe('mobile — Timbrature tab', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
@@ -20,6 +28,18 @@ test.describe('mobile — Timbrature tab', () => {
     await expect(page.getByText('Entrata').first()).toBeVisible();
     await expect(page.getByText('Pause').first()).toBeVisible();
     await expect(page.getByText('Uscita').first()).toBeVisible();
+  });
+
+  // Regression guard: "Ore conteggiate" used to be countedMs + overtimeMs, which
+  // billed the overtime twice — a 10h day on an 8h flextime shift read 12h.
+  // Overtime is a share of the counted total, so counted can never exceed worked.
+  test('ore conteggiate never exceed ore lavorate', async ({ page }) => {
+    const worked = durationToMinutes(await page.getByTestId('hero-worked').innerText());
+    const counted = durationToMinutes(await page.getByTestId('hero-counted').innerText());
+    if (worked === null) throw new Error('hero-worked did not render a duration');
+    // "—" when the user has no assignment; nothing to compare then.
+    if (counted === null) return;
+    expect(counted).toBeLessThanOrEqual(worked);
   });
 
   test('shows the bottom tab bar with the admin tabs (incl. Dashboard)', async ({ page }) => {

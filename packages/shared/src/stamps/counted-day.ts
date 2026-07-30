@@ -11,6 +11,12 @@
 // Overtime treats `now` as a virtual clock-out: surplus past expected_end is
 // counted in whole blocks of extraordinary_threshold_min (15/30/60), a partial
 // block not counted. Only when count_extraordinary is on.
+//
+// Overtime is a SUBSET of the counted total, never an addend: the surplus is
+// already inside the worked arithmetic, so `countedTotalMs` must not add it a
+// second time. Same contract as the backend, where `worked_minutes` is the
+// total and `overtime_minutes` the portion of it that is extraordinary (see
+// export-service.ts, Centro Paghe: oreLavorate = worked − overtime).
 
 import type { DayStamp, DayTotals } from './day-totals.js';
 import { computeDayTotals } from './day-totals.js';
@@ -58,9 +64,13 @@ export interface CountedDay extends DayTotals {
   /** Standard counted minutes (worked - breach deductions, clamped at 0). */
   countedMs: number;
   /** Overtime minutes — surplus past expected_end, counted in whole blocks of
-   *  extraordinary_threshold_min. Only when count_extraordinary is on. */
+   *  extraordinary_threshold_min. Only when count_extraordinary is on.
+   *  Informational breakdown: this time is already part of countedMs, so it is
+   *  the "di cui straordinario" share, not extra hours to add on top. */
   overtimeMs: number;
-  /** countedMs + overtimeMs — the value to show as "Ore conteggiate". */
+  /** The value to show as "Ore conteggiate" — equal to countedMs. Overtime is
+   *  already inside it (see overtimeMs); adding the two would bill the surplus
+   *  twice (a 10h day on an 8h flextime shift used to read 12h). */
   countedTotalMs: number;
 }
 
@@ -259,7 +269,8 @@ export function computeCountedDay(
     ...totals,
     countedMs,
     overtimeMs,
-    countedTotalMs: countedMs + overtimeMs,
+    // Not `countedMs + overtimeMs`: the surplus is already inside countedMs.
+    countedTotalMs: countedMs,
   };
 }
 
@@ -377,7 +388,8 @@ export function computeCountedDayClosed(
     ...totals,
     countedMs,
     overtimeMs,
-    countedTotalMs: countedMs + overtimeMs,
+    // Not `countedMs + overtimeMs`: the surplus is already inside countedMs.
+    countedTotalMs: countedMs,
   };
 }
 

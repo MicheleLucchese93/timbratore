@@ -6,7 +6,10 @@
   "main": "./src/index.ts",
   "scripts": {
     "build": "echo 'no build (consumed as source)'",
-    "test": "echo 'no tests'",
+    "test": "node --import tsx --test src/__tests__/*.test.ts",
     "tokens": "node scripts/gen-tokens-css.mjs"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2"
   }
 }
