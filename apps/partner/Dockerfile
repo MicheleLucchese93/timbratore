@@ -21,7 +21,7 @@ ENV VITE_API_URL=$VITE_API_URL \
 
 RUN npm run build --workspace=@sonoqui/partner
 
-FROM nginx:1.29-alpine
+FROM nginx:1.31-alpine
 COPY apps/partner/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /repo/apps/partner/dist /usr/share/nginx/html
 
