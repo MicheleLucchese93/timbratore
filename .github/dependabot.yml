@@ -105,35 +105,59 @@ updates:
   # ---------------------------------------------------------------- docker
   # One block per Dockerfile: the docker ecosystem only parses `FROM` lines in
   # the Dockerfile at `directory`, and it does not recurse.
+  #
+  # Every block ignores `node` majors. Only even-numbered Node releases become
+  # LTS, and Dependabot offers the newest tag regardless — its first pass here
+  # proposed node:24-alpine -> node:25-alpine across all five Dockerfiles, i.e.
+  # a move onto a Current (non-LTS) line for the runtime of every deployed
+  # container. The repo's `engines` field says node >=22, prod and CI both run
+  # 24, so the LTS-to-LTS jump is a deliberate operator decision, not a weekly
+  # PR. Minor and patch bumps (security rebuilds of the alpine base) still flow.
+  # nginx is left unrestricted: it has been on 1.x throughout.
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
     labels: ["dependencies", "docker"]
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "docker"
     directory: "/apps/web"
     schedule:
       interval: "weekly"
     labels: ["dependencies", "docker"]
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "docker"
     directory: "/apps/partner"
     schedule:
       interval: "weekly"
     labels: ["dependencies", "docker"]
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "docker"
     directory: "/apps/website"
     schedule:
       interval: "weekly"
     labels: ["dependencies", "docker"]
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "docker"
     directory: "/apps/mobile"
     schedule:
       interval: "weekly"
     labels: ["dependencies", "docker"]
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
 
   # ------------------------------------------------------- docker-compose
   # The `docker` ecosystem above reads Dockerfile `FROM` lines only — it does

@@ -11,8 +11,8 @@
     "packages/shared"
   ],
   "scripts": {
-    "build": "npm run -ws --if-present build",
-    "test": "npm run -ws --if-present test",
+    "build": "npm run --workspaces --if-present build",
+    "test": "npm run --workspaces --if-present test",
     "dev:backend": "npm run -w apps/backend dev",
     "dev:web": "npm run -w apps/web dev",
     "dev:mobile": "npm -w apps/mobile run web",
