@@ -1,5 +1,19 @@
 import { create } from 'zustand';
-import { api, getToken, getTenantId, setTenantId, logout as logoutAuth } from '../lib/api.ts';
+import {
+  api,
+  getToken,
+  getTenantId,
+  setTenantId,
+  isSupportMode,
+  endSupportSession,
+  logout as logoutAuth,
+} from '../lib/api.ts';
+
+/** True while this tab runs a read-only partner support session. Every write
+ *  affordance keys off this; the server refuses writes regardless. */
+export function useReadOnly(): boolean {
+  return useSession((s) => s.me?.support?.active === true);
+}
 
 export interface TenantOption {
   tenant_id: string;
@@ -50,6 +64,16 @@ export interface MeResponse {
     push_token_registered?: boolean;
     notification_preferences?: Record<string, boolean>;
   };
+  /** Present ONLY while a partner is inspecting this company read-only. Server
+   *  derived from the session token — the client cannot opt out of it. */
+  support?: {
+    active: boolean;
+    session_id: string;
+    tenant_name: string;
+    expires_at: string;
+    actor_email: string | null;
+    tenant_suspended: boolean;
+  };
 }
 
 interface SessionState {
@@ -78,6 +102,25 @@ export const useSession = create<SessionState>((set, get) => ({
     }
     set({ loading: true, error: null });
     try {
+      // Read-only support session: exactly one company, pinned server-side in
+      // the token. Skip the company list AND setTenantId — writing the tenant to
+      // localStorage would leak into the partner's own tabs.
+      if (isSupportMode()) {
+        const me = await api<MeResponse>('/api/v1/me');
+        set({
+          loading: false,
+          me,
+          tenants: [
+            {
+              tenant_id: me.tenant.id,
+              ragione_sociale: me.tenant.ragione_sociale,
+              role: me.user.role,
+            },
+          ],
+          activeTenantId: me.tenant.id,
+        });
+        return;
+      }
       // Tenant-agnostic on purpose (see api noTenant): a stale stored tenant id
       // must not block reading our own company list.
       const { tenants } = await api<{ tenants: TenantOption[] }>('/api/v1/me/tenants', {
@@ -123,6 +166,13 @@ export const useSession = create<SessionState>((set, get) => ({
         code === 'NO_ACTIVE_TENANT' || code === 'TENANT_NOT_ALLOWED'
           ? 'invalid_credentials'
           : 'default';
+      // A failed support session ends on its own screen — never on the login
+      // form, which a partner has no business seeing here.
+      if (isSupportMode()) {
+        endSupportSession();
+        set({ loading: false, me: null, tenants: [], activeTenantId: null, error: null });
+        return;
+      }
       await logoutAuth();
       set({ loading: false, me: null, tenants: [], activeTenantId: null, error });
     }
@@ -135,6 +185,13 @@ export const useSession = create<SessionState>((set, get) => ({
     await get().refresh();
   },
   async logout() {
+    if (isSupportMode()) {
+      // "Termina sessione": drop the tab's token and land on the ended screen.
+      // The server-side row is revoked from the console; expiry closes it anyway.
+      endSupportSession();
+      set({ me: null, tenants: [], activeTenantId: null, error: null });
+      return;
+    }
     await logoutAuth();
     set({ me: null, tenants: [], activeTenantId: null, error: null });
   },

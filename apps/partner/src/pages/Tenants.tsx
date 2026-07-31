@@ -10,7 +10,7 @@ import { PageHeader } from '../components/PageHeader.tsx';
 import { MCard, MCardList } from '../components/MobileCards.tsx';
 import { Modal } from '../components/Modal.tsx';
 import { IconButton } from '../components/IconButton.tsx';
-import { IconEdit, IconPause, IconPlay, IconUsers, IconTrash, IconPlus, IconMail, IconUserMinus, IconModules } from '../components/icons.tsx';
+import { IconEdit, IconPause, IconPlay, IconUsers, IconTrash, IconPlus, IconMail, IconUserMinus, IconModules, IconEye } from '../components/icons.tsx';
 import { MODULES, moduleFlag, type ModuleDef } from '../lib/modules.ts';
 
 interface TenantRow {
@@ -95,6 +95,10 @@ export function Tenants() {
   // registered module, partners only those their caps grant (server re-checks
   // either way). Empty → the modules action/section is hidden entirely.
   const availableModules = MODULES.filter((m) => isAdmin || moduleFlag(caps, m.capField));
+  // Read-only access to a customer's environment. Platform admins always; a
+  // partner only with the capability (the server re-checks and also enforces
+  // that the tenant is theirs).
+  const canSupport = isAdmin || caps?.may_support_access === true;
 
   const [rows, setRows] = useState<TenantRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,6 +107,7 @@ export function Tenants() {
   const [managingAdmins, setManagingAdmins] = useState<TenantRow | null>(null);
   const [managingModules, setManagingModules] = useState<TenantRow | null>(null);
   const [deleting, setDeleting] = useState<TenantRow | null>(null);
+  const [supporting, setSupporting] = useState<TenantRow | null>(null);
   // Read-only drill-downs opened from the counter cells.
   const [viewingMembers, setViewingMembers] = useState<{ tenant: TenantRow; documentaliOnly: boolean } | null>(null);
   const [viewingBranches, setViewingBranches] = useState<TenantRow | null>(null);
@@ -166,6 +171,14 @@ export function Tenants() {
             });
             if (okToSuspend) await act(`/api/v1/partnership/tenants/${row.id}/suspend`, 'tenants.suspend.done');
           }}
+        />
+      )}
+      {canSupport && (
+        <IconButton
+          label={t('support.label')}
+          testId="support-access"
+          icon={<IconEye />}
+          onClick={() => setSupporting(row)}
         />
       )}
       <IconButton label={t('admins.label')} testId="manage-admins" icon={<IconUsers />} onClick={() => setManagingAdmins(row)} />
@@ -316,7 +329,11 @@ export function Tenants() {
     {
       field: 'actions',
       headerName: t('tenants.col.actions'),
-      width: 170 + (isSuper ? 40 : 0) + (availableModules.length > 0 ? 40 : 0),
+      width:
+        170 +
+        (isSuper ? 40 : 0) +
+        (availableModules.length > 0 ? 40 : 0) +
+        (canSupport ? 40 : 0),
       sortable: false,
       filterable: false,
       renderCell: (p) => renderActions(p.row),
@@ -468,8 +485,78 @@ export function Tenants() {
           onClose={() => setViewingMembers(null)}
         />
       )}
+      {supporting && <SupportAccess tenant={supporting} onClose={() => setSupporting(null)} />}
       {viewingBranches && <BranchesList tenant={viewingBranches} onClose={() => setViewingBranches(null)} />}
     </>
+  );
+}
+
+// Opens the customer's environment in the web app, READ-ONLY. The server mints a
+// short-lived session and returns a one-time link; we open it in a new tab so the
+// console stays where it is. The optional reason is stored in BOTH audit trails —
+// the platform's and the customer's own Registro attività.
+function SupportAccess({ tenant, onClose }: { tenant: TenantRow; onClose: () => void }) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function open(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = await api<{ url: string; expires_at: string }>(
+        `/api/v1/partnership/tenants/${tenant.id}/support-session`,
+        { method: 'POST', json: { reason: reason.trim() || null } }
+      );
+      // Opened synchronously in the click's task chain would be nicer, but the
+      // URL only exists after the round-trip; the console is same-user so the
+      // popup blocker treats it as user-initiated.
+      window.open(r.url, '_blank', 'noopener,noreferrer');
+      toast(t('support.opened', { name: tenant.ragione_sociale }));
+      onClose();
+    } catch (e2) {
+      setErr(errMsg(t, e2));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title={`${t('support.title')} · ${tenant.ragione_sociale}`} onClose={onClose}>
+      <form onSubmit={open}>
+        <div className="modal-body">
+          <p className="muted">{t('support.intro')}</p>
+          <ul className="muted" style={{ margin: 0, paddingInlineStart: '1.2em' }}>
+            <li>{t('support.bullet_readonly')}</li>
+            <li>{t('support.bullet_expiry')}</li>
+            <li>{t('support.bullet_audit')}</li>
+            <li>{t('support.bullet_documents')}</li>
+          </ul>
+          <div>
+            <label className="label" htmlFor="s-reason">{t('support.reason')}</label>
+            <input
+              id="s-reason"
+              className="input"
+              data-testid="support-reason"
+              maxLength={500}
+              value={reason}
+              onChange={(ev) => setReason(ev.target.value)}
+              placeholder={t('support.reason_ph')}
+            />
+          </div>
+          {err && <div className="form-err">{err}</div>}
+        </div>
+        <div className="modal-foot">
+          <button type="button" className="btn btn-ghost" onClick={onClose}>{t('actions.cancel')}</button>
+          <button type="submit" className="btn btn-primary" disabled={busy} data-testid="support-open">
+            {busy ? t('common.saving') : t('support.open')}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 

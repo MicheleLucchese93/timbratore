@@ -9,6 +9,9 @@ export interface PartnerCaps {
   cap_branches_per_tenant: number | null;
   /** Capability: the partner may toggle the Cantieri module on their tenants. */
   may_enable_cantieri: boolean;
+  /** Capability: the partner may open their tenants read-only in the web app.
+   *  Always true for platform admins (the server reports it that way). */
+  may_support_access: boolean;
 }
 
 export interface PartnerMe {

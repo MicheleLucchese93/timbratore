@@ -218,6 +218,9 @@ export function CantieriDashboard() {
                   key={mode}
                   type="button"
                   className={`btn btn-sm ${periodMode === mode ? 'btn-primary' : 'btn-secondary'}`}
+                  // Primary styling marks the SELECTED period, not a write — it
+                  // must keep working in a read-only support session.
+                  data-readonly-ok
                   onClick={() => setPeriodMode(mode)}
                   aria-pressed={periodMode === mode}
                 >

@@ -143,6 +143,16 @@ internalE2eRouter.post(
           WHERE tenant_id IN (SELECT id FROM tenants WHERE ragione_sociale LIKE 'e2e-%' AND id <> $1)`,
         [TEST_TENANT_ID]
       );
+      // Read-only support sessions (migration 058). FKs point at auth_users AND
+      // tenants, so these must go before both deletes below — a leftover row on
+      // a fixture partner would block the auth_users purge outright.
+      const ssess = await client.query(
+        `DELETE FROM support_sessions
+          WHERE partner_user_id ${inE2eUsers}
+             OR tenant_id = $2
+             OR tenant_id IN (SELECT id FROM tenants WHERE ragione_sociale LIKE 'e2e-%' AND id <> $2)`,
+        argsT
+      );
       const palog = await client.query(
         `DELETE FROM partnership_audit_log
           WHERE actor_user_id ${inE2eUsers}
@@ -335,6 +345,7 @@ internalE2eRouter.post(
           cantieri: cant.rowCount,
           mezzi: mez.rowCount,
           cantieri_field_defs: cfd.rowCount,
+          support_sessions: ssess.rowCount,
           partnership_members: pmembers.rowCount,
           partnership_audit_log: palog.rowCount,
           partnership_tenants: e2eTenantsDeleted.rowCount,
@@ -367,6 +378,7 @@ internalE2eRouter.post(
         cantieri_deleted: cant.rowCount,
         mezzi_deleted: mez.rowCount,
         cantieri_field_defs_deleted: cfd.rowCount,
+        support_sessions_deleted: ssess.rowCount,
         partnership_members_deleted: pmembers.rowCount,
         partnership_audit_log_deleted: palog.rowCount,
         partnership_tenants_deleted: e2eTenantsDeleted.rowCount,

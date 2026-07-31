@@ -870,7 +870,18 @@ export const MAIN_EN = `
           <li><strong>Bulletin board</strong> — publishing, editing and deleting messages.</li>
           <li><strong>Exports</strong> — export generation, download and deletion.</li>
           <li><strong>Documents</strong> — uploads, deletions and Documentale session starts.</li>
+          <li><strong>Support</strong> — every <em>partner read-only access</em> (see below).</li>
           <li><strong>Settings</strong> — changes to the company configuration.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h3>Partner read-only accesses</h3>
+        <p>Your reseller, or the platform administrator, can open your company's environment <strong>read-only</strong> for support: they see the same pages you see, but the system refuses any change. They need none of your credentials and the session lasts 30 minutes at most.</p>
+        <ul class="tidy">
+          <li>Every opening appears in the log as <strong>Partner read-only access</strong>, category <em>Support</em>, with the email of whoever opened it and the reason they gave, if any.</li>
+          <li><strong>Employee documents</strong> and <strong>export</strong> downloads stay out of reach even during the session.</li>
+          <li>No operation can be performed on your behalf: if the log shows a change, a user of your company made it.</li>
         </ul>
       </div>
 
@@ -888,7 +899,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>Filters and pagination</h3>
-        <p>At the top you can narrow the list by period (<strong>From</strong> / <strong>To</strong>), <strong>Author</strong>, <strong>Target</strong> and <strong>Category</strong> (Users, Stamps, Corrections, Leaves, Balances, Schedules, Branches, Bulletin board, Work sites, Exports, Documents, Settings — the <em>Work sites</em> category collects the operations of that module, when enabled). Any filter change restarts from the first page.</p>
+        <p>At the top you can narrow the list by period (<strong>From</strong> / <strong>To</strong>), <strong>Author</strong>, <strong>Target</strong> and <strong>Category</strong> (Users, Stamps, Corrections, Leaves, Balances, Schedules, Branches, Bulletin board, Work sites, Exports, Documents, Support, Settings — the <em>Work sites</em> category collects the operations of that module, when enabled). Any filter change restarts from the first page.</p>
         <p>The list is paginated server-side: use the controls at the bottom of the table to move between pages and choose how many entries to show (50, 100 or 200 per page).</p>
       </div>
 

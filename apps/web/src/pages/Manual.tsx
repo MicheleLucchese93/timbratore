@@ -877,7 +877,18 @@ const MAIN_IT = `
           <li><strong>Bacheca</strong> — pubblicazione, modifica ed eliminazione dei messaggi.</li>
           <li><strong>Esportazioni</strong> — generazione, download ed eliminazione degli export.</li>
           <li><strong>Documenti</strong> — caricamenti, eliminazioni e avvio delle sessioni Documentale.</li>
+          <li><strong>Assistenza</strong> — ogni <em>accesso in sola lettura del partner</em> (vedi sotto).</li>
           <li><strong>Impostazioni</strong> — modifiche alla configurazione aziendale.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h3>Accessi in sola lettura del partner</h3>
+        <p>Il rivenditore o l'amministratore della piattaforma può aprire l'ambiente della tua azienda <strong>in sola lettura</strong>, per assistenza: vede le stesse pagine che vedi tu, ma il sistema rifiuta qualunque modifica. Non gli servono le tue credenziali e la sessione dura al massimo 30 minuti.</p>
+        <ul class="tidy">
+          <li>Ogni apertura compare nel registro come <strong>Accesso in sola lettura del partner</strong>, categoria <em>Assistenza</em>, con l'email di chi l'ha aperta e l'eventuale motivo indicato.</li>
+          <li>I <strong>documenti del personale</strong> e il download delle <strong>esportazioni</strong> restano fuori portata anche durante la sessione.</li>
+          <li>Nessuna operazione può essere eseguita per tuo conto: se nel registro compare una modifica, l'ha fatta un utente della tua azienda.</li>
         </ul>
       </div>
 
@@ -895,7 +906,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Filtri e paginazione</h3>
-        <p>In alto puoi restringere l'elenco per periodo (<strong>Dal</strong> / <strong>Al</strong>), <strong>Autore</strong>, <strong>Destinatario</strong> e <strong>Categoria</strong> (Utenti, Timbrature, Correzioni, Ferie &amp; Permessi, Residui, Orari, Sedi, Bacheca, Cantieri, Esportazioni, Documenti, Impostazioni — la categoria <em>Cantieri</em> raccoglie le operazioni dell'omonimo modulo, se attivo). Ogni modifica ai filtri riparte dalla prima pagina.</p>
+        <p>In alto puoi restringere l'elenco per periodo (<strong>Dal</strong> / <strong>Al</strong>), <strong>Autore</strong>, <strong>Destinatario</strong> e <strong>Categoria</strong> (Utenti, Timbrature, Correzioni, Ferie &amp; Permessi, Residui, Orari, Sedi, Bacheca, Cantieri, Esportazioni, Documenti, Assistenza, Impostazioni — la categoria <em>Cantieri</em> raccoglie le operazioni dell'omonimo modulo, se attivo). Ogni modifica ai filtri riparte dalla prima pagina.</p>
         <p>L'elenco è paginato lato server: con i controlli in fondo alla tabella scorri le pagine e scegli quante voci mostrare (50, 100 o 200 per pagina).</p>
       </div>
 

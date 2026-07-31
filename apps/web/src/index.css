@@ -1396,3 +1396,73 @@ select.input { background-color: white; }
   height: 0;
   pointer-events: none;
 }
+
+/* Read-only partner support session ----------------------------------- */
+/* A fixed bar the customer's own users never see. It offsets the shell so the
+   sticky page header and the sidebar start below it instead of underneath. */
+.support-banner {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: var(--support-banner-h);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 0.875rem;
+  font-size: 0.8125rem;
+  background: var(--color-warning);
+  color: white;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.18);
+}
+.support-banner-badge {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.6875rem;
+  padding: 0.125rem 0.4rem;
+  border-radius: 0.25rem;
+  background: rgb(255 255 255 / 0.22);
+  white-space: nowrap;
+}
+.support-banner-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.support-banner-timer {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.support-banner-end {
+  border: 1px solid rgb(255 255 255 / 0.6);
+  border-radius: 0.375rem;
+  padding: 0.15rem 0.6rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.support-banner-end:hover { background: rgb(255 255 255 / 0.15); }
+
+.readonly-session {
+  --support-banner-h: 2.5rem;
+  padding-top: var(--support-banner-h);
+}
+.readonly-session .sidebar {
+  top: var(--support-banner-h);
+  height: calc(100vh - var(--support-banner-h));
+}
+.readonly-session .page-header { top: 0; }
+
+/* Write affordances are dimmed and inert. The SERVER is the authority (it
+   refuses every non-GET on a support session); this only stops the UI from
+   offering actions that are guaranteed to fail. Read-only controls that happen
+   to be primary-styled opt out with data-readonly-ok. */
+.readonly-session .btn-primary:not([data-readonly-ok]),
+.readonly-session .btn-danger:not([data-readonly-ok]),
+.readonly-session .icon-btn-danger:not([data-readonly-ok]),
+.readonly-session .icon-btn-success:not([data-readonly-ok]) {
+  opacity: 0.4;
+  pointer-events: none;
+}

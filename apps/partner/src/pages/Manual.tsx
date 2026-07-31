@@ -21,6 +21,7 @@ const TOC_IT = `
       <a href="#aziende-stato" class="sub">Sospendere e riattivare</a>
       <a href="#aziende-cantieri" class="sub">Moduli</a>
       <a href="#aziende-admin" class="sub">Amministratori</a>
+      <a href="#aziende-supporto" class="sub">Accesso in sola lettura</a>
       <a href="#aziende-elimina" class="sub">Eliminare</a>
       <a href="#partner">Partner</a>
       <a href="#partner-crea" class="sub">Creare un partner</a>
@@ -271,6 +272,23 @@ const MAIN_IT = `
         </ul>
       </div>
 
+      <div class="feature" id="aziende-supporto">
+        <h3>Accesso in sola lettura</h3>
+        <p>L'icona <strong>occhio</strong> apre l'ambiente dell'azienda nell'app web di sonoQui, <strong>in sola lettura</strong>: vedi quello che vede il cliente (timbrature, utenti, orari, richieste, anomalie) senza poter modificare nulla. Serve per rispondere a una segnalazione senza chiedere credenziali al cliente.</p>
+        <ol class="steps">
+          <li>Apri l'azione <strong>Apri in sola lettura</strong> sulla riga dell'azienda.</li>
+          <li>Indica un <strong>motivo</strong> (facoltativo, finisce nei registri).</li>
+          <li>Premi <strong>Apri ambiente</strong>: si apre una nuova scheda già dentro l'ambiente del cliente.</li>
+        </ol>
+        <ul class="tidy">
+          <li><strong>Sola lettura davvero</strong> — ogni tentativo di modifica viene rifiutato dal server, non solo nascosto nell'interfaccia. Una fascia gialla in alto ricorda che sei in una sessione di assistenza.</li>
+          <li><strong>Durata</strong> — 30 minuti, senza rinnovo. Con <em>Termina sessione</em> la chiudi prima.</li>
+          <li><strong>Tracciata su due registri</strong> — nel Registro attività della console e in quello dell'azienda cliente, con il tuo indirizzo email: il cliente vede sempre quando è stato aperto un accesso.</li>
+          <li><strong>Fuori portata</strong> — i documenti del personale e il download delle esportazioni restano inaccessibili anche durante la sessione.</li>
+          <li><strong>Chi può usarlo</strong> — l'amministratore di piattaforma sempre; un partner solo se ha l'abilitazione <em>Accesso in sola lettura alle aziende</em> e solo sulle proprie aziende.</li>
+        </ul>
+      </div>
+
       <div class="feature" id="aziende-elimina">
         <h3>Eliminare un'azienda <span class="badge badge-admin">super-utente</span></h3>
         <p>L'icona <strong>cestino</strong> compare <strong>solo al super-utente</strong>. L'eliminazione è <strong>irreversibile</strong>.</p>
@@ -317,6 +335,7 @@ const MAIN_IT = `
             <tr><td><strong>Max admin per azienda</strong></td><td>Tetto al limite amministratori per azienda.</td></tr>
             <tr><td><strong>Max documentali per azienda</strong></td><td>Tetto al limite documentali per azienda.</td></tr>
             <tr><td><strong>Max sedi per azienda</strong></td><td>Tetto al limite sedi per azienda.</td></tr>
+            <tr><td><strong>Accesso in sola lettura alle aziende</strong></td><td>Se il partner può aprire l'ambiente delle proprie aziende in sola lettura per assistenza. Attivo per i nuovi partner; togli la spunta per negarlo.</td></tr>
             <tr><td><strong>Moduli abilitati</strong></td><td>I moduli (es. Cantieri) che il partner può attivare o disattivare sulle proprie aziende. Ogni modulo è una casella indipendente.</td></tr>
           </tbody>
         </table>

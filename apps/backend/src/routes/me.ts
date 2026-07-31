@@ -54,6 +54,21 @@ meRouter.use(authenticate);
 meRouter.get(
   '/tenants',
   asyncHandler(async (req, res) => {
+    // A read-only support session has NO membership anywhere: the membership
+    // query would return an empty list and the web client would log itself out.
+    // Its company list is exactly the one tenant pinned in the session token.
+    if (req.support) {
+      ok(res, {
+        tenants: [
+          {
+            tenant_id: req.user!.tenantId,
+            ragione_sociale: req.support.tenantName,
+            role: 'admin',
+          },
+        ],
+      });
+      return;
+    }
     const r = await adminPool.query(
       `SELECT m.tenant_id, m.role, t.ragione_sociale
        FROM memberships m
@@ -91,12 +106,15 @@ meRouter.get(
        WHERE id = $1`,
       [req.user!.tenantId]
     );
-    const membership = await client.query(
-      `SELECT stamp_modes, is_documentale, cantieri_role
-       FROM memberships
-       WHERE id = $1`,
-      [req.user!.membershipId]
-    );
+    // membershipId is null for a support session (no membership row exists).
+    const membership = req.user!.membershipId
+      ? await client.query(
+          `SELECT stamp_modes, is_documentale, cantieri_role
+           FROM memberships
+           WHERE id = $1`,
+          [req.user!.membershipId]
+        )
+      : { rows: [] as Array<{ stamp_modes: string[]; is_documentale: boolean; cantieri_role: string | null }> };
     const profile = await client.query(
       `SELECT first_name, last_name, display_name
        FROM auth_users
@@ -129,14 +147,33 @@ meRouter.get(
         email: req.user!.email,
         role: req.user!.role,
         is_documentale: membership.rows[0]?.is_documentale === true,
-        cantieri_role: membership.rows[0]?.cantieri_role ?? null,
+        // A support session has no membership: the Cantieri surface follows the
+        // tenant flag alone, and stamping is empty (a partner never clocks in).
+        cantieri_role: req.support
+          ? (req.user!.cantieriRole ?? null)
+          : (membership.rows[0]?.cantieri_role ?? null),
         first_name: p.first_name ?? null,
         last_name: p.last_name ?? null,
         display_name: p.display_name ?? null,
-        stamp_modes: membership.rows[0]?.stamp_modes ?? ['gps'],
+        stamp_modes: req.support ? [] : (membership.rows[0]?.stamp_modes ?? ['gps']),
       },
       tenant: tenant.rows[0],
       branches: branches.rows,
+      // Present ONLY inside a read-only support session. The web app keys its
+      // banner + write-blocking off this, and it is server-derived: a client
+      // cannot fake its way out of read-only by dropping the field.
+      ...(req.support
+        ? {
+            support: {
+              active: true,
+              session_id: req.support.sessionId,
+              tenant_name: req.support.tenantName,
+              expires_at: req.support.expiresAt,
+              actor_email: req.user!.email,
+              tenant_suspended: req.support.suspended,
+            },
+          }
+        : {}),
       preferences: {
         // null = the user has never explicitly picked a language. The client
         // keeps its browser-detected default (EN for non-IT/EN browsers) until

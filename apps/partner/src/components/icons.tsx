@@ -126,3 +126,11 @@ export const IconModules = () => (
     <rect x="3" y="14" width="7" height="7" rx="1" />
   </Svg>
 );
+
+// Eye (Lucide) — "open the customer's environment read-only".
+export const IconEye = () => (
+  <Svg>
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+    <circle cx="12" cy="12" r="3" />
+  </Svg>
+);

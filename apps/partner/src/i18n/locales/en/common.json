@@ -167,8 +167,24 @@
     "cap_admins_per_tenant": "Max admins per company",
     "cap_documentali_per_tenant": "Max documentali per company",
     "cap_branches_per_tenant": "Max branches per company",
+    "abilities": "Abilities",
+    "may_support_access": "Read-only access to companies",
+    "may_support_access_hint": "The partner may open their companies' environment read-only, for support. Every access is also recorded in the company's own activity log.",
     "modules": "Enabled modules",
     "modules_hint": "Modules the partner may enable on their companies."
+  },
+  "support": {
+    "label": "Open read-only",
+    "title": "Read-only access",
+    "intro": "Open the customer's environment in the web app to see what they see. You cannot change anything.",
+    "bullet_readonly": "Read-only session: every change is refused by the server.",
+    "bullet_expiry": "The session expires after 30 minutes and does not renew.",
+    "bullet_audit": "The access is recorded in the customer's activity log, with your email address.",
+    "bullet_documents": "Employee documents and export downloads stay out of reach.",
+    "reason": "Reason (optional)",
+    "reason_ph": "E.g. checking a report about missing stamps",
+    "open": "Open environment",
+    "opened": "Read-only session opened on {{name}}."
   },
   "modules": {
     "col": "Modules",
@@ -202,6 +218,7 @@
       "tenant.cantieri_enable": "Cantieri module enabled",
       "tenant.cantieri_disable": "Cantieri module disabled",
       "tenant.delete": "Company deleted",
+      "tenant.support_access": "Read-only access",
       "partner.create": "Partner created",
       "partner.update_caps": "Partner caps changed",
       "partner.update_profile": "Partner profile changed",
@@ -221,6 +238,7 @@
     "LAST_ADMIN": "You can't remove the last administrator.",
     "TENANT_NOT_OWNED": "This company is not yours.",
     "CANTIERI_NOT_ALLOWED": "You are not allowed to manage the Cantieri module. Contact the platform administrator.",
+    "SUPPORT_NOT_ALLOWED": "You are not allowed to open read-only sessions. Contact the platform administrator.",
     "SUPER_ADMIN_REQUIRED": "Only the super-user can delete a company.",
     "NAME_MISMATCH": "The company name you typed doesn't match.",
     "default": "Operation failed. Try again."

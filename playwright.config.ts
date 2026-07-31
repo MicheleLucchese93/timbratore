@@ -174,6 +174,17 @@ export default defineConfig({
             reuseExistingServer: true,
             timeout: 120_000,
           },
+          // The web app too: a read-only support session is opened FROM the
+          // console but lands in the customer environment, so that spec drives
+          // both SPAs. Its .env.development proxies /api to PROD, which would
+          // reject a token minted by the local backend — override to localhost.
+          {
+            command: 'npm run dev:web',
+            url: URLS.web,
+            reuseExistingServer: true,
+            timeout: 120_000,
+            env: { VITE_DEV_API_PROXY: 'http://localhost:4000', VITE_DEV_AUTH_PROXY: 'http://localhost:4000' },
+          },
         ]
       : [
           {

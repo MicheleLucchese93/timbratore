@@ -167,8 +167,24 @@
     "cap_admins_per_tenant": "Max admin per azienda",
     "cap_documentali_per_tenant": "Max documentali per azienda",
     "cap_branches_per_tenant": "Max sedi per azienda",
+    "abilities": "Abilitazioni",
+    "may_support_access": "Accesso in sola lettura alle aziende",
+    "may_support_access_hint": "Il partner può aprire l'ambiente delle proprie aziende in sola lettura, per assistenza. Ogni accesso è registrato anche nel Registro attività dell'azienda.",
     "modules": "Moduli abilitati",
     "modules_hint": "Moduli che il partner può attivare sulle proprie aziende."
+  },
+  "support": {
+    "label": "Apri in sola lettura",
+    "title": "Accesso in sola lettura",
+    "intro": "Apri l'ambiente del cliente nell'app web per vedere quello che vede lui. Non puoi modificare nulla.",
+    "bullet_readonly": "Sessione in sola lettura: ogni modifica viene rifiutata dal server.",
+    "bullet_expiry": "La sessione scade dopo 30 minuti e non si rinnova.",
+    "bullet_audit": "L'accesso è registrato nel Registro attività del cliente, con il tuo indirizzo email.",
+    "bullet_documents": "I documenti del personale e i download degli export restano inaccessibili.",
+    "reason": "Motivo (facoltativo)",
+    "reason_ph": "Es. verifica segnalazione timbrature mancanti",
+    "open": "Apri ambiente",
+    "opened": "Sessione di sola lettura aperta su {{name}}."
   },
   "modules": {
     "col": "Moduli",
@@ -202,6 +218,7 @@
       "tenant.cantieri_enable": "Modulo Cantieri attivato",
       "tenant.cantieri_disable": "Modulo Cantieri disattivato",
       "tenant.delete": "Azienda eliminata",
+      "tenant.support_access": "Accesso in sola lettura",
       "partner.create": "Partner creato",
       "partner.update_caps": "Limiti partner modificati",
       "partner.update_profile": "Anagrafica partner modificata",
@@ -221,6 +238,7 @@
     "LAST_ADMIN": "Non puoi rimuovere l'ultimo amministratore.",
     "TENANT_NOT_OWNED": "Questa azienda non è tua.",
     "CANTIERI_NOT_ALLOWED": "Non sei abilitato a gestire il modulo Cantieri. Contatta l'amministratore di piattaforma.",
+    "SUPPORT_NOT_ALLOWED": "Non sei abilitato all'accesso in sola lettura. Contatta l'amministratore di piattaforma.",
     "SUPER_ADMIN_REQUIRED": "Solo il super-utente può eliminare un'azienda.",
     "NAME_MISMATCH": "La ragione sociale digitata non corrisponde.",
     "default": "Operazione non riuscita. Riprova."

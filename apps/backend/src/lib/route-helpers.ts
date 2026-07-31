@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import type { PoolClient } from 'pg';
-import { withTenantRLS } from './db.js';
+import { withSupportRLS, withTenantRLS } from './db.js';
 import { UnauthorizedError } from '../errors/index.js';
 
 export type TenantHandler = (
@@ -12,9 +12,11 @@ export type TenantHandler = (
 export function tenantHandler(fn: TenantHandler) {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) return next(new UnauthorizedError());
-    withTenantRLS(req.user.id, req.user.tenantId, (client) =>
-      fn(req, res, client)
-    ).catch(next);
+    // A partner support session gets the same handlers on a read-only,
+    // support-scoped transaction (see withSupportRLS). Nothing else changes:
+    // handlers stay unaware they are serving an inspection session.
+    const run = req.support ? withSupportRLS : withTenantRLS;
+    run(req.user.id, req.user.tenantId, (client) => fn(req, res, client)).catch(next);
   };
 }
 

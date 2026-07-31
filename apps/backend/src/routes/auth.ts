@@ -1,11 +1,13 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { env } from '../env.js';
 import { signDevToken } from '../lib/jwt.js';
 import { adminPool } from '../lib/admin-db.js';
 import { ok } from '../lib/api-response.js';
-import { ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
+import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../errors/index.js';
 import { asyncHandler } from '../lib/route-helpers.js';
+import { redeemSupportCode, signSupportToken } from '../lib/support-session.js';
 import { triggerRecovery, updatePassword, verifyTokenHash } from '../lib/gotrue-admin.js';
 
 export const authRouter = Router();
@@ -80,6 +82,48 @@ authRouter.post(
       throw new ValidationError((err as Error).message);
     }
     ok(res, { updated: true });
+  })
+);
+
+// ---- POST /auth/support/exchange -------------------------------------------
+// Redeem the one-time code from a partner support link for the read-only session
+// token. Public but useless without a fresh code: the code is single-use, lives
+// ~2 minutes, is stored hashed, and is bound to a session row the partner
+// console just created. Rate-limited on top so codes can't be ground out.
+const supportExchangeLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 20,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+});
+
+const SupportExchange = z.object({ code: z.string().min(20).max(200) });
+
+authRouter.post(
+  '/support/exchange',
+  supportExchangeLimiter,
+  asyncHandler(async (req, res) => {
+    const parse = SupportExchange.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const redeemed = await redeemSupportCode(parse.data.code, {
+      ip: req.ip ?? null,
+      userAgent: req.header('user-agent') ?? null,
+    });
+    // Unknown / already used / expired / revoked all collapse to one answer.
+    if (!redeemed) throw new UnauthorizedError('Invalid or expired link', 'SUPPORT_CODE_INVALID');
+    const token = await signSupportToken({
+      partnerUserId: redeemed.session.partnerUserId,
+      email: redeemed.partnerEmail,
+      claim: { sid: redeemed.session.id, tid: redeemed.session.tenantId },
+      expiresAt: redeemed.session.expiresAt,
+    });
+    ok(res, {
+      access_token: token,
+      session_id: redeemed.session.id,
+      tenant_id: redeemed.session.tenantId,
+      ragione_sociale: redeemed.tenantName,
+      expires_at: redeemed.session.expiresAt,
+    });
   })
 );
 

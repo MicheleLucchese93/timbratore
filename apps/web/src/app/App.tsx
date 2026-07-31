@@ -6,6 +6,7 @@ import { applyServerLanguage } from '../i18n/index.ts';
 import { Login } from '../pages/Login.tsx';
 import { ForgotPassword } from '../pages/ForgotPassword.tsx';
 import { ChooseTenant } from '../pages/ChooseTenant.tsx';
+import { SupportEnded, SupportHandoff } from '../pages/Support.tsx';
 import { Layout } from './Layout.tsx';
 import { ErrorBoundary } from '../components/ErrorBoundary.tsx';
 import { AppShellSkeleton, PageSkeleton } from './Skeleton.tsx';
@@ -50,6 +51,12 @@ export function App() {
   useEffect(() => {
     applyServerLanguage(me?.preferences?.language);
   }, [me?.preferences?.language]);
+
+  // Partner support handoff / end screens. Checked before everything else: they
+  // must render with no session at all (the handoff is what CREATES one) and
+  // must never bounce a partner to the customer's login form.
+  if (loc.pathname === '/support') return <SupportHandoff />;
+  if (loc.pathname === '/support/ended') return <SupportEnded />;
 
   if (loading) {
     return <AppShellSkeleton />;

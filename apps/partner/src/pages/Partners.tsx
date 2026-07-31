@@ -24,6 +24,7 @@ interface PartnerRow {
   cap_documentali_per_tenant: number | null;
   cap_branches_per_tenant: number | null;
   may_enable_cantieri: boolean;
+  may_support_access: boolean;
   created_at: string;
   tenant_count: number;
 }
@@ -36,10 +37,11 @@ type Caps = Pick<
   | 'cap_documentali_per_tenant'
   | 'cap_branches_per_tenant'
   | 'may_enable_cantieri'
+  | 'may_support_access'
 >;
 
-// Numeric ceilings only — the may_enable_cantieri boolean gets its own checkbox.
-const CAP_KEYS: Exclude<keyof Caps, 'may_enable_cantieri'>[] = [
+// Numeric ceilings only — the boolean capabilities get their own checkboxes.
+const CAP_KEYS: Exclude<keyof Caps, 'may_enable_cantieri' | 'may_support_access'>[] = [
   'cap_tenants',
   'cap_users_per_tenant',
   'cap_admins_per_tenant',
@@ -323,6 +325,23 @@ function CapInputs({
         ))}
       </div>
       <div className="label" style={{ marginTop: '0.25rem' }}>
+        {t('caps.abilities')}
+      </div>
+      <label className="checkbox-row" style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+        <input
+          type="checkbox"
+          data-testid="cap-may-support-access"
+          checked={caps.may_support_access === true}
+          onChange={(e) => set('may_support_access', e.target.checked)}
+        />
+        <span>
+          {t('caps.may_support_access')}
+          <span className="muted" style={{ display: 'block', fontWeight: 400 }}>
+            {t('caps.may_support_access_hint')}
+          </span>
+        </span>
+      </label>
+      <div className="label" style={{ marginTop: '0.25rem' }}>
         {t('caps.modules')} <span style={{ fontWeight: 400 }}>— {t('caps.modules_hint')}</span>
       </div>
       {MODULES.map((m) => {
@@ -359,6 +378,9 @@ function CreatePartner({ onClose, onDone }: { onClose: () => void; onDone: () =>
     cap_documentali_per_tenant: null,
     cap_branches_per_tenant: null,
     may_enable_cantieri: false,
+    // Inspecting one's own customers read-only is part of the job — on by
+    // default, unlike the paid module flags.
+    may_support_access: true,
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -475,6 +497,7 @@ function EditCaps({
     cap_documentali_per_tenant: partner.cap_documentali_per_tenant,
     cap_branches_per_tenant: partner.cap_branches_per_tenant,
     may_enable_cantieri: partner.may_enable_cantieri,
+    may_support_access: partner.may_support_access,
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);

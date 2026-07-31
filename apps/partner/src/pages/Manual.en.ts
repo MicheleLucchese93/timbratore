@@ -18,6 +18,7 @@ export const TOC_EN = `
       <a href="#aziende-stato" class="sub">Suspend and resume</a>
       <a href="#aziende-cantieri" class="sub">Modules</a>
       <a href="#aziende-admin" class="sub">Administrators</a>
+      <a href="#aziende-supporto" class="sub">Read-only access</a>
       <a href="#aziende-elimina" class="sub">Deleting</a>
       <a href="#partner">Partners</a>
       <a href="#partner-crea" class="sub">Creating a partner</a>
@@ -268,6 +269,23 @@ export const MAIN_EN = `
         </ul>
       </div>
 
+      <div class="feature" id="aziende-supporto">
+        <h3>Read-only access</h3>
+        <p>The <strong>eye</strong> icon opens the company's environment in the sonoQui web app, <strong>read-only</strong>: you see what the customer sees (stamps, users, schedules, requests, anomalies) without being able to change anything. It exists so you can answer a report without asking the customer for credentials.</p>
+        <ol class="steps">
+          <li>Open the <strong>Open read-only</strong> action on the company row.</li>
+          <li>Give a <strong>reason</strong> (optional — it lands in both logs).</li>
+          <li>Press <strong>Open environment</strong>: a new tab opens straight inside the customer's environment.</li>
+        </ol>
+        <ul class="tidy">
+          <li><strong>Genuinely read-only</strong> — every change attempt is refused by the server, not merely hidden in the interface. A yellow bar at the top is a constant reminder that you are in a support session.</li>
+          <li><strong>Duration</strong> — 30 minutes, no renewal. <em>End session</em> closes it earlier.</li>
+          <li><strong>Recorded in two logs</strong> — the console's activity log and the customer's own, with your email address: the customer always sees when an access was opened.</li>
+          <li><strong>Out of reach</strong> — employee documents and export downloads stay inaccessible even during the session.</li>
+          <li><strong>Who can use it</strong> — the platform administrator always; a partner only with the <em>Read-only access to companies</em> ability, and only on their own companies.</li>
+        </ul>
+      </div>
+
       <div class="feature" id="aziende-elimina">
         <h3>Deleting a company <span class="badge badge-admin">super-user</span></h3>
         <p>The <strong>trash</strong> icon appears <strong>only to the super-user</strong>. Deletion is <strong>irreversible</strong>.</p>
@@ -314,6 +332,7 @@ export const MAIN_EN = `
             <tr><td><strong>Max admins per company</strong></td><td>Ceiling on the administrator limit per company.</td></tr>
             <tr><td><strong>Max documentali per company</strong></td><td>Ceiling on the documentali limit per company.</td></tr>
             <tr><td><strong>Max branches per company</strong></td><td>Ceiling on the branch limit per company.</td></tr>
+            <tr><td><strong>Read-only access to companies</strong></td><td>Whether the partner may open their companies' environment read-only for support. On for new partners; uncheck to deny it.</td></tr>
             <tr><td><strong>Enabled modules</strong></td><td>The modules (e.g. Cantieri) the partner can enable or disable on their companies. Each module is an independent checkbox.</td></tr>
           </tbody>
         </table>

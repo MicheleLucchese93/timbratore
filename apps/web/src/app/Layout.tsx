@@ -61,14 +61,22 @@ function buildNav(
 
 const COLLAPSED_KEY = 'sonoqui.sidebar.collapsed';
 
+// Sidebar entries hidden during a read-only partner support session: employee
+// documents (own-only + Documentale-gated, denied server-side) and exports
+// (generating and downloading are both writes / bulk data extraction).
+const SUPPORT_HIDDEN_NAV = new Set(['documents', 'myDocuments', 'exports']);
+
 export function Layout({ children }: { children: ReactNode }) {
   const { me, logout } = useSession();
   const { t } = useTranslation(['nav', 'common']);
+  const support = me?.support;
   const navItems = buildNav(
     me?.user.role ?? 'user',
     me?.user.is_documentale === true,
     me?.tenant.cantieri_enabled === true && me?.user.cantieri_role === 'admin'
-  );
+    // Entries the server refuses outright in a read-only session are dropped
+    // rather than left to 403 on click.
+  ).filter((n) => !support || !SUPPORT_HIDDEN_NAV.has(n.key));
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try {
@@ -95,7 +103,8 @@ export function Layout({ children }: { children: ReactNode }) {
     .join('') || '?';
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${support ? ' readonly-session' : ''}`}>
+      {support && <SupportBanner expiresAt={support.expires_at} tenantName={support.tenant_name} />}
       {mobileOpen && (
         <button
           aria-label={t('closeMenu')}
@@ -197,6 +206,44 @@ export function Layout({ children }: { children: ReactNode }) {
       </div>
     </div>
   );
+}
+
+/* Sticky bar shown for the whole duration of a read-only partner support
+   session. It is the only thing on screen that says "you are not the customer":
+   without it, an admin-looking UI that silently refuses every write is baffling.
+   The countdown is derived from the server's expiry, so it cannot drift into
+   claiming a session is alive after the token died. */
+function SupportBanner({ expiresAt, tenantName }: { expiresAt: string; tenantName: string }) {
+  const { t } = useTranslation(['support', 'common']);
+  const logout = useSession((s) => s.logout);
+  const [left, setLeft] = useState(() => remaining(expiresAt));
+
+  useEffect(() => {
+    const id = setInterval(() => setLeft(remaining(expiresAt)), 1000);
+    return () => clearInterval(id);
+  }, [expiresAt]);
+
+  return (
+    <div className="support-banner" role="status">
+      <span className="support-banner-badge">{t('banner.badge')}</span>
+      <span className="support-banner-text">
+        {t('banner.text', { company: tenantName })}
+      </span>
+      <span className="support-banner-timer" aria-label={t('banner.expiresIn')}>
+        {left}
+      </span>
+      <button type="button" className="support-banner-end" onClick={() => { void logout(); }}>
+        {t('banner.end')}
+      </button>
+    </div>
+  );
+}
+
+function remaining(expiresAt: string): string {
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  if (!Number.isFinite(ms) || ms <= 0) return '0:00';
+  const total = Math.floor(ms / 1000);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }
 
 /* Company switcher in the brand area — only when the account spans more than

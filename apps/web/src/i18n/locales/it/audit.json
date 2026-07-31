@@ -29,6 +29,7 @@
     "cantieri": "Cantieri",
     "exports": "Esportazioni",
     "documents": "Documenti",
+    "support": "Assistenza",
     "settings": "Impostazioni"
   },
   "action": {
@@ -110,6 +111,9 @@
       "upload": "Documento caricato",
       "delete": "Documento eliminato",
       "session_start": "Sessione Documentale avviata"
+    },
+    "support": {
+      "session_start": "Accesso in sola lettura del partner"
     },
     "tenant": {
       "update": "Impostazioni azienda modificate",

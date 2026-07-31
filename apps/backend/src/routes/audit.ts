@@ -23,6 +23,7 @@ const CATEGORIES: Record<string, string[]> = {
   cantieri: ['cantiere.', 'mezzo.', 'cantieri_field.', 'cantiere_entry.'],
   exports: ['export.'],
   documents: ['document.'],
+  support: ['support.'],
   settings: ['tenant.'],
 };
 

@@ -1,0 +1,21 @@
+{
+  "banner": {
+    "badge": "Sola lettura",
+    "text": "Sessione di assistenza su {{company}}: stai vedendo i dati dell'azienda, non puoi modificarli.",
+    "expiresIn": "Tempo rimanente",
+    "end": "Termina sessione"
+  },
+  "opening": {
+    "title": "Apertura ambiente…",
+    "body": "Un attimo: stiamo aprendo l'ambiente del cliente in sola lettura."
+  },
+  "failed": {
+    "title": "Link non valido",
+    "expired": "Il link di accesso è già stato usato oppure è scaduto. Torna nella console partner e aprine uno nuovo.",
+    "generic": "Non è stato possibile aprire la sessione. Torna nella console partner e riprova."
+  },
+  "ended": {
+    "title": "Sessione terminata",
+    "body": "La sessione di sola lettura è terminata. Per rientrare, apri un nuovo accesso dalla console partner."
+  }
+}

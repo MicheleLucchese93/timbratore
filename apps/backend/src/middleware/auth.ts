@@ -2,6 +2,12 @@ import type { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../lib/jwt.js';
 import { adminPool } from '../lib/admin-db.js';
 import { ForbiddenError, UnauthorizedError } from '../errors/index.js';
+import {
+  isReadMethod,
+  isSupportDeniedPath,
+  resolveSupportSession,
+  type SupportClaim,
+} from '../lib/support-session.js';
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -17,7 +23,17 @@ declare module 'express-serve-static-core' {
       // Only meaningful while the tenant flag cantieriEnabled is true.
       cantieriRole: 'admin' | 'user' | null;
       cantieriEnabled: boolean;
-      membershipId: string;
+      // null ONLY for a read-only support session, which has no membership row.
+      membershipId: string | null;
+    };
+    /** Set instead of a membership when the caller is a partner inspecting a
+     *  customer tenant read-only. Its presence is what makes every downstream
+     *  query run on the read-only, support-scoped client. */
+    support?: {
+      sessionId: string;
+      tenantName: string;
+      expiresAt: Date;
+      suspended: boolean;
     };
   }
 }
@@ -141,6 +157,14 @@ export async function authenticate(
     }
     if (!payload.sub) throw new UnauthorizedError('Invalid token: missing sub');
 
+    // Read-only partner support session. Recognised by a claim the API itself
+    // minted (lib/support-session.ts) — a GoTrue-issued token never carries it.
+    const supportClaim = (payload as { sq_support?: SupportClaim }).sq_support;
+    if (supportClaim) {
+      await applySupportSession(req, payload.sub, payload.email ?? null, supportClaim);
+      return next();
+    }
+
     // Optional explicit tenant selection for users who belong to more than one
     // company. The header is untrusted: loadMembership re-checks the user is an
     // active member, so an unknown/garbage/foreign id resolves to no membership
@@ -172,6 +196,55 @@ export async function authenticate(
   } catch (err) {
     next(err);
   }
+}
+
+/**
+ * Build the request context for a read-only support session and enforce the
+ * HTTP-level half of read-only. Called from `authenticate`, so EVERY tenant
+ * router is covered by construction (they all mount that one middleware).
+ *
+ * The partner is given the tenant `admin` role because inspecting the customer's
+ * environment is the whole point — but with:
+ *  - `isDocumentale: false` — employee HR documents stay closed (the path is
+ *    denied outright below, this is the belt to that braces).
+ *  - `membershipId: null` — there is no membership row; handlers that need one
+ *    must degrade, not invent one.
+ */
+async function applySupportSession(
+  req: Request,
+  userId: string,
+  email: string | null,
+  claim: SupportClaim
+): Promise<void> {
+  if (!UUID_RE.test(claim.sid) || !UUID_RE.test(claim.tid)) {
+    throw new UnauthorizedError('Invalid support session', 'SUPPORT_SESSION_INVALID');
+  }
+  const session = await resolveSupportSession(claim, userId);
+  if (!session) {
+    // Expired, revoked, never redeemed, or the tenant is gone. One code for all
+    // of them — the client just ends the session.
+    throw new UnauthorizedError('Support session ended', 'SUPPORT_SESSION_INVALID');
+  }
+  const pathname = req.originalUrl.split('?')[0] ?? '';
+  if (!isReadMethod(req.method) || isSupportDeniedPath(pathname)) {
+    throw new ForbiddenError('Read-only support session', 'SUPPORT_READ_ONLY');
+  }
+  req.user = {
+    id: userId,
+    email,
+    tenantId: session.tenantId,
+    role: 'admin',
+    isDocumentale: false,
+    cantieriRole: session.cantieriEnabled ? 'admin' : null,
+    cantieriEnabled: session.cantieriEnabled,
+    membershipId: null,
+  };
+  req.support = {
+    sessionId: session.id,
+    tenantName: session.tenantName,
+    expiresAt: session.expiresAt,
+    suspended: session.suspended,
+  };
 }
 
 export function requireAdmin(req: Request, _res: Response, next: NextFunction): void {

@@ -29,6 +29,7 @@
     "cantieri": "Work sites",
     "exports": "Exports",
     "documents": "Documents",
+    "support": "Support",
     "settings": "Settings"
   },
   "action": {
@@ -110,6 +111,9 @@
       "upload": "Document uploaded",
       "delete": "Document deleted",
       "session_start": "Documentale session started"
+    },
+    "support": {
+      "session_start": "Partner read-only access"
     },
     "tenant": {
       "update": "Company settings updated",

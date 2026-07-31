@@ -17,6 +17,8 @@ import { env } from '../env.js';
 import { provisionTenant } from '../lib/provision-tenant.js';
 import { ensureAuthUser } from '../lib/auth-users.js';
 import { logPartnershipAudit } from '../lib/partnership-audit.js';
+import { logAuditAs } from '../lib/audit.js';
+import { createSupportSession, revokeSupportSession } from '../lib/support-session.js';
 import {
   sendAccessEmail,
   sendTenantAccessEmail,
@@ -100,6 +102,9 @@ partnershipRouter.get(
         cap_documentali_per_tenant: p.capDocumentaliPerTenant,
         cap_branches_per_tenant: p.capBranchesPerTenant,
         may_enable_cantieri: p.mayEnableCantieri,
+        // Platform admins are unlimited by definition; the column only gates
+        // role='partner'. Reporting it as true keeps the console logic uniform.
+        may_support_access: p.role === 'admin' ? true : p.maySupportAccess,
       },
     });
   })
@@ -508,6 +513,95 @@ partnershipRouter.patch(
       ...auditCtx(req),
     });
     ok(res, { tenant_id: t.id, cantieri_enabled: enabled });
+  })
+);
+
+// ---- POST /tenants/:id/support-session -------------------------------------
+// Open the customer's environment READ-ONLY in the web app.
+//
+// Returns a handoff URL, NOT a token: the one-time code in the fragment is
+// exchanged for the session JWT by the web app (POST /auth/support/exchange), so
+// no credential ever sits in a URL, browser history or proxy log.
+//
+// The session is recorded twice on purpose: in partnership_audit_log (what the
+// platform sees) AND in the CUSTOMER's own audit_log, where it shows up in their
+// Registro attività — a partner looking at their data is never invisible to them.
+const SupportSession = z.object({
+  reason: z.string().trim().max(500).transform(emptyToNull).nullable().optional(),
+});
+
+partnershipRouter.post(
+  '/tenants/:id/support-session',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const parse = SupportSession.safeParse(req.body ?? {});
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    // Two-level gate, same shape as the Cantieri toggle: a partner needs the
+    // capability, a platform admin is always allowed. loadOwnedTenant then
+    // enforces that a partner only reaches their OWN tenants.
+    if (p.role === 'partner' && !p.maySupportAccess) {
+      throw new ForbiddenError('not allowed to open support sessions', 'SUPPORT_NOT_ALLOWED');
+    }
+    const t = await loadOwnedTenant(p, String(req.params.id));
+    const ctx = auditCtx(req);
+    const { sessionId, code, expiresAt } = await createSupportSession({
+      partnerUserId: p.userId,
+      tenantId: t.id,
+      reason: parse.data.reason ?? null,
+      ip: ctx.ip,
+      userAgent: ctx.userAgent,
+    });
+    await logPartnershipAudit({
+      actorUserId: p.userId,
+      actorRole: p.role,
+      action: 'tenant.support_access',
+      targetType: 'tenant',
+      targetId: t.id,
+      targetLabel: t.ragione_sociale,
+      after: { session_id: sessionId, reason: parse.data.reason ?? null, expires_at: expiresAt },
+      ...ctx,
+    });
+    // The customer-visible half of the trail. adminPool because the partner has
+    // no membership, so the RLS-scoped tenant client is not available here.
+    await logAuditAs(adminPool, t.id, p.userId, {
+      action: 'support.session_start',
+      resourceType: 'support_session',
+      resourceId: sessionId,
+      targetLabel: p.email ?? null,
+      after: { partner_email: p.email, reason: parse.data.reason ?? null, expires_at: expiresAt },
+      req,
+    });
+    logger.info(
+      { partner_user_id: p.userId, tenant_id: t.id, session_id: sessionId },
+      'support session opened'
+    );
+    ok(
+      res,
+      {
+        session_id: sessionId,
+        tenant_id: t.id,
+        ragione_sociale: t.ragione_sociale,
+        expires_at: expiresAt,
+        // Fragment, not query: never sent to a server, never logged.
+        url: `${env.WEB_PUBLIC_URL.replace(/\/+$/, '')}/support#c=${code}`,
+      },
+      201
+    );
+  })
+);
+
+// ---- DELETE /tenants/:id/support-session/:sessionId -------------------------
+// End a session early ("Termina sessione"). Sessions are re-validated on every
+// request, so revocation takes effect immediately — no cache to wait out.
+partnershipRouter.delete(
+  '/tenants/:id/support-session/:sessionId',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const sessionId = String(req.params.sessionId);
+    if (!UUID_RE.test(sessionId)) throw new ValidationError('invalid session id');
+    await loadOwnedTenant(p, String(req.params.id));
+    const revoked = await revokeSupportSession(sessionId, p.userId);
+    ok(res, { session_id: sessionId, revoked });
   })
 );
 
@@ -1021,6 +1115,10 @@ const CapsSchema = {
   // Boolean capability, not a ceiling: lets the partner toggle the Cantieri
   // module on their tenants. Absent = unchanged (create defaults to false).
   may_enable_cantieri: z.boolean().optional(),
+  // Boolean capability: lets the partner open one of their tenants read-only in
+  // the web app. Absent = unchanged (create defaults to TRUE — inspecting one's
+  // own customers is part of the job, unlike the paid Cantieri module).
+  may_support_access: z.boolean().optional(),
 };
 
 // ---- GET /partners ---------------------------------------------------------
@@ -1032,7 +1130,7 @@ partnershipRouter.get(
       `SELECT pm.user_id, au.email, pm.active, pm.partner_name, pm.note,
               pm.cap_tenants, pm.cap_users_per_tenant, pm.cap_admins_per_tenant,
               pm.cap_documentali_per_tenant, pm.cap_branches_per_tenant,
-              pm.may_enable_cantieri, pm.created_at,
+              pm.may_enable_cantieri, pm.may_support_access, pm.created_at,
               (SELECT count(*)::int FROM tenants t
                  WHERE t.created_by_partner = pm.user_id AND t.deleted_at IS NULL) AS tenant_count
          FROM partnership_members pm
@@ -1091,13 +1189,14 @@ partnershipRouter.post(
         b.cap_documentali_per_tenant ?? null,
         b.cap_branches_per_tenant ?? null,
         b.may_enable_cantieri ?? false,
+        b.may_support_access ?? true,
       ];
       await client.query(
         `INSERT INTO partnership_members
            (user_id, role, active, cap_tenants, cap_users_per_tenant, cap_admins_per_tenant,
             cap_documentali_per_tenant, cap_branches_per_tenant, may_enable_cantieri,
-            partner_name, note, created_by, updated_at)
-         VALUES ($1, 'partner', TRUE, $2, $3, $4, $5, $6, $7, $8, $9, $10, now())
+            may_support_access, partner_name, note, created_by, updated_at)
+         VALUES ($1, 'partner', TRUE, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now())
          ON CONFLICT (user_id) DO UPDATE
            SET role = 'partner', active = TRUE,
                cap_tenants = EXCLUDED.cap_tenants,
@@ -1106,6 +1205,7 @@ partnershipRouter.post(
                cap_documentali_per_tenant = EXCLUDED.cap_documentali_per_tenant,
                cap_branches_per_tenant = EXCLUDED.cap_branches_per_tenant,
                may_enable_cantieri = EXCLUDED.may_enable_cantieri,
+               may_support_access = EXCLUDED.may_support_access,
                partner_name = EXCLUDED.partner_name,
                note = EXCLUDED.note,
                updated_at = now()`,
@@ -1130,6 +1230,7 @@ partnershipRouter.post(
               cap_documentali_per_tenant: caps[3],
               cap_branches_per_tenant: caps[4],
               may_enable_cantieri: caps[5],
+              may_support_access: caps[6],
             },
           },
           ...auditCtx(req),
@@ -1174,7 +1275,8 @@ partnershipRouter.patch(
 
     const cur = await adminPool.query(
       `SELECT au.email, pm.role, pm.cap_tenants, pm.cap_users_per_tenant, pm.cap_admins_per_tenant,
-              pm.cap_documentali_per_tenant, pm.cap_branches_per_tenant, pm.may_enable_cantieri
+              pm.cap_documentali_per_tenant, pm.cap_branches_per_tenant, pm.may_enable_cantieri,
+              pm.may_support_access
          FROM partnership_members pm JOIN auth_users au ON au.id = pm.user_id
         WHERE pm.user_id = $1`,
       [userId]
@@ -1188,8 +1290,13 @@ partnershipRouter.patch(
       cap_documentali_per_tenant: cur.rows[0].cap_documentali_per_tenant,
       cap_branches_per_tenant: cur.rows[0].cap_branches_per_tenant,
       may_enable_cantieri: cur.rows[0].may_enable_cantieri as boolean,
+      may_support_access: cur.rows[0].may_support_access as boolean,
     };
-    const pick = <K extends Exclude<keyof typeof before, 'may_enable_cantieri'>>(k: K): number | null =>
+    const pick = <
+      K extends Exclude<keyof typeof before, 'may_enable_cantieri' | 'may_support_access'>,
+    >(
+      k: K
+    ): number | null =>
       k in b ? ((b as Record<string, number | null | undefined>)[k] ?? null) : before[k];
     const next = {
       cap_tenants: pick('cap_tenants'),
@@ -1198,12 +1305,13 @@ partnershipRouter.patch(
       cap_documentali_per_tenant: pick('cap_documentali_per_tenant'),
       cap_branches_per_tenant: pick('cap_branches_per_tenant'),
       may_enable_cantieri: b.may_enable_cantieri ?? before.may_enable_cantieri,
+      may_support_access: b.may_support_access ?? before.may_support_access,
     };
     await adminPool.query(
       `UPDATE partnership_members
           SET cap_tenants = $2, cap_users_per_tenant = $3, cap_admins_per_tenant = $4,
               cap_documentali_per_tenant = $5, cap_branches_per_tenant = $6,
-              may_enable_cantieri = $7, updated_at = now()
+              may_enable_cantieri = $7, may_support_access = $8, updated_at = now()
         WHERE user_id = $1`,
       [
         userId,
@@ -1213,6 +1321,7 @@ partnershipRouter.patch(
         next.cap_documentali_per_tenant,
         next.cap_branches_per_tenant,
         next.may_enable_cantieri,
+        next.may_support_access,
       ]
     );
     await logPartnershipAudit({

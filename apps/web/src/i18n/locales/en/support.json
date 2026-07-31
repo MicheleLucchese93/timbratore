@@ -1,0 +1,21 @@
+{
+  "banner": {
+    "badge": "Read-only",
+    "text": "Support session on {{company}}: you are seeing the company's data and cannot change it.",
+    "expiresIn": "Time left",
+    "end": "End session"
+  },
+  "opening": {
+    "title": "Opening environment…",
+    "body": "One moment: we are opening the customer's environment in read-only mode."
+  },
+  "failed": {
+    "title": "Invalid link",
+    "expired": "This access link has already been used or has expired. Go back to the partner console and open a new one.",
+    "generic": "The session could not be opened. Go back to the partner console and try again."
+  },
+  "ended": {
+    "title": "Session ended",
+    "body": "The read-only session has ended. To get back in, open a new access from the partner console."
+  }
+}
