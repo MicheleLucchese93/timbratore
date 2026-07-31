@@ -102,9 +102,9 @@ ALTER TABLE partnership_audit_log
     'partner.create', 'partner.update_caps', 'partner.update_profile',
     'partner.activate', 'partner.deactivate', 'partner.resend'));
 
--- 5. The customer must be able to SEE that a partner looked at their data: the
---    session start is also written to the tenant's own audit_log
---    (action 'support.session_start') by the API, on the service role. No schema
---    change is needed: audit_log.action is free text and actor_user_id carries no
---    FK, so a partner with no membership in the tenant is a legal actor. This
---    comment records the invariant.
+-- 5. Support access is audited PLATFORM-SIDE ONLY, in partnership_audit_log
+--    (action 'tenant.support_access', above). Nothing is written to the tenant's
+--    own audit_log, so an opened session never appears in the customer's
+--    Registro attività. This comment records the invariant; it is enforced in
+--    routes/partnership.ts, which deliberately makes no logAuditAs call.
+--    (Superseded a first cut that also logged customer-side.)

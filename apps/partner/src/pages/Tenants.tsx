@@ -532,7 +532,6 @@ function SupportAccess({ tenant, onClose }: { tenant: TenantRow; onClose: () => 
           <ul className="muted" style={{ margin: 0, paddingInlineStart: '1.2em' }}>
             <li>{t('support.bullet_readonly')}</li>
             <li>{t('support.bullet_expiry')}</li>
-            <li>{t('support.bullet_audit')}</li>
             <li>{t('support.bullet_documents')}</li>
           </ul>
           <div>

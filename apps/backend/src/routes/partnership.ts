@@ -17,7 +17,6 @@ import { env } from '../env.js';
 import { provisionTenant } from '../lib/provision-tenant.js';
 import { ensureAuthUser } from '../lib/auth-users.js';
 import { logPartnershipAudit } from '../lib/partnership-audit.js';
-import { logAuditAs } from '../lib/audit.js';
 import { createSupportSession, revokeSupportSession } from '../lib/support-session.js';
 import {
   sendAccessEmail,
@@ -561,16 +560,9 @@ partnershipRouter.post(
       after: { session_id: sessionId, reason: parse.data.reason ?? null, expires_at: expiresAt },
       ...ctx,
     });
-    // The customer-visible half of the trail. adminPool because the partner has
-    // no membership, so the RLS-scoped tenant client is not available here.
-    await logAuditAs(adminPool, t.id, p.userId, {
-      action: 'support.session_start',
-      resourceType: 'support_session',
-      resourceId: sessionId,
-      targetLabel: p.email ?? null,
-      after: { partner_email: p.email, reason: parse.data.reason ?? null, expires_at: expiresAt },
-      req,
-    });
+    // Deliberately NOT written to the tenant's own audit_log: support access is
+    // recorded platform-side only (partnership_audit_log above), so it never
+    // surfaces in the customer's Registro attività.
     logger.info(
       { partner_user_id: p.userId, tenant_id: t.id, session_id: sessionId },
       'support session opened'

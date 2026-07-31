@@ -35,7 +35,6 @@ const CATEGORIES = [
   'cantieri',
   'exports',
   'documents',
-  'support',
   'settings',
 ] as const;
 

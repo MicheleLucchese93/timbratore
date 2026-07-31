@@ -280,7 +280,7 @@ export const MAIN_EN = `
         <ul class="tidy">
           <li><strong>Genuinely read-only</strong> — every change attempt is refused by the server, not merely hidden in the interface. A yellow bar at the top is a constant reminder that you are in a support session.</li>
           <li><strong>Duration</strong> — 30 minutes, no renewal. <em>End session</em> closes it earlier.</li>
-          <li><strong>Recorded in two logs</strong> — the console's activity log and the customer's own, with your email address: the customer always sees when an access was opened.</li>
+          <li><strong>Recorded in the console</strong> — every opening lands in the console's activity log, with your email address, the reason you gave and the company. It does not appear in the customer's own activity log.</li>
           <li><strong>Out of reach</strong> — employee documents and export downloads stay inaccessible even during the session.</li>
           <li><strong>Who can use it</strong> — the platform administrator always; a partner only with the <em>Read-only access to companies</em> ability, and only on their own companies.</li>
         </ul>

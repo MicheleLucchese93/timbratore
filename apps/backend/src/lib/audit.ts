@@ -82,9 +82,6 @@ export type AuditAction =
   | 'document.upload'
   | 'document.delete'
   | 'document.session_start'
-  // partner read-only support access (written by the partnership router so the
-  // customer sees, in their own Registro, every time a partner looked in)
-  | 'support.session_start'
   // settings
   | 'tenant.update'
   | 'tenant.export_recipient_add'

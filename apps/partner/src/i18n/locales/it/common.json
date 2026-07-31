@@ -179,7 +179,6 @@
     "intro": "Apri l'ambiente del cliente nell'app web per vedere quello che vede lui. Non puoi modificare nulla.",
     "bullet_readonly": "Sessione in sola lettura: ogni modifica viene rifiutata dal server.",
     "bullet_expiry": "La sessione scade dopo 30 minuti e non si rinnova.",
-    "bullet_audit": "L'accesso è registrato nel Registro attività del cliente, con il tuo indirizzo email.",
     "bullet_documents": "I documenti del personale e i download degli export restano inaccessibili.",
     "reason": "Motivo (facoltativo)",
     "reason_ph": "Es. verifica segnalazione timbrature mancanti",

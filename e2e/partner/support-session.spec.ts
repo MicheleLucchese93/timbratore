@@ -94,6 +94,17 @@ test.describe('partner admin · read-only support session', () => {
     const users = await asSupport(support, '/api/v1/users');
     expect(users.status).toBe(200);
 
+    // The session must leave NO trace in the customer's own Registro attività:
+    // support access is audited platform-side only (partnership_audit_log).
+    // Read it through the support token itself, which is exactly the view a
+    // tenant admin gets.
+    const audit = await asSupport(support, '/api/v1/audit?limit=200');
+    expect(audit.status).toBe(200);
+    const actions = ((audit.body?.entries as { action: string }[] | undefined) ?? []).map(
+      (e) => e.action
+    );
+    expect(actions.filter((a) => a.startsWith('support.'))).toEqual([]);
+
     // Writes are refused at the HTTP layer, before any handler runs.
     const write = await asSupport(support, '/api/v1/me', 'PATCH');
     expect(write.status).toBe(403);

@@ -283,7 +283,7 @@ const MAIN_IT = `
         <ul class="tidy">
           <li><strong>Sola lettura davvero</strong> — ogni tentativo di modifica viene rifiutato dal server, non solo nascosto nell'interfaccia. Una fascia gialla in alto ricorda che sei in una sessione di assistenza.</li>
           <li><strong>Durata</strong> — 30 minuti, senza rinnovo. Con <em>Termina sessione</em> la chiudi prima.</li>
-          <li><strong>Tracciata su due registri</strong> — nel Registro attività della console e in quello dell'azienda cliente, con il tuo indirizzo email: il cliente vede sempre quando è stato aperto un accesso.</li>
+          <li><strong>Tracciata in console</strong> — ogni apertura finisce nel Registro attività della console, con il tuo indirizzo email, il motivo indicato e l'azienda. Non compare nel Registro attività del cliente.</li>
           <li><strong>Fuori portata</strong> — i documenti del personale e il download delle esportazioni restano inaccessibili anche durante la sessione.</li>
           <li><strong>Chi può usarlo</strong> — l'amministratore di piattaforma sempre; un partner solo se ha l'abilitazione <em>Accesso in sola lettura alle aziende</em> e solo sulle proprie aziende.</li>
         </ul>

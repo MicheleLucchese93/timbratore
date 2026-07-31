@@ -179,7 +179,6 @@
     "intro": "Open the customer's environment in the web app to see what they see. You cannot change anything.",
     "bullet_readonly": "Read-only session: every change is refused by the server.",
     "bullet_expiry": "The session expires after 30 minutes and does not renew.",
-    "bullet_audit": "The access is recorded in the customer's activity log, with your email address.",
     "bullet_documents": "Employee documents and export downloads stay out of reach.",
     "reason": "Reason (optional)",
     "reason_ph": "E.g. checking a report about missing stamps",
