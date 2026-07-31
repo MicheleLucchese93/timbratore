@@ -1,0 +1,71 @@
+name: CI
+
+# Gate for pushes to main and for every pull request — most importantly the
+# Dependabot PRs opened by .github/dependabot.yml, which would otherwise land
+# with no signal at all.
+#
+# Deliberately excluded: the Playwright e2e suites. They run against the PROD
+# box (api/auth/web on sonoqui.pro) with a real test tenant and mutating
+# fixtures, so they need secrets and serialised access to shared state — not
+# something to fan out across concurrent PR builds. `--list` below still
+# compiles every spec, which catches the failure mode a dependency bump
+# actually causes (broken imports / type drift in the specs).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: build · test · typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          # Matches the prod runtime (node:24-alpine in every Dockerfile).
+          node-version: 24
+          cache: npm
+
+      - name: Install (workspace root)
+        run: npm ci
+
+      # tsc for backend, tsc -b + vite build for web and partner, astro build
+      # for website. apps/mobile has no build script (Metro/EAS handles it).
+      - name: Build every workspace
+        run: npm run build
+
+      # node:test suites in apps/backend and packages/shared. The other
+      # workspaces have no test script and are skipped via --if-present.
+      - name: Unit tests
+        run: npm test
+
+      # apps/mobile is the one workspace with no build step, so its TypeScript
+      # is otherwise never checked. It pins its own typescript ~6.0.3 (the rest
+      # of the repo is on 5.x), hence the workspace-local run. `expo lint` is
+      # NOT gated: it carries a known baseline of experimental react-hooks
+      # errors unrelated to any change.
+      #
+      # .expo/types and expo-env.d.ts are generated + gitignored, so they are
+      # absent here; typedRoutes then degrades to loose Href typing and the
+      # check still passes.
+      - name: Typecheck mobile
+        working-directory: apps/mobile
+        run: npx tsc --noEmit
+
+      # Compiles all 112 spec files without launching browsers or touching the
+      # network. E2E_NO_WEBSERVER stops the config from booting dev servers.
+      - name: Compile e2e specs
+        env:
+          E2E_NO_WEBSERVER: '1'
+        run: npx playwright test --list

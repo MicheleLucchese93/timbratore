@@ -1,0 +1,158 @@
+version: 2
+
+# Layout note (differs from Documents/Penno on purpose):
+#
+# This is an npm-workspaces monorepo (root package.json declares apps/backend,
+# apps/web, apps/website, apps/mobile, apps/partner, packages/shared). The npm
+# ecosystem is workspace-aware: a single config at "/" parses the workspace
+# globs and updates EVERY member manifest plus the one shared lockfile. Penno
+# also declares one npm config per workspace member on top of the root one, and
+# the result there is two PRs for every workspace dependency (e.g. root
+# `dependabot/npm_and_yarn/astro-7.1.0` alongside
+# `dependabot/npm_and_yarn/apps/website/astro-7.1.6`). Root-only avoids that
+# duplication without losing any coverage.
+#
+# Docker is NOT workspace-aware: every Dockerfile is its own manifest, so each
+# one needs its own config block below.
+
+updates:
+  # ---------------------------------------------------------------- npm (all
+  # workspaces via the root manifest + shared package-lock.json)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "npm"]
+    open-pull-requests-limit: 10
+    groups:
+      # Listed first: groups are matched in config order, so Expo/React Native
+      # churn lands in its own PR instead of being folded into production-deps.
+      # Mobile updates are not equivalent to web ones — a native module bump
+      # needs an iOS/Android rebuild and a store submission, not an OTA push.
+      mobile-sdk:
+        patterns:
+          - "expo"
+          - "expo-*"
+          - "@expo/*"
+          - "eslint-config-expo"
+          - "react-native"
+          - "react-native-*"
+        update-types: ["minor", "patch"]
+      production-deps:
+        dependency-type: "production"
+        update-types: ["minor", "patch"]
+      dev-deps:
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
+    ignore:
+      # --- Expo SDK 56 pins (apps/mobile) -------------------------------
+      # apps/mobile is pinned to Expo SDK 56. The versions below are the ones
+      # expo's bundledNativeModules.json names for SDK 56, and apps/mobile
+      # pins them exactly. Because this root config rewrites member manifests,
+      # an unrestricted bump here would drag mobile off the SDK.
+
+      # SDK 56 bundles exactly 0.85.3. Ignore ALL updates.
+      - dependency-name: "react-native"
+
+      # apps/mobile pins react/react-dom to 19.2.3 exactly (SDK 56). Ignoring
+      # them here also freezes the manifest ranges for web/partner, which use
+      # "^19.1.1" and currently resolve to the hoisted 19.2.6 — they pick up
+      # in-range releases on `npm install` without Dependabot's help. Cost of
+      # this ignore: a React CVE fix will not arrive as an automatic PR either.
+      # Unblock all three together with the Expo SDK upgrade.
+      - dependency-name: "react"
+      - dependency-name: "react-dom"
+
+      # Native modules that SDK 56 names as ONE exact version (and apps/mobile
+      # pins exactly). Even a patch is off-SDK, and moving any of them requires
+      # a native rebuild + store resubmission rather than an OTA. Ignore ALL.
+      - dependency-name: "react-native-reanimated"
+      - dependency-name: "react-native-screens"
+      - dependency-name: "react-native-worklets"
+      - dependency-name: "@react-native-community/datetimepicker"
+
+      # Native modules SDK 56 pins with a tilde range (~2.31.1 / ~5.7.0 /
+      # ~0.21.0). Patches stay inside the SDK-vetted range; minor and major
+      # bumps leave it.
+      - dependency-name: "react-native-gesture-handler"
+        update-types:
+          ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "react-native-safe-area-context"
+        update-types:
+          ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "react-native-web"
+        update-types:
+          ["version-update:semver-major", "version-update:semver-minor"]
+
+      # The whole SDK is held at 56. A major on any expo/@expo package is an
+      # SDK-57 move that breaks the native build; 56.x minors/patches are fine.
+      # Both patterns are needed: "expo*" does not match scoped "@expo/*".
+      - dependency-name: "expo*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@expo/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint-config-expo"
+        update-types: ["version-update:semver-major"]
+
+      # --- toolchain ----------------------------------------------------
+      # @typescript-eslint 8.60.1 (pulled in by eslint-config-expo, the linter
+      # behind `expo lint`) peers `typescript >=4.8.4 <6.1.0`. apps/mobile is
+      # already at ~6.0.3, so TypeScript 7 falls out of that peer range and
+      # breaks linting. Unblock when typescript-eslint ships a TS-7 release.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+
+  # ---------------------------------------------------------------- docker
+  # One block per Dockerfile: the docker ecosystem only parses `FROM` lines in
+  # the Dockerfile at `directory`, and it does not recurse.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "docker"]
+
+  - package-ecosystem: "docker"
+    directory: "/apps/web"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "docker"]
+
+  - package-ecosystem: "docker"
+    directory: "/apps/partner"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "docker"]
+
+  - package-ecosystem: "docker"
+    directory: "/apps/website"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "docker"]
+
+  - package-ecosystem: "docker"
+    directory: "/apps/mobile"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "docker"]
+
+  # ------------------------------------------------------- docker-compose
+  # The `docker` ecosystem above reads Dockerfile `FROM` lines only — it does
+  # NOT read docker-compose.yml. Without this separate ecosystem the
+  # third-party runtime images pinned in docker-compose.yml
+  # (supabase/auth, centrifugo/centrifugo, ghcr.io/axelmarciano/expo-open-ota)
+  # would have no update coverage at all and would drift silently.
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "docker"]
+
+  # ------------------------------------------------------- github-actions
+  # No workflows exist under .github/workflows yet, so this block is currently
+  # a no-op. It is here so the first workflow added is covered automatically.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "ci"]
+    open-pull-requests-limit: 5
