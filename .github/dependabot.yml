@@ -38,6 +38,19 @@ updates:
           - "react-native"
           - "react-native-*"
         update-types: ["minor", "patch"]
+      # i18next and react-i18next are locked to each other: react-i18next 17
+      # peers `i18next >= 26.2.0`, so the per-dependency major PRs Dependabot
+      # opened for them (react-i18next 15 -> 17 while i18next was still 24)
+      # could not both be right. Majors are included here on purpose so the
+      # pair — plus any i18next-* plugin added later — arrives as one reviewable
+      # PR that the web, partner and mobile apps can be checked against
+      # together.
+      i18n:
+        patterns:
+          - "i18next"
+          - "i18next-*"
+          - "react-i18next"
+        update-types: ["major", "minor", "patch"]
       production-deps:
         dependency-type: "production"
         update-types: ["minor", "patch"]
