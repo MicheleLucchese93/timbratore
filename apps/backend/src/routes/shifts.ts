@@ -944,6 +944,33 @@ function uncoveredWorkIntervals(
   );
 }
 
+// The day's entry/exit anchors. A day can end on an unclosed clock_in: the
+// employee never stamped the exit, or closed the session after midnight (that
+// punch then lands in the NEXT day's bucket). Taking the last clock_out of such
+// a day would describe the lunch break as the exit — "uscita anticipata" at
+// 12:40 on a 09:00–19:30 day — and, since the anomaly then carries a non-null
+// actual_end_at, the admin also loses the "Timbratura standard" fix, which only
+// inserts punches the anomaly reports absent. An open session means the exit is
+// genuinely missing, so lastOut is undefined: missing_clock_out fires instead
+// (still gated on the scheduled end having passed), and the duration checks
+// that need a closed day to be measurable are skipped.
+function presenceAnchors(stamps: AnomalyRow['stamps']): {
+  firstIn: AnomalyRow['stamps'][number] | undefined;
+  lastOut: AnomalyRow['stamps'][number] | undefined;
+} {
+  const reversed = [...stamps].reverse();
+  const lastPresence = reversed.find(
+    (s) => s.event_type === 'clock_in' || s.event_type === 'clock_out'
+  );
+  return {
+    firstIn: stamps.find((s) => s.event_type === 'clock_in'),
+    lastOut:
+      lastPresence?.event_type === 'clock_out'
+        ? lastPresence
+        : undefined,
+  };
+}
+
 export function computeAnomalies(
   rows: AnomalyRow[],
   timeZone: string = DEFAULT_TZ,
@@ -990,8 +1017,7 @@ export function computeAnomalies(
     const expectedStart = combineDateTime(date, slots[0]!.start_time, timeZone);
     const expectedEnd = combineDateTime(date, slots[slots.length - 1]!.end_time, timeZone);
 
-    const firstIn = stamps.find((s) => s.event_type === 'clock_in');
-    const lastOut = [...stamps].reverse().find((s) => s.event_type === 'clock_out');
+    const { firstIn, lastOut } = presenceAnchors(stamps);
 
     const tolIn = row.tolerance_in_min ?? 0;
     const tolOut = row.tolerance_out_min ?? 0;
@@ -1293,6 +1319,9 @@ function buildAnomaly(
   expectedEnd: string | null,
   stamps: AnomalyRow['stamps']
 ): Anomaly {
+  // Same open-session rule as the anomaly logic: a day left on an unclosed
+  // clock_in reports no exit, so the web panel can offer Timbratura standard.
+  const { firstIn, lastOut } = presenceAnchors(stamps);
   return {
     date,
     user_id: row.user_id,
@@ -1303,10 +1332,8 @@ function buildAnomaly(
     kind,
     expected_start_at: expectedStart,
     expected_end_at: expectedEnd,
-    actual_start_at:
-      stamps.find((s) => s.event_type === 'clock_in')?.occurred_at ?? null,
-    actual_end_at:
-      [...stamps].reverse().find((s) => s.event_type === 'clock_out')?.occurred_at ?? null,
+    actual_start_at: firstIn?.occurred_at ?? null,
+    actual_end_at: lastOut?.occurred_at ?? null,
     delta_minutes: null,
     break_total_min: null,
     lunch_total_min: null,

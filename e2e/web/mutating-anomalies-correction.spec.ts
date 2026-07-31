@@ -20,6 +20,8 @@ import { romeWallClockISO } from '../fixtures/time';
 // + admin-stamps.ts + leaves.ts). Recipe per test:
 //   - Timbratura standard → POST /admin/stamps/fix-anomaly adds the missing
 //     clock-out → `missing_clock_out` disappears.
+//   - A day left on an open clock-in → `missing_clock_out` (not `early_clock_out`),
+//     and Timbratura standard resolves it.
 //   - Inserisci ferie → POST /leaves/admin-create full-day → `missing_clock_in`
 //     disappears (leave covers the whole expected window).
 //   - Inserisci permesso → POST /leaves/admin-create covering the late stretch
@@ -35,6 +37,7 @@ const ENABLED = process.env.E2E_MUTATING === '1';
 interface AnomalyLite {
   kind: string;
   date: string;
+  actual_end_at: string | null;
   justification_note: string | null;
 }
 
@@ -155,6 +158,55 @@ test.describe.serial('web — Anomalie Correggi menu resolves anomalies (mutatin
     expect(fix.status, `fix-anomaly: ${fix.code ?? ''} ${fix.message ?? ''}`).toBe(200);
     const created = fix.data?.results.find((r) => r.status === 'created');
     expect(created?.id).toBeTruthy();
+    if (created?.id) stampIds.push(created.id);
+
+    const after = await anomalies(day.date);
+    expect(after.map((a) => a.kind)).not.toContain('missing_clock_out');
+  });
+
+  test('day left on an open session reports missing_clock_out, not early_clock_out', async () => {
+    // in 09:00 → out 12:30 (lunch) → in 14:00 with no closing punch: the exit is
+    // genuinely missing, so the lunch clock-out must not be read as the exit
+    // (which would raise early_clock_out with a non-null actual_end_at and hide
+    // the Timbratura standard action). Prod repro: Bruno Borroni, 2026-07-29.
+    const day = nthWeekdayBack(4, 9, 0);
+    const lunchOut = nthWeekdayBack(4, 12, 30);
+    const backIn = nthWeekdayBack(4, 14, 0);
+    const out = nthWeekdayBack(4, 17, 0);
+
+    for (const [event_type, at] of [
+      ['clock_in', day],
+      ['clock_out', lunchOut],
+      ['clock_in', backIn],
+    ] as const) {
+      const seed = await apiPost<{ id: string }>(admin.token, '/api/v1/admin/stamps', {
+        user_id: user.userId,
+        event_type,
+        occurred_at: at.iso,
+        justification: 'e2e open-session seed',
+      });
+      expect(seed.status, `seed ${event_type}: ${seed.code ?? ''} ${seed.message ?? ''}`).toBe(201);
+      if (seed.data) stampIds.push(seed.data.id);
+    }
+
+    const before = await anomalies(day.date);
+    expect(before.map((a) => a.kind)).toContain('missing_clock_out');
+    expect(before.map((a) => a.kind)).not.toContain('early_clock_out');
+    // Null actual_end_at is what makes "Timbratura standard" available in the UI.
+    expect(before.find((a) => a.kind === 'missing_clock_out')?.actual_end_at).toBeNull();
+
+    // And the standard correction resolves it, as for a plain missing exit.
+    const fix = await apiPost<{ results: Array<{ status: string; id?: string }> }>(
+      admin.token,
+      '/api/v1/admin/stamps/fix-anomaly',
+      {
+        user_id: user.userId,
+        events: [{ event_type: 'clock_out', occurred_at: out.iso }],
+        justification: 'e2e timbratura standard su sessione aperta',
+      },
+    );
+    expect(fix.status, `fix-anomaly: ${fix.code ?? ''} ${fix.message ?? ''}`).toBe(200);
+    const created = fix.data?.results.find((r) => r.status === 'created');
     if (created?.id) stampIds.push(created.id);
 
     const after = await anomalies(day.date);

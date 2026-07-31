@@ -656,7 +656,7 @@ export const MAIN_EN = `
           <thead><tr><th>Type</th><th>When it is detected</th></tr></thead>
           <tbody>
             <tr><td><span class="pill pill-err">Missing clock-in</span></td><td>No clock-in stamp on an expected working day, once the start time has passed. A shift still in progress isn't flagged before its start time.</td></tr>
-            <tr><td><span class="pill pill-err">Missing clock-out</span></td><td>No clock-out stamp after the expected end time has passed. While the shift is still in progress (before the exit time) it is not an anomaly.</td></tr>
+            <tr><td><span class="pill pill-err">Missing clock-out</span></td><td>No clock-out stamp after the expected end time has passed. While the shift is still in progress (before the exit time) it is not an anomaly. It also covers days left with an <strong>open clock-in</strong> (exit forgotten, or stamped after midnight and therefore recorded on the next day): the lunch clock-out is not read as the end-of-day exit.</td></tr>
             <tr><td><span class="pill pill-warn">Late clock-in</span></td><td>Clock-in beyond the configured tolerance, unless an approved leave/holiday covers the lateness.</td></tr>
             <tr><td><span class="pill pill-warn">Early clock-out</span></td><td>Clock-out before the configured tolerance, unless an approved leave/holiday covers the early departure.</td></tr>
             <tr><td><span class="pill pill-warn">Insufficient hours</span></td><td>Hours worked below the expected shift.</td></tr>

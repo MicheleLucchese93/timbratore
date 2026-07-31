@@ -317,3 +317,73 @@ test('full-day ferie: clocking in anyway raises no late/early/missing anomalies'
   assert.ok(!k.includes('early_clock_out'), `unexpected early_clock_out: ${k.join(',')}`);
   assert.ok(!k.includes('missing_clock_out'), `unexpected missing_clock_out: ${k.join(',')}`);
 });
+
+/* ──────────── Day left on an open session (unclosed clock_in) ────────────
+ * The last presence event of the day is a clock_in with no matching clock_out:
+ * the employee forgot the exit, or stamped it after midnight (that punch then
+ * belongs to the next day's bucket). Reading the last clock_out of the day
+ * describes the LUNCH break as the exit, so the day surfaced as "uscita
+ * anticipata 12:40" with a non-null actual_end_at — which also hid the
+ * "Timbratura standard" correction, since that action only inserts absent
+ * punches. (Prod: Bruno Borroni, 2026-07-29, PM INFORMATICA-Bruno: in 08:30,
+ * out 12:40, in 18:41, exit stamped 08:45 the next morning.) */
+const WED = '2026-07-29'; // Wednesday → ISO dow 3, CEST
+const BRUNO_SLOTS = [
+  { day_of_week: 3, start_time: '09:00', end_time: '12:30' },
+  { day_of_week: 3, start_time: '16:00', end_time: '19:30' },
+];
+const wedAt = (hhmm: string) => zonedWallClock(WED, hhmm).getTime();
+
+function openSessionRow(over: Partial<AnomalyRow> = {}): AnomalyRow {
+  return makeRowOn(WED, {
+    slots: BRUNO_SLOTS,
+    tolerance_in_min: 5,
+    tolerance_out_min: 5,
+    stamps: [
+      stampAt(WED, 'clock_in', '08:30'),
+      stampAt(WED, 'clock_out', '12:40'),
+      stampAt(WED, 'clock_in', '18:41'),
+    ],
+    ...over,
+  });
+}
+
+test('open session past the scheduled end: missing_clock_out, not early_clock_out', () => {
+  const anomalies = computeAnomalies([openSessionRow()], 'Europe/Rome', wedAt('21:00'));
+  const k = anomalies.map((a) => a.kind);
+  assert.ok(k.includes('missing_clock_out'), `expected missing_clock_out: ${k.join(',')}`);
+  assert.ok(!k.includes('early_clock_out'), `unexpected early_clock_out: ${k.join(',')}`);
+  // actual_end_at must stay null — the web correction panel offers "Timbratura
+  // standard" only for punches it can add, i.e. those the anomaly reports absent.
+  const missing = anomalies.find((a) => a.kind === 'missing_clock_out')!;
+  assert.equal(missing.actual_end_at, null);
+  assert.equal(missing.expected_end_at, zonedWallClock(WED, '19:30').toISOString());
+  // The day's total is not measurable while a session is open.
+  assert.ok(!k.includes('short_hours'), `unexpected short_hours: ${k.join(',')}`);
+});
+
+test('open session still within the shift: neither early_clock_out nor missing_clock_out', () => {
+  // 19:00 — back from the lunch gap, exit not yet due. The lunch clock-out at
+  // 12:40 must not read as an early departure while the employee is at work.
+  const k = computeAnomalies([openSessionRow()], 'Europe/Rome', wedAt('19:00')).map((a) => a.kind);
+  assert.ok(!k.includes('early_clock_out'), `unexpected early_clock_out: ${k.join(',')}`);
+  assert.ok(!k.includes('missing_clock_out'), `premature missing_clock_out: ${k.join(',')}`);
+});
+
+test('closed split day: a genuine early exit still fires early_clock_out', () => {
+  // Guard against over-suppression — same shape, but the afternoon session is
+  // closed at 17:00, so the exit is real and 150 min early.
+  const row = openSessionRow({
+    stamps: [
+      stampAt(WED, 'clock_in', '08:30'),
+      stampAt(WED, 'clock_out', '12:40'),
+      stampAt(WED, 'clock_in', '16:00'),
+      stampAt(WED, 'clock_out', '17:00'),
+    ],
+  });
+  const early = computeAnomalies([row], 'Europe/Rome', wedAt('21:00')).find(
+    (a) => a.kind === 'early_clock_out'
+  );
+  assert.ok(early, 'early_clock_out present');
+  assert.equal(early!.delta_minutes, 150);
+});
