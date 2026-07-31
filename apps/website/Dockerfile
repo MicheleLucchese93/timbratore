@@ -27,7 +27,7 @@ COPY packages/shared/src/design/tokens.css ./packages/shared/src/design/tokens.c
 RUN npm ci --workspace=sonoqui-website --include-workspace-root
 RUN npm run build --workspace=sonoqui-website
 
-FROM nginx:1.29-alpine
+FROM nginx:1.31-alpine
 COPY apps/website/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /repo/apps/website/dist /usr/share/nginx/html
 
