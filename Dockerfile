@@ -4,7 +4,7 @@
 # project refs or a pre-build step. tsx at runtime keeps the image build
 # trivially correct (Penno uses tsc; revisit if startup time matters).
 
-FROM node:24-alpine
+FROM node:25-alpine
 WORKDIR /repo
 
 COPY package.json package-lock.json tsconfig.base.json ./
