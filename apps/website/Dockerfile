@@ -6,7 +6,7 @@
 # is what builds cleanly, so we reproduce the full workspace manifest
 # graph here to get the same resolution npm uses locally.
 
-FROM node:24-alpine AS builder
+FROM node:25-alpine AS builder
 WORKDIR /repo
 
 # Root + every workspace manifest so `npm ci` sees the whole graph and
