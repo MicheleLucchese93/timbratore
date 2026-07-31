@@ -1,0 +1,95 @@
+name: Security scan
+
+# This repository is public, so the secret-scanning half of this workflow
+# matters as much as the vulnerability half: anything committed by mistake is
+# world-readable from the moment it lands.
+#
+# Third-party actions are pinned to a commit SHA, not a tag — a tag can be
+# repointed by whoever owns the action, and these steps see the whole checkout.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  trivy-repo:
+    name: Trivy (deps + misconfig + secrets)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      # Scans package-lock.json for known-vulnerable versions, the five
+      # Dockerfiles and docker-compose.yml for misconfiguration, and the tree
+      # for committed credentials. Gated (exit-code 1): a HIGH or CRITICAL
+      # finding fails the build. ignore-unfixed keeps it actionable — nothing
+      # fails on an advisory with no released patch.
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          skip-dirs: node_modules
+          format: table
+
+  trivy-images:
+    name: Trivy image scan
+    # Pulling and unpacking three runtime images is too slow for every PR, and
+    # a new CVE in a pinned image is not something a PR author introduced.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # The third-party images pinned in docker-compose.yml. Dependabot's
+        # docker-compose ecosystem proposes the version bumps; this reports what
+        # is wrong with the versions actually deployed today.
+        image:
+          - supabase/auth:v2.188.1
+          - centrifugo/centrifugo:v6
+          - ghcr.io/axelmarciano/expo-open-ota:v2.3.19
+    steps:
+      - name: Scan ${{ matrix.image }}
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ matrix.image }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          # Informational: base-image CVEs land here with no local fix beyond
+          # waiting for upstream, so this reports rather than blocks.
+          exit-code: '0'
+          format: table
+
+  gitleaks:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      # Full history: a secret that was committed and later removed is still
+      # public in the reachable objects, so scanning the tip is not enough.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
