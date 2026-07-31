@@ -1,6 +1,13 @@
 # ──────────── sonoQui ────────────
 # Paste these stanzas into /opt/infra/Caddyfile, then:
 #   docker exec gateway caddy reload --config /etc/caddy/Caddyfile
+#
+# The five static-asset upstreams (sonoqui-web, -web-pro, -partner, -mobile-web,
+# -website) answer on 8080, not 80: their nginx runs unprivileged and cannot bind
+# a privileged port. The port lives in three places that must move together —
+# apps/*/nginx.conf `listen`, apps/*/Dockerfile EXPOSE, and these upstreams — so
+# reload the Caddyfile in the same window as the container rebuild, or the
+# rebuilt containers answer on 8080 while Caddy is still dialling 80 (502).
 
 # Access log that redacts the document-upload metadata from the request URI.
 # POST /api/v1/documents carries title + filename in the query string (employee
@@ -73,14 +80,14 @@ app-sonoqui.xdevapp.it {
 	import origin_tls
 	import access_log
 	import api_security_headers
-	reverse_proxy sonoqui-web:80
+	reverse_proxy sonoqui-web:8080
 }
 
 m-sonoqui.xdevapp.it {
 	import origin_tls
 	import access_log
 	import api_security_headers
-	reverse_proxy sonoqui-mobile-web:80
+	reverse_proxy sonoqui-mobile-web:8080
 }
 
 sonoqui.xdevapp.it {
@@ -93,7 +100,7 @@ sonoqui.xdevapp.it {
 		reverse_proxy sonoqui-api:4000
 	}
 	handle {
-		reverse_proxy sonoqui-website:80
+		reverse_proxy sonoqui-website:8080
 	}
 }
 
@@ -147,7 +154,7 @@ app.sonoqui.pro {
 		reverse_proxy centrifugo-sonoqui:8000
 	}
 	handle {
-		reverse_proxy sonoqui-web-pro:80
+		reverse_proxy sonoqui-web-pro:8080
 	}
 }
 
@@ -167,7 +174,7 @@ partners.sonoqui.pro {
 		reverse_proxy gotrue-sonoqui:9999
 	}
 	handle {
-		reverse_proxy sonoqui-partner:80
+		reverse_proxy sonoqui-partner:8080
 	}
 }
 
@@ -185,6 +192,6 @@ sonoqui.pro {
 		reverse_proxy sonoqui-api:4000
 	}
 	handle {
-		reverse_proxy sonoqui-website:80
+		reverse_proxy sonoqui-website:8080
 	}
 }

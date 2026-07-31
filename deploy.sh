@@ -11,7 +11,7 @@ PROJECT_DIR="/opt/sonoqui"
 echo "==> Pulling latest main + rebuilding sonoQui…"
 ssh -p $SSH_PORT $SERVER "cd $PROJECT_DIR && \
   git pull origin main && \
-  docker compose build --no-cache sonoqui-api sonoqui-web sonoqui-web-pro sonoqui-website sonoqui-partner && \
+  docker compose build --no-cache sonoqui-api sonoqui-web sonoqui-web-pro sonoqui-website sonoqui-partner sonoqui-mobile-web && \
   docker compose up -d && \
   docker image prune -f && \
   sleep 5 && \
@@ -20,6 +20,8 @@ ssh -p $SSH_PORT $SERVER "cd $PROJECT_DIR && \
 echo "==> Health probe…"
 curl -sf https://api-sonoqui.xdevapp.it/health && echo "" || echo "Health check failed!"
 curl -sf -o /dev/null -w "website: %{http_code}\n" https://sonoqui.xdevapp.it/it/ || echo "Website check failed!"
+curl -sf -o /dev/null -w "app-sonoqui.xdevapp.it: %{http_code}\n" https://app-sonoqui.xdevapp.it/ || echo "app-sonoqui.xdevapp.it check failed"
+curl -sf -o /dev/null -w "m-sonoqui.xdevapp.it: %{http_code}\n" https://m-sonoqui.xdevapp.it/ || echo "m-sonoqui.xdevapp.it check failed"
 # sonoqui.pro cutover probes (may fail until .pro→Cloudflare NS delegation propagates).
 curl -sf https://api.sonoqui.pro/health && echo " (api.sonoqui.pro)" || echo "api.sonoqui.pro check failed (NS may still be propagating)"
 curl -sf -o /dev/null -w "app.sonoqui.pro: %{http_code}\n" https://app.sonoqui.pro/ || echo "app.sonoqui.pro check failed"

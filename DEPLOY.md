@@ -82,6 +82,11 @@ git checkout <sha>
 docker compose build sonoqui-api sonoqui-web && docker compose up -d
 ```
 
+Rolling the static apps back **across the unprivileged-nginx change** also means
+reverting the Caddy upstreams: those images listen on 8080, and a pre-change SHA
+listens on 80. Rebuild to a SHA on the wrong side of it and every static vhost
+502s until `/opt/infra/Caddyfile` is put back to `:80` and Caddy reloaded.
+
 ## 4. Tearing down (full)
 
 ```bash

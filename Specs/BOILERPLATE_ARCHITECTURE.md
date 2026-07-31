@@ -803,10 +803,10 @@ Not in the product repo. Sample stanzas the operator must add when bringing up a
 
 # SPA
 app.<root> {
-  reverse_proxy <app>-web:80
+  reverse_proxy <app>-web:8080
 }
 app-staging.<root> {
-  reverse_proxy <app>-web-staging:80
+  reverse_proxy <app>-web-staging:8080
 }
 
 # API
@@ -1059,12 +1059,22 @@ ENV VITE_API_URL=$VITE_API_URL \
 
 RUN npm run build --workspace=@<app>/web
 
-FROM nginx:1.29-alpine AS runtime
+# nginx-unprivileged, not nginx: the plain image keeps its master process as
+# root, which Trivy flags as DS-0002 (HIGH). This variant runs as uid 101 with
+# /var/cache/nginx and the /tmp pid path already writable. The USER line is
+# restated because Trivy reads the Dockerfile, not the base image's own USER.
+FROM nginxinc/nginx-unprivileged:1.29-alpine AS runtime
 COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /repo/apps/web/dist /usr/share/nginx/html
-EXPOSE 80
+USER nginx
+EXPOSE 8080
 CMD ["nginx", "-g", "daemon off;"]
 ```
+
+An unprivileged process cannot bind port 80, so the container's internal port is
+**8080**. That number appears in three places that must always agree:
+`apps/*/nginx.conf` (`listen`), `apps/*/Dockerfile` (`EXPOSE`), and the Caddy
+`reverse_proxy` upstreams.
 
 Default `VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA` is Cloudflare's "always-pass" test sitekey — useful for CI builds where the real key isn't injected.
 
@@ -1072,7 +1082,7 @@ Default `VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA` is Cloudflare's "alwa
 
 ```nginx
 server {
-  listen 80;
+  listen 8080;
   server_name _;
 
   root /usr/share/nginx/html;

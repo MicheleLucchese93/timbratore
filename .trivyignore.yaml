@@ -5,25 +5,6 @@
 # auto-detects a plain `.trivyignore`, never the YAML form, so the workflow
 # passes this file explicitly via `trivyignores:`.
 
-misconfigurations:
-  - id: DS-0002
-    paths:
-      - 'apps/web/Dockerfile'
-      - 'apps/partner/Dockerfile'
-      - 'apps/website/Dockerfile'
-      - 'apps/mobile/Dockerfile'
-    statement: >-
-      The four static-asset containers run nginx as root. The finding is real,
-      but the fix is not a one-line USER: nginx must move to an unprivileged
-      base (or a non-root user plus a writable cache dir), which changes the
-      port it listens on and therefore the docker-compose mapping and the Caddy
-      upstreams in front of it. That needs a deploy window and a working
-      container to test against, so it is tracked separately rather than
-      guessed at here. Exposure is limited: these containers serve static files
-      only, hold no credentials, and are not reachable except through Caddy.
-      The backend image (root Dockerfile) already runs as a non-root user.
-    expired_at: 2026-12-31
-
 vulnerabilities:
   - id: GHSA-qwww-vcr4-c8h2
     statement: >-

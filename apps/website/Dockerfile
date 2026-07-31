@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.6
-# Marketing website — Astro static build + nginx 1.29-alpine runtime.
+# Marketing website — Astro static build + nginx-unprivileged 1.29-alpine runtime.
 # Built as a workspace member so it resolves against the root lockfile's
 # vite 6.4.2 (the version the app workspaces pin). Astro's own newer
 # rolldown-vite is buggy with @tailwindcss/vite; the hoisted vite 6.4.2
@@ -27,9 +27,19 @@ COPY packages/shared/src/design/tokens.css ./packages/shared/src/design/tokens.c
 RUN npm ci --workspace=sonoqui-website --include-workspace-root
 RUN npm run build --workspace=sonoqui-website
 
-FROM nginx:1.29-alpine
+# nginx-unprivileged, not nginx: the plain image only runs its workers as the
+# nginx user and keeps the master as root (Trivy DS-0002). This variant ships
+# /var/cache/nginx and the /tmp pid path already writable by uid 101, which a
+# bare `USER nginx` on the plain image would not.
+FROM nginxinc/nginx-unprivileged:1.29-alpine
 COPY apps/website/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /repo/apps/website/dist /usr/share/nginx/html
 
-EXPOSE 80
+# Restated even though the base image already ends on this user: Trivy reads the
+# Dockerfile, not the base image's own USER, and DS-0002 wants the instruction here.
+USER nginx
+
+# 8080, not 80 — an unprivileged process cannot bind a privileged port. Caddy
+# proxies to 8080 (infra/caddy-sonoqui.snippet); nginx.conf listens there.
+EXPOSE 8080
 CMD ["nginx", "-g", "daemon off;"]
