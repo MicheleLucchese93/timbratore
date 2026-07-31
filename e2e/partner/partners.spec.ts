@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { ACCESS_EMAIL_SENT, toast } from '../fixtures/toast';
 
 const ENABLED = process.env.E2E_MUTATING === '1';
 
@@ -31,10 +32,11 @@ test.describe('partner admin · partners', () => {
     await expect(row(page, partnerEmail)).toContainText(partnerName); // reseller name column
 
     // --- resend invite --- (local DEV backend sends no real mail → 'none' toast)
+    // Resend asks for confirmation first; leaving that dialog open blocks every
+    // later click on the backdrop.
     await row(page, partnerEmail).getByTestId('resend').click();
-    await expect(
-      page.getByText(/Invito inviato a|Invite sent to|Nessuna email inviata|No email sent/)
-    ).toBeVisible();
+    await page.getByTestId('confirm-ok').click();
+    await expect(toast(page, ACCESS_EMAIL_SENT)).toBeVisible();
 
     // --- edit caps + note ---
     await row(page, partnerEmail).getByRole('button', { name: /Modifica|Edit/ }).click();
@@ -65,14 +67,13 @@ test.describe('partner admin · partners', () => {
     // Auto-send OFF → partner created with no email.
     await page.getByTestId('partner-send-invite').uncheck();
     await page.getByTestId('create-partner-submit').click();
-    await expect(page.getByText(/Nessuna email inviata|No email sent/)).toBeVisible({ timeout: 15_000 });
+    await expect(toast(page, /^(Partner creato|Partner created)/)).toBeVisible({ timeout: 15_000 });
     await expect(row(page, email)).toBeVisible();
 
     // Resend to the still-unconfirmed partner. Against prod this is an INVITATION;
     // the local DEV backend sends nothing → 'none' toast. Accept both.
     await row(page, email).getByTestId('resend').click();
-    await expect(
-      page.getByText(/Invito inviato a|Invite sent to|Nessuna email inviata|No email sent/)
-    ).toBeVisible();
+    await page.getByTestId('confirm-ok').click();
+    await expect(toast(page, ACCESS_EMAIL_SENT)).toBeVisible();
   });
 });

@@ -25,7 +25,9 @@ test.describe('partner · settings', () => {
   test('Sicurezza: i requisiti password si attivano e abilitano il submit', async ({ page }) => {
     await page.goto('/settings');
     await page.getByTestId('lang-it').click(); // deterministic Italian labels
-    await expect(page.getByText('Sicurezza')).toBeVisible();
+    // Exact: the section's own description ends with "…requisiti di sicurezza",
+    // so a substring match resolves to two elements.
+    await expect(page.getByText('Sicurezza', { exact: true })).toBeVisible();
 
     // The form now lives in a modal opened by the "Cambia password" button.
     await page.getByRole('button', { name: 'Cambia password' }).click();

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { ACCESS_EMAIL_SENT, toast } from '../fixtures/toast';
 
 const ENABLED = process.env.E2E_MUTATING === '1';
 
@@ -39,10 +40,10 @@ test.describe('partner admin · tenant admins (multi)', () => {
     await expect(page.getByTestId('admin-add-email')).toBeDisabled();
 
     // Reinvite the FIRST admin (selected). Local DEV sends no mail → 'none' toast.
+    // The create + add toasts are still on screen and end with the same
+    // sentence, so this must match the reinvite toast alone (see fixtures/toast).
     await modal.locator('.admin-row', { hasText: admin1 }).getByTestId('admin-reinvite').click();
-    await expect(
-      page.getByText(/Invito inviato a|Invite sent to|Nessuna email inviata|No email sent/)
-    ).toBeVisible();
+    await expect(toast(page, ACCESS_EMAIL_SENT)).toBeVisible();
 
     // Remove the 2nd admin → back to 1/2, add field re-enabled.
     await modal.locator('.admin-row', { hasText: admin2 }).getByTestId('admin-remove').click();
@@ -69,7 +70,9 @@ test.describe('partner admin · tenant admins (multi)', () => {
     await page.getByTestId('admin-send-invite').uncheck();
     await page.getByTestId('admin-add-email').fill(`e2e-ni2-${suffix}@e2e.local`);
     await page.getByTestId('admin-add-submit').click();
-    await expect(page.getByText(/Nessuna email inviata|No email sent/)).toBeVisible();
+    // Anchored on the add-specific prefix: the "Azienda creata. Nessuna email
+    // inviata." toast from the create above is still visible here.
+    await expect(toast(page, /^(Amministratore aggiunto|Administrator added)/)).toBeVisible();
 
     // Reinvite that still-unconfirmed admin. Against prod this is an INVITATION;
     // the local DEV backend sends nothing → 'none' toast. Accept both.
@@ -77,9 +80,7 @@ test.describe('partner admin · tenant admins (multi)', () => {
       .locator('.admin-row', { hasText: `e2e-ni2-${suffix}` })
       .getByTestId('admin-reinvite')
       .click();
-    await expect(
-      page.getByText(/Invito inviato a|Invite sent to|Nessuna email inviata|No email sent/)
-    ).toBeVisible();
+    await expect(toast(page, ACCESS_EMAIL_SENT)).toBeVisible();
   });
 
   test('cannot exceed max_admins via API-free UI (3rd add blocked while at cap)', async ({ page }) => {
