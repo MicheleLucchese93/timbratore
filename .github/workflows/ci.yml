@@ -7,9 +7,9 @@ name: CI
 # Deliberately excluded: the Playwright e2e suites. They run against the PROD
 # box (api/auth/web on sonoqui.pro) with a real test tenant and mutating
 # fixtures, so they need secrets and serialised access to shared state — not
-# something to fan out across concurrent PR builds. `--list` below still
-# compiles every spec, which catches the failure mode a dependency bump
-# actually causes (broken imports / type drift in the specs).
+# something to fan out across concurrent PR builds. The `--list` step below
+# still compiles every spec, which catches the failure mode a dependency bump
+# actually causes: broken imports or type drift in the specs.
 
 on:
   push:
@@ -25,7 +25,7 @@ permissions:
 
 jobs:
   verify:
-    name: build · test · typecheck
+    name: build · typecheck
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -44,11 +44,6 @@ jobs:
       # for website. apps/mobile has no build script (Metro/EAS handles it).
       - name: Build every workspace
         run: npm run build
-
-      # node:test suites in apps/backend and packages/shared. The other
-      # workspaces have no test script and are skipped via --if-present.
-      - name: Unit tests
-        run: npm test
 
       # apps/mobile is the one workspace with no build step, so its TypeScript
       # is otherwise never checked. It pins its own typescript ~6.0.3 (the rest
@@ -69,3 +64,105 @@ jobs:
         env:
           E2E_NO_WEBSERVER: '1'
         run: npx playwright test --list
+
+  test:
+    name: tests (postgres)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Four of the twelve apps/backend suites are real integration tests against
+    # Postgres (tenant-isolation, multi-tenant-membership, stamp-geofence,
+    # auto-clockout) — tenant-isolation in particular is the regression guard
+    # for the prod incident where the `app` role had BYPASSRLS=true and every
+    # RLS policy was silently skipped. They self-seed their own tenants, so a
+    # migrated empty database is all they need.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sonoqui
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # Throwaway values for a database that exists for the length of this job.
+    # Nothing here is a secret; the app just refuses to boot without them
+    # (apps/backend/src/env.ts validates the whole set at import time).
+    env:
+      DATABASE_URL: postgres://app:app@localhost:5432/sonoqui
+      ADMIN_DATABASE_URL: postgres://sonoqui_owner:owner@localhost:5432/sonoqui
+      GOTRUE_JWT_SECRET: ci-only-not-a-secret-000000000000
+      GOTRUE_JWT_ISSUER: https://ci.invalid/auth/v1
+      GOTRUE_URL: https://ci.invalid/auth/v1
+      GOTRUE_SERVICE_ROLE_KEY: ci-only-not-a-secret
+      CORS_ORIGINS: http://localhost:5173
+      BACKEND_URL: http://localhost:4000
+      WEB_PUBLIC_URL: http://localhost:5173
+      CRON_SECRET: ci-only-not-a-secret
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install (workspace root)
+        run: npm ci
+
+      # Mirrors infra/pg-init-sonoqui.sql, which assumes the shared infra
+      # Postgres already provides the `app` role and a GoTrue-owned auth
+      # schema. Neither exists here, so both are created from scratch:
+      #
+      #  - `app` is what DATABASE_URL connects as. NOBYPASSRLS is the whole
+      #    point — with BYPASSRLS the tenant-isolation suite would pass
+      #    vacuously and migration 024 would refuse to apply.
+      #  - `sonoqui_owner` owns the schema and is what ADMIN_DATABASE_URL and
+      #    the migration runner connect as.
+      #  - auth.users is a stand-in for the GoTrue table: no GoTrue runs in CI,
+      #    but migration 025 builds a view over it.
+      - name: Bootstrap roles and schema
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -v ON_ERROR_STOP=1 -h localhost -U postgres -d sonoqui <<'SQL'
+          CREATE ROLE app LOGIN PASSWORD 'app' NOSUPERUSER NOBYPASSRLS;
+          CREATE ROLE sonoqui_owner LOGIN PASSWORD 'owner' NOSUPERUSER NOBYPASSRLS;
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+          GRANT anon, authenticated TO app;
+          GRANT ALL PRIVILEGES ON DATABASE sonoqui TO app, sonoqui_owner;
+
+          CREATE EXTENSION IF NOT EXISTS pgcrypto;
+          CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+          ALTER SCHEMA public OWNER TO sonoqui_owner;
+          GRANT ALL ON SCHEMA public TO sonoqui_owner, app;
+          GRANT USAGE ON SCHEMA public TO anon, authenticated;
+
+          -- Everything the migrations create as sonoqui_owner must be reachable
+          -- by app; default privileges only apply to objects created after this.
+          ALTER DEFAULT PRIVILEGES FOR ROLE sonoqui_owner IN SCHEMA public
+            GRANT ALL ON TABLES TO app;
+          ALTER DEFAULT PRIVILEGES FOR ROLE sonoqui_owner IN SCHEMA public
+            GRANT ALL ON SEQUENCES TO app;
+          ALTER DEFAULT PRIVILEGES FOR ROLE sonoqui_owner IN SCHEMA public
+            GRANT ALL ON FUNCTIONS TO app;
+
+          CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION sonoqui_owner;
+          CREATE TABLE IF NOT EXISTS auth.users (id uuid PRIMARY KEY, email text UNIQUE);
+          GRANT USAGE ON SCHEMA auth TO app;
+          GRANT SELECT ON auth.users TO app;
+          SQL
+
+      - name: Apply migrations
+        run: npm run migrate
+
+      - name: Unit + integration tests
+        run: npm test
