@@ -109,6 +109,17 @@ updates:
       - dependency-name: "@vitejs/plugin-react"
         update-types: ["version-update:semver-major"]
 
+      # The five @tiptap packages in apps/web have to reach v3 together.
+      # Dependabot opens one major PR per package, and a single one is enough to
+      # leave two @tiptap/core copies in the tree — the hoisted v2 plus a v3
+      # nested under apps/web — which fails the build on incompatible `Mark`
+      # types and on setLink/unsetLink disappearing from ChainedCommands
+      # (apps/web/src/components/RichTextEditor.tsx). v3 also folds
+      # extension-underline into starter-kit, so this is a code migration rather
+      # than a version bump.
+      - dependency-name: "@tiptap/*"
+        update-types: ["version-update:semver-major"]
+
 
       # @typescript-eslint 8.60.1 (pulled in by eslint-config-expo, the linter
       # behind `expo lint`) peers `typescript >=4.8.4 <6.1.0`. apps/mobile is

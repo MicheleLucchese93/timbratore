@@ -23,29 +23,75 @@ permissions:
   contents: read
 
 jobs:
-  trivy-repo:
-    name: Trivy (deps + misconfig + secrets)
+  trivy-config:
+    name: Trivy (misconfig + secrets)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
-      # Scans package-lock.json for known-vulnerable versions, the five
-      # Dockerfiles and docker-compose.yml for misconfiguration, and the tree
-      # for committed credentials. Gated (exit-code 1): a HIGH or CRITICAL
-      # finding fails the build. ignore-unfixed keeps it actionable — nothing
-      # fails on an advisory with no released patch.
-      - name: Trivy filesystem scan
+      # The gated half: the five Dockerfiles and docker-compose.yml for
+      # misconfiguration, and the tree for committed credentials. Both are
+      # things a PR author writes by hand and can fix in the same PR, so a
+      # HIGH or CRITICAL here fails the build.
+      - name: Trivy misconfig + secret scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scan-ref: .
-          scanners: vuln,misconfig,secret
+          scanners: misconfig,secret
           severity: HIGH,CRITICAL
+          exit-code: '1'
+          skip-dirs: node_modules
+          format: table
+          # Must be passed explicitly: Trivy auto-detects only a plain
+          # `.trivyignore`, never the YAML form, so without this the waivers
+          # (and the reasoning recorded with them) are silently ignored.
+          trivyignores: .trivyignore.yaml
+
+  trivy-deps:
+    name: Trivy (dependency advisories)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      # Reporting step. The npm advisories in this lockfile are dominated by
+      # the build toolchain — astro, vite, sharp, svgo, postcss, and the
+      # brace-expansion copies under @expo/config-plugins and
+      # @typescript-eslint — none of which ships in a deployed artifact, and
+      # most of which need a lockfile-level bump that only Dependabot's
+      # security updates can land cleanly (npm's own `audit fix` cannot resolve
+      # this workspace: the Expo peer graph sends it looking for expo@40).
+      # Failing every PR on those punishes an author who did not introduce them,
+      # so this step reports and the Dependabot alerts remain the tracker.
+      - name: Report HIGH and CRITICAL advisories
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '0'
+          skip-dirs: node_modules
+          format: table
+          trivyignores: .trivyignore.yaml
+
+      # The gate: a CRITICAL dependency advisory with a released fix stops the
+      # line. Those are rare and always worth interrupting for.
+      - name: Fail on CRITICAL advisories
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: CRITICAL
           ignore-unfixed: true
           exit-code: '1'
           skip-dirs: node_modules
           format: table
+          trivyignores: .trivyignore.yaml
 
   trivy-images:
     name: Trivy image scan
