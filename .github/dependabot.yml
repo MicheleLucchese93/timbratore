@@ -122,6 +122,17 @@ updates:
       - dependency-name: "@vitejs/plugin-react"
         update-types: ["version-update:semver-major"]
 
+      # zod 4 is a migration, not a bump. It breaks the build today on
+      # apps/backend/src/env.ts (SCHEDULER_ENABLED and DEV_AUTH_ENABLED chain
+      # `.transform(...)` then `.default('false')`, which zod 4 no longer
+      # accepts — TS2769 on both), and beyond that 23 backend files build
+      # schemas with patterns zod 4 moved or removed: `.strict()` in
+      # routes/me.ts and `z.string().email()` in a dozen route bodies. Every one
+      # of those validates a live API surface, so the upgrade needs its own
+      # change plus an e2e pass, not a green typecheck.
+      - dependency-name: "zod"
+        update-types: ["version-update:semver-major"]
+
       # The five @tiptap packages in apps/web have to reach v3 together.
       # Dependabot opens one major PR per package, and a single one is enough to
       # leave two @tiptap/core copies in the tree — the hoisted v2 plus a v3
