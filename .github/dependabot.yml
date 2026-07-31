@@ -95,6 +95,21 @@ updates:
         update-types: ["version-update:semver-major"]
 
       # --- toolchain ----------------------------------------------------
+      # @vitejs/plugin-react 6 peers vite 7, and hoisting one vite 7 into the
+      # workspace root breaks apps/website: @tailwindcss/vite 4 calls into
+      # vite 7's rolldown/oxc resolver and `astro build` dies with
+      #   [@tailwindcss/vite:generate:build] Missing field `tsconfigPaths` on
+      #   BindingViteResolvePluginConfig.resolveOptions
+      # (seen on the Dependabot PR that proposed plugin-react 6.0.4). vite,
+      # @vitejs/plugin-react, @tailwindcss/vite and astro have to move as one
+      # deliberate upgrade, so majors on the two vite packages are held rather
+      # than reopened weekly against the same wall. Minors and patches flow.
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@vitejs/plugin-react"
+        update-types: ["version-update:semver-major"]
+
+
       # @typescript-eslint 8.60.1 (pulled in by eslint-config-expo, the linter
       # behind `expo lint`) peers `typescript >=4.8.4 <6.1.0`. apps/mobile is
       # already at ~6.0.3, so TypeScript 7 falls out of that peer range and
