@@ -16,7 +16,7 @@ RUN npm ci --workspace=@sonoqui/mobile --include-workspace-root
 # Expo web export → static bundle in /repo/apps/mobile/dist.
 RUN npx --workspace=@sonoqui/mobile expo export --platform web --output-dir dist
 
-FROM nginx:1.29-alpine
+FROM nginx:1.31-alpine
 COPY apps/mobile/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /repo/apps/mobile/dist /usr/share/nginx/html
 
