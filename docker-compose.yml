@@ -250,7 +250,7 @@ services:
   # EXPO_ACCESS_TOKEN authorises the server to resolve channel → branch against
   # Expo's API for project 729f39a2-… (owner micheel93-2).
   ota-sonoqui:
-    image: ghcr.io/axelmarciano/expo-open-ota:v2.3.19
+    image: ghcr.io/axelmarciano/expo-open-ota:v3.0.5
     container_name: ota-sonoqui
     platform: linux/amd64
     restart: unless-stopped
