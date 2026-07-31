@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.6
 # Partner / reseller SPA — Vite build + nginx 1.29-alpine runtime.
 
-FROM node:24-alpine AS builder
+FROM node:25-alpine AS builder
 WORKDIR /repo
 
 COPY package.json package-lock.json tsconfig.base.json ./
