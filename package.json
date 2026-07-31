@@ -34,8 +34,8 @@
     "tokens": "npm run -w packages/shared tokens"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.11.3",
-    "@playwright/test": "^1.60.0",
+    "@axe-core/playwright": "^4.12.1",
+    "@playwright/test": "^1.62.0",
     "@types/node": "^22.10.2",
     "typescript": "^5.6.3"
   },

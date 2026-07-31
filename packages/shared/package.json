@@ -10,6 +10,6 @@
     "tokens": "node scripts/gen-tokens-css.mjs"
   },
   "devDependencies": {
-    "tsx": "^4.19.2"
+    "tsx": "^4.23.1"
   }
 }
