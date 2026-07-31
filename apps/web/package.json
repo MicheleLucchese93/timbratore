@@ -15,7 +15,7 @@
     "@mui/x-data-grid": "^9.10.1",
     "@react-google-maps/api": "^2.20.8",
     "@sonoqui/shared": "*",
-    "@tiptap/extension-link": "^2.27.2",
+    "@tiptap/extension-link": "^3.29.1",
     "@tiptap/extension-underline": "^2.27.2",
     "@tiptap/pm": "^2.27.2",
     "@tiptap/react": "^2.27.2",
