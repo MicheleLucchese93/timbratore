@@ -156,7 +156,24 @@ jobs:
             GRANT ALL ON FUNCTIONS TO app;
 
           CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION sonoqui_owner;
-          CREATE TABLE IF NOT EXISTS auth.users (id uuid PRIMARY KEY, email text UNIQUE);
+          -- Column set is exactly what public.auth_users_view selects in
+          -- migration 025; GoTrue owns the real table in dev and prod.
+          CREATE TABLE IF NOT EXISTS auth.users (
+            id                 uuid PRIMARY KEY,
+            email              text UNIQUE,
+            aud                text,
+            role               text,
+            email_confirmed_at timestamptz,
+            last_sign_in_at    timestamptz,
+            created_at         timestamptz NOT NULL DEFAULT now(),
+            updated_at         timestamptz NOT NULL DEFAULT now(),
+            invited_at         timestamptz,
+            banned_until       timestamptz,
+            deleted_at         timestamptz,
+            is_anonymous       boolean NOT NULL DEFAULT false,
+            raw_app_meta_data  jsonb,
+            raw_user_meta_data jsonb
+          );
           GRANT USAGE ON SCHEMA auth TO app;
           GRANT SELECT ON auth.users TO app;
           SQL
