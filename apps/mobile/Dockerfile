@@ -2,7 +2,7 @@
 # Mobile RN-Web → static SPA, served by nginx.
 # Web-only target — for full native build use `npm run prebuild` + Xcode/Studio.
 
-FROM node:24-alpine AS builder
+FROM node:25-alpine AS builder
 WORKDIR /repo
 
 RUN apk add --no-cache git
