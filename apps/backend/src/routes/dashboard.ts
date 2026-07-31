@@ -47,13 +47,21 @@ dashboardRouter.get(
 dashboardRouter.get(
   '/summary',
   tenantHandler(async (_req, res, client) => {
+    // Every query below runs on the SAME pooled client, inside the per-request
+    // RLS transaction opened by tenantHandler. A client can only execute one
+    // query at a time — issuing them together and awaiting with Promise.all
+    // buys no parallelism (pg queues them) and is deprecated as of pg@8, a hard
+    // error in pg@9. Sequential awaits, same wall-clock, no warning. A second
+    // pooled client is not an option here: it would miss this transaction's RLS
+    // GUCs and, for support sessions, its READ ONLY mode.
+
     // Tenant timezone for the anomaly badges: schedule slot times are wall-clock
     // in this zone; mirrors GET /shifts/anomalies. Defaults to Europe/Rome.
-    const tzPromise = client.query<{ timezone: string }>(
+    const tz = await client.query<{ timezone: string }>(
       `SELECT timezone FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid`
     );
 
-    const usagePromise = client.query(
+    const u = await client.query(
       `SELECT
          (SELECT COUNT(*) FROM memberships
             WHERE tenant_id = current_setting('app.current_tenant_id')::uuid
@@ -69,7 +77,7 @@ dashboardRouter.get(
               AND deleted_at IS NULL) AS branches_count`
     );
 
-    const presencePromise = client.query(
+    const p = await client.query(
       `WITH last_stamp AS (
          SELECT DISTINCT ON (user_id) user_id, event_type
          FROM stamps
@@ -87,7 +95,7 @@ dashboardRouter.get(
          AND cardinality(m.stamp_modes) > 0`
     );
 
-    const pendingPromise = client.query(
+    const pen = await client.query(
       `SELECT
          (SELECT COUNT(*) FROM correction_requests
             WHERE status = 'pending') AS corrections,
@@ -98,7 +106,7 @@ dashboardRouter.get(
     );
 
     // Absent right now: approved leaves where now() is inside [from_ts, to_ts).
-    const absentNowPromise = client.query(
+    const absent = await client.query(
       `SELECT lr.id, lr.user_id, lr.type, lr.from_ts, lr.to_ts, lr.duration_hours,
               COALESCE(au.email, lr.user_id::text) AS user_email,
               au.display_name AS user_display_name
@@ -112,7 +120,7 @@ dashboardRouter.get(
     );
 
     // Upcoming approved leaves in next 14 days.
-    const upcomingPromise = client.query(
+    const upcoming = await client.query(
       `SELECT lr.id, lr.user_id, lr.type, lr.from_ts, lr.to_ts, lr.duration_hours,
               COALESCE(au.email, lr.user_id::text) AS user_email,
               au.display_name AS user_display_name
@@ -126,7 +134,7 @@ dashboardRouter.get(
     );
 
     // Anomalies last 7 full days (yesterday inclusive — today still in progress).
-    const anomaliesPromise = client.query<AnomalyRow>(
+    const anomalyRows = await client.query<AnomalyRow>(
       `WITH today AS (SELECT (now() AT TIME ZONE ${TENANT_TZ_SQL})::date AS d),
        range AS (
          SELECT generate_series(
@@ -205,16 +213,6 @@ dashboardRouter.get(
          LEFT JOIN shift_templates st ON st.id = a.shift_template_id
         ORDER BY r.d, m.email`
     );
-
-    const [u, p, pen, absent, upcoming, anomalyRows, tz] = await Promise.all([
-      usagePromise,
-      presencePromise,
-      pendingPromise,
-      absentNowPromise,
-      upcomingPromise,
-      anomaliesPromise,
-      tzPromise,
-    ]);
 
     const anomalies = computeAnomalies(anomalyRows.rows, tz.rows[0]?.timezone || DEFAULT_TZ);
     const byKind: Record<Anomaly['kind'], number> = {
