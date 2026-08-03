@@ -21,7 +21,7 @@
     "@expo/vector-icons": "^15.0.2",
     "@react-native-community/datetimepicker": "9.1.0",
     "@sonoqui/shared": "*",
-    "domhandler": "^4.2.2",
+    "domhandler": "^6.0.1",
     "domutils": "^2.8.0",
     "expo": "~56.0.18",
     "expo-constants": "~56.0.15",
