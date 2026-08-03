@@ -12,8 +12,8 @@
     "test": "node --import tsx --test --test-concurrency=1 src/**/*.test.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1096.0",
-    "@aws-sdk/s3-request-presigner": "^3.1096.0",
+    "@aws-sdk/client-s3": "^3.1100.0",
+    "@aws-sdk/s3-request-presigner": "^3.1100.0",
     "@sonoqui/shared": "*",
     "compression": "^1.7.5",
     "cors": "^2.8.5",
