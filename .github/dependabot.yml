@@ -79,14 +79,20 @@ updates:
       # Native modules that SDK 56 names as ONE exact version (and apps/mobile
       # pins exactly). Even a patch is off-SDK, and moving any of them requires
       # a native rebuild + store resubmission rather than an OTA. Ignore ALL.
+      # Verify against expo/bundledNativeModules.json before adding one here:
+      # a tilde-ranged module listed in this block gets frozen at whatever it
+      # happened to be, and silently falls BELOW the SDK floor on the next SDK
+      # bump — which is what happened to react-native-screens (pinned 4.25.2
+      # against an SDK asking for ~4.26.0). npm then could not hoist
+      # expo-router, whose own dep wanted ^4.26.0, and `expo start` died with
+      # "Cannot find module 'expo-router/_ctx-shared'".
       - dependency-name: "react-native-reanimated"
-      - dependency-name: "react-native-screens"
       - dependency-name: "react-native-worklets"
       - dependency-name: "@react-native-community/datetimepicker"
 
       # Native modules SDK 56 pins with a tilde range (~2.31.1 / ~5.7.0 /
-      # ~0.21.0). Patches stay inside the SDK-vetted range; minor and major
-      # bumps leave it.
+      # ~0.21.0 / ~4.26.0). Patches stay inside the SDK-vetted range; minor and
+      # major bumps leave it.
       - dependency-name: "react-native-gesture-handler"
         update-types:
           ["version-update:semver-major", "version-update:semver-minor"]
@@ -94,6 +100,9 @@ updates:
         update-types:
           ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "react-native-web"
+        update-types:
+          ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "react-native-screens"
         update-types:
           ["version-update:semver-major", "version-update:semver-minor"]
 

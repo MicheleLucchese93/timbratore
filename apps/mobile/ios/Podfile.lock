@@ -3,12 +3,12 @@ PODS:
     - ExpoModulesCore
   - EXApplication (56.0.3):
     - ExpoModulesCore
-  - EXConstants (56.0.16):
+  - EXConstants (56.0.22):
     - ExpoModulesCore
   - EXJSONUtils (56.0.0)
   - EXManifests (56.0.4):
     - ExpoModulesCore
-  - Expo (56.0.8):
+  - Expo (56.0.18):
     - ExpoModulesCore
     - ExpoModulesJSI
     - hermes-engine
@@ -34,31 +34,31 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - ExpoAsset (56.0.15):
+  - ExpoAsset (56.0.21):
     - ExpoModulesCore
   - ExpoDevice (56.0.4):
     - ExpoModulesCore
-  - ExpoDomWebView (56.0.5):
+  - ExpoDomWebView (56.0.6):
     - ExpoModulesCore
-  - ExpoFileSystem (56.0.7):
+  - ExpoFileSystem (56.0.8):
     - ExpoModulesCore
-  - ExpoFont (56.0.5):
+  - ExpoFont (56.0.7):
     - ExpoModulesCore
   - ExpoGlassEffect (56.0.4):
     - ExpoModulesCore
-  - ExpoImage (56.0.9):
+  - ExpoImage (56.0.11):
     - ExpoModulesCore
   - ExpoKeepAwake (56.0.3):
     - ExpoModulesCore
-  - ExpoLinking (56.0.11):
+  - ExpoLinking (56.0.16):
     - ExpoModulesCore
-  - ExpoLocalAuthentication (56.0.4):
+  - ExpoLocalAuthentication (56.0.5):
     - ExpoModulesCore
-  - ExpoLocation (56.0.13):
+  - ExpoLocation (56.0.22):
     - ExpoModulesCore
-  - ExpoLogBox (56.0.12):
+  - ExpoLogBox (56.0.14):
     - React-Core
-  - ExpoModulesCore (56.0.14):
+  - ExpoModulesCore (56.0.22):
     - ExpoModulesJSI
     - hermes-engine
     - RCTRequired
@@ -82,40 +82,40 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - ExpoModulesJSI (56.0.7):
+  - ExpoModulesJSI (56.0.12):
     - React-Core
     - ReactCommon
-  - ExpoModulesWorklets (56.0.14):
+  - ExpoModulesWorklets (56.0.22):
     - ExpoModulesCore
     - ExpoModulesJSI
-  - ExpoModulesWorkletsAdapter (56.0.14):
+  - ExpoModulesWorkletsAdapter (56.0.22):
     - ExpoModulesCore
     - ExpoModulesJSI
     - ExpoModulesWorklets
     - RNWorklets
-  - ExpoNotifications (56.0.13):
+  - ExpoNotifications (56.0.22):
     - ExpoModulesCore
-  - ExpoRouter (56.2.6):
+  - ExpoRouter (56.2.17):
     - ExpoModulesCore
     - RNScreens
   - ExpoSecureStore (56.0.4):
     - ExpoModulesCore
-  - ExpoSplashScreen (56.0.10):
+  - ExpoSplashScreen (56.0.14):
     - ExpoModulesCore
-  - ExpoSQLite (56.0.4):
+  - ExpoSQLite (56.0.5):
     - ExpoModulesCore
-  - ExpoSymbols (56.0.5):
+  - ExpoSymbols (56.0.6):
     - ExpoModulesCore
   - ExpoSystemUI (56.0.5):
     - ExpoModulesCore
-  - ExpoUI (56.0.13):
+  - ExpoUI (56.0.24):
     - ExpoModulesCore
     - ExpoModulesWorklets
     - React-RCTFabric
-  - ExpoWebBrowser (56.0.5):
+  - ExpoWebBrowser (56.0.6):
     - ExpoModulesCore
   - EXStructuredHeaders (56.0.0)
-  - EXUpdates (56.0.19):
+  - EXUpdates (56.0.23):
     - EASClient
     - EXManifests
     - ExpoModulesCore
@@ -2145,7 +2145,7 @@ PODS:
     - ReactNativeDependencies
     - RNWorklets
     - Yoga
-  - RNScreens (4.25.2):
+  - RNScreens (4.26.2):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2167,9 +2167,9 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-    - RNScreens/common (= 4.25.2)
+    - RNScreens/common (= 4.26.2)
     - Yoga
-  - RNScreens/common (4.25.2):
+  - RNScreens/common (4.26.2):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2289,7 +2289,7 @@ DEPENDENCIES:
   - ExpoModulesWorklets (from `../../../node_modules/expo-modules-core/ExpoModulesWorklets.podspec`)
   - ExpoModulesWorkletsAdapter (from `../../../node_modules/expo-modules-core`)
   - ExpoNotifications (from `../../../node_modules/expo-notifications/ios`)
-  - ExpoRouter (from `../../../node_modules/expo-router/ios`)
+  - ExpoRouter (from `../node_modules/expo-router/ios`)
   - ExpoSecureStore (from `../../../node_modules/expo-secure-store/ios`)
   - ExpoSplashScreen (from `../../../node_modules/expo-splash-screen/ios`)
   - ExpoSQLite (from `../../../node_modules/expo-sqlite/ios`)
@@ -2436,7 +2436,7 @@ EXTERNAL SOURCES:
   ExpoNotifications:
     :path: "../../../node_modules/expo-notifications/ios"
   ExpoRouter:
-    :path: "../../../node_modules/expo-router/ios"
+    :path: "../node_modules/expo-router/ios"
   ExpoSecureStore:
     :path: "../../../node_modules/expo-secure-store/ios"
   ExpoSplashScreen:
@@ -2626,37 +2626,37 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   EASClient: 2321f8d99fa86c710a6f68e017f3b54366baed9f
   EXApplication: e6040c92edc5522accd62852342e6b14742d42c0
-  EXConstants: 1c400bb9969f4c9e5ab324553138b74ae47b9efe
+  EXConstants: 9fff81852f1d2e72502786a66f5ddb6d0eb76436
   EXJSONUtils: dba2755f4e24009eaf87a876b2d615ea06c16e42
   EXManifests: 7e19be8df665a338493060a419847dae76ffcd43
-  Expo: c82930e1c8b6f2e26308e364499773d3de12d55d
-  ExpoAsset: c2e7b5ba1fe75be683282d6264e38fd7cd8defbb
+  Expo: c9a574554757067cac2ebe8de1f0426728c13fb8
+  ExpoAsset: 26f77f0cdaffe419b80e86f02cc5365722bc135e
   ExpoDevice: f527f8bbefa6efa12f8ef63e9038dd1d5d903697
-  ExpoDomWebView: 27205be8754f9992913b8a9a08e65019f2207075
-  ExpoFileSystem: d730a1cb33f2c91dec01561f0d710054fda32ae9
-  ExpoFont: 6fe496f2be617ed4367f159f215dcc4ba27d37d6
+  ExpoDomWebView: 4e53b05879dc73ba374f76bff93dd64c8a0d91b3
+  ExpoFileSystem: 9dc04ec1e11bc3c7b965d7feb2de12c789755c7b
+  ExpoFont: 274487aa78f8c65d6551e2558eca3ec6ce3432ce
   ExpoGlassEffect: 7d4233dc0727ee2b28dd757eda70e1b6abf662fd
-  ExpoImage: 3f44073bf450afdb87333f9671ffe7b9bfa5f70e
+  ExpoImage: 93cda9464c2c62a5244931b66edeb0b24ed204c2
   ExpoKeepAwake: 359c47a1d9ccc3a3c519bca6e39562cce230c5bb
-  ExpoLinking: 63319fd84bfa6d2ba4b565fc2af1947c65281478
-  ExpoLocalAuthentication: 93f29833d2a8b957f996eddc05a632eb2bdeaa7d
-  ExpoLocation: 60630ca1a329177b57113644e1f06ad96aa305be
-  ExpoLogBox: 7aa03244fe5eeced5129e4ec7ad5bd9a3994378e
-  ExpoModulesCore: 4636484a9a6a551b14e02b896db3979d83fdab19
-  ExpoModulesJSI: f25a013ea9a79904bdd535e4bea0872e155cde09
-  ExpoModulesWorklets: 3f847eb6ba544bd4b55d585f89b3b18f8cd73a72
-  ExpoModulesWorkletsAdapter: 08d0a87724d7ec02bcc887f59d19aed44dfa894f
-  ExpoNotifications: d44bcad88060b913143633e0aee2d331a2dc6f05
-  ExpoRouter: ec5c793ef2a5ade5ecbd3097831c7b9411ed43be
+  ExpoLinking: 58d1cc05b96ead9e921353464ad03651eeb71ab9
+  ExpoLocalAuthentication: d8dc72d217facafed303ef3417c3f448edf74819
+  ExpoLocation: 241be9ed2f1278f5290f91e29e86e3e9edbe92fc
+  ExpoLogBox: cdad5c9402a186574fb5924ea91df1f08ba9a98a
+  ExpoModulesCore: 4d1271af06d4154e208d91a52a01f1052a597ded
+  ExpoModulesJSI: e62656cfaffb5aeb3fdc1dd2bc49f77e87ed2261
+  ExpoModulesWorklets: 3aaf91bb08abf910858592221480d6519f0daa1e
+  ExpoModulesWorkletsAdapter: 527770f3490c73ba0ee82b5320d2144278ead0e7
+  ExpoNotifications: ac87d6f9e52a4c855775e73f692ac1e95ca63f27
+  ExpoRouter: 9feb279cb2d4051c1b828c91f7640f03d3a93ff8
   ExpoSecureStore: f1bd083c1b7b8d4142013ffcc0082d377d9f49f4
-  ExpoSplashScreen: 3fe3a57d56d7242a9109d9714a6f9fa1e256538b
-  ExpoSQLite: 38a35f67bbb3370d9bb859aa65d106909c4e3b19
-  ExpoSymbols: f83c91f2897d37102b98b9224c603095630be9d0
+  ExpoSplashScreen: 0c06099febe733279021ca62b0b7534005a43c93
+  ExpoSQLite: eba0f88d7c17165f4af12fb311b30d5a6a34b00e
+  ExpoSymbols: 377747de25bcb1ab68ec68f23d81fb81d43eae83
   ExpoSystemUI: 8f4fb641c6a6ebe2a01dda0fbd3fdd952ab5823a
-  ExpoUI: b8da9e23eb4cef30e4797bc6de102a9178e6cd2b
-  ExpoWebBrowser: 6e3d90e3fe1952d21a8494872b1e1a485cd50e2f
+  ExpoUI: f9e6ceecc862e81051b9397a97fae0fc55003725
+  ExpoWebBrowser: 71e66c4f796a591708b4353d3aef2d1bd8cad49a
   EXStructuredHeaders: 9e89bcdd636ae2ecb59995cfba3230f5d7547c08
-  EXUpdates: 849f30a2199491cfd02233f82386f534967dca45
+  EXUpdates: a9deed7815876aff4c66cb20a8d940d568c48d6e
   EXUpdatesInterface: 25408a97d682355eb9fb37e5aa6e22caece1881f
   FBLazyVector: 24e62c765683b8d89006a88a2c8f5cf019f0074d
   hermes-engine: 638adcc06d46d86ef097c72bfcd2120e63dcded8
@@ -2738,7 +2738,7 @@ SPEC CHECKSUMS:
   RNDateTimePicker: 7b2738f1e595f83c14580a11c476872755c5befc
   RNGestureHandler: 2ff61eac036eaf89f6818bf4ed9c39771a17d134
   RNReanimated: 07fe6682b1d90b9d536540614562850503c63dbb
-  RNScreens: f94000b3cb1eb14cbb8d08dd6074fdd6ccf0e6b0
+  RNScreens: c1a06fd73d0581a2a28a160577be393f579662b9
   RNWorklets: 2b1732dea513e38333481dc919029c1e14dc647d
   Yoga: 77dfa8673de2874e1855002ae59c68b8be9b007b
 

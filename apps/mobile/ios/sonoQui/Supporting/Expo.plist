@@ -37,10 +37,17 @@ ZRImRsCRwgab/1+We0AUyvXUlpwBafX0DADYYrnbHNJ1vqQ1rwHC&#xD;
     <true/>
     <key>EXUpdatesLaunchWaitMs</key>
     <integer>10000</integer>
+    <!-- Channel baked into THIS binary. app.config.ts defaults to 'production'
+         for hand-made archives, but that file only runs during `expo prebuild`
+         — which we never run (it would wipe the AD-joined-Mac chown patch in
+         the Podfile and the signing wiring). So this value is maintained by
+         hand and MUST stay 'production' for any build that goes to the App
+         Store; flip it to 'staging' only for a TestFlight-only archive, and
+         flip it back before the release build. -->
     <key>EXUpdatesRequestHeaders</key>
     <dict>
       <key>expo-channel-name</key>
-      <string>staging</string>
+      <string>production</string>
     </dict>
     <key>EXUpdatesRuntimeVersion</key>
     <string>1</string>
