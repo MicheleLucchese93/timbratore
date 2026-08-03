@@ -108,10 +108,12 @@ export function CantieriDashboard() {
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   // Filters: period mode (day / month / all time — the matching arrows show
-  // below it) + cantiere focus ('' = all). The cantiere filter is applied
-  // client-side over the sites list.
+  // below it), cantiere focus ('' = all) and "only sites with activity in the
+  // period". The last two are applied client-side over the sites list (the
+  // dashboard payload already carries the period's per-site counts).
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month');
   const [cantiereFilter, setCantiereFilter] = useState('');
+  const [onlyWithEntries, setOnlyWithEntries] = useState(false);
 
   const mp = monthParam(month);
   const dp = dateParam(day);
@@ -157,7 +159,23 @@ export function CantieriDashboard() {
     };
   }, [openSiteId, periodQuery, t]);
 
-  const shownSites = cantiereFilter ? sites.filter((s) => s.id === cantiereFilter) : sites;
+  // A tenant with hundreds of cantieri sees mostly empty cards in the day view,
+  // so this filter keeps only the ones that recorded something in the period.
+  // The cantiere dropdown follows it: offering a site the grid would then hide
+  // is a dead end.
+  const periodSites = onlyWithEntries ? sites.filter((s) => s.entries_count > 0) : sites;
+  const shownSites = cantiereFilter
+    ? periodSites.filter((s) => s.id === cantiereFilter)
+    : periodSites;
+
+  // Changing period (or turning the filter on) can drop the selected cantiere
+  // out of the options — clear it, or the select renders blank and the grid
+  // stays empty with no way back.
+  const selectionDropped =
+    cantiereFilter !== '' && !periodSites.some((s) => s.id === cantiereFilter);
+  useEffect(() => {
+    if (selectionDropped) setCantiereFilter('');
+  }, [selectionDropped]);
 
   async function downloadPdf(e: MouseEvent, site: DashboardSite) {
     e.stopPropagation();
@@ -206,12 +224,21 @@ export function CantieriDashboard() {
               aria-label={t('dashboard.filterSite')}
             >
               <option value="">{t('dashboard.allSites')}</option>
-              {sites.map((s) => (
+              {periodSites.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
                 </option>
               ))}
             </select>
+            <label className="flex items-center gap-1 text-xs" title={t('dashboard.onlyWithEntriesHint')}>
+              <input
+                type="checkbox"
+                data-testid="only-with-entries"
+                checked={onlyWithEntries}
+                onChange={(e) => setOnlyWithEntries(e.target.checked)}
+              />
+              <span className="muted">{t('dashboard.onlyWithEntries')}</span>
+            </label>
             <div className="flex items-center gap-1" role="group" aria-label={t('dashboard.period')}>
               {(['day', 'month', 'all'] as const).map((mode) => (
                 <button
@@ -360,6 +387,26 @@ export function CantieriDashboard() {
             onClick={() => navigate('/cantieri/sites')}
           >
             {t('dashboard.emptyCta')}
+          </button>
+        </div>
+      ) : shownSites.length === 0 ? (
+        // Sites exist, the filters just hid them all — say so instead of
+        // showing a bare grid (and offer the way out).
+        <div className="empty-state">
+          <div className="empty-state-icon">
+            <IconHardHat />
+          </div>
+          <div className="empty-state-title">{t('dashboard.noMatch')}</div>
+          <div className="empty-state-hint">{t('dashboard.noMatchHint')}</div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm mt-2"
+            onClick={() => {
+              setOnlyWithEntries(false);
+              setCantiereFilter('');
+            }}
+          >
+            {t('dashboard.clearFilters')}
           </button>
         </div>
       ) : (

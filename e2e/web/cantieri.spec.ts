@@ -118,6 +118,15 @@ test.describe('web — Cantieri module gating', () => {
     await page.getByRole('button', { name: 'Oggi' }).click();
     await expect(dayInput).toHaveValue(today);
 
+    // "Solo con attività" is off by default (every site stays on the board);
+    // that it actually hides the empty ones is asserted in
+    // mutating-cantieri.spec, which can seed an entry.
+    const onlyWithEntries = page.getByTestId('only-with-entries');
+    await expect(onlyWithEntries).not.toBeChecked();
+    await onlyWithEntries.check();
+    await expect(onlyWithEntries).toBeChecked();
+    await onlyWithEntries.uncheck();
+
     // All time: no period arrows at all.
     await allTime.click();
     await expect(page.getByRole('button', { name: 'Giorno precedente' })).toHaveCount(0);

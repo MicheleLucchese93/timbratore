@@ -263,6 +263,20 @@ test.describe('web — Cantieri: seed, UI, dashboard, PDF', () => {
     // The seeded site (an entry today) is still on the board in day mode.
     await expect(page.getByRole('button', { name: site!.name })).toBeVisible();
 
+    // "Solo con attività": on a day the tenant never touched every site has
+    // zero entries, so the filter empties the board (and the cards are still
+    // there with it off — the aggregates are what go to zero, not the site).
+    const onlyWithEntries = page.getByTestId('only-with-entries');
+    await page.getByLabel('Scegli il giorno').fill(emptyDay);
+    await expect(page.getByRole('button', { name: site!.name })).toBeVisible();
+    await onlyWithEntries.check();
+    await expect(page.getByRole('button', { name: site!.name })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Azzera i filtri' })).toBeVisible();
+    // Today the seeded entry keeps the site on the board with the filter on.
+    await page.getByRole('button', { name: 'Oggi' }).click();
+    await expect(page.getByRole('button', { name: site!.name })).toBeVisible();
+    await onlyWithEntries.uncheck();
+
     // Back to "Per mese" restores the month arrows and the report actions.
     await page.getByRole('button', { name: 'Per mese' }).click();
     await expect(page.getByRole('button', { name: 'Mese precedente' })).toBeVisible();
