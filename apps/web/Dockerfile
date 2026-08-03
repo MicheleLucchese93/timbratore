@@ -27,7 +27,7 @@ RUN npm run build --workspace=@sonoqui/web
 # nginx user and keeps the master as root (Trivy DS-0002). This variant ships
 # /var/cache/nginx and the /tmp pid path already writable by uid 101, which a
 # bare `USER nginx` on the plain image would not.
-FROM nginxinc/nginx-unprivileged:1.29-alpine
+FROM nginxinc/nginx-unprivileged:1.31-alpine
 COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /repo/apps/web/dist /usr/share/nginx/html
 
