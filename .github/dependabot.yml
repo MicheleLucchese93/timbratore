@@ -307,6 +307,23 @@ updates:
       - dependency-name: "ghcr.io/axelmarciano/expo-open-ota"
         update-types: ["version-update:semver-major"]
 
+      # Centrifugo is held at v6 for the same reason: a realtime server whose
+      # breaking changes are silent. It is live here — routes/stamps.ts and
+      # routes/correction-requests.ts both write to centrifugo_outbox — and the
+      # service is not a plain `docker run`: compose sed-substitutes
+      # __HMAC_SECRET__ / __API_KEY__ / __PG_DSN__ into centrifugo/config.json
+      # at boot, so a config-schema change between majors breaks the entrypoint
+      # rather than the build.
+      #
+      # The v5 -> v6 move (seen on Penno) is the cautionary case: nothing fails
+      # loudly, clients just stop receiving. It renamed the HMAC key, flipped
+      # allow_user_limited_channels to off by default, and required proxies to
+      # be marked enabled:true. CI cannot catch any of that — there is no
+      # compose-level test — so a major has to be an operator change with a
+      # client-side check, not a weekly PR. v6.x minors and patches still flow.
+      - dependency-name: "centrifugo/centrifugo"
+        update-types: ["version-update:semver-major"]
+
   # ------------------------------------------------------- github-actions
   # Covers ci.yml and security-scan.yml. Note that the two third-party actions
   # there (trivy-action, gitleaks-action) are pinned by commit SHA with the tag
