@@ -375,8 +375,33 @@ const MAIN_IT = `
           <li><strong>Origine</strong> — <em>app</em> (mobile), <em>correz.</em> (correzione approvata), <em>admin</em> (inserimento manuale) o <em>auto</em> (generata dal sistema, es. chiusura automatica oltre 15h).</li>
           <li><strong>Sede</strong> — la filiale registrata, o "—" se nessuna.</li>
           <li><strong>Note</strong> — eventuali annotazioni. Compare un indicatore <em>mock</em> se la posizione GPS è sospetta e <em>fuori area</em> se la timbratura è stata registrata fuori dall'area della sede (uscita, pause o pranzo).</li>
-          <li><strong>Azioni</strong> — modifica e elimina.</li>
+          <li><strong>Azioni</strong> — storico, dossier giornata, modifica ed elimina.</li>
         </ul>
+        <p>La casella <strong>Mostra eliminate</strong> (accanto ai filtri) include nell'elenco anche le timbrature eliminate: compaiono barrate, con il badge <em>eliminata</em>, e restano di sola lettura.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Timbrature modificate: cosa vedi e dove</h3>
+        <p>Quando un amministratore sposta l'orario di una timbratura, il valore originale — quello che il dipendente ha effettivamente timbrato — <strong>non viene sovrascritto</strong>: resta consultabile per sempre. Questo serve in caso di contestazione, di verifica del consulente del lavoro o di ispezione.</p>
+        <ul class="tidy">
+          <li>Nella colonna <strong>Quando</strong> compare, in ambra e tra parentesi, l'<strong>orario originale</strong>: es. <em>20/07/2026, 09:03 (08:47)</em>.</li>
+          <li>Accanto all'origine compare il badge <strong>modificata</strong>; passando il mouse vedi chi e quando.</li>
+          <li>Nella <strong>Griglia mensile</strong> le giornate toccate mostrano una piccola <strong>✎</strong> nell'angolo della cella.</li>
+        </ul>
+        <p>Solo un cambio di <strong>orario</strong> o di <strong>tipo evento</strong> conta come modifica: correggere una nota o la sede non marca la timbratura.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Storico timbratura e Dossier giornata</h3>
+        <p>Due strumenti, entrambi raggiungibili dalle icone azione della riga (e dall'editor del giorno nella Griglia mensile):</p>
+        <ul class="tidy">
+          <li><strong>Storico timbratura</strong> (icona orologio) — la cronologia completa di quella singola timbratura: valore timbrato dal dipendente, valore attuale e, riga per riga, ogni intervento con <em>data</em>, <em>tipo</em> (timbratura del dipendente, modifica admin, eliminazione, correzione approvata, orario standard, uscita automatica…), <em>autore</em> e <em>motivazione</em>, con il valore precedente barrato accanto al nuovo.</li>
+          <li><strong>Dossier giornata</strong> (icona documento) — tutta la giornata di quel dipendente su una schermata: ogni timbratura (comprese quelle eliminate) con il proprio storico, le anomalie giustificate con la relativa nota e le richieste di correzione della stessa data. È raggiungibile anche dalla pagina <strong>Anomalie</strong>, accanto a ogni riga.</li>
+        </ul>
+        <p>Dal Dossier il pulsante <strong>Scarica PDF</strong> produce un prospetto A4 con intestazione aziendale, dipendente, giorno, data di generazione e nome di chi lo ha generato: è il documento da allegare a una contestazione. L'esportazione di un dossier altrui viene registrata nel <strong>Registro attività</strong>.</p>
+        <div class="callout callout-info">
+          Lo storico è <strong>in sola aggiunta</strong>: nessuna riga può essere modificata o rimossa a posteriori, nemmeno da un amministratore. È questa proprietà a rendere il prospetto opponibile.
+        </div>
       </div>
 
       <div class="feature">
@@ -399,8 +424,12 @@ const MAIN_IT = `
           <li><strong>Modifica</strong> — riapri il dialog con i valori correnti.</li>
           <li><strong>Elimina</strong> — chiede di confermare e di indicare il motivo dell'eliminazione (resta traccia nel log).</li>
         </ul>
+        <p>Eliminare è sempre una <strong>eliminazione logica</strong>: la timbratura esce dai conteggi e dagli export di presenza, ma resta recuperabile con <strong>Mostra eliminate</strong>, nel Dossier giornata e nel foglio <em>Rettifiche</em> dell'export Excel.</p>
         <div class="callout callout-warn">
-          Ogni intervento manuale viene registrato in audit log. Inserire sempre una motivazione chiara: serve sia al dipendente sia in caso di controlli.
+          Ogni intervento manuale viene registrato in audit log. Inserire sempre una motivazione chiara: serve sia al dipendente sia in caso di controlli — è il testo che comparirà nello storico e nel prospetto PDF.
+        </div>
+        <div class="callout callout-info">
+          Il dipendente viene avvisato: una modifica di orario o un'eliminazione fatta da un amministratore genera una notifica nella campanella dell'app (senza push né email, per non disturbare durante le correzioni massive) e compare nelle sue timbrature con il valore originale.
         </div>
       </div>
 
@@ -825,8 +854,11 @@ const MAIN_IT = `
         <h3>Storico esportazioni</h3>
         <p>La tabella mostra periodo, formato, stato (<span class="pill">In coda</span> <span class="pill pill-warn">In elaborazione</span> <span class="pill pill-ok">Pronta</span> <span class="pill pill-err">Errore</span>) e data di creazione.</p>
         <p>Per i job pronti l'icona <strong>Scarica</strong> (freccia verso il basso) avvia lo scaricamento. L'icona rossa del cestino rimuove la voce dallo storico (dopo conferma) ed è disponibile per qualsiasi stato: utile per ripulire i job in errore o in coda.</p>
+        <p>Il file scaricato prende un nome parlante:<br />
+          <code>presenze-&lt;azienda&gt;-&lt;dal&gt;_&lt;al&gt;-&lt;data e ora di generazione&gt;.xlsx</code><br />
+          per esempio <code>presenze-rossi-srl-2026-08-01_2026-08-31-20260903-1223.xlsx</code>. La data e ora sono quelle di <em>generazione</em> del file, non dello scaricamento: riscaricare lo stesso job dà sempre lo stesso nome, mentre due estrazioni dello stesso periodo fatte in momenti diversi restano distinguibili. Il formato <strong>Centro Paghe</strong> mantiene invece il nome imposto dal tracciato (<code>ORARIO_&lt;codice ditta&gt;_&lt;MMAAAA&gt;.TXT</code>).</p>
         <div class="callout callout-tip">
-          La tabella si aggiorna automaticamente ogni 2 secondi finché ci sono job in coda o in elaborazione.
+          La tabella si aggiorna automaticamente ogni 2 secondi finché ci sono job in coda o in elaborazione. Il pulsante <strong>Aggiorna</strong> sopra la tabella forza un ricaricamento immediato e mostra l'ora dell'ultimo aggiornamento.
         </div>
       </div>
 
@@ -834,15 +866,24 @@ const MAIN_IT = `
         <h3>Cosa contiene il file XLSX</h3>
         <p>Il file XLSX è un foglio di calcolo multi-scheda pensato per il commercialista e per la busta paga. Contiene:</p>
         <ul class="tidy">
-          <li><strong>Riepilogo</strong>: una riga per dipendente con ore lavorate, straordinari, pause, ferie, permessi, malattia, giorni lavorati e residui di ferie e permessi.</li>
-          <li><strong>Una scheda per dipendente</strong>: dettaglio giorno per giorno (ore lavorate, straordinari, ferie/permessi/malattia, pause, marker assenza).</li>
-          <li><strong>Timbrature</strong>: ogni timbratura con data e ora, evento, origine, sede, GPS, dispositivo e note.</li>
+          <li><strong>Riepilogo</strong>: una riga per dipendente con ore lavorate, <strong>ore originali</strong>, straordinari, pause, ferie, permessi, malattia, giorni lavorati e residui di ferie e permessi.</li>
+          <li><strong>Una scheda per dipendente</strong>: dettaglio giorno per giorno (ore lavorate, ore originali, straordinari, ferie/permessi/malattia, pause, marker assenza).</li>
+          <li><strong>Timbrature</strong>: ogni timbratura con data e ora, evento, origine, sede, GPS, dispositivo e note. Include anche le timbrature <em>eliminate</em> (colonna <em>Stato</em>) e, per quelle rettificate, le colonne <em>Modificata</em>, <em>Ora originale</em>, <em>Evento originale</em>, <em>Modificata da/il</em> e <em>Eliminata da / Motivo eliminazione</em>. Le ore del Riepilogo restano calcolate solo sulle timbrature attive.</li>
+          <li><strong>Rettifiche</strong>: una riga per ogni intervento su una timbratura del periodo — giorno, tipo di intervento, campo toccato, valore precedente e nuovo, motivazione, operatore e data. È il foglio da consultare in caso di contestazione.</li>
           <li><strong>Correzioni</strong>: le richieste di correzione del periodo con stato, esito e nota di risoluzione.</li>
           <li><strong>Ferie e Permessi</strong>: ferie, permessi, malattia e assenze con ore, retribuzione, sottotipo, protocollo INPS ed esito.</li>
           <li><strong>Eventi aziendali</strong>: chiusure e altri eventi imposti dall'azienda, con dipendenti coinvolti e ore totali.</li>
           <li><strong>Ferie residue</strong>: saldo iniziale, maturato, usato e residuo per ogni dipendente.</li>
-          <li><strong>Metadati</strong>: periodo, data di generazione e conteggi.</li>
+          <li><strong>Metadati</strong>: periodo, data di generazione, conteggi e il <strong>dizionario di tutte le colonne</strong> — foglio per foglio, cosa contiene ogni colonna. È la scheda da leggere per prima se il file lo apre il commercialista.</li>
         </ul>
+
+        <div class="callout callout-info">
+          <strong>Ore lavorate</strong> e <strong>Ore originali</strong> sono affiancate apposta.
+          <em>Ore lavorate</em> è il dato che fa fede per la busta paga: calcolato sulle timbrature <strong>attuali</strong> (già corrette) ed escludendo quelle eliminate.
+          <em>Ore originali</em> è quanto risultava <strong>prima di ogni rettifica</strong>: orari e tipi evento con cui le timbrature sono state registrate la prima volta, timbrature eliminate ancora comprese.
+          Se i due valori coincidono la giornata non è stata rettificata; se differiscono, la differenza è esattamente l'effetto delle modifiche di orario e delle eliminazioni — il dettaglio è nel foglio <em>Rettifiche</em>.
+          Le timbrature inserite da un amministratore rientrano in entrambe le colonne e quindi non generano differenza: per sapere <strong>chi</strong> ha registrato una timbratura usa la colonna <em>Origine</em> del foglio Timbrature.
+        </div>
         <p>Il formato <strong>JSON</strong> contiene il riepilogo aggregato per dipendente, utile per integrazioni con altri software.</p>
       </div>
 
@@ -1110,8 +1151,20 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>La tabella</h3>
-        <p>Colonne: <strong>Quando</strong> (data e ora), <strong>Evento</strong>, <strong>Origine</strong>, <strong>Note</strong>.</p>
+        <p>Colonne: <strong>Quando</strong> (data e ora), <strong>Evento</strong>, <strong>Origine</strong>, <strong>Note</strong> e <strong>Azioni</strong>.</p>
         <p>Per impostazione predefinita vedi gli ultimi 90 giorni. Non puoi modificare o eliminare timbrature dal Web: per correzioni invia una <em>richiesta</em>.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Se una tua timbratura è stata modificata</h3>
+        <p>Le timbrature che un amministratore ha spostato o eliminato <strong>restano visibili qui</strong>, con l'indicazione di cosa avevi timbrato davvero. Se nel periodo ce n'è almeno una, in cima alla pagina compare un avviso con il conteggio.</p>
+        <ul class="tidy">
+          <li>Badge <strong>modificata</strong>: accanto all'orario attuale, in ambra e tra parentesi, l'orario che avevi timbrato.</li>
+          <li>Badge <strong>eliminata</strong>: la riga è barrata e nelle note compare il motivo indicato dall'amministratore.</li>
+          <li>Icona <strong>orologio</strong> — apre lo <strong>storico</strong> della timbratura: chi è intervenuto, quando e con quale motivazione.</li>
+          <li>Icona <strong>documento</strong> — apre il <strong>dossier</strong> della giornata (tutte le tue timbrature di quel giorno con il loro storico) e permette di scaricarlo in PDF.</li>
+        </ul>
+        <p>Ricevi anche una notifica nella campanella dell'app mobile a ogni modifica o eliminazione fatta da un amministratore. Se non sei d'accordo con una rettifica, invia una <em>richiesta di correzione</em> allegando il motivo.</p>
       </div>
     </section>
 
@@ -1300,6 +1353,17 @@ const MAIN_IT = `
       <div class="feature">
         <h3>Giorni di riposo</h3>
         <p>Se hai un orario di lavoro assegnato, i <strong>giorni di riposo</strong> (quelli senza turno previsto, es. sabato/domenica) <strong>non compaiono</strong> nello storico, per tenerlo pulito. Fanno eccezione i giorni di riposo in cui hai effettivamente lavorato: se quel giorno risultano ore lavorate, la card viene comunque mostrata. Senza orario assegnato vengono elencati tutti i giorni con almeno una timbratura.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Timbrature modificate o eliminate dall'amministratore</h3>
+        <p>Se un amministratore sposta l'orario di una tua timbratura o la elimina, lo Storico te lo dice — è il posto in cui verificare cosa avevi timbrato davvero.</p>
+        <ul class="tidy">
+          <li>La card del giorno riporta in ambra <strong>«Timbrature modificate o eliminate»</strong>.</li>
+          <li>Espandendola, sotto una timbratura spostata compare <em>«Avevi timbrato 08:47 · modificata da …»</em>.</li>
+          <li>Le timbrature eliminate restano in elenco, barrate e con icona cestino, con il motivo indicato dall'amministratore. Non contano nelle ore.</li>
+        </ul>
+        <p>Ricevi anche una notifica nella <strong>campanella</strong> a ogni modifica o eliminazione: toccandola atterri direttamente qui. Se la rettifica non ti torna, apri la tab <strong>Correggi</strong> e invia una richiesta.</p>
       </div>
     </section>
 
