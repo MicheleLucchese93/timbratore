@@ -13,6 +13,9 @@
   "today": "Oggi",
   "yesterday": "Ieri",
   "breaks": "Pause {{value}}",
+  "touched": "Timbrature modificate o eliminate",
+  "editedBy": "Avevi timbrato {{time}} · modificata da {{who}}",
+  "deletedBy": "Eliminata da {{who}}",
   "metric": {
     "worked": "Lavorate",
     "counted": "Conteggiate",

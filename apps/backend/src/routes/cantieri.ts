@@ -12,6 +12,7 @@ import { ok } from '../lib/api-response.js';
 import { ConflictError, NotFoundError, ValidationError } from '../errors/index.js';
 import { logAudit, logAuditAs } from '../lib/audit.js';
 import { buildCantiereReportPdf, type CantiereReportEntry } from '../lib/cantieri-pdf.js';
+import { safeFileName as sharedSafeFileName } from '../lib/filename.js';
 import { sendMail, buildCantiereReportMail } from '../lib/mailer.js';
 import { sanitizeBulletinHtml } from '../lib/bulletin-sanitize.js';
 import { createLogger } from '../lib/logger.js';
@@ -1319,16 +1320,7 @@ function monthLabel(month: string, language: 'it' | 'en'): string {
 }
 
 // 'Cantiere Nord (Milano)' -> 'cantiere-nord-milano' for the download filename.
-function safeFileName(name: string): string {
-  return (
-    name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'cantiere'
-  );
-}
+const safeFileName = (name: string): string => sharedSafeFileName(name, 'cantiere');
 
 async function buildSiteReport(
   tenantId: string,

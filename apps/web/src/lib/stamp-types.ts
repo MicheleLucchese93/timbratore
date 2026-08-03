@@ -14,6 +14,33 @@ export interface Stamp {
   notes: string | null;
   suspicious_mock_location: boolean;
   out_of_geofence?: boolean;
+  // Edit provenance (migration 059). `original_occurred_at` is the value the
+  // employee actually stamped; it stays null for a punch nobody ever moved, so
+  // "was this modified?" is a null check and not a history round trip.
+  original_occurred_at?: string | null;
+  original_event_type?: StampEventType | null;
+  edited_at?: string | null;
+  edit_count?: number;
+  edited_by_name?: string | null;
+  deleted_at?: string | null;
+  deletion_reason?: string | null;
+  deleted_by_name?: string | null;
+}
+
+/** The provenance subset every stamp-shaped row shares (list, grid, dossier). */
+export interface StampProvenance {
+  original_occurred_at?: string | null;
+  original_event_type?: string | null;
+  edited_at?: string | null;
+  edited_by_name?: string | null;
+  deleted_at?: string | null;
+  deletion_reason?: string | null;
+  deleted_by_name?: string | null;
+}
+
+/** True when an admin moved this punch away from what the employee stamped. */
+export function isEdited(s: StampProvenance): boolean {
+  return Boolean(s.original_occurred_at ?? s.original_event_type);
 }
 
 export interface Branch {

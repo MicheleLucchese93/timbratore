@@ -1,5 +1,7 @@
 {
   "heading": "Le mie timbrature",
+  "changedNotice_one": "{{count}} timbratura di questo periodo è stata modificata o eliminata da un amministratore. Apri lo storico per vedere il valore originale e la motivazione.",
+  "changedNotice_other": "{{count}} timbrature di questo periodo sono state modificate o eliminate da un amministratore. Apri lo storico per vedere i valori originali e le motivazioni.",
   "col": {
     "when": "Quando",
     "event": "Evento",

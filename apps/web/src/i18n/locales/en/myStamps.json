@@ -1,5 +1,7 @@
 {
   "heading": "My stamps",
+  "changedNotice_one": "{{count}} stamp in this period was modified or deleted by an administrator. Open the history to see the original value and the reason.",
+  "changedNotice_other": "{{count}} stamps in this period were modified or deleted by an administrator. Open the history to see the original values and the reasons.",
   "col": {
     "when": "When",
     "event": "Event",

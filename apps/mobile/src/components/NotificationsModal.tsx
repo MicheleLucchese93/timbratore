@@ -62,6 +62,10 @@ function visualFor(n: AppNotification): Visual {
       return { icon: 'megaphone-outline', fg: color.primary, bg: '#e6eefb' };
     case 'document':
       return { icon: 'document-text-outline', fg: color.primary, bg: '#e6eefb' };
+    case 'stamp_edited':
+      return { icon: 'create-outline', fg: color.warning, bg: '#fff3d1' };
+    case 'stamp_deleted':
+      return { icon: 'trash-outline', fg: color.error, bg: '#fde4e4' };
     default:
       return INFO;
   }
@@ -131,7 +135,9 @@ export function NotificationsModal({ visible, onClose }: Props) {
           ? '/documenti'
           : n.route === 'richieste'
             ? '/richieste'
-            : '/timbrature?corr=1';
+            : n.route === 'timbrature'
+              ? '/timbrature?storico=1'
+              : '/timbrature?corr=1';
       router.push(target);
     },
     [markAsRead, onClose, router]

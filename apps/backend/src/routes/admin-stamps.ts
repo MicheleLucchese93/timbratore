@@ -6,7 +6,11 @@ import { tenantHandler } from '../lib/route-helpers.js';
 import { TENANT_TZ_SQL } from '../lib/tz.js';
 import { ok } from '../lib/api-response.js';
 import { logAudit } from '../lib/audit.js';
+import { notifyStampChanged } from '../lib/notifications.js';
+import { createLogger } from '../lib/logger.js';
 import { ConflictError, NotFoundError, ValidationError } from '../errors/index.js';
+
+const logger = createLogger('admin-stamps');
 
 export const adminStampsRouter = Router();
 adminStampsRouter.use(authenticate);
@@ -83,6 +87,27 @@ adminStampsRouter.patch(
       values
     );
     await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_update', String(req.params.id), before.rows[0].user_id, before.rows[0], r.rows[0], req);
+    // Only when the punch itself moved — a note-only edit is not something the
+    // employee needs to be told about, and the provenance trigger agrees
+    // (migration 059 does not count it as an edit either).
+    if (
+      new Date(before.rows[0].occurred_at).getTime() !== new Date(r.rows[0].occurred_at).getTime() ||
+      before.rows[0].event_type !== r.rows[0].event_type
+    ) {
+      // Fire-and-forget: this runs INSIDE tenantHandler's RLS transaction, so
+      // awaiting it would let a notification failure roll back the correction
+      // the admin just made. Same pattern as bulletins/documents.
+      notifyStampChanged(req.user!.tenantId, {
+        userId: r.rows[0].user_id,
+        actorUserId: req.user!.id,
+        action: 'edited',
+        occurredAt: r.rows[0].occurred_at,
+        originalOccurredAt: r.rows[0].original_occurred_at,
+        eventType: r.rows[0].event_type,
+        reason: parse.data.justification,
+        stampId: String(req.params.id),
+      }).catch((err) => logger.error({ err, stamp_id: req.params.id }, 'notify stamp edit failed'));
+    }
     ok(res, r.rows[0]);
   })
 );
@@ -106,6 +131,17 @@ adminStampsRouter.delete(
     );
     if (r.rowCount === 0) throw new NotFoundError('stamp');
     await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_delete', String(req.params.id), r.rows[0].user_id, r.rows[0], null, req);
+    // Fire-and-forget — see the PATCH handler above.
+    notifyStampChanged(req.user!.tenantId, {
+      userId: r.rows[0].user_id,
+      actorUserId: req.user!.id,
+      action: 'deleted',
+      occurredAt: r.rows[0].occurred_at,
+      originalOccurredAt: r.rows[0].original_occurred_at,
+      eventType: r.rows[0].event_type,
+      reason: parse.data.deletion_reason,
+      stampId: String(req.params.id),
+    }).catch((err) => logger.error({ err, stamp_id: req.params.id }, 'notify stamp delete failed'));
     ok(res, { deleted: true });
   })
 );

@@ -31,6 +31,17 @@ const RANGES = [
   { id: 90, labelKey: 'range.90' },
 ] as const;
 
+// Provenance the API attaches to every punch (migration 059). Deleted and
+// edited punches are shown to their owner on purpose: an employee who cannot
+// see that a punch was moved cannot contest it.
+interface TrackedStamp extends DayStamp {
+  original_occurred_at?: string | null;
+  edited_by_name?: string | null;
+  deleted_at?: string | null;
+  deletion_reason?: string | null;
+  deleted_by_name?: string | null;
+}
+
 // History body, rendered as the "Storico" sub-tab inside Timbrature (which
 // already provides the SafeAreaView + AppHeader chrome).
 // `active` = this sub-tab is the visible one. SwipeableTabs keeps all three
@@ -39,7 +50,7 @@ const RANGES = [
 export function StoricoContent({ active = true }: { active?: boolean }) {
   const { t: tr } = useTranslation(['storico', 'common']);
   const [days, setDays] = useState(30);
-  const [stamps, setStamps] = useState<DayStamp[]>([]);
+  const [stamps, setStamps] = useState<TrackedStamp[]>([]);
   const [assignment, setAssignment] = useState<ActiveAssignment | null>(null);
   const [leaves, setLeaves] = useState<LeaveInterval[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +62,9 @@ export function StoricoContent({ active = true }: { active?: boolean }) {
     from.setDate(from.getDate() - n);
     try {
       const [list, a, lv] = await Promise.all([
-        api<DayStamp[]>(`/api/v1/stamps/me?from=${isoDay(from)}&to=${isoDay(to)}`),
+        api<TrackedStamp[]>(
+          `/api/v1/stamps/me?from=${isoDay(from)}&to=${isoDay(to)}&include_deleted=true`
+        ),
         api<ActiveAssignment | null>('/api/v1/shifts/assignments/me').catch(() => null),
         api<LeaveInterval[]>(
           `/api/v1/leaves?scope=mine&status=approved&from=${isoDay(from)}&to=${isoDay(to)}`
@@ -89,6 +102,9 @@ export function StoricoContent({ active = true }: { active?: boolean }) {
     if (!assignment) return grouped;
     return grouped.filter((d) => {
       if (isScheduledWorkday(assignment, d.day)) return true;
+      // A rest day whose only trace is a deleted punch is still worth showing:
+      // that deletion is the thing the employee might want to ask about.
+      if (d.deleted.length > 0) return true;
       return computeCountedDayClosed(d.stamps, assignment, d.day, leaves).workedMs > 0;
     });
   }, [stamps, assignment, leaves]);
@@ -163,7 +179,14 @@ export function StoricoContent({ active = true }: { active?: boolean }) {
           <EmptyState icon="calendar-outline" title={tr('empty')} subtitle={tr('emptySub')} fill bare />
         )}
         {byDay.map((d) => (
-          <DayCard key={d.day} day={d.day} stamps={d.stamps} assignment={assignment} leaves={leaves} />
+          <DayCard
+            key={d.day}
+            day={d.day}
+            stamps={d.stamps}
+            deleted={d.deleted}
+            assignment={assignment}
+            leaves={leaves}
+          />
         ))}
       </ScrollView>
     </View>
@@ -173,11 +196,13 @@ export function StoricoContent({ active = true }: { active?: boolean }) {
 function DayCard({
   day,
   stamps,
+  deleted,
   assignment,
   leaves,
 }: {
   day: string;
-  stamps: DayStamp[];
+  stamps: TrackedStamp[];
+  deleted: TrackedStamp[];
   assignment: ActiveAssignment | null;
   leaves: LeaveInterval[];
 }) {
@@ -187,6 +212,7 @@ function DayCard({
   const sorted = [...stamps].sort(
     (a, b) => new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime()
   );
+  const touched = stamps.some((s) => s.original_occurred_at) || deleted.length > 0;
   return (
     <View style={styles.card}>
       <Pressable
@@ -202,6 +228,7 @@ function DayCard({
               {tr('breaks', { value: formatDuration(totals.breakMs + totals.lunchMs) })}
             </Text>
           )}
+          {touched && <Text style={styles.touchedLine}>{tr('touched')}</Text>}
         </View>
         <View style={styles.chevron}>
           <Ionicons
@@ -231,13 +258,42 @@ function DayCard({
       {expanded && (
         <View style={styles.eventList}>
           {sorted.map((s) => (
-            <View key={s.id} style={styles.eventRow}>
-              <View style={[styles.eventIcon, { backgroundColor: dotBg(s.event_type) }]}>
-                <Ionicons name={eventIcon(s.event_type)} size={14} color={dotFg(s.event_type)} />
+            <View key={s.id}>
+              <View style={styles.eventRow}>
+                <View style={[styles.eventIcon, { backgroundColor: dotBg(s.event_type) }]}>
+                  <Ionicons name={eventIcon(s.event_type)} size={14} color={dotFg(s.event_type)} />
+                </View>
+                <Text style={styles.eventLabel}>{tr(`common:stampEvent.${s.event_type}`)}</Text>
+                <Text style={styles.eventTime}>
+                  {fmtTime(s.occurred_at, { hour: '2-digit', minute: '2-digit' })}
+                </Text>
               </View>
-              <Text style={styles.eventLabel}>{tr(`common:stampEvent.${s.event_type}`)}</Text>
-              <Text style={styles.eventTime}>
-                {fmtTime(s.occurred_at, { hour: '2-digit', minute: '2-digit' })}
+              {s.original_occurred_at && (
+                <Text style={styles.provenanceLine}>
+                  {tr('editedBy', {
+                    time: fmtTime(s.original_occurred_at, { hour: '2-digit', minute: '2-digit' }),
+                    who: s.edited_by_name ?? '—',
+                  })}
+                </Text>
+              )}
+            </View>
+          ))}
+          {deleted.map((s) => (
+            <View key={s.id}>
+              <View style={styles.eventRow}>
+                <View style={[styles.eventIcon, { backgroundColor: '#fde4e4' }]}>
+                  <Ionicons name="trash-outline" size={14} color={color.error} />
+                </View>
+                <Text style={[styles.eventLabel, styles.eventLabelDeleted]}>
+                  {tr(`common:stampEvent.${s.event_type}`)}
+                </Text>
+                <Text style={[styles.eventTime, styles.eventLabelDeleted]}>
+                  {fmtTime(s.occurred_at, { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
+              <Text style={styles.provenanceLine}>
+                {tr('deletedBy', { who: s.deleted_by_name ?? '—' })}
+                {s.deletion_reason ? ` — ${s.deletion_reason}` : ''}
               </Text>
             </View>
           ))}
@@ -247,16 +303,25 @@ function DayCard({
   );
 }
 
-function groupByDay(stamps: DayStamp[]): Array<{ day: string; stamps: DayStamp[] }> {
-  const map = new Map<string, DayStamp[]>();
+/**
+ * Bucket by local day, keeping deleted punches in a separate list. They must
+ * never reach computeCountedDayClosed — a removed punch cannot add hours — but
+ * they still have to be shown, so a day made up only of deleted punches is
+ * emitted with an empty `stamps` array rather than dropped.
+ */
+function groupByDay(
+  stamps: TrackedStamp[]
+): Array<{ day: string; stamps: TrackedStamp[]; deleted: TrackedStamp[] }> {
+  const map = new Map<string, { stamps: TrackedStamp[]; deleted: TrackedStamp[] }>();
   for (const s of stamps) {
     const d = isoDay(s.occurred_at);
-    const arr = map.get(d) ?? [];
-    arr.push(s);
-    map.set(d, arr);
+    const entry = map.get(d) ?? { stamps: [], deleted: [] };
+    if (s.deleted_at) entry.deleted.push(s);
+    else entry.stamps.push(s);
+    map.set(d, entry);
   }
   return Array.from(map.entries())
-    .map(([day, stamps]) => ({ day, stamps }))
+    .map(([day, e]) => ({ day, ...e }))
     .sort((a, b) => (a.day < b.day ? 1 : -1));
 }
 
@@ -461,10 +526,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   eventLabel: { flex: 1, fontSize: 14, color: color.onSurface, fontWeight: '500' },
+  eventLabelDeleted: { textDecorationLine: 'line-through', color: color.onSurfaceVariant },
   eventTime: {
     fontSize: 14,
     color: color.onSurfaceVariant,
     fontVariant: ['tabular-nums'],
+    fontWeight: '600',
+  },
+  provenanceLine: {
+    fontSize: 12,
+    color: color.onSurfaceVariant,
+    marginLeft: 34,
+    marginBottom: 4,
+  },
+  touchedLine: {
+    fontSize: 12,
+    color: color.warning,
+    marginTop: 2,
     fontWeight: '600',
   },
 });

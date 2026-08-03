@@ -15,10 +15,17 @@ import {
   type Branch,
   type UserRow,
   userLabel,
+  isEdited,
   EVENT_TYPES,
   STAMP_SOURCES,
   sourceLabel,
 } from '../lib/stamp-types.ts';
+import {
+  DayDossierModal,
+  DeletedBadge,
+  EditedBadge,
+  StampHistoryModal,
+} from './StampTrail.tsx';
 
 /* ---------------- date helpers (local time) ---------------- */
 function pad2(n: number): string {
@@ -113,6 +120,10 @@ export function StampMonthGrid({ users, branches }: { users: UserRow[]; branches
       p.set('from', fromIso);
       p.set('to', toIso);
       p.set('limit', '1000');
+      // Deleted punches come down with everything else but are kept out of the
+      // cells and the totals below — they belong to the day editor and the
+      // dossier, not to the hours the grid adds up.
+      p.set('include_deleted', 'true');
       if (branchId) p.set('branch_id', branchId);
       const rows = await api<Stamp[]>(`/api/v1/stamps?${p}`);
       setStamps(rows);
@@ -127,13 +138,35 @@ export function StampMonthGrid({ users, branches }: { users: UserRow[]; branches
   }, [fromIso, toIso, branchId]);
 
   // Event-type / source filters narrow which punches the grid shows and counts.
+  // Soft-deleted rows never reach the cells: a deleted punch must not add hours.
   const filteredStamps = useMemo(
     () =>
       stamps.filter(
-        (s) => (!eventType || s.event_type === eventType) && (!source || s.source === source),
+        (s) =>
+          !s.deleted_at &&
+          (!eventType || s.event_type === eventType) &&
+          (!source || s.source === source),
       ),
     [stamps, eventType, source],
   );
+
+  // Deleted punches, bucketed the same way, for the day editor and the marker.
+  const deletedIndex = useMemo(() => {
+    const m = new Map<string, Map<string, Stamp[]>>();
+    for (const s of stamps) {
+      if (!s.deleted_at) continue;
+      const dIso = isoLocalDate(new Date(s.occurred_at));
+      let byDay = m.get(s.user_id);
+      if (!byDay) {
+        byDay = new Map();
+        m.set(s.user_id, byDay);
+      }
+      const arr = byDay.get(dIso);
+      if (arr) arr.push(s);
+      else byDay.set(dIso, [s]);
+    }
+    return m;
+  }, [stamps]);
 
   // userId → dateIso → stamps (local-day bucketed).
   const index = useMemo(() => {
@@ -176,6 +209,9 @@ export function StampMonthGrid({ users, branches }: { users: UserRow[]; branches
   function cellStamps(userId: string, dateIso: string): Stamp[] {
     return index.get(userId)?.get(dateIso) ?? [];
   }
+  function cellDeleted(userId: string, dateIso: string): Stamp[] {
+    return deletedIndex.get(userId)?.get(dateIso) ?? [];
+  }
   function cellStatus(dateIso: string, date: Date, arr: Stamp[]): CellStatus {
     if (arr.length > 0) {
       const totals = computeDayTotals(arr as DayStamp[], undefined, false);
@@ -211,6 +247,7 @@ export function StampMonthGrid({ users, branches }: { users: UserRow[]; branches
 
   const editorUser = editor ? users.find((u) => u.user_id === editor.userId) ?? null : null;
   const editorStamps = editor ? cellStamps(editor.userId, editor.dateIso) : [];
+  const editorDeleted = editor ? cellDeleted(editor.userId, editor.dateIso) : [];
 
   const monthLabel = fmtDate(month, { month: 'long', year: 'numeric' });
 
@@ -330,6 +367,7 @@ export function StampMonthGrid({ users, branches }: { users: UserRow[]; branches
                             userId={u.user_id}
                             dateIso={iso}
                             arr={arr}
+                            deleted={cellDeleted(u.user_id, iso)}
                             status={cellStatus(iso, d, arr)}
                             onClick={() => setEditor({ userId: u.user_id, dateIso: iso })}
                             t={t}
@@ -369,6 +407,7 @@ export function StampMonthGrid({ users, branches }: { users: UserRow[]; branches
                               userId={u.user_id}
                               dateIso={iso}
                               arr={arr}
+                              deleted={cellDeleted(u.user_id, iso)}
                               status={cellStatus(iso, d, arr)}
                               onClick={() => setEditor({ userId: u.user_id, dateIso: iso })}
                               t={t}
@@ -428,6 +467,7 @@ export function StampMonthGrid({ users, branches }: { users: UserRow[]; branches
           user={editorUser}
           dateIso={editor.dateIso}
           existing={editorStamps}
+          deleted={editorDeleted}
           branches={branches}
           onChanged={() => load()}
           onClose={() => setEditor(null)}
@@ -465,6 +505,7 @@ function Cell({
   userId,
   dateIso,
   arr,
+  deleted,
   status,
   onClick,
   t,
@@ -472,6 +513,7 @@ function Cell({
   userId: string;
   dateIso: string;
   arr: Stamp[];
+  deleted: Stamp[];
   status: CellStatus;
   onClick: () => void;
   t: (k: string) => string;
@@ -479,19 +521,39 @@ function Cell({
   const pairs = arr.length ? inOutPairs(arr) : [];
   const hasBreak = arr.some((s) => s.event_type !== 'clock_in' && s.event_type !== 'clock_out');
   const worked = arr.length ? computeDayTotals(arr as DayStamp[], undefined, false).workedMs : 0;
+  // A day that was touched has to be visible from the grid, otherwise the only
+  // way to find a rettifica is to already know where to look.
+  const touched = arr.some(isEdited) || deleted.length > 0;
   const titleParts: string[] = [];
   if (status === 'open') titleParts.push(t('grid.open'));
   if (status === 'weekend') titleParts.push(t('grid.weekend'));
+  if (touched) titleParts.push(t('grid.touched'));
 
   return (
     <td
       data-cell={`${userId}:${dateIso}`}
+      data-touched={touched ? 'true' : undefined}
       style={{ ...dataCellStyle, background: STATUS_BG[status] ?? dataCellStyle.background, cursor: 'pointer' }}
       onClick={onClick}
       title={titleParts.join(' · ') || undefined}
     >
-      {arr.length === 0 ? (
+      {touched && (
+        <span
+          aria-hidden="true"
+          style={{
+            float: 'right',
+            fontSize: '0.7rem',
+            lineHeight: 1,
+            color: 'var(--color-warn, #b45309)',
+          }}
+        >
+          ✎
+        </span>
+      )}
+      {arr.length === 0 && deleted.length === 0 ? (
         <span style={{ opacity: 0.25 }}>+</span>
+      ) : arr.length === 0 ? (
+        <span style={{ opacity: 0.45, fontSize: '0.7rem' }}>{t('trail.deleted')}</span>
       ) : (
         <div className="flex flex-col" style={{ gap: 1, lineHeight: 1.2 }}>
           {pairs.map((p, i) => (
@@ -519,6 +581,7 @@ function DayStampEditor({
   user,
   dateIso,
   existing,
+  deleted,
   branches,
   onChanged,
   onClose,
@@ -526,6 +589,7 @@ function DayStampEditor({
   user: UserRow;
   dateIso: string;
   existing: Stamp[];
+  deleted: Stamp[];
   branches: Branch[];
   onChanged: () => Promise<void> | void;
   onClose: () => void;
@@ -535,6 +599,8 @@ function DayStampEditor({
   const [reason, setReason] = useState(t('grid.reasonDefault'));
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [historyOf, setHistoryOf] = useState<string | null>(null);
+  const [dossier, setDossier] = useState(false);
 
   const sorted = useMemo(
     () => [...existing].sort((a, b) => new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime()),
@@ -560,9 +626,19 @@ function DayStampEditor({
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50" onClick={onClose}>
       <div data-testid="day-editor" className="card w-full max-w-3xl space-y-3" onClick={(e) => e.stopPropagation()}>
-        <h2 className="section-title">
-          {userLabel(user)} · {fmtDate(dateIso, { weekday: 'long', day: '2-digit', month: 'long' })}
-        </h2>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <h2 className="section-title">
+            {userLabel(user)} · {fmtDate(dateIso, { weekday: 'long', day: '2-digit', month: 'long' })}
+          </h2>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            data-testid="open-dossier"
+            onClick={() => setDossier(true)}
+          >
+            {t('action.dossier')}
+          </button>
+        </div>
 
         <div>
           <label className="label">{t('grid.reason')}</label>
@@ -570,7 +646,7 @@ function DayStampEditor({
         </div>
 
         <div className="space-y-2">
-          {sorted.length === 0 && (
+          {sorted.length === 0 && deleted.length === 0 && (
             <div className="text-sm" style={{ color: 'var(--color-on-surface-variant)' }}>
               {t('grid.noStamps')}
             </div>
@@ -581,11 +657,38 @@ function DayStampEditor({
               stamp={s}
               branches={branches}
               busy={busy}
+              onHistory={() => setHistoryOf(s.id)}
               onSave={(body) => run(() => api(`/api/v1/admin/stamps/${s.id}`, { method: 'PATCH', json: { ...body, justification: reasonText() } }))}
               onDelete={() => run(() => api(`/api/v1/admin/stamps/${s.id}`, { method: 'DELETE', json: { deletion_reason: reasonText() } }))}
             />
           ))}
         </div>
+
+        {/* Deleted punches are listed read-only under the live ones: visible
+            because they are the evidence, uneditable because they are history. */}
+        {deleted.length > 0 && (
+          <div className="space-y-1 pt-2" style={{ borderTop: '1px solid var(--color-outline-variant)' }}>
+            {deleted.map((s) => (
+              <div key={s.id} className="flex items-center gap-2 flex-wrap text-sm" data-deleted-stamp={s.id}>
+                <span className="num" style={{ textDecoration: 'line-through', opacity: 0.7 }}>
+                  {localHHMM(s.occurred_at)}
+                </span>
+                <span className="badge badge-muted">{t(`common:stampEvent.${s.event_type}`)}</span>
+                <DeletedBadge stamp={s} />
+                <span className="text-xs muted">{s.deletion_reason ?? ''}</span>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  title={t('action.history')}
+                  aria-label={t('action.history')}
+                  onClick={() => setHistoryOf(s.id)}
+                >
+                  <HistoryIcon />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         <AddRow
           dateIso={dateIso}
@@ -612,8 +715,22 @@ function DayStampEditor({
             {t('common:btn.close')}
           </button>
         </div>
+
+        {historyOf && <StampHistoryModal stampId={historyOf} onClose={() => setHistoryOf(null)} />}
+        {dossier && (
+          <DayDossierModal userId={user.user_id} date={dateIso} onClose={() => setDossier(false)} />
+        )}
       </div>
     </div>
+  );
+}
+
+function HistoryIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <polyline points="12 7 12 12 15 14" />
+    </svg>
   );
 }
 
@@ -650,12 +767,14 @@ function ExistingRow({
   busy,
   onSave,
   onDelete,
+  onHistory,
 }: {
   stamp: Stamp;
   branches: Branch[];
   busy: boolean;
   onSave: (body: { event_type: string; occurred_at: string; branch_id: string | null }) => void;
   onDelete: () => void;
+  onHistory: () => void;
 }) {
   const { t } = useTranslation(['stamps', 'common']);
   const [eventType, setEventType] = useState<string>(stamp.event_type);
@@ -676,9 +795,13 @@ function ExistingRow({
       <button type="submit" className="btn btn-secondary" disabled={busy} title={t('common:btn.save')}>
         {t('common:btn.save')}
       </button>
+      <button type="button" className="icon-btn" onClick={onHistory} title={t('action.history')} aria-label={t('action.history')}>
+        <HistoryIcon />
+      </button>
       <button type="button" className="icon-btn icon-btn-danger" disabled={busy} onClick={onDelete} title={t('action.delete')} aria-label={t('action.delete')}>
         ✕
       </button>
+      <EditedBadge stamp={stamp} />
     </form>
   );
 }

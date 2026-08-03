@@ -42,7 +42,55 @@
   },
   "action": {
     "edit": "Modifica timbratura",
-    "delete": "Elimina timbratura"
+    "delete": "Elimina timbratura",
+    "history": "Storico timbratura",
+    "dossier": "Dossier giornata"
+  },
+  "trail": {
+    "edited": "modificata",
+    "deleted": "eliminata",
+    "badgeTipTime": "Timbrato dal dipendente: {{time}}",
+    "badgeTipBy": "Modificata da {{who}}",
+    "showDeleted": "Mostra eliminate",
+    "historyTitle": "Storico timbratura",
+    "trailTitle": "Cronologia interventi",
+    "emptyTrail": "Nessun intervento registrato.",
+    "unchanged": "Timbratura non modificata.",
+    "originalValue": "Timbrato dal dipendente",
+    "currentValue": "Valore attuale",
+    "deletedBy": "Eliminata da {{who}} il {{when}}",
+    "reason": "Motivazione",
+    "dossierTitle": "Dossier giornata",
+    "downloadPdf": "Scarica PDF",
+    "downloadFailed": "Download non riuscito",
+    "noStamps": "Nessuna timbratura in questa giornata.",
+    "justifications": "Anomalie giustificate",
+    "corrections": "Richieste di correzione",
+    "kind": {
+      "employee_stamp": "Timbratura del dipendente",
+      "employee_undo": "Annullata dal dipendente (entro 60s)",
+      "employee_correction": "Richiesta di correzione approvata",
+      "admin_create": "Inserita da un amministratore",
+      "admin_edit": "Modificata da un amministratore",
+      "admin_delete": "Eliminata da un amministratore",
+      "anomaly_fix": "Correzione anomalia (orario standard)",
+      "bulk_apply": "Applicazione massiva orario standard",
+      "auto_clockout": "Uscita automatica dopo 15 ore",
+      "unknown": "Modifica"
+    },
+    "field": {
+      "event_type": "Evento",
+      "occurred_at": "Data e ora",
+      "branch_id": "Sede",
+      "notes": "Note",
+      "source": "Origine",
+      "deleted_at": "Eliminazione"
+    },
+    "correctionStatus": {
+      "pending": "In attesa",
+      "approved": "Approvata",
+      "rejected": "Respinta"
+    }
   },
   "grid": {
     "viewList": "Lista",
@@ -61,6 +109,7 @@
     "tooMany": "Troppe timbrature nel periodo: restringi con un filtro.",
     "open": "Turno aperto (uscita mancante)",
     "weekend": "Weekend",
+    "touched": "Giornata con timbrature modificate o eliminate",
     "reason": "Motivazione",
     "reasonDefault": "Modifica da griglia presenze",
     "noStamps": "Nessuna timbratura per questo giorno.",

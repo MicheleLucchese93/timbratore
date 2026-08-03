@@ -53,7 +53,8 @@
       "admin_create": "Stamp added",
       "admin_update": "Stamp updated",
       "admin_delete": "Stamp deleted",
-      "bulk_apply": "Standard schedule applied"
+      "bulk_apply": "Standard schedule applied",
+      "dossier_export": "Day dossier exported"
     },
     "anomaly": {
       "justify": "Anomaly justified"

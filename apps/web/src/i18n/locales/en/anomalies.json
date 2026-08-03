@@ -17,6 +17,7 @@
     "justified": "Justified: {{note}}"
   },
   "correct": "Correct ▾",
+  "dossier": "Dossier",
   "action": {
     "label": "Action",
     "standard": "Standard stamping (scheduled times)",

@@ -4,6 +4,7 @@ import { api, type ApiError } from '../lib/api.ts';
 import { isoLocalDate, isoLocalDaysAgo } from '../lib/dates.ts';
 import { fmtDate as fmtDateI18n, fmtTime as fmtTimeI18n } from '../i18n/format.ts';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { DayDossierModal } from '../components/StampTrail.tsx';
 
 interface Anomaly {
   date: string;
@@ -514,6 +515,7 @@ function AnomalyItem({
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [dossier, setDossier] = useState(false);
 
   const toAdd = useMemo(() => missingEvents(a), [a]);
   const permMin =
@@ -579,6 +581,17 @@ function AnomalyItem({
             </div>
           )}
         </div>
+        {/* Correcting an anomaly changes what the payroll will say about that
+            day, so the evidence for the day has to be one click away from the
+            correction itself — not on another page. */}
+        <button
+          className="btn btn-secondary btn-sm shrink-0"
+          data-testid="anomaly-dossier"
+          onClick={() => setDossier(true)}
+          title={t('dossier')}
+        >
+          {t('dossier')}
+        </button>
         <button
           className="btn btn-secondary btn-sm shrink-0"
           onClick={() => setOpen((o) => !o)}
@@ -587,6 +600,10 @@ function AnomalyItem({
           {open ? t('common:btn.close') : t('correct')}
         </button>
       </div>
+
+      {dossier && (
+        <DayDossierModal userId={a.user_id} date={a.date} onClose={() => setDossier(false)} />
+      )}
 
       {open && (
         <div

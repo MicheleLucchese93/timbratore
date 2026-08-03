@@ -13,6 +13,9 @@
   "today": "Today",
   "yesterday": "Yesterday",
   "breaks": "Breaks {{value}}",
+  "touched": "Modified or deleted stamps",
+  "editedBy": "You stamped {{time}} · modified by {{who}}",
+  "deletedBy": "Deleted by {{who}}",
   "metric": {
     "worked": "Worked",
     "counted": "Counted",

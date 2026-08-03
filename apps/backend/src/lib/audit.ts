@@ -21,6 +21,7 @@ export type AuditAction =
   | 'stamp.admin_update'
   | 'stamp.admin_delete'
   | 'stamp.bulk_apply'
+  | 'stamp.dossier_export'
   // anomalies
   | 'anomaly.justify'
   // correction requests (decisions)

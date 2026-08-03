@@ -203,6 +203,47 @@ async function persistBell(
   }
 }
 
+/**
+ * Bell-only notice that an admin changed or removed one of the employee's own
+ * punches.
+ *
+ * Deliberately not a push and not an email: an admin fixing a month of
+ * anomalies would otherwise pepper people's lock screens, and the point is
+ * transparency, not urgency — the employee needs to be able to FIND OUT, in the
+ * app, that a punch of theirs was moved, so they can open the trail and contest
+ * it. An admin correcting their own punch notifies nobody.
+ */
+export async function notifyStampChanged(
+  tenantId: string,
+  ctx: {
+    userId: string;
+    actorUserId: string;
+    action: 'edited' | 'deleted';
+    occurredAt: string;
+    eventType: string;
+    originalOccurredAt?: string | null;
+    reason?: string | null;
+    stampId: string;
+  }
+): Promise<void> {
+  if (ctx.userId === ctx.actorUserId) return;
+  const [recipient] = await loadRecipients([ctx.userId]);
+  if (!recipient) return;
+  const lang = asLang(recipient.language);
+  const when = new Date(ctx.originalOccurredAt ?? ctx.occurredAt).toLocaleString(
+    lang === 'it' ? 'it-IT' : 'en-GB',
+    { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' }
+  );
+  const label = correctionLabel(ctx.eventType, lang);
+  await persistBell(tenantId, ctx.userId, {
+    kind: `stamp_${ctx.action}`,
+    title: PUSH.stampChanged.title(ctx.action)[lang],
+    body: PUSH.stampChanged.body(label, when, ctx.reason ?? null)[lang],
+    data: { kind: `stamp_${ctx.action}`, stamp_id: ctx.stampId },
+    route: 'timbrature',
+  });
+}
+
 async function deliver(
   tenantId: string,
   recipient: RecipientRow,
@@ -792,6 +833,19 @@ const PUSH = {
   reminder: {
     title: { it: 'Promemoria', en: 'Reminder' },
     body: (label: string) => ({ it: `Domani: ${label}`, en: `Tomorrow: ${label}` }),
+  },
+  stampChanged: {
+    title: (action: 'edited' | 'deleted'): Record<Lang, string> =>
+      action === 'deleted'
+        ? { it: 'Timbratura eliminata', en: 'Stamp deleted' }
+        : { it: 'Timbratura modificata', en: 'Stamp modified' },
+    body: (label: string, when: string, reason: string | null): Record<Lang, string> => {
+      const tail = reason ? ` — ${reason}` : '';
+      return {
+        it: `${label} del ${when} modificata da un amministratore${tail}`,
+        en: `${label} of ${when} changed by an administrator${tail}`,
+      };
+    },
   },
   stampReminder: {
     title: { it: 'Promemoria timbratura', en: 'Stamp reminder' },

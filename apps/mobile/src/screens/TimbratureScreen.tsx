@@ -75,10 +75,13 @@ export function TimbratureScreen() {
   const [tab, setTab] = useState<TimbraTab>('timbra');
   // A correction notification deep-links to /timbrature?corr=1 — land on the
   // Correggi tab in that case.
-  const params = useLocalSearchParams<{ corr?: string }>();
+  const params = useLocalSearchParams<{ corr?: string; storico?: string }>();
   useEffect(() => {
     if (params.corr) setTab('correct');
-  }, [params.corr]);
+    // A "your punch was changed" notification deep-links to
+    // /timbrature?storico=1 — the trail is what the employee is being sent to.
+    else if (params.storico) setTab('storico');
+  }, [params.corr, params.storico]);
   const [state, setState] = useState<CurrentState | null>(null);
   const [todayStamps, setTodayStamps] = useState<DayStamp[]>([]);
   const [assignment, setAssignment] = useState<ActiveAssignment | null>(null);

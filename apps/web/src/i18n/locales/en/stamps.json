@@ -42,7 +42,55 @@
   },
   "action": {
     "edit": "Edit stamp",
-    "delete": "Delete stamp"
+    "delete": "Delete stamp",
+    "history": "Stamp history",
+    "dossier": "Day dossier"
+  },
+  "trail": {
+    "edited": "modified",
+    "deleted": "deleted",
+    "badgeTipTime": "Stamped by the employee: {{time}}",
+    "badgeTipBy": "Modified by {{who}}",
+    "showDeleted": "Show deleted",
+    "historyTitle": "Stamp history",
+    "trailTitle": "Change history",
+    "emptyTrail": "No change recorded.",
+    "unchanged": "Stamp not modified.",
+    "originalValue": "Stamped by the employee",
+    "currentValue": "Current value",
+    "deletedBy": "Deleted by {{who}} on {{when}}",
+    "reason": "Reason",
+    "dossierTitle": "Day dossier",
+    "downloadPdf": "Download PDF",
+    "downloadFailed": "Download failed",
+    "noStamps": "No stamp on this day.",
+    "justifications": "Justified anomalies",
+    "corrections": "Correction requests",
+    "kind": {
+      "employee_stamp": "Employee stamp",
+      "employee_undo": "Undone by the employee (within 60s)",
+      "employee_correction": "Correction request approved",
+      "admin_create": "Added by an administrator",
+      "admin_edit": "Modified by an administrator",
+      "admin_delete": "Deleted by an administrator",
+      "anomaly_fix": "Anomaly fix (standard schedule)",
+      "bulk_apply": "Bulk standard-schedule apply",
+      "auto_clockout": "Automatic clock-out after 15 hours",
+      "unknown": "Change"
+    },
+    "field": {
+      "event_type": "Event",
+      "occurred_at": "Date and time",
+      "branch_id": "Site",
+      "notes": "Notes",
+      "source": "Origin",
+      "deleted_at": "Deletion"
+    },
+    "correctionStatus": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    }
   },
   "grid": {
     "viewList": "List",
@@ -61,6 +109,7 @@
     "tooMany": "Too many stamps in this range: narrow it with a filter.",
     "open": "Open shift (missing clock-out)",
     "weekend": "Weekend",
+    "touched": "Day with modified or deleted stamps",
     "reason": "Reason",
     "reasonDefault": "Edited from attendance grid",
     "noStamps": "No stamps for this day.",

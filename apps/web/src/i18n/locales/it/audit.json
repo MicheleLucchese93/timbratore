@@ -53,7 +53,8 @@
       "admin_create": "Timbratura inserita",
       "admin_update": "Timbratura modificata",
       "admin_delete": "Timbratura eliminata",
-      "bulk_apply": "Orario standard applicato"
+      "bulk_apply": "Orario standard applicato",
+      "dossier_export": "Dossier giornata esportato"
     },
     "anomaly": {
       "justify": "Anomalia giustificata"

@@ -27,7 +27,7 @@ export interface CorrectionRow {
 }
 
 // Mobile tab a tapped notification opens. Matches the `route` the backend stores.
-export type NotificationRoute = 'richieste' | 'correzioni' | 'documenti';
+export type NotificationRoute = 'richieste' | 'correzioni' | 'documenti' | 'timbrature';
 
 // Notification kinds emitted by the backend pipeline (lib/notifications.ts).
 // Typed as a plain string so an unknown future kind still renders (with the
