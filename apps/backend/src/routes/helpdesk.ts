@@ -11,7 +11,7 @@ export const helpdeskRouter = Router();
 
 const helpdeskLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5,
+  limit: 5,
   message: { error: 'Too many requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,

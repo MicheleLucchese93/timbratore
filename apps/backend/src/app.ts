@@ -86,7 +86,7 @@ export function createApp(): Express {
 
   const limiter = rateLimit({
     windowMs: env.RATE_LIMIT_WINDOW_MS,
-    max: env.NODE_ENV === 'development' ? env.RATE_LIMIT_MAX * 10 : env.RATE_LIMIT_MAX,
+    limit: env.NODE_ENV === 'development' ? env.RATE_LIMIT_MAX * 10 : env.RATE_LIMIT_MAX,
     skip: (req) => req.path.startsWith('/health'),
     standardHeaders: 'draft-7',
     legacyHeaders: false,

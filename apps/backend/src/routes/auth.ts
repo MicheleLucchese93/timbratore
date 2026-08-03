@@ -92,7 +92,7 @@ authRouter.post(
 // console just created. Rate-limited on top so codes can't be ground out.
 const supportExchangeLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
-  max: 20,
+  limit: 20,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
 });

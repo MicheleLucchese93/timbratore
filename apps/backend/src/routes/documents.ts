@@ -2,7 +2,7 @@ import { Router, raw } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import crypto from 'node:crypto';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { authenticate, requireDocumentale } from '../middleware/auth.js';
 import { asyncHandler, tenantHandler } from '../lib/route-helpers.js';
 import { adminPool } from '../lib/admin-db.js';
@@ -165,8 +165,13 @@ async function requireDocumentaleOtp(req: Request, _res: Response, next: NextFun
 
 const otpRequestLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5,
-  keyGenerator: (req: Request) => req.user?.id ?? req.ip ?? 'anon',
+  limit: 5,
+  // The IP branch is a fallback only (this limiter always runs after
+  // requireDocumentale, so req.user is set), but a bare req.ip keys every
+  // address in an IPv6 /64 separately — a single client can then rotate through
+  // the block and never hit the limit. ipKeyGenerator collapses IPv6 to its
+  // subnet and passes IPv4 through untouched.
+  keyGenerator: (req: Request) => req.user?.id ?? ipKeyGenerator(req.ip ?? 'anon'),
   message: { error: 'Too many code requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
