@@ -23,6 +23,13 @@ updates:
     schedule:
       interval: "weekly"
     labels: ["dependencies", "npm"]
+    # Applies to VERSION updates only. Security updates are a separate queue
+    # with its own limit of 10 that this key cannot raise — so once ten
+    # security PRs are open, every further advisory silently stops producing
+    # one and only shows up under Security > Dependabot alerts. That is how
+    # eight advisories (brace-expansion x3, js-yaml x2, sharp, esbuild,
+    # @babel/core) sat with no PR at all. The queue only drains by merging, so
+    # a backlog here is not cosmetic: it blinds the next advisory.
     open-pull-requests-limit: 10
     groups:
       # Listed first: groups are matched in config order, so Expo/React Native
@@ -117,15 +124,24 @@ updates:
         update-types: ["version-update:semver-major"]
 
       # --- toolchain ----------------------------------------------------
-      # @vitejs/plugin-react 6 peers vite 7, and hoisting one vite 7 into the
-      # workspace root breaks apps/website: @tailwindcss/vite 4 calls into
-      # vite 7's rolldown/oxc resolver and `astro build` dies with
+      # History: @vitejs/plugin-react 6.0.4 peered vite 7, and hoisting one
+      # vite 7 into the workspace root broke apps/website — @tailwindcss/vite 4
+      # called into vite 7's rolldown/oxc resolver and `astro build` died with
       #   [@tailwindcss/vite:generate:build] Missing field `tsconfigPaths` on
       #   BindingViteResolvePluginConfig.resolveOptions
-      # (seen on the Dependabot PR that proposed plugin-react 6.0.4). vite,
-      # @vitejs/plugin-react, @tailwindcss/vite and astro have to move as one
-      # deliberate upgrade, so majors on the two vite packages are held rather
-      # than reopened weekly against the same wall. Minors and patches flow.
+      #
+      # That specific wall is gone. astro 7 brought apps/website onto vite 8,
+      # @tailwindcss/vite 4.3.3 peers ^5.2.0 || ^6 || ^7 || ^8, and the website
+      # builds all 11 pages on it. @vitejs/plugin-react 6 has since moved its
+      # peer to vite ^8 as well, so the combination that failed is no longer
+      # the one Dependabot would propose.
+      #
+      # The ignore stays anyway, because it is now holding back a different
+      # thing: apps/web and apps/partner still declare vite ^6.4.3 and
+      # plugin-react ^4, and taking them to 8 + 6 means adopting the rolldown
+      # resolver for two React SPAs (MUI, emotion, tiptap, the Manual bundle)
+      # in the same PR. That is its own upgrade with its own verification, not
+      # a weekly bump. Minors and patches flow.
       - dependency-name: "vite"
         update-types: ["version-update:semver-major"]
       - dependency-name: "@vitejs/plugin-react"
@@ -229,10 +245,23 @@ updates:
     schedule:
       interval: "weekly"
     labels: ["dependencies", "docker"]
+    ignore:
+      # expo-open-ota v3 is a migration of the OTA service, not an image bump,
+      # and getting it wrong strands every installed copy of the mobile app on
+      # its last bundle. v3 drops the server-side EXPO_APP_ID in favour of an
+      # `expo-app-id` request header sent by the client, moves the publish
+      # routes under /{appId}/ (so apps/mobile/scripts/publish-ota.sh has to
+      # change), re-paths the bucket on first boot, and makes ADMIN_EMAIL
+      # mandatory alongside ADMIN_PASSWORD. Sequencing that against a mobile
+      # release is an operator decision. v2.x minors and patches still flow.
+      - dependency-name: "ghcr.io/axelmarciano/expo-open-ota"
+        update-types: ["version-update:semver-major"]
 
   # ------------------------------------------------------- github-actions
-  # No workflows exist under .github/workflows yet, so this block is currently
-  # a no-op. It is here so the first workflow added is covered automatically.
+  # Covers ci.yml and security-scan.yml. Note that the two third-party actions
+  # there (trivy-action, gitleaks-action) are pinned by commit SHA with the tag
+  # in a trailing comment — Dependabot updates SHA pins and rewrites that
+  # comment, so the pinning does not cost us update coverage.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
