@@ -11,6 +11,8 @@ import { IconButton } from '../components/IconButton.tsx';
 
 type ExportFormat = 'xlsx' | 'json' | 'centro';
 
+const TIME_ONLY: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+
 interface ExportJob {
   id: string;
   format: ExportFormat;
@@ -33,6 +35,8 @@ export function Exports() {
   // (Impostazioni → Centro Paghe) get the format option. Avoids generating a
   // payroll file with no company code — which only ever errored.
   const [centroEnabled, setCentroEnabled] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
   const confirm = useConfirm();
 
   // Centro Paghe = one whole calendar month. Snap the range to month bounds when
@@ -57,6 +61,19 @@ export function Exports() {
 
   async function load() {
     setList(await api<ExportJob[]>('/api/v1/exports'));
+    setRefreshedAt(new Date());
+  }
+  /** Manual reload. Never throws — a failed refresh must not blank the list. */
+  async function refresh() {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await load();
+    } catch {
+      /* the 2s poll will pick it up */
+    } finally {
+      setRefreshing(false);
+    }
   }
   useEffect(() => {
     load().catch(() => {});
@@ -139,6 +156,24 @@ export function Exports() {
       </form>
 
       <div className="card" style={{ padding: 0 }}>
+        {/* The list already polls every 2s; the button is for the moment the
+            poll feels slow — a job that just flipped to "pronto" — and it
+            reports the last refresh so a stalled poll is visible rather than
+            looking like an empty queue. */}
+        <div className="flex items-center justify-between gap-2 px-3 pt-3">
+          <span className="text-xs muted">
+            {refreshedAt ? t('lastRefresh', { time: fmtDateTime(refreshedAt, TIME_ONLY) }) : ''}
+          </span>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            data-testid="exports-refresh"
+            onClick={refresh}
+            disabled={refreshing}
+          >
+            {refreshing ? t('common:state.loading') : t('common:btn.refresh')}
+          </button>
+        </div>
         <ExportsDataGrid list={list} onDownload={download} onRemove={remove} />
       </div>
     </div>

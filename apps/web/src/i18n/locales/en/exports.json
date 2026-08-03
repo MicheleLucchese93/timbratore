@@ -30,5 +30,6 @@
     "running": "processing",
     "ready": "ready",
     "failed": "failed"
-  }
+  },
+  "lastRefresh": "Refreshed at {{time}}"
 }

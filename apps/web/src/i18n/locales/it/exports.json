@@ -30,5 +30,6 @@
     "running": "in elaborazione",
     "ready": "pronta",
     "failed": "errore"
-  }
+  },
+  "lastRefresh": "Aggiornato alle {{time}}"
 }

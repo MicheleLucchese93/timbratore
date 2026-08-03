@@ -27,4 +27,24 @@ test.describe('web — Esportazioni (admin)', () => {
     await formatSelect.selectOption('xlsx');
     await expect(formatSelect).toHaveValue('xlsx');
   });
+
+  test('refresh button reloads the job list and stamps the time', async ({ page }) => {
+    const refresh = page.getByTestId('exports-refresh');
+    await expect(refresh).toBeVisible();
+
+    const stamp = page.getByText(/Aggiornato alle/);
+    await expect(stamp).toBeVisible({ timeout: 15_000 });
+    const before = await stamp.textContent();
+
+    // The list also polls every 2s, so wait for a value that differs from the
+    // one captured above rather than asserting on a single tick.
+    const [res] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes('/api/v1/exports') && r.request().method() === 'GET',
+      ),
+      refresh.click(),
+    ]);
+    expect(res.ok()).toBe(true);
+    await expect(stamp).not.toHaveText(before ?? '', { timeout: 10_000 });
+  });
 });
