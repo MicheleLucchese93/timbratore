@@ -22,7 +22,7 @@
     "@react-native-community/datetimepicker": "9.1.0",
     "@sonoqui/shared": "*",
     "domhandler": "^4.2.2",
-    "domutils": "^2.8.0",
+    "domutils": "^4.0.2",
     "expo": "~56.0.18",
     "expo-constants": "~56.0.15",
     "expo-device": "~56.0.4",
