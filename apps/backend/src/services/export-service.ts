@@ -13,6 +13,11 @@ import {
 import { effectiveCentroPagheMap, centroPagheKeyForLeave, uncoveredSlotIntervals } from '@sonoqui/shared';
 import { env } from '../env.js';
 import {
+  describeHistoryRow,
+  type StampChangeKind,
+  type TrackedField,
+} from '../lib/stamp-history.js';
+import {
   buildCentroPagheFile,
   type CentroPagheEmployee,
   type CentroPagheDay,
@@ -633,6 +638,199 @@ const ANOMALY_KIND_LABEL: Record<string, string> = {
 
 const ROME_TZ = 'Europe/Rome';
 
+// Labels for the Rettifiche sheet. The kinds come from parseChangeReason, so
+// this map must cover StampChangeKind exhaustively.
+const RETTIFICA_KIND_LABEL: Record<StampChangeKind, string> = {
+  employee_stamp: 'Timbratura del dipendente',
+  employee_undo: 'Annullata dal dipendente (entro 60s)',
+  employee_correction: 'Richiesta di correzione approvata',
+  admin_create: 'Inserita da un amministratore',
+  admin_edit: 'Modificata da un amministratore',
+  admin_delete: 'Eliminata da un amministratore',
+  anomaly_fix: 'Correzione anomalia (orario standard)',
+  bulk_apply: 'Applicazione massiva orario standard',
+  auto_clockout: 'Uscita automatica dopo 15 ore',
+  unknown: 'Modifica',
+};
+
+const RETTIFICA_FIELD_LABEL: Record<TrackedField, string> = {
+  event_type: 'Evento',
+  occurred_at: 'Data e ora',
+  branch_id: 'Sede',
+  notes: 'Note',
+  source: 'Origine',
+  deleted_at: 'Eliminazione',
+};
+
+/** Render a raw before/after jsonb value the way the rest of the workbook does. */
+function fmtRettificaValue(
+  field: TrackedField,
+  raw: string | null,
+  branchMeta: Map<string, string>
+): string {
+  if (raw === null) return '';
+  switch (field) {
+    case 'occurred_at':
+    case 'deleted_at':
+      return fmtRome(raw);
+    case 'event_type':
+      return EVENT_LABEL[raw] ?? raw;
+    case 'source':
+      return SOURCE_LABEL[raw] ?? raw;
+    case 'branch_id':
+      return branchMeta.get(raw) ?? raw;
+    default:
+      return raw;
+  }
+}
+
+/* ── Metadati column dictionary ────────────────────────────────────────────
+ * What each sheet and each column means, rendered into the Metadati sheet so
+ * the workbook explains itself to a commercialista who has never seen the app.
+ * The dictionary is walked against the REAL worksheet columns, so a column
+ * missing from here is printed as "(descrizione mancante)" rather than silently
+ * omitted — add the entry when you add the column. */
+const SHEET_DESCRIPTIONS: Record<string, string> = {
+  Riepilogo: 'Una riga per dipendente con i totali del periodo e i saldi residui.',
+  '<dipendente>':
+    'Un foglio per dipendente con il dettaglio giorno per giorno. Il nome del foglio è il nome del dipendente.',
+  Timbrature:
+    'Registro grezzo di ogni timbratura del periodo, incluse quelle eliminate (marcate nella colonna Stato). È il foglio di riferimento in caso di contestazione.',
+  Rettifiche:
+    'Storico in sola aggiunta di ogni intervento fatto su una timbratura del periodo: chi, quando, cosa e perché. Nessuna riga può essere modificata o rimossa a posteriori.',
+  Correzioni: 'Richieste di correzione timbratura inviate dai dipendenti, con esito.',
+  'Ferie e Permessi': 'Ferie, permessi, malattia e assenze del periodo, con ore ed esito.',
+  'Giustifiche anomalie':
+    'Anomalie di orario risolte con una nota anziché correggendo le timbrature.',
+  'Eventi aziendali': 'Chiusure e altri eventi imposti dall’azienda a più dipendenti.',
+  'Ferie residue': 'Saldo ferie e permessi per dipendente, alla data di generazione.',
+};
+
+const ORE_LAVORATE_DESC =
+  'Ore effettivamente conteggiate, calcolate sulle timbrature ATTUALI (già corrette) ed escludendo quelle eliminate. È il valore che fa fede per la busta paga.';
+const ORE_ORIGINALI_DESC =
+  'Ore risultanti dalle timbrature PRIMA di ogni rettifica: orari e tipi evento originali (quelli con cui la timbratura è stata registrata la prima volta) e timbrature eliminate ancora incluse. Confrontala con "Ore lavorate": se coincidono la giornata non è stata rettificata, altrimenti la differenza è esattamente l\'effetto delle modifiche di orario e delle eliminazioni. Le timbrature inserite da un amministratore rientrano in entrambe le colonne, quindi non generano differenza: per sapere CHI ha registrato una timbratura usa la colonna Origine del foglio Timbrature.';
+
+const COLUMN_DESCRIPTIONS: Record<string, Record<string, string>> = {
+  Riepilogo: {
+    Dipendente: 'Nome e cognome (o email se l’anagrafica non è compilata).',
+    Email: 'Email dell’account del dipendente.',
+    'Ore lavorate': ORE_LAVORATE_DESC,
+    'Ore originali': ORE_ORIGINALI_DESC,
+    'Ore straordinarie':
+      'Quota di straordinario già compresa nelle ore lavorate: non va sommata, è un di cui.',
+    'Pausa retribuita': 'Totale pause entro la soglia di retribuzione.',
+    'Pausa non retribuita': 'Totale pause oltre la soglia, non retribuite.',
+    'Ore ferie': 'Ore di ferie approvate ricadenti nel periodo.',
+    'Ore permessi': 'Ore di permesso approvate ricadenti nel periodo.',
+    'Ore malattia': 'Ore di malattia registrate nel periodo.',
+    'Giorni lavorati': 'Numero di giornate con almeno una timbratura utile.',
+    'Residuo ferie (h)': 'Saldo ferie residuo alla data di generazione del file.',
+    'Residuo permessi (h)': 'Saldo permessi residuo alla data di generazione del file.',
+  },
+  '<dipendente>': {
+    Giorno: 'Data della giornata (fuso orario aziendale).',
+    Marker: 'F = ferie intera giornata, P = permesso parziale, M = malattia.',
+    'Ore lavorate': ORE_LAVORATE_DESC,
+    'Ore originali': ORE_ORIGINALI_DESC,
+    'Ore straordinarie': 'Quota di straordinario compresa nelle ore lavorate del giorno.',
+    'Ore ferie': 'Ore di ferie approvate nella giornata.',
+    'Ore permessi': 'Ore di permesso approvate nella giornata.',
+    'Ore malattia': 'Ore di malattia nella giornata.',
+    'Pausa retribuita (min)': 'Minuti di pausa retribuita nella giornata.',
+    'Pausa non retribuita (min)': 'Minuti di pausa non retribuita nella giornata.',
+  },
+  Timbrature: {
+    Dipendente: 'Dipendente a cui appartiene la timbratura.',
+    'Data e ora': 'Valore ATTUALE della timbratura (se rettificata, il valore corretto).',
+    Evento: 'Entrata, Uscita, Inizio/Fine pausa, Inizio/Fine pranzo.',
+    Origine:
+      'App dipendente, Correzione (richiesta approvata), Manuale (admin) o Automatica (sistema, es. chiusura oltre 15h).',
+    Sede: 'Sede registrata al momento della timbratura.',
+    Lat: 'Latitudine rilevata (vuota se la modalità non prevede GPS).',
+    Lon: 'Longitudine rilevata.',
+    'Accuratezza GPS (m)': 'Raggio di incertezza della posizione, in metri.',
+    Dispositivo: 'Piattaforma del dispositivo (ios / android / web).',
+    'Versione app': 'Versione dell’app usata per timbrare.',
+    'Pos. sospetta': '"Sì" se il dispositivo segnalava una posizione simulata (mock location).',
+    'Fuori area': '"Sì" se la timbratura è avvenuta fuori dal raggio della sede.',
+    Stato: 'Attiva oppure Eliminata. Le eliminate non entrano nel conteggio ore.',
+    Modificata:
+      '"Sì (n)" se un amministratore ha cambiato orario o tipo evento, con il numero di modifiche.',
+    'Ora originale': 'Orario timbrato dal dipendente, prima della prima rettifica.',
+    'Evento originale': 'Tipo evento timbrato dal dipendente, prima della prima rettifica.',
+    'Modificata da': 'Amministratore che ha effettuato l’ultima modifica.',
+    'Modificata il': 'Data e ora dell’ultima modifica.',
+    'Eliminata da': 'Amministratore che ha eliminato la timbratura.',
+    'Motivo eliminazione': 'Motivazione obbligatoria indicata all’eliminazione.',
+    Note: 'Annotazioni sulla timbratura.',
+  },
+  Rettifiche: {
+    Dipendente: 'Dipendente a cui appartiene la timbratura rettificata.',
+    'Timbratura (giorno)': 'Giornata della timbratura interessata.',
+    'Tipo intervento':
+      'Natura dell’intervento: modifica admin, eliminazione, correzione approvata, orario standard, uscita automatica…',
+    Campo: 'Campo toccato (Data e ora, Evento, Sede, Note, Origine, Eliminazione).',
+    'Valore precedente': 'Valore prima dell’intervento.',
+    'Nuovo valore': 'Valore dopo l’intervento.',
+    Motivazione: 'Motivazione indicata da chi è intervenuto.',
+    Operatore: 'Chi ha effettuato l’intervento.',
+    'Data intervento': 'Quando l’intervento è stato registrato.',
+  },
+  Correzioni: {
+    Dipendente: 'Dipendente che ha inviato la richiesta.',
+    'Evento richiesto': 'Tipo di timbratura richiesta.',
+    'Data/ora richiesta': 'Data e ora richieste dal dipendente.',
+    Sede: 'Sede indicata nella richiesta.',
+    Giustificazione: 'Motivazione scritta dal dipendente.',
+    Stato: 'In attesa, Approvata o Respinta.',
+    'Risolta da': 'Amministratore che ha deciso.',
+    'Risolta il': 'Data della decisione.',
+    'Nota risoluzione': 'Nota lasciata dall’amministratore.',
+    'Inviata il': 'Data di invio della richiesta.',
+  },
+  'Ferie e Permessi': {
+    Dipendente: 'Dipendente interessato.',
+    Tipo: 'Ferie, Permessi, Malattia, Assenza o Chiusura aziendale.',
+    Stato: 'Stato della richiesta.',
+    Dal: 'Inizio del periodo.',
+    Al: 'Fine del periodo.',
+    Ore: 'Ore complessive imputate.',
+    Retribuito: 'Solo per le assenze: se è retribuita.',
+    'Sottotipo assenza': 'Dettaglio del tipo di assenza.',
+    'Protocollo INPS': 'Numero di protocollo del certificato, per la malattia.',
+    'Nota dipendente': 'Nota inserita dal dipendente.',
+    Origine: 'Inserito da admin oppure Richiesta dipendente.',
+    'Deciso da': 'Chi ha approvato o rifiutato.',
+    'Deciso il': 'Data della decisione.',
+    'Motivo rifiuto': 'Motivazione in caso di rifiuto.',
+  },
+  'Giustifiche anomalie': {
+    Dipendente: 'Dipendente a cui si riferisce l’anomalia.',
+    Data: 'Giornata dell’anomalia.',
+    'Tipo anomalia': 'Entrata mancante, uscita anticipata, pausa troppo lunga…',
+    Nota: 'Spiegazione inserita dall’amministratore.',
+    'Inserita da': 'Amministratore che ha giustificato l’anomalia.',
+    'Inserita il': 'Data di inserimento della giustificazione.',
+  },
+  'Eventi aziendali': {
+    Titolo: 'Titolo dell’evento.',
+    Tipo: 'Tipo di evento (chiusura, ferie collettive…).',
+    Dal: 'Inizio dell’evento.',
+    Al: 'Fine dell’evento.',
+    'Dipendenti coinvolti': 'Quanti dipendenti sono interessati.',
+    'Ore totali': 'Somma delle ore imputate a tutti i dipendenti.',
+  },
+  'Ferie residue': {
+    Dipendente: 'Dipendente interessato.',
+    Tipo: 'Ferie o permessi.',
+    'Saldo iniziale (h)': 'Saldo di partenza assegnato.',
+    'Maturato (h)': 'Ore maturate finora.',
+    'Usato approvato (h)': 'Ore già usate e approvate.',
+    'Residuo (h)': 'Saldo disponibile: iniziale + maturato − usato.',
+  },
+};
+
 function fmtRome(d: Date | string | null | undefined, withTime = true): string {
   if (!d) return '';
   const date = typeof d === 'string' ? new Date(d) : d;
@@ -715,23 +913,184 @@ interface StampDetailRow {
   suspicious_mock_location: boolean;
   out_of_geofence: boolean;
   notes: string | null;
+  original_occurred_at: Date | null;
+  original_event_type: string | null;
+  edited_at: Date | null;
+  edited_by_user_id: string | null;
+  edit_count: number;
+  deleted_at: Date | null;
+  deleted_by_user_id: string | null;
+  deletion_reason: string | null;
 }
 
-async function loadStampsDetail(job: ExportJobRow, timeZone: string): Promise<StampDetailRow[]> {
+/**
+ * Raw stamp detail for the period.
+ *
+ * `includeDeleted` is REQUIRED and has no default on purpose. Two callers with
+ * opposite needs read this: the Timbrature sheet is an audit trail and must
+ * show punches an admin removed (they are what a dispute is about), while
+ * Centro Paghe turns these same rows into the LUL in/out pairs and must never
+ * see them — a deleted punch in a payroll file is a wrong payslip. A defaulted
+ * flag would make the payroll path silently inherit whichever default the audit
+ * path happened to want.
+ */
+// Exported for the regression test only: the deleted-punch predicate below is
+// the difference between an audit sheet and a wrong payslip, so it is pinned
+// directly rather than inferred from a generated workbook.
+export async function loadStampsDetail(
+  job: ExportJobRow,
+  timeZone: string,
+  opts: { includeDeleted: boolean }
+): Promise<StampDetailRow[]> {
   const { start, end } = periodWindow(job, timeZone);
   const r = await adminPool.query(
     `SELECT user_id, event_type, occurred_at, source, branch_id,
             latitude, longitude, gps_accuracy_m,
-            device_platform, device_app_version, suspicious_mock_location, out_of_geofence, notes
+            device_platform, device_app_version, suspicious_mock_location, out_of_geofence, notes,
+            original_occurred_at, original_event_type, edited_at, edited_by_user_id, edit_count,
+            deleted_at, deleted_by_user_id, deletion_reason
        FROM stamps
       WHERE tenant_id = $1
-        AND deleted_at IS NULL
+        AND (deleted_at IS NULL OR $4::boolean)
         AND occurred_at >= $2::timestamptz
         AND occurred_at <  $3::timestamptz
       ORDER BY user_id, occurred_at`,
-    [job.tenant_id, start.toISOString(), end.toISOString()]
+    [job.tenant_id, start.toISOString(), end.toISOString(), opts.includeDeleted]
   );
   return r.rows as StampDetailRow[];
+}
+
+/**
+ * "Ore originali" — what the day added up to BEFORE any rettifica, read next to
+ * "Ore lavorate" (the corrected, payroll-bearing figure). The gap between the
+ * two is exactly what editing and deleting punches changed.
+ *
+ * Two deliberate differences from the payroll aggregation:
+ *  - original values: COALESCE(original_*, current), so a punch an admin moved
+ *    counts at the time it was first recorded;
+ *  - deleted punches included: before the deletion that punch was part of the
+ *    day, and a removed punch is precisely what a dispute is about.
+ *
+ * EVERY source counts, admin_manual and system_auto included. An earlier cut
+ * restricted this to employee-stamped punches, which sounded right but, on real
+ * data, read as 0 for anyone whose hours are typed in by the office and
+ * understated everyone whose missing uscita an admin had supplied (the in/out
+ * pair never closed). Because admin-inserted punches now appear on BOTH sides,
+ * they cancel and the gap isolates edits and deletions alone; WHO entered a
+ * punch is answered by the Origine column of the Timbrature sheet instead.
+ *
+ * The period window is applied to the ORIGINAL instant too, so a punch an admin
+ * moved across a month boundary is still counted in the month it was stamped in.
+ */
+// Exported for the regression test: the definition is a product decision, so it
+// is pinned rather than left to the workbook to imply.
+export async function loadOriginalMinutes(
+  job: ExportJobRow,
+  timeZone: string
+): Promise<Map<string, Map<string, number>>> {
+  const { start, end } = periodWindow(job, timeZone);
+  const r = await adminPool.query(
+    `SELECT user_id,
+            COALESCE(original_event_type, event_type)   AS event_type,
+            COALESCE(original_occurred_at, occurred_at) AS occurred_at
+       FROM stamps
+      WHERE tenant_id = $1
+        AND COALESCE(original_occurred_at, occurred_at) >= $2::timestamptz
+        AND COALESCE(original_occurred_at, occurred_at) <  $3::timestamptz
+      ORDER BY user_id, COALESCE(original_occurred_at, occurred_at)`,
+    [job.tenant_id, start.toISOString(), end.toISOString()]
+  );
+
+  const byUser = new Map<string, Array<{ event: string; at: Date }>>();
+  for (const row of r.rows) {
+    const list = byUser.get(row.user_id) ?? [];
+    list.push({ event: row.event_type as string, at: new Date(row.occurred_at) });
+    byUser.set(row.user_id, list);
+  }
+
+  const out = new Map<string, Map<string, number>>();
+  for (const [userId, stamps] of byUser) {
+    out.set(userId, workedMinutesByDay(stamps, timeZone));
+  }
+  return out;
+}
+
+/**
+ * Raw worked minutes per tenant-local day from a punch list.
+ *
+ * Mirrors the in/out pairing of aggregateForExport (clock_in opens; break/lunch
+ * start closes and accrues; break/lunch end reopens; clock_out closes) but
+ * applies NO shift deductions, overtime split or rounding — "ore originali" is
+ * what the punches literally add up to, not a payroll figure. Kept as its own
+ * function so it can never alter the payroll numbers.
+ */
+function workedMinutesByDay(
+  stamps: Array<{ event: string; at: Date }>,
+  timeZone: string
+): Map<string, number> {
+  const perDay = new Map<string, number>();
+  let openIn: Date | null = null;
+  let openPause: Date | null = null;
+  const add = (at: Date, minutes: number): void => {
+    const key = zonedDateKey(at, timeZone);
+    perDay.set(key, (perDay.get(key) ?? 0) + minutes);
+  };
+  for (const s of stamps) {
+    if (s.event === 'clock_in') {
+      openIn = s.at;
+    } else if ((s.event === 'break_start' || s.event === 'lunch_start') && openIn) {
+      add(openIn, diffMin(openIn, s.at));
+      openPause = s.at;
+      openIn = null;
+    } else if ((s.event === 'break_end' || s.event === 'lunch_end') && openPause) {
+      openIn = s.at;
+      openPause = null;
+    } else if (s.event === 'clock_out' && openIn) {
+      add(openIn, diffMin(openIn, s.at));
+      openIn = null;
+    }
+    // An unmatched event (open shift, missing entrata) contributes nothing —
+    // same as the payroll pass, which also only accrues on a closed pair.
+  }
+  return perDay;
+}
+
+interface RettificaRow {
+  user_id: string;
+  recorded_at: Date;
+  operation: 'INSERT' | 'UPDATE' | 'DELETE';
+  changed_by: string | null;
+  change_reason: string | null;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
+  stamp_occurred_at: Date | null;
+}
+
+/**
+ * Every change made to a punch of the period, from the append-only history.
+ * INSERT rows are excluded: they are the punches themselves, already listed in
+ * the Timbrature sheet — this sheet is only about what happened to them after.
+ */
+async function loadRettifiche(job: ExportJobRow, timeZone: string): Promise<RettificaRow[]> {
+  const { start, end } = periodWindow(job, timeZone);
+  const r = await adminPool.query(
+    // Scoped by the punch's own time, not by when the change was made: a
+    // rettifica applied in August to a July punch belongs to the July payroll
+    // pack. COALESCE picks the original time so a punch moved across the period
+    // boundary still surfaces in the period it was stamped in.
+    `SELECT h.user_id, h.recorded_at, h.operation, h.changed_by, h.change_reason,
+            h.before, h.after,
+            COALESCE(s.original_occurred_at, s.occurred_at) AS stamp_occurred_at
+       FROM stamps_history h
+       JOIN stamps s ON s.id = h.stamp_id
+      WHERE h.tenant_id = $1
+        AND h.operation <> 'INSERT'
+        AND COALESCE(s.original_occurred_at, s.occurred_at) >= $2::timestamptz
+        AND COALESCE(s.original_occurred_at, s.occurred_at) <  $3::timestamptz
+      ORDER BY h.user_id, h.recorded_at, h.id`,
+    [job.tenant_id, start.toISOString(), end.toISOString()]
+  );
+  return r.rows as RettificaRow[];
 }
 
 interface CorrectionRow {
@@ -956,17 +1315,30 @@ async function writeJson(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
 async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResult> {
   const timeZone = await loadTenantTimeZone(job.tenant_id);
   // Load all payroll detail in parallel — each is a single tenant-scoped query.
-  const [userMeta, branchMeta, residueByUser, stamps, corrections, leaves, eventi, justifications] =
-    await Promise.all([
-      loadUserMeta(job),
-      loadBranchMeta(job),
-      loadResidue(job),
-      loadStampsDetail(job, timeZone),
-      loadCorrections(job, timeZone),
-      loadLeaveDetail(job, timeZone),
-      loadEventi(job, timeZone),
-      loadJustifications(job),
-    ]);
+  const [
+    userMeta,
+    branchMeta,
+    residueByUser,
+    stamps,
+    corrections,
+    leaves,
+    eventi,
+    justifications,
+    rettifiche,
+    originalByUserDay,
+  ] = await Promise.all([
+    loadUserMeta(job),
+    loadBranchMeta(job),
+    loadResidue(job),
+    // Audit sheet: deleted punches included, flagged in a Stato column.
+    loadStampsDetail(job, timeZone, { includeDeleted: true }),
+    loadCorrections(job, timeZone),
+    loadLeaveDetail(job, timeZone),
+    loadEventi(job, timeZone),
+    loadJustifications(job),
+    loadRettifiche(job, timeZone),
+    loadOriginalMinutes(job, timeZone),
+  ]);
 
   const wb = new ExcelJS.Workbook();
   wb.creator = 'sonoQui';
@@ -977,6 +1349,9 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
     { header: 'Dipendente', key: 'name', width: 26 },
     { header: 'Email', key: 'email', width: 28 },
     { header: 'Ore lavorate', key: 'worked', width: 14 },
+    // Sits next to "Ore lavorate" on purpose: the two side by side show how much
+    // of the month was rewritten after the fact.
+    { header: 'Ore originali', key: 'original', width: 14 },
     { header: 'Ore straordinarie', key: 'overtime', width: 18 },
     { header: 'Pausa retribuita', key: 'paid', width: 18 },
     { header: 'Pausa non retribuita', key: 'unpaid', width: 22 },
@@ -989,10 +1364,15 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
   ];
   for (const u of data) {
     const res = residueByUser.get(u.user_id);
+    const originalDays = originalByUserDay.get(u.user_id);
+    const originalTotal = originalDays
+      ? [...originalDays.values()].reduce((a, b) => a + b, 0)
+      : 0;
     riep.addRow({
       name: metaName(userMeta, u.user_id, u.email),
       email: metaEmail(userMeta, u.user_id, u.email),
       worked: u.worked_minutes_total / 60,
+      original: originalTotal / 60,
       overtime: u.overtime_minutes_total / 60,
       paid: u.paid_break_minutes_total / 60,
       unpaid: u.unpaid_break_minutes_total / 60,
@@ -1005,7 +1385,7 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
     });
   }
   setHourFormat(riep, [
-    'worked', 'overtime', 'paid', 'unpaid', 'ferie', 'permessi', 'malattia',
+    'worked', 'original', 'overtime', 'paid', 'unpaid', 'ferie', 'permessi', 'malattia',
     'res_ferie', 'res_permessi',
   ]);
   styleHeader(riep);
@@ -1016,6 +1396,9 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
     'eventi aziendali', 'ferie residue', 'metadati',
   ];
   const usedNames = new Set<string>(RESERVED);
+  // Tracked so the Metadati dictionary can document the per-employee shape once
+  // instead of repeating identical columns for every member of the company.
+  const employeeSheetNames: string[] = [];
   for (const u of data) {
     const label = metaName(userMeta, u.user_id, u.email);
     const base = (label.replace(/[\\/?*\[\]:]/g, '_').slice(0, 28) || 'Utente');
@@ -1025,11 +1408,13 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
       candidate = `${base}_${i++}`.slice(0, 31);
     }
     usedNames.add(candidate.toLowerCase());
+    employeeSheetNames.push(candidate);
     const ws = wb.addWorksheet(candidate);
     ws.columns = [
       { header: 'Giorno', key: 'day', width: 14 },
       { header: 'Marker', key: 'marker', width: 8 },
       { header: 'Ore lavorate', key: 'worked', width: 14 },
+      { header: 'Ore originali', key: 'original', width: 14 },
       { header: 'Ore straordinarie', key: 'overtime', width: 18 },
       { header: 'Ore ferie', key: 'ferie', width: 12 },
       { header: 'Ore permessi', key: 'permessi', width: 14 },
@@ -1037,11 +1422,13 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
       { header: 'Pausa retribuita (min)', key: 'paid', width: 22 },
       { header: 'Pausa non retribuita (min)', key: 'unpaid', width: 26 },
     ];
+    const originalDays = originalByUserDay.get(u.user_id);
     for (const d of u.days) {
       ws.addRow({
         day: d.day,
         marker: d.leave_marker ?? '',
         worked: d.worked_minutes / 60,
+        original: (originalDays?.get(d.day) ?? 0) / 60,
         overtime: d.overtime_minutes / 60,
         ferie: d.ferie_minutes / 60,
         permessi: d.permessi_minutes / 60,
@@ -1050,7 +1437,7 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
         unpaid: d.unpaid_break_minutes,
       });
     }
-    setHourFormat(ws, ['worked', 'overtime', 'ferie', 'permessi', 'malattia']);
+    setHourFormat(ws, ['worked', 'original', 'overtime', 'ferie', 'permessi', 'malattia']);
     styleHeader(ws);
   }
 
@@ -1069,9 +1456,18 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
     { header: 'Versione app', key: 'appv', width: 14 },
     { header: 'Pos. sospetta', key: 'mock', width: 14 },
     { header: 'Fuori area', key: 'oog', width: 12 },
+    { header: 'Stato', key: 'state', width: 12 },
+    { header: 'Modificata', key: 'edited', width: 12 },
+    { header: 'Ora originale', key: 'orig_when', width: 18 },
+    { header: 'Evento originale', key: 'orig_event', width: 18 },
+    { header: 'Modificata da', key: 'edited_by', width: 24 },
+    { header: 'Modificata il', key: 'edited_at', width: 18 },
+    { header: 'Eliminata da', key: 'deleted_by', width: 24 },
+    { header: 'Motivo eliminazione', key: 'deleted_why', width: 30 },
     { header: 'Note', key: 'notes', width: 30 },
   ];
   for (const s of stamps) {
+    const edited = s.original_occurred_at !== null || s.original_event_type !== null;
     tb.addRow({
       name: metaName(userMeta, s.user_id),
       when: fmtRome(s.occurred_at),
@@ -1085,10 +1481,75 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
       appv: s.device_app_version ?? '',
       mock: s.suspicious_mock_location ? 'Sì' : '',
       oog: s.out_of_geofence ? 'Sì' : '',
+      state: s.deleted_at ? 'Eliminata' : 'Attiva',
+      edited: edited ? `Sì (${s.edit_count})` : '',
+      orig_when: s.original_occurred_at ? fmtRome(s.original_occurred_at) : '',
+      orig_event: s.original_event_type
+        ? EVENT_LABEL[s.original_event_type] ?? s.original_event_type
+        : '',
+      edited_by: s.edited_by_user_id ? metaName(userMeta, s.edited_by_user_id, '') : '',
+      edited_at: fmtRome(s.edited_at),
+      deleted_by: s.deleted_by_user_id ? metaName(userMeta, s.deleted_by_user_id, '') : '',
+      deleted_why: s.deletion_reason ?? '',
       notes: s.notes ?? '',
     });
   }
   styleHeader(tb);
+
+  /* 3b. Rettifiche — the append-only trail of every change to a punch. */
+  const rt = wb.addWorksheet('Rettifiche');
+  rt.columns = [
+    { header: 'Dipendente', key: 'name', width: 24 },
+    { header: 'Timbratura (giorno)', key: 'day', width: 18 },
+    { header: 'Tipo intervento', key: 'kind', width: 30 },
+    { header: 'Campo', key: 'field', width: 16 },
+    { header: 'Valore precedente', key: 'before', width: 24 },
+    { header: 'Nuovo valore', key: 'after', width: 24 },
+    { header: 'Motivazione', key: 'why', width: 40 },
+    { header: 'Operatore', key: 'by', width: 24 },
+    { header: 'Data intervento', key: 'at', width: 18 },
+  ];
+  for (const h of rettifiche) {
+    const ev = describeHistoryRow({
+      id: 0,
+      stamp_id: '',
+      user_id: h.user_id,
+      operation: h.operation,
+      recorded_at: h.recorded_at,
+      changed_by: h.changed_by,
+      change_reason: h.change_reason,
+      before: h.before,
+      after: h.after,
+    });
+    const base = {
+      name: metaName(userMeta, h.user_id),
+      day: fmtRome(h.stamp_occurred_at, false),
+      kind: RETTIFICA_KIND_LABEL[ev.kind] ?? ev.kind,
+      why: ev.justification ?? '',
+      by: h.changed_by ? metaName(userMeta, h.changed_by, '') : '',
+      at: fmtRome(h.recorded_at),
+    };
+    // A row that names no changed field, no reason and no operator says
+    // nothing — legacy history written before app.change_reason was set on
+    // every path. Printing it as a blank line in a document that may be read
+    // in a dispute is worse than omitting it.
+    if (ev.changes.length === 0 && !ev.justification && !h.changed_by) continue;
+    // One row per changed field so the sheet can be filtered on "Campo =
+    // Data e ora" — the only change a payroll dispute usually turns on.
+    if (ev.changes.length === 0) {
+      rt.addRow(base);
+      continue;
+    }
+    for (const ch of ev.changes) {
+      rt.addRow({
+        ...base,
+        field: RETTIFICA_FIELD_LABEL[ch.field] ?? ch.field,
+        before: fmtRettificaValue(ch.field, ch.before, branchMeta),
+        after: fmtRettificaValue(ch.field, ch.after, branchMeta),
+      });
+    }
+  }
+  styleHeader(rt);
 
   /* 4. Correzioni — correction requests touching this period. */
   const co = wb.addWorksheet('Correzioni');
@@ -1232,23 +1693,103 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
   setHourFormat(rs, ['initial', 'accrued', 'used', 'residual']);
   styleHeader(rs);
 
-  /* 8. Metadati — provenance + counts. */
+  /* 8. Metadati — provenance, counts and the column dictionary.
+   *
+   * Added LAST on purpose: the dictionary is derived from the worksheets that
+   * already exist on the workbook, so a column added anywhere shows up here
+   * automatically (with an explicit "(descrizione mancante)" if nobody wrote
+   * one) instead of the documentation quietly going stale. */
   const meta = wb.addWorksheet('Metadati');
+  // Four columns, not three: the provenance rows carry a VALUE (a period, a
+  // count) while the dictionary rows carry a DESCRIPTION. Folding both into one
+  // "Descrizione" column put counts under a heading that promised an
+  // explanation, and forced a filler label in the first column on every row.
   meta.columns = [
-    { header: 'Campo', key: 'k', width: 24 },
-    { header: 'Valore', key: 'v', width: 46 },
+    { header: 'Sezione', key: 'sheet', width: 22 },
+    { header: 'Voce', key: 'k', width: 30 },
+    { header: 'Valore', key: 'val', width: 34 },
+    { header: 'Descrizione', key: 'v', width: 92 },
   ];
-  meta.addRow({ k: 'tenant_id', v: job.tenant_id });
-  meta.addRow({ k: 'period_from', v: job.period_from });
-  meta.addRow({ k: 'period_to', v: job.period_to });
-  meta.addRow({ k: 'generated_at', v: new Date().toISOString() });
-  meta.addRow({ k: 'schema_version', v: 'v2' });
-  meta.addRow({ k: 'Dipendenti', v: data.length });
-  meta.addRow({ k: 'Timbrature', v: stamps.length });
-  meta.addRow({ k: 'Correzioni', v: corrections.length });
-  meta.addRow({ k: 'Ferie / permessi / assenze', v: leaves.length });
-  meta.addRow({ k: 'Eventi aziendali', v: eventi.length });
+
+  // Section header, then rows with a blank first cell — same shape the
+  // dictionary below uses, so the sheet reads consistently top to bottom.
+  const sectionRows: number[] = [];
+  sectionRows.push(
+    meta.addRow({ sheet: 'INFORMAZIONI FILE', v: 'Provenienza del file e conteggi del periodo.' })
+      .number
+  );
+  const info = (k: string, val: string | number, v: string): void => {
+    meta.addRow({ k, val, v });
+  };
+  info('tenant_id', job.tenant_id, 'Identificativo interno dell’azienda in sonoQui.');
+  info('period_from', String(job.period_from), 'Primo giorno del periodo esportato (incluso).');
+  info('period_to', String(job.period_to), 'Ultimo giorno del periodo esportato (incluso).');
+  info(
+    'generated_at',
+    new Date().toISOString(),
+    'Data e ora di generazione del file, in UTC (formato ISO 8601).'
+  );
+  // v3: Timbrature keeps soft-deleted punches (flagged) and carries the
+  // original-value columns; Rettifiche and the column dictionary are new.
+  info(
+    'schema_version',
+    'v3',
+    'Versione del tracciato di questo file. Cambia quando vengono aggiunti o rinominati fogli e colonne.'
+  );
+  info('Dipendenti', data.length, 'Dipendenti inclusi nell’esportazione.');
+  info(
+    'Timbrature',
+    stamps.length,
+    'Timbrature del periodo elencate nel foglio Timbrature, comprese quelle eliminate.'
+  );
+  info(
+    'di cui eliminate',
+    stamps.filter((s) => s.deleted_at !== null).length,
+    'Timbrature eliminate da un amministratore: restano elencate ma non contano nelle ore lavorate.'
+  );
+  info(
+    'di cui modificate',
+    stamps.filter((s) => s.original_occurred_at !== null || s.original_event_type !== null).length,
+    'Timbrature il cui orario o tipo evento è stato cambiato dopo la registrazione.'
+  );
+  info(
+    'Rettifiche',
+    rettifiche.length,
+    'Interventi registrati nel foglio Rettifiche (modifiche ed eliminazioni, una riga per campo toccato).'
+  );
+  info('Correzioni', corrections.length, 'Richieste di correzione inviate dai dipendenti.');
+  info(
+    'Ferie / permessi / assenze',
+    leaves.length,
+    'Voci di ferie, permesso, malattia e assenza ricadenti nel periodo.'
+  );
+  info('Eventi aziendali', eventi.length, 'Chiusure ed eventi imposti dall’azienda.');
+
+  meta.addRow({});
+  sectionRows.push(
+    meta.addRow({
+      sheet: 'DIZIONARIO COLONNE',
+      v: 'Significato di ogni colonna, foglio per foglio.',
+    }).number
+  );
+  const perEmployeeNames = new Set(employeeSheetNames);
+  for (const ws of wb.worksheets) {
+    if (ws.name === 'Metadati') continue;
+    // Every per-employee sheet has identical columns; document the shape once
+    // rather than repeating it for each member of the company.
+    if (perEmployeeNames.has(ws.name) && ws.name !== employeeSheetNames[0]) continue;
+    const sheetLabel = perEmployeeNames.has(ws.name) ? '<dipendente>' : ws.name;
+    const descrs = COLUMN_DESCRIPTIONS[perEmployeeNames.has(ws.name) ? '<dipendente>' : ws.name];
+    meta.addRow({ sheet: sheetLabel, k: '', v: SHEET_DESCRIPTIONS[sheetLabel] ?? '' });
+    for (const col of ws.columns ?? []) {
+      const header = typeof col.header === 'string' ? col.header : '';
+      if (!header) continue;
+      meta.addRow({ sheet: '', k: header, v: descrs?.[header] ?? '(descrizione mancante)' });
+    }
+  }
   styleHeader(meta);
+  for (const n of sectionRows) meta.getRow(n).font = { bold: true };
+  meta.getColumn('v').alignment = { wrapText: true, vertical: 'top' };
 
   const buf = (await wb.xlsx.writeBuffer()) as ArrayBuffer;
   const key = `tenants/${job.tenant_id}/exports/${job.id}.xlsx`;
@@ -1462,7 +2003,8 @@ async function writeCentroPaghe(job: ExportJobRow, data: UserAgg[]): Promise<Exp
     loadShiftConfigs(job),
     loadLeavesPerDayDetailed(job, timeZone),
     loadInpsEvents(job, timeZone),
-    loadStampsDetail(job, timeZone),
+    // Payroll: live punches ONLY. These become the LUL in/out pairs.
+    loadStampsDetail(job, timeZone, { includeDeleted: false }),
   ]);
 
   // Per-user DayAgg lookup (worked + overtime, already deducted/rounded).

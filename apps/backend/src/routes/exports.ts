@@ -7,7 +7,14 @@ import { NotFoundError, ValidationError } from '../errors/index.js';
 import { logAudit } from '../lib/audit.js';
 import { processExportJobs } from '../services/jobs/process-exports.js';
 import { readExportFile, deleteExportFile } from '../services/export-service.js';
+import { safeFileName, fileTimestamp } from '../lib/filename.js';
+import { DEFAULT_TZ } from '../lib/tz.js';
 import { env } from '../env.js';
+
+/** period_from/to come back as a DATE string or a Date depending on the driver. */
+function isoDay(v: string | Date): string {
+  return v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10);
+}
 
 export const exportsRouter = Router();
 exportsRouter.use(authenticate);
@@ -89,10 +96,35 @@ exportsRouter.get(
     const job = j.rows[0];
     if (job.status !== 'ready' || !job.r2_key) throw new NotFoundError('export not ready');
     const buf = await readExportFile(job.r2_key);
+    // Fallback only: the storage key is a bare job uuid, which is unusable once
+    // the file lands in someone's Downloads folder.
     let filename = job.r2_key.split('/').pop()!;
     let contentType: string;
-    if (job.format === 'xlsx') {
-      contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    if (job.format === 'xlsx' || job.format === 'json') {
+      contentType =
+        job.format === 'xlsx'
+          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          : 'application/json';
+      // presenze-<azienda>-<dal>_<al>-<generato>.xlsx
+      //
+      // Timestamp is the moment the file was GENERATED, not downloaded, so the
+      // same job always yields the same name — re-downloading can't produce two
+      // differently-named copies of identical data. Rendered in the tenant zone
+      // so it matches the "Creata" column in the UI.
+      const meta = await client.query(
+        `SELECT ragione_sociale, COALESCE(timezone, $2) AS timezone
+           FROM tenants WHERE id = $1`,
+        [job.tenant_id, DEFAULT_TZ]
+      );
+      const azienda = safeFileName(
+        String(meta.rows[0]?.ragione_sociale ?? ''),
+        'azienda',
+        40
+      );
+      const tz = String(meta.rows[0]?.timezone ?? DEFAULT_TZ);
+      const generatedAt = job.finished_at ?? job.created_at ?? new Date();
+      const stamp = fileTimestamp(new Date(generatedAt), tz);
+      filename = `presenze-${azienda}-${isoDay(job.period_from)}_${isoDay(job.period_to)}-${stamp}.${job.format}`;
     } else if (job.format === 'centro') {
       contentType = 'text/plain; charset=ISO-8859-1';
       // ORARIO_<CODICE DITTA>_<MMAAAA>.TXT — Centro Paghe import filename.
