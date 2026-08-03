@@ -123,6 +123,46 @@ updates:
       - dependency-name: "eslint-config-expo"
         update-types: ["version-update:semver-major"]
 
+      # eslint itself is held at 9 for the same reason. eslint-config-expo 56
+      # bundles eslint-plugin-react, which still calls the context.getFilename()
+      # API that eslint 10 removed; `expo lint` under eslint 10 does not report
+      # findings, it dies outright:
+      #   TypeError: Error while loading rule 'react/display-name':
+      #   contextOrFilename.getFilename is not a function
+      #     at resolveBasedir (eslint-plugin-react/lib/util/version.js:31)
+      # (reproduced on eslint 10.8.0 before closing the PR that proposed it).
+      # eslint-config-expo's own peer range is an open-ended ">=8.10", so it
+      # gives no protection here. Unblock with the Expo SDK upgrade, whose newer
+      # eslint-config-expo carries an eslint-plugin-react that has migrated.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+
+      # apps/mobile declares stringify-entities, domhandler, domutils and
+      # htmlparser2 at deliberately OLD majors — they are not direct app
+      # dependencies, they are there to pin the react-native-render-html 6.x /
+      # @native-html/transient-render-engine chain that renders Bacheca HTML:
+      #
+      #   transient-render-engine -> domhandler ^4.2.2, domutils ^2.8.0,
+      #                              htmlparser2 ^7.1.2
+      #   react-native-render-html -> stringify-entities ^3.1.0
+      #
+      # They are declared in apps/mobile at all because metro runs with
+      # disableHierarchicalLookup and the mobile Dockerfile does a scoped
+      # `npm ci` — a transitive that only resolved via another workspace's
+      # hoisting simply vanishes there. Letting Dependabot bump them to their
+      # current majors (6.x / 4.x / 12.x / 4.x) moves the hoisted copy out from
+      # under the render engine and breaks HTML rendering in the app, with
+      # nothing in CI to catch it. Minors and patches inside each old major are
+      # still fine. Revisit only when react-native-render-html itself moves.
+      - dependency-name: "stringify-entities"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "domhandler"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "domutils"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "htmlparser2"
+        update-types: ["version-update:semver-major"]
+
       # --- toolchain ----------------------------------------------------
       # History: @vitejs/plugin-react 6.0.4 peered vite 7, and hoisting one
       # vite 7 into the workspace root broke apps/website — @tailwindcss/vite 4
@@ -175,6 +215,16 @@ updates:
       # already at ~6.0.3, so TypeScript 7 falls out of that peer range and
       # breaks linting. Unblock when typescript-eslint ships a TS-7 release.
       - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+
+      # @types/node describes the runtime, so its major is not a free upgrade —
+      # it has to track the `node:NN-alpine` in every Dockerfile and the
+      # node-version in .github/workflows/ci.yml, currently 24. Left alone,
+      # Dependabot offers whatever is newest (it proposed 26 while the runtime
+      # was 24, and the root manifest was still on 22), which types APIs the
+      # deployed runtime does not have. Move this deliberately, with the
+      # Dockerfiles and CI, in the same change as the `node` image ignore below.
+      - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
 
   # ---------------------------------------------------------------- docker
