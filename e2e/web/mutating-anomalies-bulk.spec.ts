@@ -227,6 +227,17 @@ test.describe.serial('web — Anomalie bulk correction (mutating)', () => {
     await bar.getByRole('button', { name: /^Correggi/ }).click();
     await expect(bar).toHaveCount(0, { timeout: 20_000 });
 
+    // "Nascondi giustificate" is on by default, so once every row in the band
+    // carries a note the list empties out with the dedicated message — not the
+    // generic "no anomalies", which would read as if the days had been clean.
+    await expect(page.getByText(/tutte quelle del periodo/i)).toBeVisible({ timeout: 20_000 });
+
+    // Unchecking it brings the annotated rows back.
+    await page.getByTestId('hide-justified').uncheck();
+    await expect(page.getByText(/Giustificata: e2e giustifica in blocco/).first()).toBeVisible({
+      timeout: 15_000,
+    });
+
     const after = await anomaliesInRange(from, to);
     expect(after.every((a) => a.justification_note === 'e2e giustifica in blocco')).toBe(true);
   });

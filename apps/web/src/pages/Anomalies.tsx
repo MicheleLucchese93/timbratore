@@ -96,6 +96,10 @@ export function Anomalies() {
   const [err, setErr] = useState<string | null>(null);
   const [notDeployed, setNotDeployed] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // A justified anomaly stays in the API response by design — the deviation
+  // remains on record and in the exports. Hiding it here is a view filter, so
+  // the page defaults to the work still to be handled.
+  const [hideJustified, setHideJustified] = useState(true);
 
   useEffect(() => {
     api<UserRow[]>('/api/v1/users')
@@ -125,24 +129,33 @@ export function Anomalies() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Everything below (grouping, selection, the bulk bar) runs on the visible
+  // set, so a hidden row can never end up in a bulk correction.
+  const visible = useMemo(
+    () => (hideJustified ? rows.filter((r) => !r.justification_note) : rows),
+    [rows, hideJustified]
+  );
+  const hiddenCount = rows.length - visible.length;
+
   const grouped = useMemo(() => {
     const m = new Map<string, Anomaly[]>();
-    for (const r of rows) {
+    for (const r of visible) {
       const key = r.date;
       const arr = m.get(key) ?? [];
       arr.push(r);
       m.set(key, arr);
     }
     return [...m.entries()].sort(([a], [b]) => (a < b ? 1 : -1));
-  }, [rows]);
+  }, [visible]);
 
   // Drop selection keys no longer in the list. After a refetch the resolved
   // rows disappear, so a bulk retry only re-hits rows that still fail — this
-  // also neutralizes the non-idempotent leave endpoints on retry.
+  // also neutralizes the non-idempotent leave endpoints on retry. Rows hidden
+  // by the "nascondi giustificate" filter are dropped the same way.
   useEffect(() => {
     setSelected((prev) => {
       if (prev.size === 0) return prev;
-      const present = new Set(rows.map(keyOf));
+      const present = new Set(visible.map(keyOf));
       let changed = false;
       const next = new Set<string>();
       for (const k of prev) {
@@ -151,13 +164,13 @@ export function Anomalies() {
       }
       return changed ? next : prev;
     });
-  }, [rows]);
+  }, [visible]);
 
   const selectedRows = useMemo(
-    () => rows.filter((r) => selected.has(keyOf(r))),
-    [rows, selected]
+    () => visible.filter((r) => selected.has(keyOf(r))),
+    [visible, selected]
   );
-  const allSelected = rows.length > 0 && rows.every((r) => selected.has(keyOf(r)));
+  const allSelected = visible.length > 0 && visible.every((r) => selected.has(keyOf(r)));
 
   function toggleOne(k: string) {
     setSelected((prev) => {
@@ -168,7 +181,7 @@ export function Anomalies() {
     });
   }
   function toggleAll() {
-    setSelected(() => (allSelected ? new Set() : new Set(rows.map(keyOf))));
+    setSelected(() => (allSelected ? new Set() : new Set(visible.map(keyOf))));
   }
   function toggleDay(items: Anomaly[]) {
     setSelected((prev) => {
@@ -229,6 +242,18 @@ export function Anomalies() {
         >
           {loading ? t('common:state.loading') : t('common:btn.refresh')}
         </button>
+        <label className="flex items-center gap-2 cursor-pointer text-sm pb-2">
+          <input
+            type="checkbox"
+            data-testid="hide-justified"
+            checked={hideJustified}
+            onChange={(e) => setHideJustified(e.target.checked)}
+          />
+          <span>{t('filter.hideJustified')}</span>
+          {hiddenCount > 0 && (
+            <span className="muted">· {t('filter.hiddenCount', { n: hiddenCount })}</span>
+          )}
+        </label>
       </div>
 
       {notDeployed && (
@@ -248,11 +273,19 @@ export function Anomalies() {
         </div>
       )}
 
-      {rows.length > 0 && (
+      {/* Everything in range is justified: say so, rather than let the generic
+          "no anomalies" message imply the days were clean. */}
+      {!loading && rows.length > 0 && visible.length === 0 && (
+        <div className="card text-sm muted">
+          {t('emptyAllJustified', { n: hiddenCount })}
+        </div>
+      )}
+
+      {visible.length > 0 && (
         <div className="flex items-center gap-2 text-sm">
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={allSelected} onChange={toggleAll} />
-            <span>{t('bulk.selectAllVisible', { n: rows.length })}</span>
+            <span>{t('bulk.selectAllVisible', { n: visible.length })}</span>
           </label>
           {selected.size > 0 && (
             <span className="muted">· {t('bulk.selected', { n: selected.size })}</span>

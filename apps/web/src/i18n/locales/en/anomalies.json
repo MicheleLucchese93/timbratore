@@ -4,10 +4,13 @@
     "from": "From",
     "to": "To",
     "user": "Employee",
-    "allUsers": "All"
+    "allUsers": "All",
+    "hideJustified": "Hide justified",
+    "hiddenCount": "{{n}} hidden"
   },
   "notDeployed": "The \"Time anomalies\" feature becomes available after the backend update. Try again once the deployment is complete.",
   "empty": "No anomalies in the selected period.",
+  "emptyAllJustified": "Nothing left to handle: every anomaly in the period ({{n}}) is already justified. Uncheck \"Hide justified\" to see them again.",
   "row": {
     "scheduleLabel": "Schedule:",
     "expected": "Expected",
@@ -36,7 +39,7 @@
   },
   "noteSection": {
     "title": "Justification note",
-    "hint": "The anomaly stays visible but annotated; the note appears in exports."
+    "hint": "The anomaly stays on record but annotated; the note appears in exports. With \"Hide justified\" on it drops out of the list."
   },
   "noteField": {
     "optionalPlaceholder": "Note for the employee (optional)",

@@ -677,6 +677,7 @@ export const MAIN_EN = `
           <li>Press <strong>Filter</strong>.</li>
         </ol>
         <p>The results are grouped by date (most recent at the top).</p>
+        <p><strong>Hide justified</strong> (on by default): keeps anomalies that already carry a note out of the list, so the page shows only what still needs handling. The number of hidden rows appears next to the checkbox; uncheck it to see them all again. It is only a view filter: justified anomalies stay on record and keep appearing in the exports and in the day dossier.</p>
       </div>
 
       <div class="feature">
@@ -709,7 +710,7 @@ export const MAIN_EN = `
             <tr><td><strong>Standard stamp (shift times of the day)</strong></td><td>Adds only the missing stamps (clock-in and/or clock-out) at the times planned by the shift. It does not modify the actual stamps already present. Available only when a stamp is missing.</td></tr>
             <tr><td><strong>Insert holiday</strong></td><td>Creates the holiday on the day of the anomaly on the employee's behalf. Already approved; the hours are calculated from the assigned shift.</td></tr>
             <tr><td><strong>Insert leave</strong></td><td>Creates an hourly leave. The proposed window covers the period not worked (gap), adjustable with the −/+ buttons in 15-minute steps.</td></tr>
-            <tr><td><strong>Justify with a note</strong></td><td>Annotates the anomaly with a reason, without modifying stamps or absences. The anomaly stays visible but justified. Available for any type.</td></tr>
+            <tr><td><strong>Justify with a note</strong></td><td>Annotates the anomaly with a reason, without modifying stamps or absences. The anomaly stays on record but justified: with <em>Hide justified</em> on it drops out of the list, and it still appears in the exports. Available for any type.</td></tr>
           </tbody>
         </table>
         <p><strong>Notification to the employee:</strong> for holiday and leave entered by the admin the employee receives a dedicated notification (push and email) explaining that the administrator entered the absence to fix an anomaly — distinct from the confirmation of an approved request. Any <em>note for the employee</em> is included in the notification.</p>
@@ -922,9 +923,17 @@ export const MAIN_EN = `
           <li><strong>Author</strong> — the user who performed the operation.</li>
           <li><strong>Activity</strong> — the description of the operation (e.g. <em>Stamp added</em>, <em>User deactivated</em>).</li>
           <li><strong>Target</strong> — the employee affected by the operation, when applicable.</li>
-          <li><strong>Details</strong> — compact information about the operation (dates, values, notes).</li>
+          <li><strong>Details</strong> — a plain-language summary of the operation: field names in your language, dates and times in the local format, translated values (<em>Clock in</em>, <em>Holiday</em>, <em>Employee app</em>…) and amounts with their unit (<em>15 min</em>, <em>150 m</em>).</li>
         </ul>
+        <p>When the operation is an <strong>edit</strong>, Details show only the fields that actually changed, as <em>previous value</em> → <strong>new value</strong>: the old value struck through, the new one in bold. It is the fastest way to see what was touched without opening anything.</p>
         <p class="muted">For each entry the system also records, server-side, the IP address the operation was performed from.</p>
+      </div>
+
+      <div class="feature">
+        <h3>The full detail of an entry</h3>
+        <p><strong>Click a row</strong> to open the operation card. At the top: activity, date and time, author and target; below, the table of <strong>all</strong> the recorded fields — with <em>Before</em> and <em>After</em> columns when it is an edit (there the card lists the fields that changed, which is the relevant fact). Compared with the grid summary, the card leaves nothing out: on insertions and deletions it also shows the background data, such as GPS coordinates, signal accuracy, device and app version of a stamp.</p>
+        <p>At the bottom of the card you find the operation's <strong>technical code</strong> and the originating <strong>IP address</strong>: these are the references to quote to support when reporting a specific case.</p>
+        <p class="muted">Internal identifiers (technical row codes, cross-table references) are not shown: you get the readable names instead, and for multiple selections the number of items (e.g. <em>Branches: 3 selected</em>).</p>
       </div>
 
       <div class="feature">

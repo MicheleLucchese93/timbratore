@@ -684,6 +684,7 @@ const MAIN_IT = `
           <li>Premi <strong>Filtra</strong>.</li>
         </ol>
         <p>I risultati sono raggruppati per data (più recenti in alto).</p>
+        <p><strong>Nascondi giustificate</strong> (attivo di default): tiene fuori dall'elenco le anomalie già annotate con una nota, così la pagina mostra solo quelle ancora da gestire. Accanto alla casella compare il numero di righe nascoste; togli il segno di spunta per rivederle tutte. È solo un filtro di visualizzazione: le anomalie giustificate restano registrate e continuano a comparire nelle esportazioni e nel dossier giornata.</p>
       </div>
 
       <div class="feature">
@@ -716,7 +717,7 @@ const MAIN_IT = `
             <tr><td><strong>Timbratura standard (orari del giorno)</strong></td><td>Aggiunge i soli timbri mancanti (ingresso e/o uscita) agli orari previsti dal turno. Non modifica i timbri reali già presenti. Disponibile solo quando manca un timbro.</td></tr>
             <tr><td><strong>Inserisci ferie</strong></td><td>Crea le ferie sul giorno dell'anomalia per conto del dipendente. Già approvate; le ore sono calcolate dall'orario assegnato.</td></tr>
             <tr><td><strong>Inserisci permesso</strong></td><td>Crea un permesso a ore. La finestra proposta copre il periodo non lavorato (gap), modificabile con i pulsanti −/+ a passi di 15 minuti.</td></tr>
-            <tr><td><strong>Giustifica con nota</strong></td><td>Annota l'anomalia con una motivazione, senza modificare timbri o assenze. L'anomalia resta visibile ma giustificata. Disponibile per qualsiasi tipo.</td></tr>
+            <tr><td><strong>Giustifica con nota</strong></td><td>Annota l'anomalia con una motivazione, senza modificare timbri o assenze. L'anomalia resta registrata ma giustificata: con <em>Nascondi giustificate</em> attivo sparisce dall'elenco, e resta comunque nelle esportazioni. Disponibile per qualsiasi tipo.</td></tr>
           </tbody>
         </table>
         <p><strong>Notifica al dipendente:</strong> per ferie e permessi inseriti dall'admin il dipendente riceve una notifica dedicata (push ed email) che spiega che è stata l'amministrazione a inserire l'assenza per correggere un'anomalia — distinta dalla conferma di una richiesta approvata. L'eventuale <em>nota per il dipendente</em> è inclusa nella notifica.</p>
@@ -929,9 +930,17 @@ const MAIN_IT = `
           <li><strong>Autore</strong> — l'utente che ha effettuato l'operazione.</li>
           <li><strong>Attività</strong> — la descrizione dell'operazione (es. <em>Timbratura inserita</em>, <em>Utente disattivato</em>).</li>
           <li><strong>Destinatario</strong> — il dipendente interessato dall'operazione, quando applicabile.</li>
-          <li><strong>Dettagli</strong> — informazioni sintetiche sull'operazione (date, valori, note).</li>
+          <li><strong>Dettagli</strong> — il riepilogo in chiaro dell'operazione: nomi di campo in italiano, date e orari nel formato locale, valori tradotti (<em>Entrata</em>, <em>Ferie</em>, <em>App dipendente</em>…) e importi con la loro unità (<em>15 min</em>, <em>150 m</em>).</li>
         </ul>
+        <p>Quando l'operazione è una <strong>modifica</strong>, i Dettagli mostrano solo i campi realmente cambiati, nella forma <em>valore precedente</em> → <strong>valore nuovo</strong>: il valore vecchio è barrato, quello nuovo in grassetto. È il modo più rapido per capire cosa è stato toccato senza aprire nulla.</p>
         <p class="muted">Per ogni voce il sistema registra lato server anche l'indirizzo IP da cui è stata effettuata l'operazione.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Il dettaglio completo di una voce</h3>
+        <p><strong>Clicca una riga</strong> per aprire la scheda dell'operazione. In alto trovi attività, data e ora, autore e destinatario; sotto, la tabella di <strong>tutti</strong> i campi registrati — con le colonne <em>Prima</em> e <em>Dopo</em> quando si tratta di una modifica (in quel caso la scheda elenca i campi cambiati, che sono il fatto rilevante). Rispetto al riepilogo in griglia, la scheda non taglia nulla: sugli inserimenti e sulle eliminazioni compaiono anche i dati di contorno, come coordinate GPS, precisione del segnale, dispositivo e versione dell'app di una timbratura.</p>
+        <p>In fondo alla scheda compaiono il <strong>codice tecnico</strong> dell'operazione e l'<strong>indirizzo IP</strong> di origine: sono i riferimenti da citare all'assistenza quando si segnala un caso specifico.</p>
+        <p class="muted">Gli identificativi interni (codici tecnici delle righe, riferimenti fra tabelle) non vengono mostrati: al loro posto trovi i nomi leggibili, e per le selezioni multiple il numero di elementi (es. <em>Sedi: 3 selezionati</em>).</p>
       </div>
 
       <div class="feature">

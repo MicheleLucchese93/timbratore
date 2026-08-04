@@ -4,10 +4,13 @@
     "from": "Dal",
     "to": "Al",
     "user": "Utente",
-    "allUsers": "Tutti"
+    "allUsers": "Tutti",
+    "hideJustified": "Nascondi giustificate",
+    "hiddenCount": "{{n}} nascoste"
   },
   "notDeployed": "La funzione \"Anomalie orario\" è disponibile dopo l'aggiornamento del backend. Riprova quando il deploy sarà completato.",
   "empty": "Nessuna anomalia nel periodo selezionato.",
+  "emptyAllJustified": "Nessuna anomalia da gestire: tutte quelle del periodo ({{n}}) sono già giustificate. Togli il segno di spunta a \"Nascondi giustificate\" per rivederle.",
   "row": {
     "scheduleLabel": "Orario:",
     "expected": "Atteso",
@@ -36,7 +39,7 @@
   },
   "noteSection": {
     "title": "Nota di giustificazione",
-    "hint": "L'anomalia resta visibile ma annotata; la nota compare nelle esportazioni."
+    "hint": "L'anomalia resta registrata ma annotata; la nota compare nelle esportazioni. Con \"Nascondi giustificate\" attivo sparisce dall'elenco."
   },
   "noteField": {
     "optionalPlaceholder": "Nota per il dipendente (opzionale)",

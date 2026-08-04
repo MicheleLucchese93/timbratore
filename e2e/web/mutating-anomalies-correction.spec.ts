@@ -346,10 +346,17 @@ test.describe.serial('web — Anomalie Correggi menu resolves anomalies (mutatin
     // Wait for the form to close (justify POST resolved), then re-apply the
     // filter via "Aggiorna" so the final list is the seeded user+day fetch — not
     // a late-resolving initial mount-load (all users / default range) that could
-    // otherwise overwrite it. Then assert the row gained its note. (Server-side
-    // merge is verified directly by the API check just below.)
+    // otherwise overwrite it. (Server-side merge is verified directly by the API
+    // check just below.)
     await expect(row.getByRole('button', { name: 'Conferma' })).toHaveCount(0, { timeout: 10_000 });
     await page.getByRole('button', { name: 'Aggiorna' }).click();
+
+    // "Nascondi giustificate" is on by default, so the row it just annotated
+    // drops out of the list — that is the point of the filter.
+    await expect(row).toHaveCount(0, { timeout: 15_000 });
+
+    // Unchecking it brings the row back, now carrying its note.
+    await page.getByTestId('hide-justified').uncheck();
     await expect(row.getByText(/Giustificata:/)).toBeVisible({ timeout: 15_000 });
 
     // API confirms the note persisted on the right (day, kind).
