@@ -614,12 +614,24 @@ usersRouter.patch(
     if (parse.data.role === 'user' && req.params.id === req.user!.id) {
       throw new ForbiddenError('Admins cannot change their own role', 'SELF_ROLE_CHANGE');
     }
+    // One pre-update snapshot serves three purposes: the limit guards below
+    // (which only bite when the flag is actually being turned on), the display
+    // name rebuild, and the `before` payload the Registro attività needs to
+    // render a user edit as "prima → dopo" instead of the new value alone.
+    const prev = await client.query(
+      `SELECT m.*, au.first_name AS au_first_name, au.last_name AS au_last_name
+         FROM memberships m
+         LEFT JOIN auth_users au ON au.id = m.user_id
+        WHERE m.user_id = $1 AND m.deleted_at IS NULL`,
+      [req.params.id]
+    );
+    if (prev.rowCount === 0) throw new NotFoundError('user');
+    const prevRow = prev.rows[0] as Record<string, unknown>;
+    prevRow.first_name = prevRow.au_first_name;
+    prevRow.last_name = prevRow.au_last_name;
+
     if (parse.data.role === 'admin') {
-      const cur = await client.query(
-        `SELECT role FROM memberships WHERE user_id = $1 AND deleted_at IS NULL`,
-        [req.params.id]
-      );
-      if (cur.rowCount && cur.rows[0].role !== 'admin') {
+      if (prevRow.role !== 'admin') {
         const { limits, counts } = await fetchLimits(client);
         if (counts.admins >= limits.max_admins) {
           throw new ConflictError(
@@ -633,11 +645,7 @@ usersRouter.patch(
     // Enforce the per-tenant Documentale cap only when ENABLING the capability on
     // a member that doesn't already have it (turning it off is always allowed).
     if (parse.data.is_documentale === true) {
-      const cur = await client.query(
-        `SELECT is_documentale FROM memberships WHERE user_id = $1 AND deleted_at IS NULL`,
-        [req.params.id]
-      );
-      if (cur.rowCount && cur.rows[0].is_documentale !== true) {
+      if (prevRow.is_documentale !== true) {
         const { limits, counts } = await fetchLimits(client);
         if (counts.documentali >= limits.max_documentali) {
           throw new ConflictError(
@@ -683,27 +691,29 @@ usersRouter.patch(
     if (r.rowCount === 0) throw new NotFoundError('user');
 
     if (parse.data.first_name !== undefined || parse.data.last_name !== undefined) {
-      const cur = await client.query(
-        `SELECT first_name, last_name FROM auth_users WHERE id = $1`,
-        [req.params.id]
-      );
-      const curRow = cur.rows[0] ?? { first_name: null, last_name: null };
       const newFirst =
-        parse.data.first_name !== undefined ? parse.data.first_name : curRow.first_name;
+        parse.data.first_name !== undefined ? parse.data.first_name : prevRow.first_name;
       const newLast =
-        parse.data.last_name !== undefined ? parse.data.last_name : curRow.last_name;
-      const display = buildDisplayName(newFirst, newLast);
+        parse.data.last_name !== undefined ? parse.data.last_name : prevRow.last_name;
+      const display = buildDisplayName(newFirst as string | null, newLast as string | null);
       await client.query(
         `UPDATE auth_users SET first_name = $2, last_name = $3, display_name = $4 WHERE id = $1`,
         [req.params.id, newFirst, newLast, display]
       );
     }
 
+    // `before` mirrors exactly the keys the request touched: anything else
+    // would show up as an unchanged row in the Registro's diff table.
+    const before: Record<string, unknown> = {};
+    for (const key of Object.keys(parse.data)) {
+      if (key in prevRow) before[key] = prevRow[key];
+    }
     await logAudit(client, {
       action: 'user.update',
       resourceType: 'user',
       resourceId: String(req.params.id),
       targetUserId: String(req.params.id),
+      before,
       after: parse.data,
       req,
     });
@@ -1376,6 +1386,19 @@ usersRouter.post(
     const parse = BulkModes.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     const { user_ids, stamp_modes } = parse.data;
+    // RETURNING only ever yields the post-update row, so the previous modes are
+    // read first — without them the Registro shows the new value with nothing
+    // to compare it against.
+    const prev = await client.query(
+      `SELECT user_id, stamp_modes FROM memberships
+        WHERE user_id = ANY($1::uuid[])
+          AND tenant_id = current_setting('app.current_tenant_id')::uuid
+          AND deleted_at IS NULL`,
+      [user_ids]
+    );
+    const prevModes = new Map<string, string[]>(
+      prev.rows.map((row) => [String(row.user_id), row.stamp_modes as string[]])
+    );
     const r = await client.query(
       `UPDATE memberships SET stamp_modes = $2::text[]
         WHERE user_id = ANY($1::uuid[])
@@ -1390,6 +1413,7 @@ usersRouter.post(
         resourceType: 'user',
         resourceId: String(row.user_id),
         targetUserId: String(row.user_id),
+        before: { stamp_modes: prevModes.get(String(row.user_id)) ?? [], bulk: true },
         after: { stamp_modes, bulk: true },
         req,
       });

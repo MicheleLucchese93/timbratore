@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef, type GridPaginationModel } from '@mui/x-data-grid';
 import { api } from '../lib/api.ts';
@@ -6,6 +6,14 @@ import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { fmtDateTime } from '../i18n/format.ts';
 import { PageHeader } from '../components/PageHeader.tsx';
 import { type UserRow, userLabel } from '../lib/stamp-types.ts';
+import { useEscapeKey } from '../hooks/useEscapeKey.ts';
+import {
+  auditFields,
+  auditSummaryText,
+  summaryFields,
+  type AuditField,
+  type TFn,
+} from '../lib/audit-detail.ts';
 
 interface AuditEntry {
   id: number;
@@ -44,6 +52,7 @@ export function Audit() {
   const [total, setTotal] = useState(0);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState<AuditEntry | null>(null);
 
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -131,14 +140,14 @@ export function Audit() {
       {
         field: 'details',
         headerName: t('column.details'),
-        flex: 1.4,
-        minWidth: 200,
+        flex: 1.8,
+        minWidth: 260,
         sortable: false,
         filterable: false,
-        valueGetter: (_v, row) => detailSummary(row),
+        valueGetter: (_v, row) => auditSummaryText(row, t as TFn),
         renderCell: (p) => (
-          <span className="text-xs" title={p.value as string} style={{ color: 'var(--color-on-surface-variant)' }}>
-            {p.value}
+          <span className="text-xs" title={p.value as string}>
+            <FieldList fields={summaryFields(p.row, t as TFn)} />
           </span>
         ),
       },
@@ -150,7 +159,7 @@ export function Audit() {
     <div className="space-y-4">
       <PageHeader
         title={t('title')}
-        subtitle={t('subtitle')}
+        subtitle={`${t('subtitle')} — ${t('detail.hint')}`}
         actions={
           <button className="btn" onClick={() => load().catch(() => {})}>
             {t('common:btn.refresh')}
@@ -221,7 +230,7 @@ export function Audit() {
           rows={entries}
           columns={columns}
           getRowId={(r) => r.id}
-          sx={dataGridSx}
+          sx={{ ...dataGridSx, '& .MuiDataGrid-row': { cursor: 'pointer' } }}
           {...dataGridDefaults}
           showToolbar={false}
           paginationMode="server"
@@ -230,34 +239,127 @@ export function Audit() {
           onPaginationModelChange={setPagination}
           pageSizeOptions={[50, 100, 200]}
           loading={loading}
+          onRowClick={(p) => setSelected(p.row)}
           localeText={{ noRowsLabel: t('empty') }}
         />
+      </div>
+
+      {selected && <AuditDetailModal entry={selected} onClose={() => setSelected(null)} />}
+    </div>
+  );
+}
+
+/** `Campo: valore · Campo: prima → dopo`, with the old value struck through. */
+function FieldList({ fields }: { fields: AuditField[] }) {
+  if (fields.length === 0) return null;
+  return (
+    <>
+      {fields.map((f, i) => (
+        <span key={f.key}>
+          {i > 0 && <span style={{ color: 'var(--color-outline)' }}> · </span>}
+          <span style={{ color: 'var(--color-on-surface-variant)' }}>{f.label}: </span>
+          {f.prev !== null && (
+            <>
+              <span style={{ textDecoration: 'line-through', opacity: 0.7 }}>{f.prev}</span>
+              <span aria-hidden="true"> → </span>
+            </>
+          )}
+          <span style={{ fontWeight: f.prev !== null ? 600 : 400 }}>{f.value}</span>
+        </span>
+      ))}
+    </>
+  );
+}
+
+const TH: CSSProperties = {
+  fontSize: '0.75rem',
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+  color: 'var(--color-on-surface-variant)',
+  padding: '0 8px 4px 0',
+};
+
+/** Full, humanized dossier of one entry: who/when/what plus every field. */
+function AuditDetailModal({ entry, onClose }: { entry: AuditEntry; onClose: () => void }) {
+  const { t } = useTranslation(['audit', 'common']);
+  useEscapeKey(onClose);
+  const fields = auditFields(entry, t as TFn);
+  const isDiff = fields.some((f) => f.prev !== null);
+
+  return (
+    <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50" onClick={onClose}>
+      <div
+        data-testid="audit-detail-modal"
+        className="card w-full max-w-2xl space-y-3"
+        role="dialog"
+        aria-modal="true"
+        style={{ maxHeight: '88vh', overflow: 'auto' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div>
+          <h2 className="section-title">
+            {t(`action.${entry.action}`, { defaultValue: entry.action })}
+          </h2>
+          <p className="text-sm muted">
+            {fmtDateTime(entry.created_at)} ·{' '}
+            {t('detail.by', { who: entry.actor_name ?? entry.actor_email ?? '—' })}
+            {entry.target_label ? ` · ${t('detail.on', { who: entry.target_label })}` : ''}
+          </p>
+        </div>
+
+        {fields.length === 0 ? (
+          <p className="text-sm muted">{t('detail.noFields')}</p>
+        ) : (
+          <table className="text-sm w-full" data-testid="audit-detail-fields">
+            <thead>
+              {/* Not the `.label` class: it is display:block, which collapses a
+                  table header row into stacked lines. */}
+              <tr style={{ textAlign: 'left' }}>
+                <th style={TH}>{t('detail.field')}</th>
+                {isDiff && <th style={TH}>{t('detail.before')}</th>}
+                <th style={TH}>{isDiff ? t('detail.after') : t('detail.value')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {fields.map((f) => (
+                <tr key={f.key} style={{ borderTop: '1px solid var(--color-outline-variant)' }}>
+                  <td style={{ padding: '4px 8px 4px 0', color: 'var(--color-on-surface-variant)' }}>
+                    {f.label}
+                  </td>
+                  {isDiff && (
+                    <td style={{ padding: '4px 8px 4px 0', opacity: 0.7 }}>
+                      {f.prev !== null ? (
+                        <span style={{ textDecoration: 'line-through' }}>{f.prev}</span>
+                      ) : (
+                        ''
+                      )}
+                    </td>
+                  )}
+                  <td style={{ padding: '4px 0', fontWeight: f.prev !== null ? 600 : 400 }}>
+                    {f.value}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {/* Support/forensics footer: the raw action code and origin IP are what a
+            consultant needs when reconciling the log with a bug report. */}
+        <p className="text-xs muted" style={{ wordBreak: 'break-all' }}>
+          <span className="num">{entry.action}</span>
+          {entry.resource_id ? ` · ${entry.resource_type}: ${entry.resource_id}` : ''}
+          {entry.ip ? ` · IP ${entry.ip}` : ''}
+        </p>
+
+        <div className="flex justify-end">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
+            {t('common:btn.close')}
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** Compact one-line summary of the changed fields (after wins over before).
- * Ids/uuids mean nothing to an admin reading the log; html bodies and other
- * long blobs (legacy full-row payloads) don't belong in a grid cell. */
-function detailSummary(row: AuditEntry): string {
-  const payload = row.after ?? row.before;
-  if (payload === null || payload === undefined) return '';
-  if (typeof payload !== 'object') return String(payload);
-  return Object.entries(payload as Record<string, unknown>)
-    .filter(
-      ([k, v]) =>
-        v !== null &&
-        v !== undefined &&
-        typeof v !== 'object' &&
-        k !== 'id' &&
-        !k.endsWith('_id') &&
-        !k.endsWith('_html') &&
-        !(typeof v === 'string' && (UUID_RE.test(v) || v.length > 120))
-    )
-    .slice(0, 6)
-    .map(([k, v]) => `${k}: ${String(v).slice(0, 80)}`)
-    .join(' · ');
-}
