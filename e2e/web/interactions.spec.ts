@@ -1,4 +1,12 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import { toast } from '../fixtures/toast';
+
+/** The autosave call behind every Impostazioni field. */
+function waitForSettingsPatch(page: Page) {
+  return page.waitForResponse(
+    (r) => r.url().includes('/api/v1/settings') && r.request().method() === 'PATCH'
+  );
+}
 
 // Non-mutating UI interactions — filter changes, autosave reads, etc.
 test.describe('web — Stamps DataGrid filter + sort', () => {
@@ -23,17 +31,28 @@ test.describe('web — Settings timezone autosave', () => {
     const tz = page.locator('select').filter({ has: page.locator('option', { hasText: 'Europe/Rome' }) }).first();
     await expect(tz).toBeVisible({ timeout: 10_000 });
     const initial = await tz.inputValue();
-    // Pick a different timezone, wait for autosave toast, reload, re-read.
+    // Pick a different timezone, wait for the autosave, reload, re-read.
     const candidates = ['Europe/Paris', 'Europe/Madrid', 'UTC'];
     const next = candidates.find((c) => c !== initial) ?? 'UTC';
+
+    // Gate each save on its PATCH rather than on the toast alone: the toast is
+    // a single slot that clears after 3.5s, so under load it can come and go
+    // outside the assertion window and the failure reads as "element not
+    // found". The response also settles before the reload below can race it.
+    const savedNext = waitForSettingsPatch(page);
     await tz.selectOption(next);
-    await expect(page.getByText(/Impostazione salvata/i)).toBeVisible({ timeout: 10_000 });
+    expect((await savedNext).status()).toBe(200);
+    await expect(toast(page, /Impostazione salvata/i)).toBeVisible();
+
     await page.reload();
     const tz2 = page.locator('select').filter({ has: page.locator('option', { hasText: 'Europe/Rome' }) }).first();
     await expect(tz2).toHaveValue(next, { timeout: 10_000 });
     // Restore initial so the tenant config is unchanged.
+    const savedRestore = waitForSettingsPatch(page);
     await tz2.selectOption(initial);
-    await expect(page.getByText(/Impostazione salvata/i)).toBeVisible({ timeout: 10_000 });
+    expect((await savedRestore).status()).toBe(200);
+    // The reload cleared the first toast, so this one can only be the restore.
+    await expect(toast(page, /Impostazione salvata/i)).toBeVisible();
   });
 });
 

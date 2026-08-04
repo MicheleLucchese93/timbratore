@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { toast } from '../fixtures/toast';
 
 test.describe('web — Impostazioni (admin)', () => {
   test.beforeEach(async ({ page }) => {
@@ -45,8 +46,17 @@ test.describe('web — Impostazioni (admin)', () => {
     // once — toggling twice in quick succession races the PATCH /api/v1/me.
     const switchLabel = page.locator('label.switch').first();
     await expect(switchLabel).toBeVisible({ timeout: 10_000 });
+
+    // The toast is a single slot that clears itself after 3.5s, so waiting on
+    // it alone turns a slow PATCH into "element not found" with no clue why.
+    // Gate on the response first: that assertion can't expire, and a failure
+    // names the layer that actually broke.
+    const saved = page.waitForResponse(
+      (r) => r.url().includes('/api/v1/me') && r.request().method() === 'PATCH'
+    );
     await switchLabel.click({ force: true });
-    await expect(page.getByText(/Preferenza salvata\./i)).toBeVisible({ timeout: 10_000 });
+    expect((await saved).status()).toBe(200);
+    await expect(toast(page, /Preferenza salvata\./i)).toBeVisible();
   });
 
   // Non-mutating: exercises the live complexity checklist + submit gating only.
