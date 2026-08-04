@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import ExcelJS from 'exceljs';
 import { CREDS, STORAGE } from '../fixtures/test-data';
 import {
   createExportJob,
@@ -137,6 +138,35 @@ test.describe('web — Export job lifecycle (mutating)', () => {
       expect(dl.ok).toBe(true);
       expect(dl.contentType).toContain('spreadsheetml');
       expect(dl.isZip).toBe(true);
+
+      // The daily breakdown is ONE sheet for the whole company, not one tab per
+      // employee: payroll and the accountant filter/pivot it, so every row has
+      // to carry the identity of the person it belongs to.
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(dl.body);
+      const names = wb.worksheets.map((w) => w.name);
+      expect(names).toContain('Riepilogo');
+      expect(names).toContain('Dettaglio giornaliero');
+      expect(names).toContain('Metadati');
+      const dt = wb.getWorksheet('Dettaglio giornaliero')!;
+      const header = (dt.getRow(1).values as unknown[]).slice(1).map(String);
+      expect(header.slice(0, 5)).toEqual([
+        'Dipendente',
+        'Nome',
+        'Cognome',
+        'Codice fiscale',
+        'Giorno',
+      ]);
+      // Identity columns must be filled on EVERY data row — a blank one is a row
+      // nobody can attribute.
+      const blanks: number[] = [];
+      dt.eachRow((row, n) => {
+        if (n === 1) return;
+        if (!String(row.getCell(1).value ?? '') || !String(row.getCell(5).value ?? '')) {
+          blanks.push(n);
+        }
+      });
+      expect(blanks).toEqual([]);
     } else {
       // Worker not done / storage not configured in this env — just assert the
       // job exists. The unit-level workbook build is covered separately.

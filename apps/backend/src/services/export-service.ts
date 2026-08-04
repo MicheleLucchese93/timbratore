@@ -692,8 +692,8 @@ function fmtRettificaValue(
  * omitted — add the entry when you add the column. */
 const SHEET_DESCRIPTIONS: Record<string, string> = {
   Riepilogo: 'Una riga per dipendente con i totali del periodo e i saldi residui.',
-  '<dipendente>':
-    'Un foglio per dipendente con il dettaglio giorno per giorno. Il nome del foglio è il nome del dipendente.',
+  'Dettaglio giornaliero':
+    'Il dettaglio giorno per giorno di TUTTI i dipendenti in un unico foglio: una riga per dipendente e per giorno. Le colonne Nome, Cognome e Codice fiscale identificano la persona, così il foglio si può filtrare, ordinare o usare come sorgente di una tabella pivot.',
   Timbrature:
     'Registro grezzo di ogni timbratura del periodo, incluse quelle eliminate (marcate nella colonna Stato). È il foglio di riferimento in caso di contestazione.',
   Rettifiche:
@@ -728,7 +728,12 @@ const COLUMN_DESCRIPTIONS: Record<string, Record<string, string>> = {
     'Residuo ferie (h)': 'Saldo ferie residuo alla data di generazione del file.',
     'Residuo permessi (h)': 'Saldo permessi residuo alla data di generazione del file.',
   },
-  '<dipendente>': {
+  'Dettaglio giornaliero': {
+    Dipendente: 'Nome e cognome (o email se l’anagrafica non è compilata).',
+    Nome: 'Nome del dipendente da anagrafica (vuoto se l’account ha solo un nome visualizzato).',
+    Cognome: 'Cognome del dipendente da anagrafica.',
+    'Codice fiscale':
+      'Codice fiscale registrato nell’anagrafica aziendale del dipendente. È la chiave da usare per riconciliare le righe con il gestionale paghe; vuoto se non è stato compilato.',
     Giorno: 'Data della giornata (fuso orario aziendale).',
     Marker: 'F = ferie intera giornata, P = permesso parziale, M = malattia.',
     'Ore lavorate': ORE_LAVORATE_DESC,
@@ -861,12 +866,21 @@ function boolLabel(v: boolean | null | undefined): string {
 interface UserMeta {
   name: string;
   email: string;
+  /** Anagrafica fields, kept apart from `name` so a sheet can print them as
+   *  separate identifying columns. Empty when the account carries only a
+   *  display name, or when the membership has no codice fiscale. */
+  firstName: string;
+  lastName: string;
+  codiceFiscale: string;
 }
 
 async function loadUserMeta(job: ExportJobRow): Promise<Map<string, UserMeta>> {
   const r = await adminPool.query(
     `SELECT m.user_id,
             COALESCE(au.email, m.user_id::text) AS email,
+            COALESCE(au.first_name, '') AS first_name,
+            COALESCE(au.last_name, '') AS last_name,
+            COALESCE(m.codice_fiscale, '') AS codice_fiscale,
             COALESCE(
               NULLIF(au.display_name, ''),
               NULLIF(trim(COALESCE(au.first_name, '') || ' ' || COALESCE(au.last_name, '')), ''),
@@ -879,7 +893,15 @@ async function loadUserMeta(job: ExportJobRow): Promise<Map<string, UserMeta>> {
     [job.tenant_id]
   );
   const map = new Map<string, UserMeta>();
-  for (const row of r.rows) map.set(row.user_id, { name: row.name, email: row.email });
+  for (const row of r.rows) {
+    map.set(row.user_id, {
+      name: row.name,
+      email: row.email,
+      firstName: row.first_name,
+      lastName: row.last_name,
+      codiceFiscale: row.codice_fiscale,
+    });
+  }
   return map;
 }
 
@@ -888,6 +910,15 @@ function metaName(meta: Map<string, UserMeta>, userId: string, fallback?: string
 }
 function metaEmail(meta: Map<string, UserMeta>, userId: string, fallback?: string): string {
   return meta.get(userId)?.email ?? fallback ?? userId;
+}
+function metaFirstName(meta: Map<string, UserMeta>, userId: string): string {
+  return meta.get(userId)?.firstName ?? '';
+}
+function metaLastName(meta: Map<string, UserMeta>, userId: string): string {
+  return meta.get(userId)?.lastName ?? '';
+}
+function metaCodiceFiscale(meta: Map<string, UserMeta>, userId: string): string {
+  return meta.get(userId)?.codiceFiscale ?? '';
 }
 
 async function loadBranchMeta(job: ExportJobRow): Promise<Map<string, string>> {
@@ -1390,41 +1421,48 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
   ]);
   styleHeader(riep);
 
-  /* 2. One sheet per employee — daily breakdown. */
-  const RESERVED = [
-    'riepilogo', 'timbrature', 'correzioni', 'ferie e permessi',
-    'eventi aziendali', 'ferie residue', 'metadati',
+  /* 2. Dettaglio giornaliero — every employee-day of the period in ONE sheet.
+   *
+   * This used to be one sheet per employee. A workbook with thirty tabs cannot
+   * be filtered, sorted or pivoted as a whole, and payroll software that reads
+   * the file has to know the sheet names in advance. A single flat table with
+   * the employee repeated on every row can do all of that; the identity columns
+   * (Nome / Cognome / Codice fiscale) are what makes each row attributable, so
+   * they lead the table. */
+  const dt = wb.addWorksheet('Dettaglio giornaliero');
+  dt.columns = [
+    { header: 'Dipendente', key: 'name', width: 26 },
+    { header: 'Nome', key: 'first', width: 18 },
+    { header: 'Cognome', key: 'last', width: 18 },
+    { header: 'Codice fiscale', key: 'cf', width: 20 },
+    { header: 'Giorno', key: 'day', width: 14 },
+    { header: 'Marker', key: 'marker', width: 8 },
+    { header: 'Ore lavorate', key: 'worked', width: 14 },
+    { header: 'Ore originali', key: 'original', width: 14 },
+    { header: 'Ore straordinarie', key: 'overtime', width: 18 },
+    { header: 'Ore ferie', key: 'ferie', width: 12 },
+    { header: 'Ore permessi', key: 'permessi', width: 14 },
+    { header: 'Ore malattia', key: 'malattia', width: 14 },
+    { header: 'Pausa retribuita (min)', key: 'paid', width: 22 },
+    { header: 'Pausa non retribuita (min)', key: 'unpaid', width: 26 },
   ];
-  const usedNames = new Set<string>(RESERVED);
-  // Tracked so the Metadati dictionary can document the per-employee shape once
-  // instead of repeating identical columns for every member of the company.
-  const employeeSheetNames: string[] = [];
-  for (const u of data) {
-    const label = metaName(userMeta, u.user_id, u.email);
-    const base = (label.replace(/[\\/?*\[\]:]/g, '_').slice(0, 28) || 'Utente');
-    let candidate = base;
-    let i = 2;
-    while (usedNames.has(candidate.toLowerCase())) {
-      candidate = `${base}_${i++}`.slice(0, 31);
-    }
-    usedNames.add(candidate.toLowerCase());
-    employeeSheetNames.push(candidate);
-    const ws = wb.addWorksheet(candidate);
-    ws.columns = [
-      { header: 'Giorno', key: 'day', width: 14 },
-      { header: 'Marker', key: 'marker', width: 8 },
-      { header: 'Ore lavorate', key: 'worked', width: 14 },
-      { header: 'Ore originali', key: 'original', width: 14 },
-      { header: 'Ore straordinarie', key: 'overtime', width: 18 },
-      { header: 'Ore ferie', key: 'ferie', width: 12 },
-      { header: 'Ore permessi', key: 'permessi', width: 14 },
-      { header: 'Ore malattia', key: 'malattia', width: 14 },
-      { header: 'Pausa retribuita (min)', key: 'paid', width: 22 },
-      { header: 'Pausa non retribuita (min)', key: 'unpaid', width: 26 },
-    ];
+  // Employee blocks in alphabetical order: the aggregate rows come out of the
+  // aggregator keyed by user_id, which is uuid order — fine when it is one row
+  // per person (Riepilogo), unreadable when it is thirty rows each.
+  const detailUsers = [...data].sort((a, b) =>
+    metaName(userMeta, a.user_id, a.email).localeCompare(metaName(userMeta, b.user_id, b.email))
+  );
+  for (const u of detailUsers) {
     const originalDays = originalByUserDay.get(u.user_id);
+    const identity = {
+      name: metaName(userMeta, u.user_id, u.email),
+      first: metaFirstName(userMeta, u.user_id),
+      last: metaLastName(userMeta, u.user_id),
+      cf: metaCodiceFiscale(userMeta, u.user_id),
+    };
     for (const d of u.days) {
-      ws.addRow({
+      dt.addRow({
+        ...identity,
         day: d.day,
         marker: d.leave_marker ?? '',
         worked: d.worked_minutes / 60,
@@ -1437,9 +1475,12 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
         unpaid: d.unpaid_break_minutes,
       });
     }
-    setHourFormat(ws, ['worked', 'original', 'overtime', 'ferie', 'permessi', 'malattia']);
-    styleHeader(ws);
   }
+  setHourFormat(dt, ['worked', 'original', 'overtime', 'ferie', 'permessi', 'malattia']);
+  styleHeader(dt);
+  // The identity columns stay on screen while scrolling right through the hour
+  // columns — without this the numbers lose the person they belong to.
+  dt.views = [{ state: 'frozen', xSplit: 4, ySplit: 1 }];
 
   /* 3. Timbrature — raw stamp detail (audit trail). */
   const tb = wb.addWorksheet('Timbrature');
@@ -1731,9 +1772,11 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
   );
   // v3: Timbrature keeps soft-deleted punches (flagged) and carries the
   // original-value columns; Rettifiche and the column dictionary are new.
+  // v4: the per-employee sheets are gone, folded into a single "Dettaglio
+  // giornaliero" table keyed by Nome / Cognome / Codice fiscale.
   info(
     'schema_version',
-    'v3',
+    'v4',
     'Versione del tracciato di questo file. Cambia quando vengono aggiunti o rinominati fogli e colonne.'
   );
   info('Dipendenti', data.length, 'Dipendenti inclusi nell’esportazione.');
@@ -1772,15 +1815,10 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
       v: 'Significato di ogni colonna, foglio per foglio.',
     }).number
   );
-  const perEmployeeNames = new Set(employeeSheetNames);
   for (const ws of wb.worksheets) {
     if (ws.name === 'Metadati') continue;
-    // Every per-employee sheet has identical columns; document the shape once
-    // rather than repeating it for each member of the company.
-    if (perEmployeeNames.has(ws.name) && ws.name !== employeeSheetNames[0]) continue;
-    const sheetLabel = perEmployeeNames.has(ws.name) ? '<dipendente>' : ws.name;
-    const descrs = COLUMN_DESCRIPTIONS[perEmployeeNames.has(ws.name) ? '<dipendente>' : ws.name];
-    meta.addRow({ sheet: sheetLabel, k: '', v: SHEET_DESCRIPTIONS[sheetLabel] ?? '' });
+    const descrs = COLUMN_DESCRIPTIONS[ws.name];
+    meta.addRow({ sheet: ws.name, k: '', v: SHEET_DESCRIPTIONS[ws.name] ?? '' });
     for (const col of ws.columns ?? []) {
       const header = typeof col.header === 'string' ? col.header : '';
       if (!header) continue;

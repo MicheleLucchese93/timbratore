@@ -770,17 +770,25 @@ export async function deleteExportJob(adminToken: string, id: string): Promise<v
 export async function downloadExport(
   adminToken: string,
   id: string,
-): Promise<{ ok: boolean; status: number; contentType: string | null; isZip: boolean }> {
+): Promise<{
+  ok: boolean;
+  status: number;
+  contentType: string | null;
+  isZip: boolean;
+  /** Raw body, so a caller can open the workbook and assert its sheets. */
+  body: Buffer;
+}> {
   const r = await fetch(`${API_BASE}/api/v1/exports/${id}/download`, {
     headers: authHeaders(adminToken),
   });
   let isZip = false;
+  let body = Buffer.alloc(0);
   if (r.ok) {
-    const buf = Buffer.from(await r.arrayBuffer());
+    body = Buffer.from(await r.arrayBuffer());
     // XLSX is a ZIP container — first two bytes are 'PK'.
-    isZip = buf.length > 4 && buf[0] === 0x50 && buf[1] === 0x4b;
+    isZip = body.length > 4 && body[0] === 0x50 && body[1] === 0x4b;
   }
-  return { ok: r.ok, status: r.status, contentType: r.headers.get('content-type'), isZip };
+  return { ok: r.ok, status: r.status, contentType: r.headers.get('content-type'), isZip, body };
 }
 
 export interface ExportDay {
