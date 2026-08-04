@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { CREDS, STORAGE } from '../fixtures/test-data';
 import {
+  apiPatch,
   createBranch,
   deleteBranch,
   loadHandleFromStorage,
@@ -54,5 +55,36 @@ test.describe('web — Registro attività entries (mutating)', () => {
     await expect(
       page.getByRole('row').filter({ hasText: 'Sede eliminata' }).filter({ hasText: name }).first()
     ).toBeVisible();
+  });
+
+  // PATCH /users/:id snapshots the columns it is about to touch, so a user edit
+  // reaches the Registro with both sides and renders as "prima → dopo". Without
+  // the snapshot the row would show the new modes and nothing to compare them
+  // against, which is exactly how this looked before.
+  test('a user edit reaches the registro as a before → after diff', async ({ page }) => {
+    const employee = await loadHandleFromStorage(STORAGE.webUserAuth, CREDS.user);
+    // Force a known transition: settle on gps-only first, then add remote, so
+    // the last entry always has two different sides regardless of prior state.
+    await apiPatch(admin.token, `/api/v1/users/${employee.userId}`, { stamp_modes: ['gps'] });
+    await apiPatch(admin.token, `/api/v1/users/${employee.userId}`, {
+      stamp_modes: ['gps', 'remote'],
+    });
+
+    try {
+      await page.goto('/audit');
+      await page.locator('select').nth(2).selectOption('users');
+      const row = page
+        .getByRole('row')
+        .filter({ hasText: 'Utente modificato' })
+        .filter({ hasText: 'Modalità di timbratura' })
+        .first();
+      await expect(row).toBeVisible({ timeout: 15_000 });
+      await expect(row).toContainText('GPS in sede → GPS in sede, Da remoto');
+    } finally {
+      // Restore the seeded default (gps-only) for every other spec.
+      await apiPatch(admin.token, `/api/v1/users/${employee.userId}`, {
+        stamp_modes: ['gps'],
+      }).catch(() => {});
+    }
   });
 });
