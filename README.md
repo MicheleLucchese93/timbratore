@@ -2,9 +2,9 @@
 
 Mobile-first GPS attendance app for small Italian SMEs (≤20 employees).
 
-Built from the boilerplate at [Specs/BOILERPLATE_ARCHITECTURE.md](../Specs/BOILERPLATE_ARCHITECTURE.md) following [Specs/PRD.md](../Specs/PRD.md) and [Specs/DEV_BACKLOG.md](../Specs/DEV_BACKLOG.md).
+Built from the boilerplate at [Specs/BOILERPLATE_ARCHITECTURE.md](../Specs/BOILERPLATE_ARCHITECTURE.md) following [Specs/DEV_BACKLOG.md](../Specs/DEV_BACKLOG.md).
 
-## Stack (non-negotiable per PRD)
+## Stack (non-negotiable)
 
 - TypeScript everywhere
 - Backend: Express 5 + raw `pg` (no ORM), Postgres with RLS via `withTenantRLS`
