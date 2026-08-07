@@ -49,7 +49,7 @@ services:
       - infra_internal
 
   gotrue-sonoqui:
-    image: supabase/auth:v2.194.0
+    image: supabase/auth:v2.195.0
     container_name: gotrue-sonoqui
     restart: unless-stopped
     environment:
