@@ -20,9 +20,6 @@ export interface DossierStamp {
   created_at: string;
   device_platform: string | null;
   device_app_version: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  gps_accuracy_m: number | null;
   suspicious_mock_location: boolean;
   out_of_geofence: boolean;
   original_occurred_at: string | null;
@@ -100,7 +97,6 @@ export async function loadDayDossier(
   const stampsR = await client.query(
     `SELECT s.id, s.event_type, s.occurred_at, s.source, s.branch_id, b.name AS branch_name,
             s.notes, s.created_at, s.device_platform, s.device_app_version,
-            s.latitude, s.longitude, s.gps_accuracy_m,
             s.suspicious_mock_location, s.out_of_geofence,
             s.original_occurred_at, s.original_event_type, s.edited_at, s.edit_count,
             ${NAME_SQL('eu')} AS edited_by_name,
@@ -169,9 +165,6 @@ export async function loadDayDossier(
     created_at: iso(r.created_at)!,
     device_platform: r.device_platform,
     device_app_version: r.device_app_version,
-    latitude: r.latitude,
-    longitude: r.longitude,
-    gps_accuracy_m: r.gps_accuracy_m,
     suspicious_mock_location: r.suspicious_mock_location,
     out_of_geofence: r.out_of_geofence ?? false,
     original_occurred_at: iso(r.original_occurred_at),

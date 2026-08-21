@@ -71,6 +71,13 @@ function alertCross(title: string, msg: string): void {
 export function TimbratureScreen() {
   const { t } = useTranslation(['timbrature', 'correzioni', 'common']);
   const { me } = useSession();
+  // Identity stamped onto every queued punch, and the only identity a queued
+  // punch is ever delivered under. Memoised so the drain effect below does not
+  // re-fire on every render.
+  const queueOwner = useMemo(
+    () => (me ? { userId: me.user.id, tenantId: me.tenant.id } : null),
+    [me?.user.id, me?.tenant.id]
+  );
   const corr = useCorrections();
   const [tab, setTab] = useState<TimbraTab>('timbra');
   // A correction notification deep-links to /timbrature?corr=1 — land on the
@@ -130,10 +137,15 @@ export function TimbratureScreen() {
     }
   }, []);
 
+  // Only ever drains punches belonging to the signed-in user, in the company
+  // they are signed into — a shared device must not file one worker's offline
+  // punch against whoever logs in next. Re-runs when the identity settles or
+  // changes (login, company switch), since before that there is nothing to
+  // match against.
   useEffect(() => {
     fetchAll();
-    drainQueue().catch(() => {});
-  }, [fetchAll]);
+    drainQueue(queueOwner).catch(() => {});
+  }, [fetchAll, queueOwner]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000);
@@ -215,8 +227,14 @@ export function TimbratureScreen() {
       } catch (err) {
         const e = err as { code?: string; message?: string };
         if (!e.code || e.code === 'NETWORK' || e.message?.includes('Network')) {
-          enqueueStamp(idem, payload);
-          alertCross(t('alert.offlineTitle'), t('alert.offlineMessage'));
+          if (queueOwner) {
+            enqueueStamp(idem, payload, queueOwner);
+            alertCross(t('alert.offlineTitle'), t('alert.offlineMessage'));
+          } else {
+            // No resolved identity means the punch could not be attributed on
+            // delivery, so queueing it would only create an undeliverable row.
+            alertCross(t('alert.stampFailedTitle'), humanError(e, t));
+          }
         } else {
           alertCross(t('alert.stampFailedTitle'), humanError(e, t));
         }

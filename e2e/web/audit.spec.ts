@@ -73,6 +73,8 @@ test.describe('web — Registro attività: dettaglio parlante', () => {
         source: 'employee_app',
         notes: null,
         latitude: 45.471240099,
+        longitude: 9.190231,
+        gps_accuracy_m: 12.4,
       },
       after: {
         id: 'aa8f4d0e-1f0e-4b3a-9a5a-2f1c9b0d7e11',
@@ -81,7 +83,12 @@ test.describe('web — Registro attività: dettaglio parlante', () => {
         occurred_at: '2026-08-04T12:05:00.000Z',
         source: 'admin_manual',
         notes: 'Rientro corretto su segnalazione',
-        latitude: 45.471240099,
+        // Deliberately DIFFERENT from `before`: an unchanged value would be
+        // dropped by the diff anyway, so only a changed one proves the
+        // coordinates are filtered on their own account.
+        latitude: 45.999999,
+        longitude: 9.888888,
+        gps_accuracy_m: 31.7,
       },
       ip: '203.0.113.7',
     },
@@ -186,6 +193,53 @@ test.describe('web — Registro attività: dettaglio parlante', () => {
       after: { stamp_modes: ['gps', 'remote'], bulk: true },
       ip: null,
     },
+    {
+      // A sede's coordinates are company configuration, not an employee's
+      // position: they must keep reaching the dialog, and must stay OUT of the
+      // one-line grid summary where they would crowd out the address.
+      id: 9,
+      action: 'branch.update',
+      resource_type: 'branch',
+      resource_id: 'dd8f4d0e-1f0e-4b3a-9a5a-2f1c9b0d7e44',
+      created_at: '2026-07-26T10:00:00.000Z',
+      actor_user_id: null,
+      actor_name: 'Martina Ghirigato',
+      actor_email: 'martina@example.it',
+      target_user_id: null,
+      target_label: null,
+      before: { name: 'Sede Centrale', address: 'Via Vecchia 1, Milano', latitude: 45.464, longitude: 9.19 },
+      after: { name: 'Sede Centrale', address: 'Via Nuova 7, Milano', latitude: 45.47124, longitude: 9.190231 },
+      ip: null,
+    },
+    {
+      // A stamp deletion snapshots the whole row, which is how per-punch
+      // coordinates used to reach the detail dialog. The verdict derived from
+      // them (distance from the branch) is the part that must still render.
+      id: 8,
+      action: 'stamp.admin_delete',
+      resource_type: 'stamp',
+      resource_id: 'bb8f4d0e-1f0e-4b3a-9a5a-2f1c9b0d7e22',
+      created_at: '2026-07-28T07:15:00.000Z',
+      actor_user_id: null,
+      actor_name: 'Martina Ghirigato',
+      actor_email: 'martina@example.it',
+      target_user_id: null,
+      target_label: 'Riccardo D’Antonio',
+      before: {
+        id: 'bb8f4d0e-1f0e-4b3a-9a5a-2f1c9b0d7e22',
+        event_type: 'clock_out',
+        occurred_at: '2026-07-27T16:00:00.000Z',
+        source: 'employee_app',
+        deletion_reason: 'Doppia timbratura',
+        latitude: 45.471240099,
+        longitude: 9.190231,
+        gps_accuracy_m: 12.4,
+        geofence_distance_m: 240,
+        device_platform: 'android',
+      },
+      after: null,
+      ip: null,
+    },
   ];
 
   test.beforeEach(async ({ page }) => {
@@ -205,8 +259,10 @@ test.describe('web — Registro attività: dettaglio parlante', () => {
   test('edits show only the changed fields as prima → dopo', async ({ page }) => {
     const cell = page.locator('.MuiDataGrid-row[data-id="1"] [data-field="details"]');
     const text = await cell.innerText();
-    // Changed: time + origin + note. Unchanged (event_type, latitude) and
-    // internal columns (id, tenant_id) must not appear at all.
+    // Changed: time + origin + note. Unchanged (event_type) and internal
+    // columns (id, tenant_id) must not appear at all — and neither may the
+    // coordinates, which DID change in the fixture: a punch's position is never
+    // rendered, only the verdict derived from it.
     expect(text).toContain('Data e ora');
     expect(text).toContain('04/08/2026, 13:30');
     expect(text).toContain('04/08/2026, 14:05');
@@ -214,6 +270,8 @@ test.describe('web — Registro attività: dettaglio parlante', () => {
     expect(text).toContain('Inserimento amministratore');
     expect(text).not.toContain('Tipo timbratura');
     expect(text).not.toContain('Latitudine');
+    expect(text).not.toContain('Longitudine');
+    expect(text).not.toContain('Precisione GPS');
     expect(text).not.toMatch(/tenant_id|occurred_at/);
   });
 
@@ -253,6 +311,11 @@ test.describe('web — Registro attività: dettaglio parlante', () => {
     // The footer carries the raw action code + origin IP for support.
     await expect(modal.getByText('stamp.admin_update')).toBeVisible();
     await expect(modal.getByText(/203\.0\.113\.7/)).toBeVisible();
+    // The dialog shows "tutti i campi" — except a punch's coordinates, which
+    // are dropped for stamp.* entries however the payload arrived.
+    await expect(modal.getByText('Latitudine')).toHaveCount(0);
+    await expect(modal.getByText('Longitudine')).toHaveCount(0);
+    await expect(modal.getByText('Precisione GPS')).toHaveCount(0);
 
     await modal.getByRole('button', { name: /Chiudi/i }).click();
     await expect(modal).toBeHidden();
@@ -274,6 +337,44 @@ test.describe('web — Registro attività: dettaglio parlante', () => {
     await page.locator('.MuiDataGrid-row[data-id="7"]').click();
     const modal = page.getByTestId('audit-detail-modal');
     await expect(modal.getByText('Operazione massiva')).toBeVisible();
+  });
+
+  test('a stamp deletion shows the geofence verdict, never the coordinates', async ({ page }) => {
+    const cell = await page
+      .locator('.MuiDataGrid-row[data-id="8"] [data-field="details"]')
+      .innerText();
+    expect(cell).toContain('Doppia timbratura');
+
+    await page.locator('.MuiDataGrid-row[data-id="8"]').click();
+    const modal = page.getByTestId('audit-detail-modal');
+    await expect(modal).toBeVisible();
+    // Single snapshot: every non-empty field is listed, so this is the entry
+    // that used to paint an employee's position.
+    await expect(modal.getByRole('columnheader', { name: 'Valore' })).toBeVisible();
+    await expect(modal.getByText('Distanza dalla sede')).toBeVisible();
+    await expect(modal.getByText('Latitudine')).toHaveCount(0);
+    await expect(modal.getByText('Longitudine')).toHaveCount(0);
+    await expect(modal.getByText('Precisione GPS')).toHaveCount(0);
+    // Label-independent backstop. fmtNumber goes through toLocaleString('it-IT'),
+    // so a leaked coordinate reads "45,471" / "9,19" — a dot here would make the
+    // assertion unmatchable and therefore vacuous.
+    await expect(modal.getByText(/45,47|9,19/)).toHaveCount(0);
+  });
+
+  test('a sede move keeps its coordinates in the dialog, out of the summary', async ({ page }) => {
+    const cell = await page
+      .locator('.MuiDataGrid-row[data-id="9"] [data-field="details"]')
+      .innerText();
+    expect(cell).toContain('Via Nuova 7, Milano');
+    // Minor: true but rarely the point — the address is what an admin scans for.
+    expect(cell).not.toContain('Latitudine');
+    expect(cell).not.toContain('Longitudine');
+
+    await page.locator('.MuiDataGrid-row[data-id="9"]').click();
+    const modal = page.getByTestId('audit-detail-modal');
+    await expect(modal).toBeVisible();
+    await expect(modal.getByText('Latitudine')).toBeVisible();
+    await expect(modal.getByText('Longitudine')).toBeVisible();
   });
 
   test('a delete entry opens with a single Valore column', async ({ page }) => {

@@ -57,4 +57,21 @@ test.describe('web — manuale utente toolbar', () => {
     await expect(page.getByText('non quadrano').first()).toBeVisible();
   });
 
+  // What the app does with an employee's position is the first thing a customer
+  // (or their DPO) asks about, and the answer changed: coordinates are used for
+  // the area check and then discarded. The manual is the artifact that answer
+  // gets read from, so it has to keep saying it.
+  test('documents that coordinates are not retained', async ({ page }) => {
+    await expect(page.getByText('Cosa viene conservato').first()).toBeVisible();
+    await expect(page.getByText(/le coordinate vengono scartate/i).first()).toBeVisible();
+    await expect(page.getByText(/non c.è alcun tracciamento continuo/i).first()).toBeVisible();
+  });
+
+  // A shared device is the normal case in the target market (a tablet at the
+  // entrance), so "whose punch is this" is a question the manual has to answer.
+  test('documents who a queued offline stamp belongs to', async ({ page }) => {
+    await expect(page.getByText('A chi appartiene una timbratura in coda').first()).toBeVisible();
+    await expect(page.getByText(/dispositivo condiviso/i).first()).toBeVisible();
+    await expect(page.getByText(/30 giorni/).first()).toBeVisible();
+  });
 });

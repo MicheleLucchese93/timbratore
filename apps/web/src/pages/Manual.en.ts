@@ -580,7 +580,7 @@ export const MAIN_EN = `
           <li>Decide whether to <strong>limit stamping within a radius</strong>:
             <ul class="tidy">
               <li><strong>Active</strong> (default): set the <strong>radius</strong> in metres (default 300m). Only the <strong>clock-in</strong> outside the radius is rejected; breaks, lunch and the clock-out are always accepted and, when out of area, flagged — the clock-out as an anomaly.</li>
-              <li><strong>Inactive</strong>: the stamp is accepted regardless of the distance from the branch. The GPS is still recorded on the stamp for auditing. The branch is not auto-detected: the employee must select it manually in the app.</li>
+              <li><strong>Inactive</strong>: the stamp is accepted regardless of the distance from the branch. The branch is not auto-detected: the employee must select it manually in the app.</li>
             </ul>
           </li>
           <li>Press <strong>Save</strong>.</li>
@@ -594,7 +594,7 @@ export const MAIN_EN = `
       </div>
 
       <div class="callout callout-info">
-        An <strong>off-site</strong> branch has no GPS: the employee can stamp anywhere without geolocation constraints (remote work, business trips, building sites). A branch <strong>without a radius</strong> still records the GPS but does not compare it with an area: useful for branches with a perimeter that cannot be defined (large building sites, trips to clients' premises).
+        An <strong>off-site</strong> branch has no GPS: the employee can stamp anywhere without geolocation constraints (remote work, business trips, building sites). A branch <strong>without a radius</strong> does not compare the position with an area: useful for branches with a perimeter that cannot be defined (large building sites, trips to clients' premises).
       </div>
     </section>
 
@@ -863,7 +863,7 @@ export const MAIN_EN = `
         <ul class="tidy">
           <li><strong>Summary</strong>: one row per employee with hours worked, <strong>original hours</strong>, <strong>ordinary hours</strong>, overtime, breaks, holiday, leave, sick leave, days worked and holiday and leave balances.</li>
           <li><strong>Dettaglio giornaliero</strong>: the day-by-day detail of <em>every</em> employee in a single sheet — one row per employee per day (hours worked, original hours, ordinary hours, overtime, holiday/leave/sick leave, breaks, absence marker). The leading columns — <strong>Dipendente</strong>, <strong>Nome</strong>, <strong>Cognome</strong> and <strong>Codice fiscale</strong> — identify the person on every row, so the sheet can be filtered, sorted or used as a pivot table source, and rows reconcile with payroll software through the codice fiscale.</li>
-          <li><strong>Stamps</strong>: each stamp with date and time, event, source, branch, GPS, device and notes. It also includes <em>deleted</em> stamps (<em>Stato</em> column) and, for amended ones, the <em>Modificata</em>, <em>Ora originale</em>, <em>Evento originale</em>, <em>Modificata da/il</em> and <em>Eliminata da / Motivo eliminazione</em> columns. The Summary hours stay computed on active stamps only.</li>
+          <li><strong>Stamps</strong>: each stamp with date and time, event, source, branch, device, notes and the <em>Fuori area</em> / <em>Pos. sospetta</em> markers. It also includes <em>deleted</em> stamps (<em>Stato</em> column) and, for amended ones, the <em>Modificata</em>, <em>Ora originale</em>, <em>Evento originale</em>, <em>Modificata da/il</em> and <em>Eliminata da / Motivo eliminazione</em> columns. The Summary hours stay computed on active stamps only.</li>
           <li><strong>Rettifiche</strong>: one row per intervention on a stamp of the period — day, type of intervention, field touched, previous and new value, reason, operator and date. This is the sheet to consult in a contestation.</li>
           <li><strong>Corrections</strong>: the correction requests of the period with status, outcome and resolution note.</li>
           <li><strong>Holiday and Leave</strong>: holiday, leave, sick leave and absences with hours, pay, subtype, INPS protocol and outcome.</li>
@@ -937,7 +937,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>The full detail of an entry</h3>
-        <p><strong>Click a row</strong> to open the operation card. At the top: activity, date and time, author and target; below, the table of <strong>all</strong> the recorded fields — with <em>Before</em> and <em>After</em> columns when it is an edit (there the card lists the fields that changed, which is the relevant fact). Compared with the grid summary, the card leaves nothing out: on insertions and deletions it also shows the background data, such as GPS coordinates, signal accuracy, device and app version of a stamp.</p>
+        <p><strong>Click a row</strong> to open the operation card. At the top: activity, date and time, author and target; below, the table of <strong>all</strong> the recorded fields — with <em>Before</em> and <em>After</em> columns when it is an edit (there the card lists the fields that changed, which is the relevant fact). Compared with the grid summary, the card leaves nothing out: on insertions and deletions it also shows the background data, such as distance from the branch, device and app version of a stamp. A single stamp's coordinates are not shown: they are used only for the area check and are not retained (see <em>Geolocation</em>).</p>
         <p>At the bottom of the card you find the operation's <strong>technical code</strong> and the originating <strong>IP address</strong>: these are the references to quote to support when reporting a specific case.</p>
         <p class="muted">Internal identifiers (technical row codes, cross-table references) are not shown: you get the readable names instead, and for multiple selections the number of items (e.g. <em>Branches: 3 selected</em>).</p>
       </div>
@@ -1707,6 +1707,12 @@ export const MAIN_EN = `
       </div>
 
       <div class="feature">
+        <h3>What is retained</h3>
+        <p>The position is used <strong>only</strong> to decide whether you are inside the branch area. Once that check is done the coordinates are discarded: what stays on the stamp is <strong>branch, date and time</strong>, plus the <em>out of area</em> marker (with the distance from the branch) and <em>suspicious position</em>.</p>
+        <p>Latitude and longitude are therefore not retained, appear on no screen, are not part of the export and never reach the Activity log. There is no continuous tracking: the position is read only at the instant of the stamp, on the employee's own action.</p>
+      </div>
+
+      <div class="feature">
         <h3>Off-site</h3>
         <p>Branches marked as "off-site" do not require GPS. Typical use case: remote work, business trip or building site.</p>
       </div>
@@ -1774,6 +1780,12 @@ export const MAIN_EN = `
       </div>
 
       <div class="feature">
+        <h3>Who a queued stamp belongs to</h3>
+        <p>Every queued stamp stays tied to the <strong>employee</strong> and the <strong>company</strong> it was recorded for, and is only sent while that same person is signed in to that same company. On a shared device — a tablet at the entrance, a phone handed over between shifts — a colleague's stamp therefore cannot end up under the name of whoever signs in next. If you switch company from your profile, queued stamps for the other company stay pending.</p>
+        <p>A stamp left in the queue for more than <strong>30 days</strong> is no longer sent: at that point the right route is a <em>correction request</em>, which goes through the approver and leaves a trail.</p>
+      </div>
+
+      <div class="feature">
         <h3>Duplicate protection</h3>
         <p>Each stamp has an idempotency key: if by mistake the app tries to send the same one twice, the server accepts only one.</p>
       </div>
@@ -1806,7 +1818,7 @@ export const MAIN_EN = `
             <tr><td><strong>Stamp reminders</strong></td><td>Push notification sent when a scheduled time (clock-in, clock-out or lunch) passes without the matching stamp. Mobile app only; can be turned off from the Profile.</td></tr>
             <tr><td><strong>Balance</strong></td><td>Balance of hours available for holiday or leave.</td></tr>
             <tr><td><strong>Revocation</strong></td><td>Cancellation of an already-approved holiday, on the admin's initiative.</td></tr>
-            <tr><td><strong>Branch</strong></td><td>Place of work, with or without geofencing. The radius can be disabled: in that case the GPS is recorded but not compared to an area.</td></tr>
+            <tr><td><strong>Branch</strong></td><td>Place of work, with or without geofencing. The radius can be disabled: in that case the position is not compared to an area.</td></tr>
             <tr><td><strong>Superseded</strong></td><td>Status of a correction that is obsolete because the stamp has changed elsewhere.</td></tr>
             <tr><td><strong>Shift template</strong></td><td>Weekly model of working slots.</td></tr>
             <tr><td><strong>Balance template</strong></td><td>Model for calculating holiday/leave accrual.</td></tr>

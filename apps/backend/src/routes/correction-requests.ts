@@ -7,6 +7,7 @@ import { ok } from '../lib/api-response.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
 import { logAudit } from '../lib/audit.js';
 import { assertBreakStampAllowed } from '../services/stamp-service.js';
+import { stampColumns } from '../lib/stamp-columns.js';
 import {
   notifyCorrectionSubmitted,
   notifyCorrectionDecided,
@@ -191,7 +192,7 @@ correctionRequestsRouter.post(
     if (row.original_stamp_id) {
       const upd = await client.query(
         `UPDATE stamps SET event_type = $1, occurred_at = $2, branch_id = $3, source = 'employee_correction'
-         WHERE id = $4 RETURNING *`,
+         WHERE id = $4 RETURNING ${stampColumns()}`,
         [eventType, occurredAt, branchId, row.original_stamp_id]
       );
       stamp = upd.rows[0];
@@ -199,7 +200,7 @@ correctionRequestsRouter.post(
       const ins = await client.query(
         `INSERT INTO stamps(tenant_id, user_id, event_type, occurred_at, source, branch_id, notes)
          VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, 'employee_correction', $4, $5)
-         RETURNING *`,
+         RETURNING ${stampColumns()}`,
         [row.user_id, eventType, occurredAt, branchId, row.justification.slice(0, 500)]
       );
       stamp = ins.rows[0];

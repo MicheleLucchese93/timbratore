@@ -9,6 +9,7 @@ import { logAudit } from '../lib/audit.js';
 import { notifyStampChanged } from '../lib/notifications.js';
 import { createLogger } from '../lib/logger.js';
 import { ConflictError, NotFoundError, ValidationError } from '../errors/index.js';
+import { stampColumns } from '../lib/stamp-columns.js';
 
 const logger = createLogger('admin-stamps');
 
@@ -45,7 +46,7 @@ adminStampsRouter.post(
     const ins = await client.query(
       `INSERT INTO stamps(tenant_id, user_id, event_type, occurred_at, source, branch_id, notes, out_of_geofence)
        VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, 'admin_manual', $4, $5, $6)
-       RETURNING *`,
+       RETURNING ${stampColumns()}`,
       [b.user_id, b.event_type, b.occurred_at, b.branch_id ?? null, b.notes ?? null, b.out_of_geofence ?? false]
     );
     await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_create', ins.rows[0].id, ins.rows[0].user_id, null, ins.rows[0], req);
@@ -66,7 +67,7 @@ adminStampsRouter.patch(
   tenantHandler(async (req, res, client) => {
     const parse = AdminPatch.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
-    const before = await client.query(`SELECT * FROM stamps WHERE id = $1`, [req.params.id]);
+    const before = await client.query(`SELECT ${stampColumns()} FROM stamps WHERE id = $1`, [req.params.id]);
     if (before.rowCount === 0) throw new NotFoundError('stamp');
     const set: string[] = [];
     const values: unknown[] = [];
@@ -83,7 +84,7 @@ adminStampsRouter.patch(
       `admin_edit:${parse.data.justification}`,
     ]);
     const r = await client.query(
-      `UPDATE stamps SET ${set.join(', ')} WHERE id = $${i} RETURNING *`,
+      `UPDATE stamps SET ${set.join(', ')} WHERE id = $${i} RETURNING ${stampColumns()}`,
       values
     );
     await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_update', String(req.params.id), before.rows[0].user_id, before.rows[0], r.rows[0], req);
@@ -126,7 +127,7 @@ adminStampsRouter.delete(
       `UPDATE stamps SET deleted_at = now(), deleted_by_user_id = current_setting('app.current_user_id')::uuid,
                        deletion_reason = $1
        WHERE id = $2 AND deleted_at IS NULL
-       RETURNING *`,
+       RETURNING ${stampColumns()}`,
       [parse.data.deletion_reason, req.params.id]
     );
     if (r.rowCount === 0) throw new NotFoundError('stamp');
@@ -307,7 +308,7 @@ adminStampsRouter.post(
       const ins = await client.query(
         `INSERT INTO stamps(tenant_id, user_id, event_type, occurred_at, source, branch_id, notes)
          VALUES (current_setting('app.current_tenant_id')::uuid, $1, $2, $3, 'admin_manual', $4, $5)
-         RETURNING *`,
+         RETURNING ${stampColumns()}`,
         [b.user_id, ev.event_type, ev.occurred_at, b.branch_id ?? null, `Orario standard (anomalia): ${b.justification}`]
       );
       await emitAuditAndOutbox(client, req.user!.tenantId, 'stamp.admin_create', ins.rows[0].id, ins.rows[0].user_id, null, ins.rows[0], req);

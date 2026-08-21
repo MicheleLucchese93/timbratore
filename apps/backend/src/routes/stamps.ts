@@ -14,6 +14,7 @@ import { buildDayDossierPdf } from '../lib/stamp-dossier-pdf.js';
 import { logAudit } from '../lib/audit.js';
 import { adminPool } from '../lib/admin-db.js';
 import { safeFileName } from '../lib/filename.js';
+import { stampColumns } from '../lib/stamp-columns.js';
 
 export const stampsRouter = Router();
 stampsRouter.use(authenticate);
@@ -21,6 +22,7 @@ stampsRouter.use(authenticate);
 /** Best human label for an auth_users row, same precedence as the Registro. */
 const ACTOR_NAME_SQL = (alias: string): string =>
   `COALESCE(NULLIF(TRIM(CONCAT(${alias}.first_name, ' ', ${alias}.last_name)), ''), ${alias}.display_name, ${alias}.email)`;
+
 
 const StampBody = z.object({
   event_type: z.enum(['clock_in', 'clock_out', 'break_start', 'break_end', 'lunch_start', 'lunch_end']),
@@ -52,23 +54,26 @@ stampsRouter.post(
     await client.query(
       `SELECT set_config('app.change_reason', 'employee_stamp', true)`
     );
+    // The coordinates are consumed by evaluateStamp above and then dropped: what
+    // gets stored is the verdict they produced (branch_id, out_of_geofence,
+    // geofence_distance_m, suspicious_mock_location), never the position itself.
+    // Discarding them at the check is what Garante provv. 350/2016 asks for, and
+    // it is also the only way to keep them out of stamps_history, which archives
+    // whole-row snapshots of every punch.
     const ins = await client.query(
       `INSERT INTO stamps(
          tenant_id, user_id, event_type, occurred_at, source, branch_id,
-         latitude, longitude, gps_accuracy_m, device_platform, device_app_version,
+         device_platform, device_app_version,
          suspicious_mock_location, notes, queued_hours, out_of_geofence, geofence_distance_m
        )
-       VALUES ($1, $2, $3, $4, 'employee_app', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-       RETURNING *`,
+       VALUES ($1, $2, $3, $4, 'employee_app', $5, $6, $7, $8, $9, $10, $11, $12)
+       RETURNING ${stampColumns()}`,
       [
         req.user!.tenantId,
         req.user!.id,
         body.event_type,
         body.occurred_at,
         evaluated.branchId,
-        body.latitude ?? null,
-        body.longitude ?? null,
-        body.gps_accuracy_m ?? null,
         body.device_platform ?? null,
         body.device_app_version ?? null,
         evaluated.suspiciousMockLocation,
@@ -78,13 +83,33 @@ stampsRouter.post(
         evaluated.geofenceDistanceM,
       ]
     );
+    // Only what the admin dashboard redraws on. This used to publish the whole
+    // inserted row, which put a second, permanent copy of every punch — GPS
+    // included — in a table that has no retention job and is readable verbatim
+    // at GET /api/v1/realtime/since.
     await client.query(
       `INSERT INTO centrifugo_outbox(method, payload)
        VALUES ('publish', jsonb_build_object(
          'channel', 'tenant.' || $1::text || '.dashboard',
-         'data', jsonb_build_object('type','stamp', 'stamp', to_jsonb($2::jsonb))
+         'data', jsonb_build_object(
+           'type', 'stamp',
+           'stamp', jsonb_build_object(
+             'id', $2::text,
+             'user_id', $3::text,
+             'event_type', $4::text,
+             'occurred_at', $5::text,
+             'branch_id', $6::text
+           )
+         )
        ))`,
-      [req.user!.tenantId, JSON.stringify(ins.rows[0])]
+      [
+        req.user!.tenantId,
+        ins.rows[0].id,
+        ins.rows[0].user_id,
+        ins.rows[0].event_type,
+        new Date(ins.rows[0].occurred_at).toISOString(),
+        ins.rows[0].branch_id,
+      ]
     );
     ok(res, ins.rows[0], 201);
   })
@@ -106,7 +131,7 @@ stampsRouter.get(
       // server clock (UTC in prod), so an employee asking for "today" between
       // midnight and 02:00 local was served the previous local day and could
       // not see the punch they had just made.
-      `SELECT s.*,
+      `SELECT ${stampColumns('s')},
               ${ACTOR_NAME_SQL('eu')} AS edited_by_name,
               ${ACTOR_NAME_SQL('du')} AS deleted_by_name
        FROM stamps s
@@ -161,7 +186,7 @@ stampsRouter.get(
     }
     const limit = Math.min(Number(req.query.limit ?? 200), 1000);
     const r = await client.query(
-      `SELECT s.*, COALESCE(au.email, s.user_id::text) AS user_email,
+      `SELECT ${stampColumns('s')}, COALESCE(au.email, s.user_id::text) AS user_email,
               ${ACTOR_NAME_SQL('eu')} AS edited_by_name,
               ${ACTOR_NAME_SQL('du')} AS deleted_by_name
        FROM stamps s
@@ -335,7 +360,7 @@ stampsRouter.delete(
       `UPDATE stamps
        SET deleted_at = now(), deleted_by_user_id = $1, deletion_reason = 'user_undo_within_60s'
        WHERE id = $2
-       RETURNING *`,
+       RETURNING ${stampColumns()}`,
       [req.user!.id, stamp.id]
     );
     ok(res, r.rows[0]);

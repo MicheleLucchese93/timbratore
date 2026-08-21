@@ -1,5 +1,6 @@
 import type { PoolClient } from 'pg';
 import type { Request } from 'express';
+import { stripStampGps } from './stamp-columns.js';
 
 // Every action that can appear in the tenant Registro attività. Keep this
 // union in sync with the i18n labels in apps/web/src/i18n/locales/*/audit.json.
@@ -144,14 +145,24 @@ export async function logAuditAs(
 }
 
 function auditParams(entry: AuditEntry): unknown[] {
+  // Several stamp actions hand logAudit a whole DB row, which is how per-punch
+  // coordinates ended up permanently in audit_log — a table with no retention,
+  // rendered field by field in the Registro detail dialog. Scoped to stamp.*:
+  // branch.create / branch.update legitimately audit a sede's coordinates, and
+  // that is company configuration, not an employee's position.
+  const scrub = entry.action.startsWith('stamp.')
+    ? (v: unknown): unknown => stripStampGps(v)
+    : (v: unknown): unknown => v;
   return [
     entry.action,
     entry.resourceType,
     entry.resourceId ?? null,
     entry.targetUserId ?? null,
     entry.targetLabel ?? null,
-    entry.before === undefined || entry.before === null ? null : JSON.stringify(entry.before),
-    entry.after === undefined || entry.after === null ? null : JSON.stringify(entry.after),
+    entry.before === undefined || entry.before === null
+      ? null
+      : JSON.stringify(scrub(entry.before)),
+    entry.after === undefined || entry.after === null ? null : JSON.stringify(scrub(entry.after)),
     entry.req?.ip ?? null,
     entry.req?.headers['user-agent'] ?? null,
   ];

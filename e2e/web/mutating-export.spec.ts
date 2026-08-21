@@ -252,6 +252,20 @@ test.describe('web — Export job lifecycle (mutating)', () => {
         );
       }
 
+      // A punch's coordinates are consumed by the geofence check and discarded
+      // (migration 060), so the Timbrature sheet must not carry them either —
+      // this file is the one artifact of the export that leaves the app, and
+      // re-adding the columns would put the position back in an accountant's
+      // inbox with no retention on it.
+      const stamps = wb.getWorksheet('Timbrature');
+      expect(stamps, 'sheet Timbrature missing').toBeTruthy();
+      const stampHeader = (stamps!.getRow(1).values as unknown[]).slice(1).map(String);
+      expect(
+        stampHeader.filter((h) => /^(Lat|Lon)$/.test(h) || /GPS/i.test(h)),
+        `Timbrature must not expose GPS columns — header = ${stampHeader.join(' | ')}`,
+      ).toEqual([]);
+      expect(stampHeader, 'Timbrature must keep the geofence verdict').toContain('Fuori area');
+
       // Metadati carries a dizionario of every column of every sheet, and
       // prints "(descrizione mancante)" for any header nobody documented. A new
       // column added without its glossary entry ships that string to the

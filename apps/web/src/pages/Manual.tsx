@@ -587,7 +587,7 @@ const MAIN_IT = `
           <li>Decidi se <strong>limitare la timbratura entro un raggio</strong>:
             <ul class="tidy">
               <li><strong>Attivo</strong> (default): imposta il <strong>raggio</strong> in metri (default 300m). Solo l'<strong>ingresso</strong> fuori dal raggio viene rifiutato; pause, pranzo e uscita vengono sempre accettate e, se fuori area, segnalate — l'uscita come anomalia.</li>
-              <li><strong>Disattivo</strong>: la timbratura è accettata indipendentemente dalla distanza dalla sede. Il GPS viene comunque registrato sulla timbratura per audit. La sede non viene auto-rilevata: il dipendente deve selezionarla manualmente nell'app.</li>
+              <li><strong>Disattivo</strong>: la timbratura è accettata indipendentemente dalla distanza dalla sede. La sede non viene auto-rilevata: il dipendente deve selezionarla manualmente nell'app.</li>
             </ul>
           </li>
           <li>Premi <strong>Salva</strong>.</li>
@@ -601,7 +601,7 @@ const MAIN_IT = `
       </div>
 
       <div class="callout callout-info">
-        Una sede <strong>fuori sede</strong> non ha GPS: il dipendente può timbrare ovunque senza vincoli di geolocalizzazione (lavoro da remoto, trasferte, cantieri). Una sede <strong>senza raggio</strong> registra comunque il GPS ma non lo confronta con un'area: utile per sedi con perimetro non definibile (cantieri estesi, trasferte presso clienti).
+        Una sede <strong>fuori sede</strong> non ha GPS: il dipendente può timbrare ovunque senza vincoli di geolocalizzazione (lavoro da remoto, trasferte, cantieri). Una sede <strong>senza raggio</strong> non confronta la posizione con un'area: utile per sedi con perimetro non definibile (cantieri estesi, trasferte presso clienti).
       </div>
     </section>
 
@@ -870,7 +870,7 @@ const MAIN_IT = `
         <ul class="tidy">
           <li><strong>Riepilogo</strong>: una riga per dipendente con ore lavorate, <strong>ore originali</strong>, <strong>ore ordinarie</strong>, straordinari, pause, ferie, permessi, malattia, giorni lavorati e residui di ferie e permessi.</li>
           <li><strong>Dettaglio giornaliero</strong>: il dettaglio giorno per giorno di <em>tutti</em> i dipendenti in un unico foglio — una riga per dipendente e per giorno (ore lavorate, ore originali, ore ordinarie, straordinari, ferie/permessi/malattia, pause, marker assenza). Le prime colonne — <strong>Dipendente</strong>, <strong>Nome</strong>, <strong>Cognome</strong> e <strong>Codice fiscale</strong> — identificano la persona su ogni riga, così il foglio si può filtrare, ordinare o usare come sorgente di una tabella pivot, e le righe si riconciliano con il gestionale paghe tramite il codice fiscale.</li>
-          <li><strong>Timbrature</strong>: ogni timbratura con data e ora, evento, origine, sede, GPS, dispositivo e note. Include anche le timbrature <em>eliminate</em> (colonna <em>Stato</em>) e, per quelle rettificate, le colonne <em>Modificata</em>, <em>Ora originale</em>, <em>Evento originale</em>, <em>Modificata da/il</em> e <em>Eliminata da / Motivo eliminazione</em>. Le ore del Riepilogo restano calcolate solo sulle timbrature attive.</li>
+          <li><strong>Timbrature</strong>: ogni timbratura con data e ora, evento, origine, sede, dispositivo, note e i contrassegni <em>Fuori area</em> e <em>Pos. sospetta</em>. Include anche le timbrature <em>eliminate</em> (colonna <em>Stato</em>) e, per quelle rettificate, le colonne <em>Modificata</em>, <em>Ora originale</em>, <em>Evento originale</em>, <em>Modificata da/il</em> e <em>Eliminata da / Motivo eliminazione</em>. Le ore del Riepilogo restano calcolate solo sulle timbrature attive.</li>
           <li><strong>Rettifiche</strong>: una riga per ogni intervento su una timbratura del periodo — giorno, tipo di intervento, campo toccato, valore precedente e nuovo, motivazione, operatore e data. È il foglio da consultare in caso di contestazione.</li>
           <li><strong>Correzioni</strong>: le richieste di correzione del periodo con stato, esito e nota di risoluzione.</li>
           <li><strong>Ferie e Permessi</strong>: ferie, permessi, malattia e assenze con ore, retribuzione, sottotipo, protocollo INPS ed esito.</li>
@@ -944,7 +944,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Il dettaglio completo di una voce</h3>
-        <p><strong>Clicca una riga</strong> per aprire la scheda dell'operazione. In alto trovi attività, data e ora, autore e destinatario; sotto, la tabella di <strong>tutti</strong> i campi registrati — con le colonne <em>Prima</em> e <em>Dopo</em> quando si tratta di una modifica (in quel caso la scheda elenca i campi cambiati, che sono il fatto rilevante). Rispetto al riepilogo in griglia, la scheda non taglia nulla: sugli inserimenti e sulle eliminazioni compaiono anche i dati di contorno, come coordinate GPS, precisione del segnale, dispositivo e versione dell'app di una timbratura.</p>
+        <p><strong>Clicca una riga</strong> per aprire la scheda dell'operazione. In alto trovi attività, data e ora, autore e destinatario; sotto, la tabella di <strong>tutti</strong> i campi registrati — con le colonne <em>Prima</em> e <em>Dopo</em> quando si tratta di una modifica (in quel caso la scheda elenca i campi cambiati, che sono il fatto rilevante). Rispetto al riepilogo in griglia, la scheda non taglia nulla: sugli inserimenti e sulle eliminazioni compaiono anche i dati di contorno, come distanza dalla sede, dispositivo e versione dell'app di una timbratura. Le coordinate della singola timbratura non compaiono: sono usate solo per il controllo dell'area e non vengono conservate (vedi <em>Geolocalizzazione</em>).</p>
         <p>In fondo alla scheda compaiono il <strong>codice tecnico</strong> dell'operazione e l'<strong>indirizzo IP</strong> di origine: sono i riferimenti da citare all'assistenza quando si segnala un caso specifico.</p>
         <p class="muted">Gli identificativi interni (codici tecnici delle righe, riferimenti fra tabelle) non vengono mostrati: al loro posto trovi i nomi leggibili, e per le selezioni multiple il numero di elementi (es. <em>Sedi: 3 selezionati</em>).</p>
       </div>
@@ -1719,7 +1719,13 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Sede senza raggio</h3>
-        <p>Se l'admin disattiva il raggio per una sede, la timbratura viene accettata ovunque tu sia: la posizione GPS è comunque registrata sulla timbratura per audit, ma senza confronto con un'area. Nell'auto-rilevamento questa sede viene usata come ripiego, cioè solo quando la tua posizione non ricade nell'area di nessun'altra sede assegnata.</p>
+        <p>Se l'admin disattiva il raggio per una sede, la timbratura viene accettata ovunque tu sia, senza confronto con un'area. Nell'auto-rilevamento questa sede viene usata come ripiego, cioè solo quando la tua posizione non ricade nell'area di nessun'altra sede assegnata.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Cosa viene conservato</h3>
+        <p>La posizione serve <strong>solo</strong> a decidere se sei nell'area della sede. Fatta quella verifica, le coordinate vengono scartate: sulla timbratura restano <strong>sede, data e ora</strong>, più i contrassegni <em>fuori area</em> (con la distanza dalla sede) e <em>posizione sospetta</em>.</p>
+        <p>Latitudine e longitudine non sono quindi conservate, non compaiono in nessuna schermata, non entrano nell'export e non finiscono nel Registro attività. Non c'è alcun tracciamento continuo: la posizione viene letta unicamente nell'istante della timbratura, per iniziativa del dipendente.</p>
       </div>
 
       <div class="feature">
@@ -1790,6 +1796,12 @@ const MAIN_IT = `
       </div>
 
       <div class="feature">
+        <h3>A chi appartiene una timbratura in coda</h3>
+        <p>Ogni timbratura accodata resta legata al <strong>dipendente</strong> e all'<strong>azienda</strong> per cui è stata registrata, e viene inviata solo quando quella stessa persona è connessa a quella stessa azienda. Su un dispositivo condiviso — un tablet all'ingresso, un telefono passato tra un turno e l'altro — la timbratura di un collega non può quindi finire a nome di chi accede dopo. Se cambi azienda dal profilo, le timbrature in coda dell'altra azienda restano in attesa.</p>
+        <p>Una timbratura che resta in coda oltre <strong>30 giorni</strong> non viene più inviata: a quel punto la strada corretta è una <em>richiesta di correzione</em>, che passa dall'approvatore e lascia traccia.</p>
+      </div>
+
+      <div class="feature">
         <h3>Protezione dai doppioni</h3>
         <p>Ogni timbratura ha una chiave di idempotenza: se per errore l'app prova a inviare due volte la stessa, il server ne accetta una sola.</p>
       </div>
@@ -1822,7 +1834,7 @@ const MAIN_IT = `
             <tr><td><strong>Promemoria timbrature</strong></td><td>Notifica push inviata quando passa un orario previsto (entrata, uscita o pausa pranzo) senza la timbratura corrispondente. Solo app mobile; disattivabile dal Profilo.</td></tr>
             <tr><td><strong>Quota</strong></td><td>Saldo di ore disponibili per ferie o permessi.</td></tr>
             <tr><td><strong>Revoca</strong></td><td>Annullamento di una ferie già approvata, su iniziativa dell'admin.</td></tr>
-            <tr><td><strong>Sede</strong></td><td>Luogo di lavoro, con o senza geofencing. Il raggio può essere disattivato: in tal caso il GPS è registrato ma non confrontato con un'area.</td></tr>
+            <tr><td><strong>Sede</strong></td><td>Luogo di lavoro, con o senza geofencing. Il raggio può essere disattivato: in tal caso la posizione non viene confrontata con un'area.</td></tr>
             <tr><td><strong>Superata</strong></td><td>Stato di una correzione obsoleta perché la timbratura è cambiata altrove.</td></tr>
             <tr><td><strong>Template orario</strong></td><td>Modello settimanale di slot lavorativi.</td></tr>
             <tr><td><strong>Template quota</strong></td><td>Modello di calcolo accantonamento ferie/permessi.</td></tr>

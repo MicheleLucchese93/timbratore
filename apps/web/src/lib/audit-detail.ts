@@ -68,6 +68,9 @@ const CONTEXT = new Set(['bulk']);
 // Shown in the dialog, never in the one-line summary: true but rarely the point.
 const MINOR = new Set([
   'bulk',
+  // Still listed for `branch.*`, the one family that legitimately carries a
+  // pair of coordinates: they belong in the dialog, not in the one-line grid
+  // summary, which is what HIDDEN_BY_FAMILY below does NOT decide.
   'latitude',
   'longitude',
   'gps_accuracy_m',
@@ -157,8 +160,21 @@ const VALUE_KEYS: Record<string, string[]> = {
 /** Minutes-valued keys, so "15" reads "15 min". Suffix `_min` also matches. */
 const MINUTE_SUFFIXES = ['_min', '_min_min', '_max_min'];
 
-function isHidden(key: string): boolean {
+// Hidden only for some action families. A punch's coordinates are personal
+// location data with no audit value beyond the flags derived from them ("fuori
+// area", "distanza dalla sede"), and the backend discards them at the geofence
+// check — a legacy entry that still carries them must not paint them either. A
+// sede's coordinates under `branch.` stay visible: that is company config, and
+// "the sede moved" is exactly what the Registro is for.
+const HIDDEN_BY_FAMILY: Record<string, Set<string>> = {
+  'stamp.': new Set(['latitude', 'longitude', 'gps_accuracy_m']),
+  'correction.': new Set(['latitude', 'longitude', 'gps_accuracy_m']),
+};
+
+function isHidden(key: string, action: string): boolean {
   if (HIDDEN.has(key)) return true;
+  const family = Object.keys(HIDDEN_BY_FAMILY).find((p) => action.startsWith(p));
+  if (family && HIDDEN_BY_FAMILY[family]!.has(key)) return true;
   // Foreign keys are opaque uuids; the label they point at is either the
   // Destinatario column or a name field already in the payload.
   return key.endsWith('_id') || key.endsWith('_by_user_id');
@@ -312,7 +328,7 @@ export function auditFields(row: AuditRowLike, t: TFn): AuditField[] {
   };
 
   return keys
-    .filter((k) => !isHidden(k))
+    .filter((k) => !isHidden(k, row.action))
     .filter((k) => {
       const v = source[k];
       const present = v !== null && v !== undefined && v !== '';

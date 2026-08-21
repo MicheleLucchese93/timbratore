@@ -75,9 +75,9 @@ export interface Stamp {
   occurred_at: string;
   source: StampSource;
   branch_id: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  gps_accuracy_m: number | null;
+  // No latitude/longitude/gps_accuracy_m: the GPS reading is consumed by the
+  // geofence check at insert time and discarded — what survives is the verdict
+  // (branch_id, out_of_geofence, suspicious_mock_location). See migration 060.
   device_platform: string | null;
   device_app_version: string | null;
   suspicious_mock_location: boolean;

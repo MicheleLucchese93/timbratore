@@ -47,6 +47,20 @@ interface DayAgg {
   worked_minutes: number;
   paid_break_minutes: number;
   unpaid_break_minutes: number;
+  /**
+   * Contractual ("ore ordinarie") minutes for that weekday: Σ of the shift
+   * template slots MINUS the auto-lunch deduction — i.e. the theoretical
+   * figure, NOT `worked − overtime`.
+   *
+   * The customer reads the payslip line "8 ordinarie + 0:30 straordinarie", so
+   * a full-time weekday has to print 8 whether the person worked 8:30 or 6:40:
+   * the surplus is already in Ore straordinarie and the shortfall belongs to
+   * the anomalies, neither may move this column. A day with no template (rest
+   * day, or a user with no shift assigned) stays 0 — that is the default set
+   * when the day bucket is created, and the per-day loop below `continue`s
+   * before touching it.
+   */
+  ordinary_minutes: number;
   overtime_minutes: number;
   ferie_minutes: number;
   permessi_minutes: number;
@@ -62,6 +76,8 @@ interface UserAgg {
   worked_minutes_total: number;
   paid_break_minutes_total: number;
   unpaid_break_minutes_total: number;
+  /** Σ of the days' ordinary_minutes: contracted hours of the period, not worked ones. */
+  ordinary_minutes_total: number;
   overtime_minutes_total: number;
   worked_days: number;
   ferie_minutes_total: number;
@@ -193,6 +209,7 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
           worked_minutes: 0,
           paid_break_minutes: 0,
           unpaid_break_minutes: 0,
+          ordinary_minutes: 0,
           overtime_minutes: 0,
           ferie_minutes: 0,
           permessi_minutes: 0,
@@ -241,6 +258,7 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
             worked_minutes: 0,
             paid_break_minutes: 0,
             unpaid_break_minutes: 0,
+            ordinary_minutes: 0,
             overtime_minutes: 0,
             ferie_minutes: 0,
             permessi_minutes: 0,
@@ -295,6 +313,17 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
         day.paid_break_minutes = 0;
         day.unpaid_break_minutes = deducted;
       }
+
+      // Ore ordinarie = contracted duration of the weekday NET of the auto-lunch.
+      //
+      // Same figure the flextime overtime branch below uses as its target worked
+      // time (`expectedDurationMin - autoLunch`), and the same one the Centro
+      // Paghe builder writes as `theoreticalMin`. It has to be net: on a tenant
+      // with Feature B the lunch break is unpaid and already removed from
+      // worked_minutes, so counting it as ordinary work would make a 09:00–18:00
+      // template print 9 ordinarie against 8 worked every single day, and the
+      // overtime column would start at −60 minutes' worth of slack.
+      day.ordinary_minutes = Math.max(0, expectedDurationMin - autoLunch);
 
       // Flextime widens the late/early anchors before the breach deduction.
       const flexInAfterMin = cfg.flexible_enabled ? cfg.flex_in_after_min : 0;
@@ -368,6 +397,9 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
           worked_minutes: d.worked_minutes,
           paid_break_minutes: d.paid_break_minutes,
           unpaid_break_minutes: d.unpaid_break_minutes,
+          // Never rounded to 15-minute blocks like worked_minutes: this is the
+          // contract, not a measurement, so a 7h30 template must stay 7.50.
+          ordinary_minutes: d.ordinary_minutes,
           overtime_minutes: d.overtime_minutes,
           ferie_minutes: ferie,
           permessi_minutes: permessi,
@@ -384,6 +416,10 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
       worked_minutes_total: sum(dayList.map((d) => d.worked_minutes)),
       paid_break_minutes_total: sum(dayList.map((d) => d.paid_break_minutes)),
       unpaid_break_minutes_total: sum(dayList.map((d) => d.unpaid_break_minutes)),
+      // Only over the days that actually reach the export (a day exists here if
+      // it has a stamp or an approved leave): a month's worth of contracted
+      // hours for someone who never showed up is not what this column means.
+      ordinary_minutes_total: sum(dayList.map((d) => d.ordinary_minutes)),
       overtime_minutes_total: sum(dayList.map((d) => d.overtime_minutes)),
       ferie_minutes_total: sum(dayList.map((d) => d.ferie_minutes)),
       permessi_minutes_total: sum(dayList.map((d) => d.permessi_minutes)),
@@ -708,6 +744,11 @@ const SHEET_DESCRIPTIONS: Record<string, string> = {
 
 const ORE_LAVORATE_DESC =
   'Ore effettivamente conteggiate, calcolate sulle timbrature ATTUALI (già corrette) ed escludendo quelle eliminate. È il valore che fa fede per la busta paga.';
+// Same text on both sheets, with the period/day wording swapped in: the warning
+// is the important half and must not drift between the two glossary blocks.
+const oreOrdinarieDesc = (scope: 'periodo' | 'giornata'): string =>
+  `Ore contrattuali previste dall’orario di lavoro assegnato ${scope === 'periodo' ? 'nel periodo' : 'in quella giornata'}, al netto della pausa pranzo dedotta automaticamente: è il monte ore TEORICO (es. 8,00 su una giornata full-time), non le ore realmente svolte. ATTENZIONE: proprio perché è un valore teorico NON quadra necessariamente con "Ore lavorate" — nei giorni di assenza (ferie, permesso, malattia), di uscita anticipata o comunque di orario incompleto resta 8,00 anche se le ore lavorate sono meno, e l’eventuale eccedenza è riportata a parte in "Ore straordinarie". Vale 0 nei giorni non previsti dall’orario (riposo, festivi) e per i dipendenti senza orario assegnato.`;
+
 const ORE_ORIGINALI_DESC =
   'Ore risultanti dalle timbrature PRIMA di ogni rettifica: orari e tipi evento originali (quelli con cui la timbratura è stata registrata la prima volta) e timbrature eliminate ancora incluse. Confrontala con "Ore lavorate": se coincidono la giornata non è stata rettificata, altrimenti la differenza è esattamente l\'effetto delle modifiche di orario e delle eliminazioni. Le timbrature inserite da un amministratore rientrano in entrambe le colonne, quindi non generano differenza: per sapere CHI ha registrato una timbratura usa la colonna Origine del foglio Timbrature.';
 
@@ -717,6 +758,7 @@ const COLUMN_DESCRIPTIONS: Record<string, Record<string, string>> = {
     Email: 'Email dell’account del dipendente.',
     'Ore lavorate': ORE_LAVORATE_DESC,
     'Ore originali': ORE_ORIGINALI_DESC,
+    'Ore ordinarie': oreOrdinarieDesc('periodo'),
     'Ore straordinarie':
       'Quota di straordinario già compresa nelle ore lavorate: non va sommata, è un di cui.',
     'Pausa retribuita': 'Totale pause entro la soglia di retribuzione.',
@@ -738,6 +780,7 @@ const COLUMN_DESCRIPTIONS: Record<string, Record<string, string>> = {
     Marker: 'F = ferie intera giornata, P = permesso parziale, M = malattia.',
     'Ore lavorate': ORE_LAVORATE_DESC,
     'Ore originali': ORE_ORIGINALI_DESC,
+    'Ore ordinarie': oreOrdinarieDesc('giornata'),
     'Ore straordinarie': 'Quota di straordinario compresa nelle ore lavorate del giorno.',
     'Ore ferie': 'Ore di ferie approvate nella giornata.',
     'Ore permessi': 'Ore di permesso approvate nella giornata.',
@@ -752,9 +795,6 @@ const COLUMN_DESCRIPTIONS: Record<string, Record<string, string>> = {
     Origine:
       'App dipendente, Correzione (richiesta approvata), Manuale (admin) o Automatica (sistema, es. chiusura oltre 15h).',
     Sede: 'Sede registrata al momento della timbratura.',
-    Lat: 'Latitudine rilevata (vuota se la modalità non prevede GPS).',
-    Lon: 'Longitudine rilevata.',
-    'Accuratezza GPS (m)': 'Raggio di incertezza della posizione, in metri.',
     Dispositivo: 'Piattaforma del dispositivo (ios / android / web).',
     'Versione app': 'Versione dell’app usata per timbrare.',
     'Pos. sospetta': '"Sì" se il dispositivo segnalava una posizione simulata (mock location).',
@@ -936,9 +976,6 @@ interface StampDetailRow {
   occurred_at: Date;
   source: string;
   branch_id: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  gps_accuracy_m: number | null;
   device_platform: string | null;
   device_app_version: string | null;
   suspicious_mock_location: boolean;
@@ -976,7 +1013,6 @@ export async function loadStampsDetail(
   const { start, end } = periodWindow(job, timeZone);
   const r = await adminPool.query(
     `SELECT user_id, event_type, occurred_at, source, branch_id,
-            latitude, longitude, gps_accuracy_m,
             device_platform, device_app_version, suspicious_mock_location, out_of_geofence, notes,
             original_occurred_at, original_event_type, edited_at, edited_by_user_id, edit_count,
             deleted_at, deleted_by_user_id, deletion_reason
@@ -1383,6 +1419,10 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
     // Sits next to "Ore lavorate" on purpose: the two side by side show how much
     // of the month was rewritten after the fact.
     { header: 'Ore originali', key: 'original', width: 14 },
+    // Ordinarie immediately before straordinarie, on both sheets: the customer
+    // reads the pair the way the payslip prints it ("8 ordinarie, accanto le
+    // straordinarie"), and splitting them apart is what made them ask.
+    { header: 'Ore ordinarie', key: 'ordinary', width: 16 },
     { header: 'Ore straordinarie', key: 'overtime', width: 18 },
     { header: 'Pausa retribuita', key: 'paid', width: 18 },
     { header: 'Pausa non retribuita', key: 'unpaid', width: 22 },
@@ -1404,6 +1444,7 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
       email: metaEmail(userMeta, u.user_id, u.email),
       worked: u.worked_minutes_total / 60,
       original: originalTotal / 60,
+      ordinary: u.ordinary_minutes_total / 60,
       overtime: u.overtime_minutes_total / 60,
       paid: u.paid_break_minutes_total / 60,
       unpaid: u.unpaid_break_minutes_total / 60,
@@ -1416,8 +1457,8 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
     });
   }
   setHourFormat(riep, [
-    'worked', 'original', 'overtime', 'paid', 'unpaid', 'ferie', 'permessi', 'malattia',
-    'res_ferie', 'res_permessi',
+    'worked', 'original', 'ordinary', 'overtime', 'paid', 'unpaid', 'ferie', 'permessi',
+    'malattia', 'res_ferie', 'res_permessi',
   ]);
   styleHeader(riep);
 
@@ -1439,6 +1480,8 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
     { header: 'Marker', key: 'marker', width: 8 },
     { header: 'Ore lavorate', key: 'worked', width: 14 },
     { header: 'Ore originali', key: 'original', width: 14 },
+    // Same pairing as Riepilogo: ordinarie then straordinarie, side by side.
+    { header: 'Ore ordinarie', key: 'ordinary', width: 16 },
     { header: 'Ore straordinarie', key: 'overtime', width: 18 },
     { header: 'Ore ferie', key: 'ferie', width: 12 },
     { header: 'Ore permessi', key: 'permessi', width: 14 },
@@ -1467,6 +1510,7 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
         marker: d.leave_marker ?? '',
         worked: d.worked_minutes / 60,
         original: (originalDays?.get(d.day) ?? 0) / 60,
+        ordinary: d.ordinary_minutes / 60,
         overtime: d.overtime_minutes / 60,
         ferie: d.ferie_minutes / 60,
         permessi: d.permessi_minutes / 60,
@@ -1476,7 +1520,9 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
       });
     }
   }
-  setHourFormat(dt, ['worked', 'original', 'overtime', 'ferie', 'permessi', 'malattia']);
+  setHourFormat(dt, [
+    'worked', 'original', 'ordinary', 'overtime', 'ferie', 'permessi', 'malattia',
+  ]);
   styleHeader(dt);
   // The identity columns stay on screen while scrolling right through the hour
   // columns — without this the numbers lose the person they belong to.
@@ -1490,9 +1536,6 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
     { header: 'Evento', key: 'event', width: 14 },
     { header: 'Origine', key: 'source', width: 18 },
     { header: 'Sede', key: 'branch', width: 20 },
-    { header: 'Lat', key: 'lat', width: 12 },
-    { header: 'Lon', key: 'lon', width: 12 },
-    { header: 'Accuratezza GPS (m)', key: 'acc', width: 18 },
     { header: 'Dispositivo', key: 'device', width: 14 },
     { header: 'Versione app', key: 'appv', width: 14 },
     { header: 'Pos. sospetta', key: 'mock', width: 14 },
@@ -1515,9 +1558,6 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
       event: EVENT_LABEL[s.event_type] ?? s.event_type,
       source: SOURCE_LABEL[s.source] ?? s.source,
       branch: s.branch_id ? branchMeta.get(s.branch_id) ?? '' : '',
-      lat: s.latitude ?? '',
-      lon: s.longitude ?? '',
-      acc: s.gps_accuracy_m ?? '',
       device: s.device_platform ?? '',
       appv: s.device_app_version ?? '',
       mock: s.suspicious_mock_location ? 'Sì' : '',
@@ -2087,6 +2127,12 @@ async function writeCentroPaghe(job: ExportJobRow, data: UserAgg[]): Promise<Exp
       const oreLavorate = Math.max(0, worked - overtime);
 
       // Theoretical + tipo-giorno from the shift calendar.
+      //
+      // Same formula as DayAgg.ordinary_minutes (Σ fasce − auto-lunch) but
+      // deliberately NOT read from it: the LUL emits a type-1 record for every
+      // date of the month, while the aggregate only holds days with a stamp or
+      // an approved leave — reusing it would silently write 0 theoretical
+      // minutes on every untimbrated working day of the payroll file.
       let theoreticalMin: number | null = null;
       let contractMin: number | null = null;
       let tipoGiorno: 'GL' | 'SA' | 'DO' | '' = '';

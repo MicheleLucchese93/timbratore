@@ -1,5 +1,6 @@
 import { adminPool } from '../../lib/admin-db.js';
 import { createLogger } from '../../lib/logger.js';
+import { stampColumns } from '../../lib/stamp-columns.js';
 
 const logger = createLogger('auto_clockout');
 
@@ -56,17 +57,37 @@ export async function autoClockout(): Promise<void> {
               'system_auto', c.branch_id,
               'Uscita automatica: turno aperto oltre ' || $1 || 'h'
          FROM candidates c
-       RETURNING *`,
+       RETURNING ${stampColumns()}`,
       [String(MAX_SHIFT_HOURS)]
     );
+    // Same slim payload as POST /stamps: only what the admin dashboard redraws
+    // on. Publishing to_jsonb of the whole row put a permanent copy of every
+    // punch in a table with no retention, readable verbatim at
+    // GET /api/v1/realtime/since.
     for (const row of inserted.rows) {
       await client.query(
         `INSERT INTO centrifugo_outbox(method, payload)
          VALUES ('publish', jsonb_build_object(
            'channel', 'tenant.' || $1::text || '.dashboard',
-           'data', jsonb_build_object('type','stamp','stamp', to_jsonb($2::jsonb))
+           'data', jsonb_build_object(
+             'type', 'stamp',
+             'stamp', jsonb_build_object(
+               'id', $2::text,
+               'user_id', $3::text,
+               'event_type', $4::text,
+               'occurred_at', $5::text,
+               'branch_id', $6::text
+             )
+           )
          ))`,
-        [row.tenant_id, JSON.stringify(row)]
+        [
+          row.tenant_id,
+          row.id,
+          row.user_id,
+          row.event_type,
+          new Date(row.occurred_at).toISOString(),
+          row.branch_id,
+        ]
       );
     }
     await client.query('COMMIT');
