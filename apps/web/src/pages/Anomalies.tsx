@@ -431,6 +431,70 @@ function keyOf(a: Anomaly): string {
   return `${a.user_id}|${a.date}|${a.kind}`;
 }
 
+// The unit a day-level correction actually acts on. One working day can raise
+// several anomalies (the backend pushes e.g. 'early_clock_out' and
+// 'short_hours' independently), but ferie/permesso/timbratura standard all
+// describe THAT DAY, not that single deviation.
+function dayKeyOf(a: Anomaly): string {
+  return `${a.user_id}|${a.date}`;
+}
+
+// Which anomaly of a day represents the day when the selection is collapsed,
+// best first. 'short_hours' wins because its delta_minutes is the real
+// shortfall of the day, while 'early_clock_out' proposes the whole unworked
+// tail (out at 15:00 on a 09:00–17:00 schedule → 2h, even if the employee had
+// already recovered part of it earlier). Missing punches come last: they only
+// say a stamp is absent, not how much time is actually uncovered.
+const COLLAPSE_PRIORITY: Anomaly['kind'][] = [
+  'short_hours',
+  'early_clock_out',
+  'late_clock_in',
+  'missing_clock_out',
+  'missing_clock_in',
+];
+
+function collapseRank(kind: Anomaly['kind']): number {
+  const i = COLLAPSE_PRIORITY.indexOf(kind);
+  // Kinds outside the list are never day-level correctable (they only offer
+  // 'note', which is never collapsed), so any rank past the list will do.
+  return i === -1 ? COLLAPSE_PRIORITY.length : i;
+}
+
+// One anomaly per (user, day), picked by COLLAPSE_PRIORITY. Every field a
+// day-level correction reads — expected_start_at/expected_end_at and the
+// actual anchors — is built from the same day of stamps for every kind, so the
+// representative only changes the PROPOSED WINDOW (proposeGap), never the
+// target day or the punches inserted.
+function collapseByDay(items: Anomaly[]): Anomaly[] {
+  const best = new Map<string, Anomaly>();
+  for (const a of items) {
+    const k = dayKeyOf(a);
+    const cur = best.get(k);
+    if (!cur || collapseRank(a.kind) < collapseRank(cur.kind)) best.set(k, a);
+  }
+  return [...best.values()];
+}
+
+// The rows a bulk action actually POSTs.
+//
+// Everything except 'note' is a DAY-level correction and must run ONCE per
+// (user, day). Time System, agosto 2026: a day that had raised both
+// 'early_clock_out' and 'short_hours' was selected whole and corrected with
+// "inserisci ferie"; the bar fired one POST /leaves/admin-create per selected
+// row, in parallel, so two identical 8h ferie rows landed on the same day —
+// 16h of ferie in the payroll export and a double bite out of the residuo (the
+// server-side per-day cap read the pre-insert state in both transactions and
+// let them through). 'ferie' uses the whole scheduled day
+// (expected_start_at → expected_end_at) and 'standard' inserts the day's
+// missing punches, so in both cases the second row is a pure duplicate.
+//
+// 'note' is the exception and stays per-row: a justification is stored per
+// (user, date, kind), so collapsing it would leave the day's other kinds
+// unjustified.
+function bulkTargets(action: CorrectionAction, items: Anomaly[]): Anomaly[] {
+  return action === 'note' ? items : collapseByDay(items);
+}
+
 // Single source of truth for applying one correction to one anomaly. Both the
 // per-row Correggi panel and the bulk bar call this, so the two paths never
 // diverge. The payload is always derived from the anomaly's own fields.
@@ -488,16 +552,27 @@ async function applyCorrection(
   }
 }
 
-// Actions offered for a bulk selection: those available for EVERY selected
-// anomaly, minus 'permesso' (its window is inherently per-row, so one shared
-// correction can't be applied safely). 'note' is always available, so a
-// mixed-kind selection collapses to note-only — that is how "select similar
-// anomalies" is enforced without a hard same-kind gate.
+// Actions offered for a bulk selection: those available for EVERY row it will
+// be applied to. 'note' is always available, so a mixed-kind selection
+// collapses to note-only — that is how "select similar anomalies" is enforced
+// without a hard same-kind gate.
+//
+// Callers pass the COLLAPSED rows (see bulkTargets): a day-level action runs
+// once per giornata, so it is the representative of each day that has to
+// support it.
+//
+// 'permesso' used to be stripped here because one shared window can't fit
+// every selected day. It is offered again, on the condition that every row has
+// a proposeGap() of its own: the bar submits each row with ITS window, so
+// there is no shared window to get wrong. A row without a proposed gap would
+// have nothing to send.
 function bulkActions(items: Anomaly[]): CorrectionAction[] {
   if (items.length === 0) return [];
   let acc: CorrectionAction[] | null = null;
   for (const a of items) {
-    const avail: CorrectionAction[] = availableActions(a).filter((x) => x !== 'permesso');
+    const avail: CorrectionAction[] = availableActions(a).filter(
+      (x) => x !== 'permesso' || proposeGap(a) !== null
+    );
     acc = acc === null ? avail : acc.filter((x) => avail.includes(x));
   }
   return acc ?? [];
@@ -768,14 +843,27 @@ function BulkCorrectBar({
   onClear: () => void;
 }) {
   const { t } = useTranslation(['anomalies', 'common']);
-  const actions = useMemo(() => bulkActions(items), [items]);
+  // One row per giornata: what a day-level action is applied to, and what the
+  // offered actions have to be valid for.
+  const collapsed = useMemo(() => collapseByDay(items), [items]);
+  const actions = useMemo(() => bulkActions(collapsed), [collapsed]);
   const [action, setAction] = useState<CorrectionAction>(actions[0] ?? 'note');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{
     ok: number;
     failed: { name: string; date: string; reason: string }[];
+    // Snapshotted at apply time: on success the selection is cleared, so the
+    // recap can no longer be recomputed from `items`.
+    selected: number;
+    days: number;
   } | null>(null);
+
+  const targets = useMemo(() => bulkTargets(action, items), [action, items]);
+  // >0 only when several anomalies of the same giornata were selected and the
+  // action is day-level. The admin has to see it BEFORE confirming: they
+  // selected N rows and only M corrections will be sent.
+  const mergedCount = items.length - targets.length;
 
   // Keep the chosen action valid as the selection (and its intersection) changes.
   useEffect(() => {
@@ -788,10 +876,22 @@ function BulkCorrectBar({
   async function apply() {
     setBusy(true);
     setResult(null);
-    const res = await mapLimit(items, 4, (a) => applyCorrection(action, a, { note, t }));
+    const rows = targets;
+    const res = await mapLimit(rows, 4, (a) => {
+      // Per-row window, never a shared one: each giornata submits the gap
+      // computed from its own schedule and its own punches. The shared
+      // fine-tuning stepper stays in the single-row Correggi panel.
+      const gap = action === 'permesso' ? proposeGap(a) : null;
+      return applyCorrection(action, a, {
+        note,
+        pFrom: gap?.from ?? null,
+        pTo: gap?.to ?? null,
+        t,
+      });
+    });
     const ok = res.filter((r) => r.status === 'fulfilled').length;
     const failed = res
-      .map((r, i) => ({ r, a: items[i]! }))
+      .map((r, i) => ({ r, a: rows[i]! }))
       .filter((x) => x.r.status === 'rejected')
       .map((x) => {
         const reason = (x.r as PromiseRejectedResult).reason;
@@ -802,7 +902,7 @@ function BulkCorrectBar({
         };
       });
     setBusy(false);
-    setResult({ ok, failed });
+    setResult({ ok, failed, selected: items.length, days: rows.length });
     setNote('');
     onDone();
     if (failed.length === 0) onClear();
@@ -829,7 +929,7 @@ function BulkCorrectBar({
             ))}
           </select>
         </div>
-        {(action === 'ferie' || action === 'note') && (
+        {(action === 'ferie' || action === 'permesso' || action === 'note') && (
           <div className="flex-1 min-w-[12rem]">
             <label className="label">{t('noteSection.title')}</label>
             <input
@@ -850,12 +950,32 @@ function BulkCorrectBar({
           }}
           disabled={busy || actions.length === 0 || (needsNote && noteEmpty)}
         >
-          {busy ? t('common:state.saving') : t('bulk.apply', { n: items.length })}
+          {busy
+            ? t('common:state.saving')
+            : mergedCount > 0
+              ? t('bulk.applyDays', { n: items.length, days: targets.length })
+              : t('bulk.apply', { n: items.length })}
         </button>
         <button className="btn btn-secondary" onClick={onClear} disabled={busy}>
           {t('bulk.clear')}
         </button>
       </div>
+
+      {/* Say it before the click, not only in the recap: the admin selected N
+          rows and is about to send M corrections. */}
+      {mergedCount > 0 && (
+        <div className="text-xs" data-testid="bulk-merged-notice" style={{ color: 'var(--color-primary)' }}>
+          {t('bulk.mergedNotice', { n: items.length, days: targets.length })}
+        </div>
+      )}
+
+      {/* No shared time-window editor here on purpose: the window is derived
+          per giornata. Fine-tuning stays in the single-row Correggi panel. */}
+      {action === 'permesso' && (
+        <div className="text-xs muted" data-testid="bulk-permesso-hint">
+          {t('bulk.permessoPerDay')}
+        </div>
+      )}
 
       <div className="text-xs muted">{t('bulk.hint')}</div>
 
@@ -866,7 +986,13 @@ function BulkCorrectBar({
               color: result.failed.length === 0 ? 'var(--color-success)' : 'inherit',
             }}
           >
-            {t('bulk.result', { ok: result.ok, fail: result.failed.length })}
+            {result.selected > result.days
+              ? t('bulk.resultDays', {
+                  ok: result.ok,
+                  fail: result.failed.length,
+                  n: result.selected,
+                })
+              : t('bulk.result', { ok: result.ok, fail: result.failed.length })}
           </div>
           {result.failed.length > 0 && (
             <ul className="space-y-0.5" style={{ color: 'var(--color-error)' }}>

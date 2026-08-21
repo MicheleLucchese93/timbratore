@@ -199,6 +199,8 @@ async function loadShiftHoursByDow(
  * malattia is exempt: it intentionally overrides overlapping ferie/permessi
  * via {@link applyMalattiaOverlap}, so the cap would block legitimate
  * sick-leave events whose purpose is exactly to supersede existing rows.
+ *
+ * Serialized per employee — see the advisory lock below.
  */
 export async function assertPerDayCap(
   client: PoolClient,
@@ -208,6 +210,55 @@ export async function assertPerDayCap(
   toTs: string,
   excludeRequestId: string | null
 ): Promise<void> {
+  // ─── Serialize every capacity check for this employee ───────────────────
+  //
+  // Prod incident, Time System S.a.s, August 2026. A single day can raise TWO
+  // anomalies for the same user — routes/shifts.ts pushes 'early_clock_out'
+  // and 'short_hours' independently — and the web anomalies bulk bar applies
+  // the chosen correction ONCE PER SELECTED ROW, in parallel via mapLimit().
+  // Ticking both rows of the same day and choosing "inserisci ferie" therefore
+  // fired two POST /api/v1/leaves/admin-create concurrently. Each transaction
+  // read the pre-insert state, each saw 0h already booked on that day, both
+  // passed the check below, and the employee ended up with two 8h ferie rows
+  // on one date: 16h of ferie in the payroll export and a ferie balance
+  // consumed twice. 14 duplicate (user, day) pairs were found in prod, the two
+  // rows of each pair created ~125 microseconds apart by the same admin.
+  //
+  // The cap is a read-modify-write, so nothing below can fix it on its own —
+  // both readers legitimately saw a state in which their own insert fit. The
+  // read and the insert have to be mutually exclusive instead.
+  //
+  // pg_advisory_xact_lock (rather than pg_advisory_lock + a try/finally
+  // unlock) because every caller reaches us through tenantHandler →
+  // withTenantRLS, which really does BEGIN / COMMIT / ROLLBACK: the lock is
+  // therefore held past the INSERT that follows this call and released by the
+  // transaction end, with no unlock bookkeeping that a thrown ValidationError
+  // could skip. The SELECT below runs at READ COMMITTED (no isolation level is
+  // set anywhere), which is what makes the second waiter take a fresh snapshot
+  // and actually see the row the first one committed.
+  //
+  // The key is per (tenant, user), never global: two employees — or the same
+  // person in two tenants — must not queue behind each other. Each transaction
+  // locks exactly one user, so there is no lock-ordering deadlock to design
+  // around. The 'leave:day-cap:' prefix namespaces the hash, since advisory
+  // lock ids are a single database-wide space.
+  //
+  // Taken before the malattia short-circuit on purpose: malattia stays exempt
+  // from the cap itself (it is meant to supersede overlapping rows), but it
+  // must still not interleave with a concurrent ferie insert between that
+  // insert's check and applyMalattiaOverlap's sweep.
+  await client.query(
+    `SELECT pg_advisory_xact_lock(
+              hashtextextended(
+                'leave:day-cap:'
+                  || COALESCE(current_setting('app.current_tenant_id', true), '-')
+                  || ':' || $1::text,
+                0
+              )
+            )`,
+    [userId]
+  );
+
   if (type === 'malattia') return;
   const newPerDay = await computeHoursPerDay(client, userId, type, fromTs, toTs);
   if (newPerDay.size === 0) return;

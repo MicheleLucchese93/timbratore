@@ -41,4 +41,20 @@ test.describe('web — manuale utente toolbar', () => {
     await expect(page.getByText("Correggere un'anomalia").first()).toBeVisible();
     await expect(page.getByText('Tracciabilità nelle esportazioni').first()).toBeVisible();
   });
+
+  // Both halves of the Time System S.a.s incident (prod, August 2026) are
+  // user-facing and changed how the admin has to read what they see, so the
+  // manual carries them and this pins that it keeps doing so:
+  //   - the bulk bar merges a day's several anomalies into ONE correction, so
+  //     "selezionate: 6" can legitimately produce 3 interventions;
+  //   - the export gained "Ore ordinarie", a THEORETICAL figure that on purpose
+  //     does not reconcile with "Ore lavorate" — the single question the column
+  //     would otherwise generate for support on every payroll run.
+  test('documents the per-day bulk merge and the Ore ordinarie column', async ({ page }) => {
+    await expect(page.getByText('Un intervento per giornata').first()).toBeVisible();
+    await expect(page.getByText('16 ore di ferie in una giornata').first()).toBeVisible();
+    await expect(page.getByText('Ore ordinarie').first()).toBeVisible();
+    await expect(page.getByText('non quadrano').first()).toBeVisible();
+  });
+
 });

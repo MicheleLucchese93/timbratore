@@ -720,12 +720,13 @@ export const MAIN_EN = `
       <div class="feature">
         <h3>Bulk correction</h3>
         <p>To correct several anomalies with the same action, <strong>select</strong> them with the checkboxes on the left of each row. Use the <strong>Select all</strong> checkbox at the top of the list, or the one next to each <strong>date</strong> to select the whole day.</p>
-        <p>When at least one row is selected, the <strong>correction bar</strong> appears at the bottom: choose the action and press <strong>Correct</strong>. Each anomaly is corrected using its own day's data (expected times, missing stamps).</p>
+        <p>When at least one row is selected, the <strong>correction bar</strong> appears at the bottom: choose the action and press <strong>Correct</strong>. Each correction uses its own day's data (expected times, missing stamps).</p>
         <ul class="tidy">
           <li>The bar only offers <strong>the actions valid for every</strong> selected anomaly. <em>Justify with a note</em> is always available; <em>Standard stamp</em> only when a stamp is missing on all of them; <em>Insert holiday</em> only for justifiable types with an expected schedule.</li>
           <li>Selecting different types leaves only <strong>justify with a note</strong> available: select <strong>similar</strong> anomalies (same type) to apply the other corrections.</li>
-          <li><em>Insert leave</em> is not available in bulk because its time window depends on the single day: use the per-row correction.</li>
-          <li>At the end the outcome is shown: <strong>how many corrected</strong> and <strong>how many failed</strong>, with the list of failed rows. Resolved anomalies leave the list; if you retry, only the rows still present are retried.</li>
+          <li><strong>One intervention per day.</strong> When the same day raises several anomalies (e.g. <em>Early clock-out</em> and <em>Insufficient hours</em>), holiday, leave and standard stamping are applied <strong>once only</strong> on that day. That is why the number of selected anomalies can be higher than the number of interventions applied: the bar says so before you confirm and the button shows both counts. Without this merge, two anomalies on the same day used to insert two absences (16 hours of holiday on a single day). <em>Justify with a note</em> instead stays per single anomaly, because it is recorded per type.</li>
+          <li><em>Insert leave</em> <strong>is available in bulk too</strong>: the time window is not shared but computed <strong>for each day</strong> from the period not worked (gap), so every day gets its own times. To fine-tune it by hand use the <strong>per-row</strong> correction, where the −/+ buttons in 15-minute steps remain.</li>
+          <li>At the end the outcome is shown: <strong>how many days corrected</strong> and <strong>how many failed</strong>, with the list of failed rows. Resolved anomalies leave the list; if you retry, only the rows still present are retried.</li>
         </ul>
       </div>
     </section>
@@ -860,8 +861,8 @@ export const MAIN_EN = `
         <h3>What the XLSX file contains</h3>
         <p>The XLSX file is a multi-sheet spreadsheet designed for the accountant and for payroll. It contains:</p>
         <ul class="tidy">
-          <li><strong>Summary</strong>: one row per employee with hours worked, <strong>original hours</strong>, overtime, breaks, holiday, leave, sick leave, days worked and holiday and leave balances.</li>
-          <li><strong>Dettaglio giornaliero</strong>: the day-by-day detail of <em>every</em> employee in a single sheet — one row per employee per day (hours worked, original hours, overtime, holiday/leave/sick leave, breaks, absence marker). The leading columns — <strong>Dipendente</strong>, <strong>Nome</strong>, <strong>Cognome</strong> and <strong>Codice fiscale</strong> — identify the person on every row, so the sheet can be filtered, sorted or used as a pivot table source, and rows reconcile with payroll software through the codice fiscale.</li>
+          <li><strong>Summary</strong>: one row per employee with hours worked, <strong>original hours</strong>, <strong>ordinary hours</strong>, overtime, breaks, holiday, leave, sick leave, days worked and holiday and leave balances.</li>
+          <li><strong>Dettaglio giornaliero</strong>: the day-by-day detail of <em>every</em> employee in a single sheet — one row per employee per day (hours worked, original hours, ordinary hours, overtime, holiday/leave/sick leave, breaks, absence marker). The leading columns — <strong>Dipendente</strong>, <strong>Nome</strong>, <strong>Cognome</strong> and <strong>Codice fiscale</strong> — identify the person on every row, so the sheet can be filtered, sorted or used as a pivot table source, and rows reconcile with payroll software through the codice fiscale.</li>
           <li><strong>Stamps</strong>: each stamp with date and time, event, source, branch, GPS, device and notes. It also includes <em>deleted</em> stamps (<em>Stato</em> column) and, for amended ones, the <em>Modificata</em>, <em>Ora originale</em>, <em>Evento originale</em>, <em>Modificata da/il</em> and <em>Eliminata da / Motivo eliminazione</em> columns. The Summary hours stay computed on active stamps only.</li>
           <li><strong>Rettifiche</strong>: one row per intervention on a stamp of the period — day, type of intervention, field touched, previous and new value, reason, operator and date. This is the sheet to consult in a contestation.</li>
           <li><strong>Corrections</strong>: the correction requests of the period with status, outcome and resolution note.</li>
@@ -877,6 +878,11 @@ export const MAIN_EN = `
           <em>Ore originali</em> is what the day added up to <strong>before any amendment</strong>: the times and event types the stamps were first recorded with, deleted stamps still included.
           Equal values mean the day was never amended; a difference is exactly the effect of time edits and deletions — itemised in the <em>Rettifiche</em> sheet.
           Admin-entered stamps appear in both columns and so produce no difference: to see <strong>who</strong> recorded a stamp, use the <em>Origine</em> column of the Timbrature sheet.
+        </div>
+        <div class="callout callout-warn">
+          <strong>Ore ordinarie</strong> (ordinary hours) — next to <em>Ore straordinarie</em> (overtime) in both <em>Riepilogo</em> and <em>Dettaglio giornaliero</em> — are the hours <strong>planned by the assigned shift</strong> for that weekday, net of the automatically deducted lunch break: on a full-time schedule a day always reads 8.00 and the surplus stays in <em>Ore straordinarie</em>.
+          It is a <strong>theoretical</strong> figure, not a measurement: on days of absence (holiday, leave, sick leave), on an early clock-out or on any incomplete day it stays 8.00 even when <em>Ore lavorate</em> is less — the two columns <strong>do not add up</strong> to each other, and that is expected.
+          It is 0 on days the shift does not plan (rest days, public holidays) and for employees with no shift assigned.
         </div>
         <p>The <strong>JSON</strong> format contains the aggregated summary per employee, useful for integrations with other software.</p>
       </div>
@@ -1697,7 +1703,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>Branch without a radius</h3>
-        <p>If the admin disables the radius for a branch, the stamp is accepted wherever you are: the GPS position is still recorded on the stamp for auditing, but without comparison to an area. In auto-detection such a branch is used as a fallback, that is only when your position falls inside the area of no other assigned branch.</p>
+        <p>If the admin disables the radius for a branch, the stamp is accepted wherever you are, without comparison to an area. In auto-detection such a branch is used as a fallback, that is only when your position falls inside the area of no other assigned branch.</p>
       </div>
 
       <div class="feature">

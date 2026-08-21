@@ -51,9 +51,13 @@
     "selectAllVisible": "Seleziona tutte ({{n}})",
     "selected": "Selezionate: {{n}}",
     "apply": "Correggi ({{n}})",
+    "applyDays": "Correggi ({{n}} anomalie · {{days}} giornate)",
     "clear": "Deseleziona",
-    "hint": "Vengono proposte solo le azioni valide per tutte le anomalie selezionate. Ogni anomalia viene corretta con i dati del suo giorno. Selezionane di simili (stesso tipo) per applicare la stessa correzione.",
-    "result": "{{ok}} corrette · {{fail}} non riuscite"
+    "hint": "Vengono proposte solo le azioni valide per tutte le anomalie selezionate. Ferie, permesso e timbratura standard vengono applicati una sola volta per giornata; la nota resta per singola anomalia. Selezionane di simili (stesso tipo) per applicare la stessa correzione.",
+    "mergedNotice": "Hai selezionato {{n}} anomalie su {{days}} giornate: la correzione viene applicata una sola volta per giornata, altrimenti la stessa assenza verrebbe inserita due volte.",
+    "permessoPerDay": "La finestra del permesso è calcolata per ogni giornata dal periodo non coperto. Per modificarla usa Correggi sulla singola anomalia.",
+    "result": "{{ok}} corrette · {{fail}} non riuscite",
+    "resultDays": "{{ok}} giornate corrette · {{fail}} non riuscite (da {{n}} anomalie selezionate)"
   },
   "errors": {
     "noMissingStamp": "Nessun timbro mancante da aggiungere.",

@@ -12,6 +12,19 @@ import {
 
 const ENABLED = process.env.E2E_MUTATING === '1';
 
+// exceljs ships its own @types/node, in which `Buffer` is `Buffer<ArrayBuffer>`;
+// this workspace resolves the generic `Buffer<ArrayBufferLike>` that `fetch`
+// (and therefore downloadExport) hands back. Identical at runtime, mutually
+// unassignable to tsc — hence a cast to exceljs's OWN parameter type, not to
+// `any`, and in one place instead of at every call site.
+type XlsxBuffer = Parameters<ExcelJS.Workbook['xlsx']['load']>[0];
+
+async function openWorkbook(body: Buffer): Promise<ExcelJS.Workbook> {
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(body as unknown as XlsxBuffer);
+  return wb;
+}
+
 test.describe('web — Export job lifecycle (mutating)', () => {
   test.skip(!ENABLED, 'set E2E_MUTATING=1 to enable mutating specs');
 
@@ -142,8 +155,7 @@ test.describe('web — Export job lifecycle (mutating)', () => {
       // The daily breakdown is ONE sheet for the whole company, not one tab per
       // employee: payroll and the accountant filter/pivot it, so every row has
       // to carry the identity of the person it belongs to.
-      const wb = new ExcelJS.Workbook();
-      await wb.xlsx.load(dl.body);
+      const wb = await openWorkbook(dl.body);
       const names = wb.worksheets.map((w) => w.name);
       expect(names).toContain('Riepilogo');
       expect(names).toContain('Dettaglio giornaliero');
@@ -174,5 +186,92 @@ test.describe('web — Export job lifecycle (mutating)', () => {
     }
 
     await deleteExportJob(admin.token, job.id);
+  });
+
+  test('XLSX prints "Ore ordinarie" immediately before "Ore straordinarie"', async () => {
+    const now = new Date();
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastDayPrev = new Date(now.getFullYear(), now.getMonth(), 0);
+    const job = await createExportJob(admin.token, {
+      format: 'xlsx',
+      period_from: prevMonth.toISOString().slice(0, 10),
+      period_to: lastDayPrev.toISOString().slice(0, 10),
+    });
+
+    let status = job.status;
+    for (let i = 0; i < 24 && (status === 'pending' || status === 'running'); i += 1) {
+      await new Promise((r) => setTimeout(r, 500));
+      status = (await getExportJob(admin.token, job.id)).status;
+    }
+
+    try {
+      // Deliberately a SKIP, not the "assert the job exists" fallback the
+      // lifecycle test above uses: this test exists to prove a column is in the
+      // workbook, and a run that never opened a workbook has proved nothing.
+      // Reporting it green would hide a missing column behind a slow worker.
+      test.skip(
+        status !== 'ready',
+        `export worker never reached "ready" (status=${status}) — column not verified`,
+      );
+
+      const dl = await downloadExport(admin.token, job.id);
+      expect(dl.ok).toBe(true);
+      const wb = await openWorkbook(dl.body);
+
+      // Contract hours ("ore ordinarie", the theoretical monte ore from the
+      // assigned schedule) next to the overtime already contained in the worked
+      // hours: payroll reads the pair the way the payslip prints it, which is
+      // why the customer asked for the column. Adjacency is the requirement —
+      // asserting mere presence would let it drift to the far end of the sheet.
+      for (const sheet of ['Riepilogo', 'Dettaglio giornaliero'] as const) {
+        const ws = wb.getWorksheet(sheet);
+        expect(ws, `sheet ${sheet} missing`).toBeTruthy();
+        const header = (ws!.getRow(1).values as unknown[]).slice(1).map(String);
+        const ordinary = header.indexOf('Ore ordinarie');
+        const overtime = header.indexOf('Ore straordinarie');
+        expect(ordinary, `${sheet}: no "Ore ordinarie" column — header = ${header.join(' | ')}`)
+          .toBeGreaterThan(-1);
+        expect(overtime, `${sheet}: "Ore ordinarie" must sit immediately before "Ore straordinarie"`)
+          .toBe(ordinary + 1);
+
+        // Whatever lands in the column has to be a real number the accountant
+        // can sum. A blank cell is tolerated (that is how a 0 may be stored),
+        // but anything present and non-finite is not: an aggregate field that
+        // went missing arrives here as NaN — `undefined / 60` — and would print
+        // as garbage in the payroll file rather than failing anywhere upstream.
+        const col = ordinary + 1; // 1-based cell index
+        const bad: string[] = [];
+        ws!.eachRow((row, n) => {
+          if (n === 1) return;
+          const v = row.getCell(col).value;
+          if (v === null || v === undefined || v === '') return;
+          if (!Number.isFinite(v)) bad.push(`${n}:${JSON.stringify(v)}`);
+        });
+        expect(bad, `${sheet}: "Ore ordinarie" is not a number on rows ${bad.join(', ')}`).toEqual(
+          [],
+        );
+      }
+
+      // Metadati carries a dizionario of every column of every sheet, and
+      // prints "(descrizione mancante)" for any header nobody documented. A new
+      // column added without its glossary entry ships that string to the
+      // accountant, so the whole column set is guarded by one assertion.
+      const meta = wb.getWorksheet('Metadati');
+      expect(meta, 'sheet Metadati missing').toBeTruthy();
+      const undocumented: string[] = [];
+      meta!.eachRow((row, n) => {
+        if (n === 1) return;
+        // Columns: Sezione | Voce | Valore | Descrizione.
+        const desc = String(row.getCell(4).value ?? '');
+        if (desc.includes('(descrizione mancante)')) {
+          undocumented.push(String(row.getCell(2).value ?? `riga ${n}`));
+        }
+      });
+      expect(undocumented, 'columns missing from the Metadati dizionario').toEqual([]);
+    } finally {
+      // Runs on the skip too — test.skip() throws, and a skipped test must not
+      // leave an export job (and its stored file) behind on the shared tenant.
+      await deleteExportJob(admin.token, job.id).catch(() => {});
+    }
   });
 });

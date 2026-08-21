@@ -727,12 +727,13 @@ const MAIN_IT = `
       <div class="feature">
         <h3>Correzione multipla (in blocco)</h3>
         <p>Per correggere più anomalie con la stessa azione, <strong>selezionale</strong> con le caselle a sinistra di ogni riga. Usa la casella <strong>Seleziona tutte</strong> in cima all'elenco, oppure quella accanto a ciascuna <strong>data</strong> per selezionare l'intera giornata.</p>
-        <p>Quando c'è almeno una selezione compare in basso la <strong>barra di correzione</strong>: scegli l'azione e premi <strong>Correggi</strong>. Ogni anomalia viene corretta con i dati del proprio giorno (orari previsti, timbri mancanti).</p>
+        <p>Quando c'è almeno una selezione compare in basso la <strong>barra di correzione</strong>: scegli l'azione e premi <strong>Correggi</strong>. Ogni correzione usa i dati del proprio giorno (orari previsti, timbri mancanti).</p>
         <ul class="tidy">
           <li>La barra propone <strong>solo le azioni valide per tutte</strong> le anomalie selezionate. <em>Giustifica con nota</em> è sempre disponibile; <em>Timbratura standard</em> solo se a tutte manca un timbro; <em>Inserisci ferie</em> solo per i tipi giustificabili con orario previsto.</li>
           <li>Selezionando tipi diversi resta disponibile la sola <strong>giustificazione con nota</strong>: seleziona anomalie <strong>simili</strong> (stesso tipo) per applicare le altre correzioni.</li>
-          <li>L'<em>Inserisci permesso</em> non è disponibile in blocco perché la finestra oraria dipende dal singolo giorno: usa la correzione della singola riga.</li>
-          <li>Al termine viene mostrato l'esito: <strong>quante corrette</strong> e <strong>quante non riuscite</strong>, con l'elenco delle righe fallite. Le anomalie risolte spariscono dall'elenco; se ritenti, vengono ritentate solo quelle ancora presenti.</li>
+          <li><strong>Un intervento per giornata.</strong> Se lo stesso giorno porta più anomalie (es. <em>Uscita anticipata</em> e <em>Ore insufficienti</em>), ferie, permesso e timbratura standard vengono applicati <strong>una sola volta</strong> su quella giornata. Per questo il numero di anomalie selezionate può essere maggiore del numero di interventi applicati: la barra lo segnala prima della conferma e il pulsante mostra entrambi i conteggi. Senza l'accorpamento due anomalie dello stesso giorno inserivano due assenze (16 ore di ferie in una giornata). La <em>giustificazione con nota</em> resta invece per singola anomalia, perché è registrata per tipo.</li>
+          <li>L'<em>Inserisci permesso</em> è disponibile <strong>anche in blocco</strong>: la finestra oraria non è condivisa ma calcolata <strong>per ogni giornata</strong> dal periodo non lavorato (gap), quindi ogni giorno riceve il proprio orario. Per ritoccarla a mano usa la correzione della <strong>singola riga</strong>, dove restano i pulsanti −/+ a passi di 15 minuti.</li>
+          <li>Al termine viene mostrato l'esito: <strong>quante giornate corrette</strong> e <strong>quante non riuscite</strong>, con l'elenco delle righe fallite. Le anomalie risolte spariscono dall'elenco; se ritenti, vengono ritentate solo quelle ancora presenti.</li>
         </ul>
       </div>
     </section>
@@ -867,8 +868,8 @@ const MAIN_IT = `
         <h3>Cosa contiene il file XLSX</h3>
         <p>Il file XLSX è un foglio di calcolo multi-scheda pensato per il commercialista e per la busta paga. Contiene:</p>
         <ul class="tidy">
-          <li><strong>Riepilogo</strong>: una riga per dipendente con ore lavorate, <strong>ore originali</strong>, straordinari, pause, ferie, permessi, malattia, giorni lavorati e residui di ferie e permessi.</li>
-          <li><strong>Dettaglio giornaliero</strong>: il dettaglio giorno per giorno di <em>tutti</em> i dipendenti in un unico foglio — una riga per dipendente e per giorno (ore lavorate, ore originali, straordinari, ferie/permessi/malattia, pause, marker assenza). Le prime colonne — <strong>Dipendente</strong>, <strong>Nome</strong>, <strong>Cognome</strong> e <strong>Codice fiscale</strong> — identificano la persona su ogni riga, così il foglio si può filtrare, ordinare o usare come sorgente di una tabella pivot, e le righe si riconciliano con il gestionale paghe tramite il codice fiscale.</li>
+          <li><strong>Riepilogo</strong>: una riga per dipendente con ore lavorate, <strong>ore originali</strong>, <strong>ore ordinarie</strong>, straordinari, pause, ferie, permessi, malattia, giorni lavorati e residui di ferie e permessi.</li>
+          <li><strong>Dettaglio giornaliero</strong>: il dettaglio giorno per giorno di <em>tutti</em> i dipendenti in un unico foglio — una riga per dipendente e per giorno (ore lavorate, ore originali, ore ordinarie, straordinari, ferie/permessi/malattia, pause, marker assenza). Le prime colonne — <strong>Dipendente</strong>, <strong>Nome</strong>, <strong>Cognome</strong> e <strong>Codice fiscale</strong> — identificano la persona su ogni riga, così il foglio si può filtrare, ordinare o usare come sorgente di una tabella pivot, e le righe si riconciliano con il gestionale paghe tramite il codice fiscale.</li>
           <li><strong>Timbrature</strong>: ogni timbratura con data e ora, evento, origine, sede, GPS, dispositivo e note. Include anche le timbrature <em>eliminate</em> (colonna <em>Stato</em>) e, per quelle rettificate, le colonne <em>Modificata</em>, <em>Ora originale</em>, <em>Evento originale</em>, <em>Modificata da/il</em> e <em>Eliminata da / Motivo eliminazione</em>. Le ore del Riepilogo restano calcolate solo sulle timbrature attive.</li>
           <li><strong>Rettifiche</strong>: una riga per ogni intervento su una timbratura del periodo — giorno, tipo di intervento, campo toccato, valore precedente e nuovo, motivazione, operatore e data. È il foglio da consultare in caso di contestazione.</li>
           <li><strong>Correzioni</strong>: le richieste di correzione del periodo con stato, esito e nota di risoluzione.</li>
@@ -884,6 +885,11 @@ const MAIN_IT = `
           <em>Ore originali</em> è quanto risultava <strong>prima di ogni rettifica</strong>: orari e tipi evento con cui le timbrature sono state registrate la prima volta, timbrature eliminate ancora comprese.
           Se i due valori coincidono la giornata non è stata rettificata; se differiscono, la differenza è esattamente l'effetto delle modifiche di orario e delle eliminazioni — il dettaglio è nel foglio <em>Rettifiche</em>.
           Le timbrature inserite da un amministratore rientrano in entrambe le colonne e quindi non generano differenza: per sapere <strong>chi</strong> ha registrato una timbratura usa la colonna <em>Origine</em> del foglio Timbrature.
+        </div>
+        <div class="callout callout-warn">
+          <strong>Ore ordinarie</strong> — affiancata a <em>Ore straordinarie</em> sia in <em>Riepilogo</em> sia in <em>Dettaglio giornaliero</em> — sono le ore <strong>previste dall'orario di lavoro assegnato</strong> per quel giorno della settimana, al netto della pausa pranzo dedotta automaticamente: su un orario full time la giornata legge sempre 8,00 e l'eccedenza resta nelle <em>Ore straordinarie</em>.
+          È un valore <strong>teorico</strong>, non una misura: nei giorni di assenza (ferie, permesso, malattia), di uscita anticipata o comunque di orario incompleto resta 8,00 anche se le <em>Ore lavorate</em> sono meno — le due colonne <strong>non quadrano</strong> tra loro ed è normale.
+          Vale 0 nei giorni non previsti dall'orario (riposo, festivi) e per i dipendenti senza orario assegnato.
         </div>
         <p>Il formato <strong>JSON</strong> contiene il riepilogo aggregato per dipendente, utile per integrazioni con altri software.</p>
       </div>

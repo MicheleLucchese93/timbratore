@@ -279,6 +279,12 @@ leavesRouter.post(
         'la richiesta non copre ore lavorative (verifica l\'orario assegnato)'
       );
     }
+    // Same per-day cap as POST '/' — an admin insert is not allowed to book
+    // more hours on a date than the employee is scheduled to work. This is
+    // also the endpoint the anomalies bulk bar calls, once per selected row
+    // and in parallel, which is how Time System got 16h of ferie on one day
+    // (August 2026): assertPerDayCap now takes a per-user advisory lock for
+    // the rest of this transaction so two concurrent calls cannot both pass.
     await assertPerDayCap(client, b.user_id, b.type, b.from_ts, b.to_ts, null);
 
     const ins = await client.query(

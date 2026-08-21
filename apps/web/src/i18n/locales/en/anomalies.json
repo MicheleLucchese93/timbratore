@@ -51,9 +51,13 @@
     "selectAllVisible": "Select all ({{n}})",
     "selected": "Selected: {{n}}",
     "apply": "Correct ({{n}})",
+    "applyDays": "Correct ({{n}} anomalies · {{days}} days)",
     "clear": "Clear",
-    "hint": "Only the actions valid for every selected anomaly are offered. Each anomaly is corrected using its own day's data. Select similar ones (same type) to apply the same correction.",
-    "result": "{{ok}} corrected · {{fail}} failed"
+    "hint": "Only the actions valid for every selected anomaly are offered. Holiday, leave and standard stamping are applied once per day; the note stays per single anomaly. Select similar ones (same type) to apply the same correction.",
+    "mergedNotice": "You selected {{n}} anomalies across {{days}} days: the correction is applied once per day, otherwise the same absence would be inserted twice.",
+    "permessoPerDay": "The leave window is computed for each day from the uncovered period. To adjust it, use Correct on the single anomaly.",
+    "result": "{{ok}} corrected · {{fail}} failed",
+    "resultDays": "{{ok}} days corrected · {{fail}} failed (from {{n}} selected anomalies)"
   },
   "errors": {
     "noMissingStamp": "No missing stamp to add.",
