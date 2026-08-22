@@ -37,6 +37,10 @@
     "permDayScope": "Finestra calcolata sull'<strong>intera giornata</strong> del {{date}}: è il periodo non lavorato ricavato dall'anomalia «{{kind}}», non un dato della riga da cui hai aperto la correzione (la durata della pausa, l'ammanco di ore o il timbro mancante).",
     "permSplitDay": "Questa giornata non è lavorata a <strong>entrambi gli estremi</strong> («{{leading}}» e «{{trailing}}»): i periodi non lavorati sono due e distinti, e un solo permesso non può coprirli senza registrare l'altro come lavorato. Inseriscili con <strong>Correggi</strong> sulle due righe della giornata, una per periodo. Le ferie restano disponibili, perché coprono il turno intero.",
     "permSplitShift": "<strong>Orario spezzato</strong>: la finestra attraversa la pausa non retribuita fra le fasce, che non viene addebitata. Vengono inseriti permessi separati per {{windows}}, e la durata qui sopra è la loro somma.",
+    "noBookableWindow": "<strong>Su questa giornata non è inseribile nessuna assenza.</strong> Il tempo non lavorato rimasto è più corto dei 15 minuti minimi di un permesso e non cade su un quarto d'ora: per questo «Inserisci ferie» e «Inserisci permesso» non compaiono nel menù qui sopra, su nessuna riga della giornata.",
+    "noBookableWindowFixStamps": "Completa i timbri con «Timbratura standard», oppure chiudi la riga con «Giustifica con nota».",
+    "noBookableWindowFixNote": "I timbri della giornata ci sono già, quindi non c'è nulla da completare: chiudi la riga con «Giustifica con nota».",
+    "noBookableWindowLeft": "Resta scoperto: <strong>{{windows}}</strong>. Se succede su tutte le giornate di questo orario, controlla le sue fasce in <strong>Orari di lavoro</strong>: una fascia che non inizia e non finisce su un quarto d'ora (es. 13:20 o 17:40) lascia ogni giorno quei minuti, che nessuna assenza può coprire.",
     "permFrom": "Dalle",
     "permTo": "Alle",
     "duration": "Durata"
@@ -68,6 +72,8 @@
     "permessoSplitDays_other": "{{count}} giornate selezionate non sono lavorate a entrambi gli estremi (entrata e uscita) con ore lavorate in mezzo: i periodi non lavorati sono due per giornata, e un solo permesso non può coprirli senza registrare l'altro come lavorato — per questo vengono saltate. Inserisci i permessi con Correggi sulle singole righe di quelle giornate; le ferie in blocco le coprono comunque, perché valgono per il turno intero.",
     "permessoSplitShift_one": "1 giornata selezionata ha un orario spezzato: la finestra attraversa la pausa non retribuita fra le fasce, che non viene addebitata, e la giornata riceve un permesso per fascia invece di uno solo.",
     "permessoSplitShift_other": "{{count}} giornate selezionate hanno un orario spezzato: la finestra attraversa la pausa non retribuita fra le fasce, che non viene addebitata, e ogni giornata riceve un permesso per fascia invece di uno solo.",
+    "unbookableDays_one": "1 giornata selezionata ha tempo non lavorato che nessuna assenza può coprire: quel che resta scoperto è più corto dei 15 minuti minimi di un permesso e non cade su un quarto d'ora. Ferie e permesso non le vengono applicati — apri Correggi su una sua riga per vedere quali minuti restano e da quale fascia arrivano.",
+    "unbookableDays_other": "{{count}} giornate selezionate hanno tempo non lavorato che nessuna assenza può coprire: quel che resta scoperto è più corto dei 15 minuti minimi di un permesso e non cade su un quarto d'ora. Ferie e permesso non vengono applicati a queste giornate — apri Correggi su una loro riga per vedere quali minuti restano e da quale fascia arrivano.",
     "result": "{{ok}} corrette · {{fail}} non riuscite",
     "resultDays": "{{ok}} giornate corrette · {{fail}} non riuscite (da {{n}} anomalie selezionate)"
   },

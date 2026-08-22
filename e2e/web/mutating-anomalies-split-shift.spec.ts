@@ -36,6 +36,13 @@ import { romeWallClockISO } from '../fixtures/time';
 //   - the per-row Correggi panel  → 12:00–13:00 + 14:00–18:00, 5h
 //   - the bulk correction bar     → the same two windows on its own day
 //
+// and they must BOOK it the same way: one POST /leaves/admin-create-day
+// carrying both fasce, judged and written all-or-nothing. The loop over
+// /admin-create this replaced could commit the morning fascia and have the
+// afternoon one refused by the per-day cap, leaving a giornata half covered,
+// its "assenza inserita" notification already sent, and a re-run refused as an
+// overlap on the half that HAD landed.
+//
 // Frontend + payload change: the page reads the day's fasce from the anomaly
 // (`work_intervals`, added to apps/backend/src/routes/shifts.ts), so this spec
 // needs that backend deployed to the e2e target. Gated behind E2E_MUTATING like
@@ -79,6 +86,42 @@ function windowsOf(rows: LeaveListRow[]): string[] {
     .slice()
     .sort((a, b) => a.from_ts.localeCompare(b.from_ts))
     .map((l) => `${romeHHMM(l.from_ts)}-${romeHHMM(l.to_ts)}`);
+}
+
+// Every leave write the page fires, path + body. The atomicity of a giornata is
+// a property of the REQUESTS and not only of the rows that end up in the DB:
+// two rows can be two calls that happened to both succeed, which is exactly the
+// state this spec exists to refuse.
+interface LeavePost {
+  path: string;
+  windows: number;
+}
+
+function recordLeavePosts(page: import('@playwright/test').Page): LeavePost[] {
+  const posts: LeavePost[] = [];
+  page.on('request', (r) => {
+    // Substring, so the superseded /admin-create is caught too: a single call
+    // to the wrong endpoint has to fail this spec, not slip past it.
+    if (r.method() !== 'POST' || !r.url().includes('/api/v1/leaves/admin-create')) return;
+    let windows = 0;
+    try {
+      const body = JSON.parse(r.postData() ?? '{}') as { windows?: unknown[] };
+      windows = Array.isArray(body.windows) ? body.windows.length : 0;
+    } catch {
+      /* a body we cannot read is reported as 0 windows and fails the assertion */
+    }
+    posts.push({ path: new URL(r.url()).pathname, windows });
+  });
+  return posts;
+}
+
+// One request for the giornata, carrying both fasce.
+function expectOneAtomicPost(posts: LeavePost[]): void {
+  expect(
+    posts.map((p) => p.path),
+    `the giornata must be one atomic request, got ${JSON.stringify(posts)}`
+  ).toEqual(['/api/v1/leaves/admin-create-day']);
+  expect(posts[0]?.windows, 'both fasce must travel in the same request').toBe(2);
 }
 
 function totalMinutes(rows: LeaveListRow[]): number {
@@ -242,20 +285,96 @@ test.describe.serial('web — Anomalie permesso on a split shift (mutating)', ()
     ]);
   }
 
+  // Read-only, and declared BEFORE the test that books rowDay: describe.serial
+  // runs in declaration order, so the day still carries no permesso here and the
+  // panel opens on exactly the proposal the next test confirms.
+  test('the Dalle stepper cannot leave the fasce, so the recap is what gets booked', async ({
+    page,
+  }) => {
+    await expectSplitShiftDay(rowDay.date);
+    await filterTo(page, rowDay.date);
+
+    const row = page
+      .locator('li')
+      .filter({ hasText: 'Uscita anticipata' })
+      .filter({ hasText: userName })
+      .first();
+    await expect(row).toBeVisible({ timeout: 15_000 });
+    await row.getByRole('button', { name: /^Correggi/ }).click();
+    await row.getByRole('combobox').selectOption({ label: 'Inserisci permesso' });
+
+    const from = row.getByTestId('perm-from');
+    const to = row.getByTestId('perm-to');
+    const duration = row.getByTestId('perm-duration');
+    await expect(from).toContainText('12:00');
+    await expect(to).toContainText('18:00');
+    await expect(duration).toHaveText(/^5h$/);
+
+    // Inside a fascia the stepper moves one quarter at a time, and 12:45 is the
+    // last instant "Dalle" may stop on in the morning one: permStepBounds('from')
+    // reads floor15(fascia end) − one quarter, so wherever the window starts it
+    // still holds a bookable quarter of the fascia it starts in.
+    //
+    // Asserted instant by instant rather than after a loop of N clicks: a
+    // hard-coded click count is a second, silent statement about where the
+    // clamp is, and when the two disagree the loop is what wins.
+    const plus = from.getByRole('button', { name: '+' });
+    for (const instant of ['12:15', '12:30', '12:45']) {
+      await plus.click();
+      await expect(from).toContainText(instant);
+    }
+
+    // The interesting half of the clamp. The next quarter is 13:00, which lies
+    // inside no fascia, so the step does not stop there and does not refuse
+    // either — it jumps the unpaid gap WHOLE and lands on the start of the
+    // afternoon fascia.
+    //
+    // A free stepper stopped at 13:00, 13:15, 13:30… — instants nobody is
+    // scheduled at — while permessoParts clipped the booking straight back to
+    // 14:00. The recap then read "Dalle 13:30 · Alle 18:00 · Durata 4h": a four
+    // and a half hour window against a four hour permesso, with the line that
+    // explains a shorter duration switched OFF, because the clipped window holds
+    // a single fascia. What the recap states is now what the booking does.
+    await plus.click();
+    await expect(from).toContainText('14:00');
+    await expect(from, 'the window must never stop inside the unpaid gap').not.toContainText('13:');
+
+    // One fascia now: 14:00–18:00 is four hours of window and four hours of
+    // permesso, so the split-shift line is gone because there is nothing left
+    // for it to explain.
+    await expect(duration).toHaveText(/^4h$/);
+    await expect(page.getByTestId('perm-split-shift')).toHaveCount(0);
+
+    // The outer edge of the schedule: "Alle +" has nowhere to go past 18:00, and
+    // says so instead of moving the window outside the turno.
+    await expect(to.getByRole('button', { name: '+' })).toBeDisabled();
+
+    // And the gap is jumped in BOTH directions: stepping back from 14:00 aims at
+    // 13:45, which is inside no fascia either, so "Dalle −" returns to the
+    // morning fascia's last instant instead of walking into the gap from the
+    // other side. The window is two fasce again — 12:45–13:00 plus
+    // 14:00–18:00, 4h 15m of the 5h 15m it spans — so the line that explains
+    // the difference comes back with it.
+    await from.getByRole('button', { name: '−' }).click();
+    await expect(from).toContainText('12:45');
+    await expect(duration).toHaveText(/^4h 15m$/);
+    await expect(page.getByTestId('perm-split-shift')).toBeVisible();
+
+    // Nothing applied: the next test needs this giornata still free of permessi.
+    await row.getByRole('button', { name: 'Annulla' }).click();
+    expect(await permessiOn(rowDay.date), 'the stepper test must book nothing').toHaveLength(0);
+  });
+
   test('per-row Correggi proposes 5h over the two fasce, not 6h across the gap', async ({
     page,
   }) => {
     await expectSplitShiftDay(rowDay.date);
     expect(await permessiOn(rowDay.date), 'day must start with no permesso').toHaveLength(0);
 
-    // Count the requests, not only the end state: one permesso per fascia is
-    // the fix, and a single POST spanning 12:00–18:00 is the defect.
-    const posts: string[] = [];
-    page.on('request', (r) => {
-      if (r.method() === 'POST' && r.url().includes('/api/v1/leaves/admin-create')) {
-        posts.push(r.url());
-      }
-    });
+    // Watch the requests, not only the end state: two leave ROWS are the fix,
+    // one atomic REQUEST is what makes them arrive together, and a single row
+    // spanning 12:00–18:00 was the original defect.
+    const posts = recordLeavePosts(page);
 
     await filterTo(page, rowDay.date);
 
@@ -290,7 +409,7 @@ test.describe.serial('web — Anomalie permesso on a split shift (mutating)', ()
     const created = await permessiOn(rowDay.date);
     for (const lv of created) leaveIds.push(lv.id); // cleanup, pass or fail
 
-    expect(posts, `one permesso per fascia, got ${posts.length} POST(s)`).toHaveLength(2);
+    expectOneAtomicPost(posts);
     expect(windowsOf(created)).toEqual(EXPECTED_WINDOWS);
     // The payroll-visible half: "Ore permessi" counts the windows themselves,
     // so 360 minutes here is an hour the employee never owed.
@@ -315,12 +434,7 @@ test.describe.serial('web — Anomalie permesso on a split shift (mutating)', ()
     await expectSplitShiftDay(bulkDay.date);
     expect(await permessiOn(bulkDay.date), 'day must start with no permesso').toHaveLength(0);
 
-    const posts: string[] = [];
-    page.on('request', (r) => {
-      if (r.method() === 'POST' && r.url().includes('/api/v1/leaves/admin-create')) {
-        posts.push(r.url());
-      }
-    });
+    const posts = recordLeavePosts(page);
 
     await filterTo(page, bulkDay.date);
     await page.locator('label').filter({ hasText: 'Seleziona tutte' }).getByRole('checkbox').check();
@@ -341,7 +455,10 @@ test.describe.serial('web — Anomalie permesso on a split shift (mutating)', ()
     const created = await permessiOn(bulkDay.date);
     for (const lv of created) leaveIds.push(lv.id);
 
-    expect(posts, `one permesso per fascia, got ${posts.length} POST(s)`).toHaveLength(2);
+    // The bar shares applyCorrection with the per-row panel, so it shares the
+    // atomicity too — an invariant earlier rounds established, asserted rather
+    // than assumed.
+    expectOneAtomicPost(posts);
     // The requirement in one assertion: both entry points agree on the window.
     expect(windowsOf(created)).toEqual(EXPECTED_WINDOWS);
     expect(totalMinutes(created), '5h booked, not 6h').toBe(300);

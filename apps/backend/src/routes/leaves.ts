@@ -1,8 +1,9 @@
 import { Router } from 'express';
+import type { Request } from 'express';
 import { z } from 'zod';
 import type { PoolClient } from 'pg';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
-import { tenantHandler } from '../lib/route-helpers.js';
+import { tenantHandler, type AfterCommit } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { logAudit } from '../lib/audit.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
@@ -10,6 +11,7 @@ import {
   computeDurationHours,
   applyMalattiaOverlap,
   assertPerDayCap,
+  assertPerDayCapForWindows,
   describeOverlap,
   lockLeaveUser,
   resolveMalattiaWindow,
@@ -343,10 +345,10 @@ leavesRouter.post(
   })
 );
 
-// Admin inserts a single ferie/permesso on behalf of one employee — used to
-// resolve a schedule anomaly. Unlike POST '/', the row is created already
-// approved with the admin as decider, flagged created_by_admin, and the
-// employee is notified. Quota is informational (never blocks), same as submit.
+// Admin inserts ferie/permesso on behalf of one employee — used to resolve a
+// schedule anomaly. Unlike POST '/', the rows are created already approved with
+// the admin as decider, flagged created_by_admin, and the employee is notified.
+// Quota is informational (never blocks), same as submit.
 const AdminCreateBody = z.object({
   user_id: z.string().uuid(),
   type: z.enum(['ferie', 'permessi']),
@@ -356,19 +358,130 @@ const AdminCreateBody = z.object({
   user_note: z.string().max(1000).optional(),
 });
 
-leavesRouter.post(
-  '/admin-create',
-  requireAdmin,
-  tenantHandler(async (req, res, client, afterCommit) => {
-    const parse = AdminCreateBody.safeParse(req.body);
-    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
-    const b = parse.data;
-    const from = new Date(b.from_ts);
-    const to = new Date(b.to_ts);
+// Same body, one giornata cut into fasce. A separate schema rather than making
+// from_ts/to_ts optional on AdminCreateBody: a body where two fields are
+// required only when a third is absent is a shape every caller has to
+// re-derive, and the two endpoints do not even answer the same thing (one leave
+// row vs a giornata envelope).
+const AdminCreateDayBody = z.object({
+  user_id: z.string().uuid(),
+  type: z.enum(['ferie', 'permessi']),
+  // Ordered or not, the handler sorts. The ceiling is a sanity bound, not a
+  // policy: no orario in shift_template_slots has anything like twelve fasce in
+  // one day, and a set that large is a caller looping over a month by mistake —
+  // which is exactly the shape that must not collapse into ONE notification.
+  windows: z
+    .array(
+      z.object({
+        from_ts: z.string().datetime({ offset: true }),
+        to_ts: z.string().datetime({ offset: true }),
+      })
+    )
+    .min(1)
+    .max(12),
+  all_day: z.boolean().optional(),
+  user_note: z.string().max(1000).optional(),
+});
+
+/** A leave_requests row as the API hands it back — pg returns it untyped. */
+interface LeaveRow {
+  id: string;
+  [column: string]: unknown;
+}
+
+/** What one giornata booked as one or more rows amounts to. */
+export interface GiornataBooking {
+  /** The created rows, earliest window first. */
+  rows: LeaveRow[];
+  /** Earliest start across the set. */
+  from_ts: string;
+  /** Latest end across the set. */
+  to_ts: string;
+  /** Sum of the rows' hours — the unpaid gap between two fasce is in neither. */
+  duration_hours: number;
+}
+
+/**
+ * How far apart the two ends of ONE giornata may be.
+ *
+ * A ceiling rather than "every window falls on the same Europe/Rome date": a
+ * night turno legitimately runs 22:00 → 06:00 and belongs to one giornata while
+ * touching two dates, and refusing it here would make this endpoint reach less
+ * far than the single-window one it is meant to replace for split shifts. What
+ * the bound does stop is the misuse the single notification would otherwise
+ * hide — a caller handing in a month of windows and the employee getting one
+ * "assenza inserita" naming a period nobody booked as a period.
+ */
+const GIORNATA_MAX_SPAN_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Book one employee's absence for ONE giornata — one window or several — all of
+ * them or none.
+ *
+ * The defect this exists for. Since d99dd8a a permesso proposed over an orario
+ * spezzato is booked one row PER FASCIA, so the unpaid gap between the fasce is
+ * charged to nobody; apps/web Anomalies.tsx did that with a sequential,
+ * non-atomic loop of POST /leaves/admin-create calls. Time System, fasce
+ * 09:00-13:00 + 14:00-18:00, employee already holding an approved 1h permesso
+ * 13:00-14:00 inside the gap: the day is proposed as two 4h parts, the first
+ * passes the per-day cap (1h + 4h on 8h) and COMMITS, the second trips it
+ * (9h on 8h) and fails. The giornata is left half-booked — half the hole
+ * covered, half still an anomaly — and the panel does not refetch on error, so
+ * there is no in-app way to finish or retry it.
+ *
+ * Everything the fix needs is therefore in ONE transaction, under ONE advisory
+ * lock, judged over the WHOLE set: {@link assertPerDayCapForWindows} sums the
+ * fasce per day before they meet the day's capacity, so a set that only
+ * overflows jointly is refused before the first INSERT and the day is left
+ * exactly as it was.
+ *
+ * Two properties are about the giornata rather than the row, and both would be
+ * wrong if this were a loop over the single-row path:
+ *
+ *  - ONE notification. The employee was absent one day and is told once, with
+ *    the giornata's own period (earliest start → latest end) and the hours
+ *    actually booked. A row per fascia meant two "assenza inserita" pushes and
+ *    two emails for one day. It is registered through afterCommit, so a
+ *    rolled-back set sends nothing and no SMTP socket is ever held inside the
+ *    transaction — see the hook's contract in lib/route-helpers.ts.
+ *  - ONE audit_log entry, under the action leave.admin_create the Registro
+ *    attività already renders, naming the giornata and listing the parts. A new
+ *    AuditAction would have had to be mirrored in the union, the i18n labels and
+ *    the category map for no gain: from the Registro's point of view an admin
+ *    inserted one absence on one day, which is what the row already says.
+ *
+ * leave_audit_log stays per row — it is keyed by request_id and is the trail of
+ * that specific request, so collapsing it would leave rows with no history.
+ *
+ * The one-window call is byte-identical to what POST /admin-create shipped:
+ * same INSERT, same logEvent payload, same audit `after`, same notification.
+ * That is why /admin-create now goes through here too — the alternative is two
+ * implementations of one rule, and the day they drift is the day one of them
+ * lets a double booking through.
+ */
+export async function createGiornataLeaves(
+  client: PoolClient,
+  input: {
+    userId: string;
+    type: 'ferie' | 'permessi';
+    windows: ReadonlyArray<{ from_ts: string; to_ts: string }>;
+    allDay: boolean;
+    userNote: string | null;
+  },
+  ctx: { req: Request; afterCommit: AfterCommit }
+): Promise<GiornataBooking> {
+  // Sorted so the rows, the audit payload and the giornata's own period all
+  // read in clock order whatever the caller sent.
+  const windows = [...input.windows].sort(
+    (a, b) => new Date(a.from_ts).getTime() - new Date(b.from_ts).getTime()
+  );
+  for (const w of windows) {
+    const from = new Date(w.from_ts);
+    const to = new Date(w.to_ts);
     if (to.getTime() <= from.getTime()) {
       throw new ValidationError('to_ts deve essere maggiore di from_ts');
     }
-    if (b.type === 'permessi' && !b.all_day) {
+    if (input.type === 'permessi' && !input.allDay) {
       const span = to.getTime() - from.getTime();
       if (span % quarterMs() !== 0) {
         throw new ValidationError('il permesso deve essere multiplo di 15 minuti');
@@ -377,35 +490,65 @@ leavesRouter.post(
         throw new ValidationError('durata minima del permesso: 15 minuti');
       }
     }
-    const member = await client.query(
-      `SELECT 1 FROM memberships
-        WHERE tenant_id = current_setting('app.current_tenant_id')::uuid
-          AND user_id = $1 AND deleted_at IS NULL`,
-      [b.user_id]
+  }
+  const fromTs = windows[0]!.from_ts;
+  const toTs = windows.reduce(
+    (latest, w) => (new Date(w.to_ts).getTime() > new Date(latest).getTime() ? w.to_ts : latest),
+    windows[0]!.to_ts
+  );
+  if (new Date(toTs).getTime() - new Date(fromTs).getTime() > GIORNATA_MAX_SPAN_MS) {
+    throw new ValidationError(
+      'i periodi devono appartenere alla stessa giornata (massimo 24 ore tra inizio e fine)'
     );
-    if (member.rowCount === 0) throw new NotFoundError('user not in tenant');
+  }
 
-    // Step 1 of the lock order (lib/leave-quota.ts), before any read the insert
-    // depends on. This is the endpoint the anomalies bulk bar calls, once per
-    // selected row and in parallel, which is how Time System got 16h of ferie
-    // on one day (August 2026).
-    await lockLeaveUser(client, b.user_id);
+  const member = await client.query(
+    `SELECT 1 FROM memberships
+      WHERE tenant_id = current_setting('app.current_tenant_id')::uuid
+        AND user_id = $1 AND deleted_at IS NULL`,
+    [input.userId]
+  );
+  if (member.rowCount === 0) throw new NotFoundError('user not in tenant');
 
-    const duration = await computeDurationHours(client, b.user_id, b.type, b.from_ts, b.to_ts);
-    if (duration <= 0) {
+  // Step 1 of the lock order (lib/leave-quota.ts), before any read the inserts
+  // depend on. This is the endpoint the anomalies bulk bar calls, once per
+  // selected row and in parallel, which is how Time System got 16h of ferie on
+  // one day (August 2026). Taken ONCE for the whole giornata: every fascia of
+  // this call is written under the same lock, so no concurrent writer can slip
+  // between two of them either.
+  await lockLeaveUser(client, input.userId);
+
+  // Per window: a fascia that covers no scheduled hour is a 0h row nobody can
+  // read, and the caller has to hear which one rather than get a total that
+  // happens to be positive.
+  const durations: number[] = [];
+  for (const w of windows) {
+    const d = await computeDurationHours(client, input.userId, input.type, w.from_ts, w.to_ts);
+    if (d <= 0) {
       throw new ValidationError(
         'la richiesta non copre ore lavorative (verifica l\'orario assegnato)'
       );
     }
-    // Same guards as POST '/': an admin insert may not book more hours on a
-    // date than the employee is scheduled to work, nor duplicate an active
-    // request of the same type. The lock above makes both mutually exclusive
-    // with a concurrent call for the same employee; the overlap half of
-    // assertPerDayCap is what catches the two-identical-permessi shape the
-    // hours cap lets through.
-    await assertPerDayCap(client, b.user_id, b.type, b.from_ts, b.to_ts, null);
+    durations.push(d);
+  }
+  const totalHours = Math.round(durations.reduce((sum, d) => sum + d, 0) * 100) / 100;
 
-    const ins = await client.query(
+  // Same guards as POST '/': an admin insert may not book more hours on a date
+  // than the employee is scheduled to work, nor duplicate an active request of
+  // the same type. Over the whole SET, which is the half a loop of
+  // single-window calls could not do — two fasce that each fit and jointly
+  // overflow are refused here, before anything is written.
+  await assertPerDayCapForWindows(
+    client,
+    input.userId,
+    input.type,
+    windows.map((w) => ({ fromTs: w.from_ts, toTs: w.to_ts })),
+    null
+  );
+
+  const rows: LeaveRow[] = [];
+  for (const [i, w] of windows.entries()) {
+    const ins = await client.query<LeaveRow>(
       `INSERT INTO leave_requests(
          tenant_id, user_id, type, status,
          from_ts, to_ts, duration_hours,
@@ -416,40 +559,145 @@ leavesRouter.post(
          $1, $2, 'approved', $3, $4, $5, $6, true,
          current_setting('app.current_user_id')::uuid, now()
        ) RETURNING *`,
-      [b.user_id, b.type, b.from_ts, b.to_ts, duration, b.user_note ?? null]
+      [input.userId, input.type, w.from_ts, w.to_ts, durations[i]!, input.userNote]
     );
-    const row = ins.rows[0];
+    const row = ins.rows[0]!;
+    rows.push(row);
     await logEvent(client, row.id, 'admin_create', {
-      type: b.type,
-      duration_hours: duration,
-      on_behalf_of: b.user_id,
+      type: input.type,
+      duration_hours: durations[i]!,
+      on_behalf_of: input.userId,
+      // Only when the giornata really was cut into fasce, so a single-window
+      // insert records exactly the payload it always did. A row that is one of
+      // several has to say so: on its own it looks like a half day the admin
+      // chose, and the sibling it was booked with is the missing half.
+      ...(windows.length > 1
+        ? {
+            part: i + 1,
+            parts: windows.length,
+            giornata_from: fromTs,
+            giornata_to: toTs,
+          }
+        : {}),
     });
-    await logAudit(client, {
-      action: 'leave.admin_create',
-      resourceType: 'leave',
-      resourceId: row.id,
-      targetUserId: b.user_id,
-      after: { type: b.type, date_from: b.from_ts, date_to: b.to_ts, status: 'approved' },
-      req,
-    });
-    const tenantId = req.user!.tenantId;
-    const adminId = req.user!.id;
-    afterCommit(() =>
-      notifyLeaveAddedByAdmin(
-        tenantId,
-        {
-          requestId: row.id,
-          type: b.type,
-          from_ts: b.from_ts,
-          to_ts: b.to_ts,
-          duration_hours: duration,
-          requester_id: b.user_id,
-          reason: b.user_note ?? undefined,
-        },
-        adminId
-      )
+  }
+
+  await logAudit(client, {
+    action: 'leave.admin_create',
+    resourceType: 'leave',
+    resourceId: rows[0]!.id,
+    targetUserId: input.userId,
+    after: {
+      type: input.type,
+      date_from: fromTs,
+      date_to: toTs,
+      status: 'approved',
+      // Additive, and only for a split giornata: the Registro detail dialog
+      // renders the object field by field, and the single-row case must keep
+      // showing the three keys it always showed.
+      ...(windows.length > 1
+        ? {
+            parts: windows.map((w) => ({ from: w.from_ts, to: w.to_ts })),
+            request_ids: rows.map((r) => r.id),
+          }
+        : {}),
+    },
+    req: ctx.req,
+  });
+
+  const tenantId = ctx.req.user!.tenantId;
+  const adminId = ctx.req.user!.id;
+  ctx.afterCommit(() =>
+    notifyLeaveAddedByAdmin(
+      tenantId,
+      {
+        requestId: rows[0]!.id,
+        type: input.type,
+        // The giornata, not the fascia: the employee was absent from the first
+        // start to the last end, and duration_hours already says the unpaid gap
+        // in between was charged to nobody.
+        from_ts: fromTs,
+        to_ts: toTs,
+        duration_hours: totalHours,
+        requester_id: input.userId,
+        reason: input.userNote ?? undefined,
+      },
+      adminId
+    )
+  );
+
+  return { rows, from_ts: fromTs, to_ts: toTs, duration_hours: totalHours };
+}
+
+leavesRouter.post(
+  '/admin-create',
+  requireAdmin,
+  tenantHandler(async (req, res, client, afterCommit) => {
+    const parse = AdminCreateBody.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const b = parse.data;
+    const booking = await createGiornataLeaves(
+      client,
+      {
+        userId: b.user_id,
+        type: b.type,
+        windows: [{ from_ts: b.from_ts, to_ts: b.to_ts }],
+        allDay: b.all_day ?? false,
+        userNote: b.user_note ?? null,
+      },
+      { req, afterCommit }
     );
-    ok(res, row, 201);
+    // The created row itself, exactly as before — NOT the giornata envelope.
+    // apps/web Anomalies.tsx, e2e/fixtures/api-client.ts adminCreateLeave and
+    // the anomalies specs all read this response as a leave row.
+    ok(res, booking.rows[0]!, 201);
+  })
+);
+
+/**
+ * The whole giornata in one atomic call: several windows, one employee, one
+ * day.
+ *
+ * A NEW endpoint rather than an array on /admin-create, and the reason is the
+ * response, not the body. /admin-create answers with the created leave row
+ * itself — apps/web, e2e/fixtures/api-client.ts and the anomalies specs all
+ * read `data` as a leave — so an array-mode would have to answer something else
+ * on the same URL and every existing caller would need to know which shape it
+ * is about to get. The guarantees differ too: this one promises all-or-nothing
+ * over a set and exactly one notification, which is not what a caller of
+ * /admin-create asked for. Two contracts, two URLs; /admin-create keeps its
+ * body, its response and its behaviour byte-for-byte, and both run the same
+ * code underneath.
+ */
+leavesRouter.post(
+  '/admin-create-day',
+  requireAdmin,
+  tenantHandler(async (req, res, client, afterCommit) => {
+    const parse = AdminCreateDayBody.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const b = parse.data;
+    const booking = await createGiornataLeaves(
+      client,
+      {
+        userId: b.user_id,
+        type: b.type,
+        windows: b.windows,
+        allDay: b.all_day ?? false,
+        userNote: b.user_note ?? null,
+      },
+      { req, afterCommit }
+    );
+    ok(
+      res,
+      {
+        leaves: booking.rows,
+        count: booking.rows.length,
+        from_ts: booking.from_ts,
+        to_ts: booking.to_ts,
+        duration_hours: booking.duration_hours,
+      },
+      201
+    );
   })
 );
 

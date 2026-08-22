@@ -889,6 +889,63 @@ export async function assertPerDayCap(
   toTs: string,
   excludeRequestId: string | null
 ): Promise<void> {
+  // Deliberately the one-element case of the set guard, not a second
+  // implementation of the same rule: a giornata booked as two rows and a
+  // giornata booked as one have to be judged by the same code, or the day the
+  // two drift is the day one of them lets a double booking through.
+  await assertPerDayCapForWindows(client, userId, type, [{ fromTs, toTs }], excludeRequestId);
+}
+
+/** One [from, to) stretch of a set of windows booked together. */
+export interface LeaveWindow {
+  fromTs: string;
+  toTs: string;
+}
+
+/**
+ * {@link assertPerDayCap} applied to a SET of windows AT ONCE: the hours of the
+ * whole set are summed per day before they meet the day's capacity, and no
+ * window may overlap another window of the same set.
+ *
+ * Asking the single-window guard once per window is a different question, and
+ * the difference is a defect that reached prod. Since d99dd8a the anomalies
+ * panel books one permesso PER FASCIA of an orario spezzato, through a
+ * sequential loop of POST /leaves/admin-create calls. Time System, fasce
+ * 09:00-13:00 + 14:00-18:00, employee already holding an approved 1h permesso
+ * 13:00-14:00 — inside the unpaid inter-fascia gap, so it covers no slot and
+ * both fasce stay whole. The employee is then absent all day, the panel
+ * proposes 09:00 → 18:00, and the split yields two 4h parts. Part one passes
+ * the cap (1h + 4h on an 8h day) and COMMITS; part two trips it (1h + 4h + 4h =
+ * 9h) and fails. The giornata is left half-booked, and the panel does not
+ * refetch on error, so there is no in-app way to finish or retry it.
+ *
+ * Judged jointly, that day answers once — 9h on 8h, refused — before the first
+ * INSERT, which is what makes "all of them or none" decidable at all.
+ *
+ * The duplicate half stays per window, because it asks about rows ALREADY
+ * stored and that genuinely is a per-window question. What it cannot see is the
+ * set against itself: two windows of one call overlapping each other are
+ * compared only with what is in the table, neither is in it yet, so both would
+ * pass and land as two rows double-charging the same minutes. Hence the
+ * disjointness check, first and without touching the database.
+ *
+ * Serialized per employee exactly like the single-window path: the advisory
+ * lock is taken before the first read the decision depends on, and the whole
+ * set is judged while holding it.
+ */
+export async function assertPerDayCapForWindows(
+  client: PoolClient,
+  userId: string,
+  type: LeaveType,
+  windows: readonly LeaveWindow[],
+  excludeRequestId: string | null
+): Promise<void> {
+  if (windows.length === 0) throw new ValidationError('nessun periodo da registrare');
+  // Pure and first: a set that contradicts itself is refused without a single
+  // read, and the hours summed below only mean anything once the windows are
+  // known not to double-count each other.
+  assertDisjointWindows(windows);
+
   // Step 1 of the lock order. Taken before anything else on purpose: malattia
   // skips the hours cap below but must still not interleave with a concurrent
   // ferie insert between that insert's check and applyMalattiaOverlap's sweep.
@@ -897,7 +954,15 @@ export async function assertPerDayCap(
   await lockLeaveUser(client, userId);
 
   if (type !== 'malattia') {
-    await assertHoursCap(client, userId, type, fromTs, toTs, excludeRequestId);
+    // Summed across the set first — one number per Europe/Rome day, whatever
+    // it was cut into. Two 4h fasce of one giornata claim 8h of that day, not
+    // 4h twice.
+    const newPerDay = new Map<string, number>();
+    for (const w of windows) {
+      const perDay = await computeHoursPerDay(client, userId, type, w.fromTs, w.toTs);
+      for (const [iso, h] of perDay) newPerDay.set(iso, (newPerDay.get(iso) ?? 0) + h);
+    }
+    await assertHoursCap(client, userId, newPerDay, excludeRequestId);
   }
 
   // Runs last so the capacity message — the one already shipped, and the more
@@ -905,22 +970,52 @@ export async function assertPerDayCap(
   // for the full-day case. This guard exists for what capacity cannot see: two
   // identical part-day permessi that fit under the cap and still duplicate each
   // other, and (since the split above) a sick note filed twice.
-  await assertNoSameTypeOverlap(client, userId, type, fromTs, toTs, excludeRequestId);
+  for (const w of windows) {
+    await assertNoSameTypeOverlap(client, userId, type, w.fromTs, w.toTs, excludeRequestId);
+  }
 }
 
 /**
- * The hours half of {@link assertPerDayCap}: no single Europe/Rome day may end
- * up booked past the employee's scheduled capacity for that weekday.
+ * Refuse a set whose own windows overlap each other.
+ *
+ * Half-open on both sides, the same reading {@link findSameTypeOverlap} uses,
+ * so the two fasce of a split shift that merely touch (13:00-14:00 and
+ * 14:00-18:00) are not an overlap — turning "one absence per day" into policy
+ * is exactly what this must not do.
+ */
+function assertDisjointWindows(windows: readonly LeaveWindow[]): void {
+  const sorted = windows
+    .map((w) => ({ from: new Date(w.fromTs).getTime(), to: new Date(w.toTs).getTime(), w }))
+    .sort((a, b) => a.from - b.from);
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1]!;
+    const cur = sorted[i]!;
+    if (cur.from < prev.to) {
+      throw new ValidationError(
+        `I periodi da registrare si sovrappongono tra loro ` +
+          `(${formatRomeWindow(prev.w.fromTs, prev.w.toTs)} e ` +
+          `${formatRomeWindow(cur.w.fromTs, cur.w.toTs)}).`
+      );
+    }
+  }
+}
+
+/**
+ * The hours half of {@link assertPerDayCapForWindows}: no single Europe/Rome
+ * day may end up booked past the employee's scheduled capacity for that
+ * weekday.
+ *
+ * Takes the candidate's hours ALREADY SUMMED PER DAY rather than a window,
+ * because that is the only shape in which the question has one answer. A
+ * giornata split into fasce reaches the cap as "this day claims 8h", never as
+ * two independent 4h questions each of which fits.
  */
 async function assertHoursCap(
   client: PoolClient,
   userId: string,
-  type: LeaveType,
-  fromTs: string,
-  toTs: string,
+  newPerDay: Map<string, number>,
   excludeRequestId: string | null
 ): Promise<void> {
-  const newPerDay = await computeHoursPerDay(client, userId, type, fromTs, toTs);
   if (newPerDay.size === 0) return;
 
   const isoDays = Array.from(newPerDay.keys()).sort();

@@ -28,7 +28,12 @@ import { romeWallClockISO } from '../fixtures/time';
 //   - Inserisci ferie → POST /leaves/admin-create full-day → `missing_clock_in`
 //     disappears (leave covers the whole expected window).
 //   - Inserisci permesso → POST /leaves/admin-create covering the late stretch
-//     → `late_clock_in` disappears.
+//     → `late_clock_in` disappears. Seeded straight through the API here, which
+//     is why it still uses /admin-create: that endpoint is unchanged and takes
+//     one window. The PAGE now posts the whole giornata to
+//     /leaves/admin-create-day instead, one atomic request per day — asserted in
+//     mutating-anomalies-split-shift.spec.ts, where a day has more than one
+//     fascia and the difference is observable.
 //   - Giustifica con nota (driven through the UI) → POST /shifts/anomalies/justify
 //     → the row gains a justification_note (stays visible, annotated).
 //

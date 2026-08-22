@@ -190,6 +190,7 @@
     "type": "Tipo",
     "status": "Stato",
     "user_count": "Dipendenti coinvolti",
+    "parts": "Fasce inserite",
     "name": "Nome",
     "description": "Descrizione",
     "active": "Attivo",

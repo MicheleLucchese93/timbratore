@@ -190,6 +190,7 @@
     "type": "Type",
     "status": "Status",
     "user_count": "Employees involved",
+    "parts": "Booked blocks",
     "name": "Name",
     "description": "Description",
     "active": "Active",

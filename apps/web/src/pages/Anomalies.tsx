@@ -52,6 +52,12 @@ interface UserRow {
   display_name: string | null;
 }
 
+/** A half-open stretch of instants, ISO-8601 on both ends. */
+interface TimeWindow {
+  from: string;
+  to: string;
+}
+
 const KIND_COLOR: Record<Anomaly['kind'], string> = {
   missing_clock_in: '#b91c1c',
   missing_clock_out: '#b91c1c',
@@ -191,6 +197,14 @@ export function Anomalies() {
   // take is a property of the day, and hiding a justified row must not change
   // the answer.
   const dayCorrections = useMemo(() => buildDays(rows), [rows]);
+
+  // The giornate that describe unworked time and can take no absence at all,
+  // with the minutes left over on each. Same reason as above for reading
+  // `rows`: it is a property of the day, not of the rows left visible.
+  const unbookableDays = useMemo(
+    () => buildUnbookableDays(rows, dayCorrections),
+    [rows, dayCorrections]
+  );
 
   const grouped = useMemo(() => {
     const m = new Map<string, Anomaly[]>();
@@ -365,6 +379,7 @@ export function Anomalies() {
                   key={keyOf(a)}
                   a={a}
                   day={dayCorrections.get(dayKeyOf(a))}
+                  unbookable={unbookableDays.get(dayKeyOf(a))}
                   selected={selected.has(keyOf(a))}
                   onToggle={() => toggleOne(keyOf(a))}
                   onDone={() => {
@@ -381,6 +396,7 @@ export function Anomalies() {
         <BulkCorrectBar
           items={selectedRows}
           days={dayCorrections}
+          unbookable={unbookableDays}
           onDone={() => {
             load().catch(() => {});
           }}
@@ -450,18 +466,82 @@ function permessoParts(
   const start = new Date(from).getTime();
   const end = new Date(to).getTime();
   if (!(end > start)) return [];
-  if (!a.work_intervals) return [{ from, to }];
-  return scheduledWindowParts(
-    { start, end },
-    a.work_intervals.map((w) => ({
-      start: new Date(w.from).getTime(),
-      end: new Date(w.to).getTime(),
-    })),
-    QUARTER_MS
-  ).map((p) => ({
+  const fasce = workIntervalsMs(a);
+  if (!fasce) return [{ from, to }];
+  return scheduledWindowParts({ start, end }, fasce, QUARTER_MS).map((p) => ({
     from: new Date(p.start).toISOString(),
     to: new Date(p.end).toISOString(),
   }));
+}
+
+// The giornata's fasce as epoch-ms intervals, or null when the row carries no
+// schedule at all (uscita fuori area, giorno di riposo, or an API older than
+// the field). Null means "the schedule is UNKNOWN", and every caller here
+// answers it by leaving the window exactly as proposed — never by treating the
+// day as holding no scheduled work, which is what an empty array means.
+function workIntervalsMs(a: Anomaly): { start: number; end: number }[] | null {
+  if (!a.work_intervals) return null;
+  return a.work_intervals.map((w) => ({
+    start: new Date(w.from).getTime(),
+    end: new Date(w.to).getTime(),
+  }));
+}
+
+// The 15-minute instants the Dalle / Alle stepper may move a permesso window
+// to: the quarter grid INSIDE each fascia, snapped the way scheduledWindowParts
+// snaps the booking itself.
+//
+// The two ends get different ranges on purpose — a 'from' may not sit on a
+// fascia's last grid point and a 'to' may not sit on its first — so any window
+// between two admissible instants holds at least one bookable quarter in the
+// fascia it starts in and in the fascia it ends in. That is what makes
+// "what the recap shows" and "what permessoParts books" the same two instants.
+//
+// Null when the fasce are unknown: with nothing to clamp to the stepper stays
+// free, which is also when permessoParts leaves the window untouched, so the
+// two still cannot diverge.
+function permStepBounds(a: Anomaly, which: 'from' | 'to'): { lo: number; hi: number }[] | null {
+  const fasce = workIntervalsMs(a);
+  if (!fasce) return null;
+  const out: { lo: number; hi: number }[] = [];
+  for (const iv of fasce) {
+    const lo = ceil15(iv.start);
+    const hi = floor15(iv.end);
+    // A fascia that holds no whole quarter offers no instant at all — the very
+    // slivers isUnbookableGapRow() is about.
+    if (hi - lo < QUARTER_MS) continue;
+    out.push(which === 'from' ? { lo, hi: hi - QUARTER_MS } : { lo: lo + QUARTER_MS, hi });
+  }
+  return out.sort((x, y) => x.lo - y.lo);
+}
+
+// One step of the stepper, CLAMPED to the fasce. Null at the outer edge of the
+// schedule: there is no further instant a permesso could start or end at.
+//
+// A free stepper let the recap state something the booking would not do. On
+// 09:00–13:00 + 14:00–18:00, eighteen clicks on "Dalle +" walked the window to
+// 13:30 — an instant nobody is scheduled at — while permessoParts clipped the
+// booking back to 14:00–18:00: the recap read "Dalle 13:30 · Alle 18:00 ·
+// Durata 4h", a four-and-a-half-hour window against a four-hour duration, and
+// the line that explains a shorter duration had switched itself off because the
+// clipped window holds a single fascia. Stepping now jumps the unpaid gap whole
+// (12:45 → 14:00), so the window can never leave the hours it books.
+function nextPermInstant(
+  a: Anomaly,
+  cur: number,
+  which: 'from' | 'to',
+  dir: -1 | 1
+): number | null {
+  const bounds = permStepBounds(a, which);
+  if (!bounds) return cur + dir * QUARTER_MS; // schedule unknown → free stepping
+  const target = cur + dir * QUARTER_MS;
+  if (bounds.some((b) => target >= b.lo && target <= b.hi)) return target;
+  // Off the schedule: land on the nearest admissible instant in that direction
+  // — the start of the next fascia, or the end of the previous one.
+  if (dir === 1) return bounds.find((b) => b.lo > cur)?.lo ?? null;
+  let prev: number | null = null;
+  for (const b of bounds) if (b.hi < cur) prev = b.hi;
+  return prev;
 }
 
 // Where the last `minutes` of SCHEDULED work before `endMs` begin.
@@ -475,15 +555,9 @@ function permessoParts(
 // subtraction when the day's fasce are unknown.
 function shortHoursStart(a: Anomaly, endMs: number, minutes: number): number {
   const durationMs = minutes * 60_000;
-  if (!a.work_intervals || a.work_intervals.length === 0) return endMs - durationMs;
-  return scheduledStartBefore(
-    endMs,
-    a.work_intervals.map((w) => ({
-      start: new Date(w.from).getTime(),
-      end: new Date(w.to).getTime(),
-    })),
-    durationMs
-  );
+  const fasce = workIntervalsMs(a);
+  if (!fasce || fasce.length === 0) return endMs - durationMs;
+  return scheduledStartBefore(endMs, fasce, durationMs);
 }
 
 /** Total bookable minutes of a window — the pieces, never the raw span. */
@@ -507,6 +581,19 @@ function permessoMinutes(a: Anomaly, from: string | null, to: string | null): nu
 // 14:00 → 18:00, not 13:30 → 18:00, so the stepper never shows an instant the
 // booking will not use. Null when the window holds no scheduled work at all.
 function proposeGap(a: Anomaly): { from: string; to: string } | null {
+  const raw = rawGapWindow(a);
+  if (!raw) return null;
+  const parts = permessoParts(a, new Date(raw.from).toISOString(), new Date(raw.to).toISOString());
+  if (parts.length === 0) return null;
+  return { from: parts[0]!.from, to: parts[parts.length - 1]!.to };
+}
+
+// The window a day-level row proposes BEFORE it is trimmed to the fasce: the
+// two anchors its kind reads, widened to the quarter grid. Split out of
+// proposeGap so the panel can still describe a giornata whose trimmed window
+// comes back empty — see isUnbookableGapRow / unbookableSlivers, which is the
+// only case where the untrimmed window is the interesting one.
+function rawGapWindow(a: Anomaly): { from: number; to: number } | null {
   const es = a.expected_start_at ? new Date(a.expected_start_at).getTime() : null;
   const ee = a.expected_end_at ? new Date(a.expected_end_at).getTime() : null;
   const as = a.actual_start_at ? new Date(a.actual_start_at).getTime() : null;
@@ -541,9 +628,52 @@ function proposeGap(a: Anomaly): { from: string; to: string } | null {
   from = floor15(from);
   to = ceil15(to);
   if (to <= from) to = from + QUARTER_MS;
-  const parts = permessoParts(a, new Date(from).toISOString(), new Date(to).toISOString());
-  if (parts.length === 0) return null;
-  return { from: parts[0]!.from, to: parts[parts.length - 1]!.to };
+  return { from, to };
+}
+
+// A row that WOULD carry a day-level absence — a day-level kind with a resolved
+// schedule — but whose proposed window holds no bookable quarter of scheduled
+// work. isGapRow() therefore rejects it, its giornata gets no DayCorrection at
+// all, and "Inserisci ferie" and "Inserisci permesso" vanish from EVERY row of
+// that day with nothing on screen saying why.
+//
+// Not a theoretical branch: shift-template slot times are free-form (the admin
+// form is an <input type="time"> with no step, apps/web/src/pages/Shifts.tsx,
+// and the API validates only HH:MM), so 09:00–13:20 + 14:00–17:40 is a legal
+// orario. Book an absent day on it once and 465 of the 480 minutes are covered
+// — scheduledWindowParts snaps each part inward to the quarter grid — leaving
+// 13:15–13:20 and 17:30–17:40 uncovered. The next load raises missing_clock_in
+// and missing_clock_out again over those slivers, and now neither absence is
+// offered on them: shorter than the 15 minutes a leave must be a multiple of,
+// they produce no part at all. The admin is left with two red rows and a menu
+// that lost both its absence entries between one visit and the next.
+function isUnbookableGapRow(a: Anomaly): boolean {
+  return (
+    dayLevelRank(a.kind) < DAY_LEVEL_KINDS.length &&
+    a.expected_start_at !== null &&
+    a.expected_end_at !== null &&
+    proposeGap(a) === null
+  );
+}
+
+// What is left uncovered on such a day: the row's untrimmed window intersected
+// with the fasce, WITHOUT the quarter-grid snap. Each stretch is shorter than a
+// quarter of an hour — that is exactly why permessoParts dropped it — so naming
+// them is what turns "no absence is available" into something the admin can act
+// on (the slivers come from the orario's own slot times).
+function unbookableSlivers(a: Anomaly): { from: string; to: string }[] {
+  const raw = rawGapWindow(a);
+  const fasce = workIntervalsMs(a);
+  if (!raw || !fasce) return [];
+  const out: { from: string; to: string }[] = [];
+  for (const iv of fasce) {
+    const start = Math.max(raw.from, iv.start);
+    const end = Math.min(raw.to, iv.end);
+    if (end > start) {
+      out.push({ from: new Date(start).toISOString(), to: new Date(end).toISOString() });
+    }
+  }
+  return out.sort((x, y) => x.from.localeCompare(y.from));
 }
 
 // A row that contributes unworked time to its giornata: a day-level kind,
@@ -787,6 +917,63 @@ function buildDays(all: Anomaly[]): Map<string, DayCorrection> {
   return out;
 }
 
+// The giornate that describe unworked time and can take NO absence at all,
+// each mapped to the minutes left uncovered on it. The complement of buildDays:
+// the day HAS gap rows, none of them survives isGapRow, so no DayCorrection is
+// emitted and ferie/permesso are missing from every one of its rows.
+//
+// Per (user, date), like every other day-level property here, and that is the
+// fix. Asking the question of the clicked ROW instead — `!day &&
+// isUnbookableGapRow(a)` — required that row to be a day-level kind, so on the
+// very same giornata the rows outside DAY_LEVEL_KINDS explained nothing: an
+// orario 09:00–13:20 / 14:00–17:40 with pausa pranzo minima 30 minuti raises
+// 'lunch_too_short' next to the two unbookable slivers, and that row lost ferie
+// and permesso in silence — the case the bulk bar's counter already claimed to
+// cover. The per-row panel and the bar now read this one map, so they cannot
+// answer differently.
+//
+// The value is the union of what each unbookable gap row leaves over, merged:
+// a day flagged at both ends describes the same slivers twice, and what the
+// admin has to read is a list of stretches, not a list of rows.
+function buildUnbookableDays(
+  all: Anomaly[],
+  days: Map<string, DayCorrection>
+): Map<string, TimeWindow[]> {
+  const byDay = new Map<string, Anomaly[]>();
+  for (const a of all) {
+    const k = dayKeyOf(a);
+    const arr = byDay.get(k) ?? [];
+    arr.push(a);
+    byDay.set(k, arr);
+  }
+  const out = new Map<string, TimeWindow[]>();
+  for (const [k, items] of byDay) {
+    // The giornata can take an absence: there is nothing to explain.
+    if (days.has(k)) continue;
+    const rows = items.filter(isUnbookableGapRow);
+    if (rows.length === 0) continue;
+    out.set(k, mergeWindows(rows.flatMap((r) => unbookableSlivers(r))));
+  }
+  return out;
+}
+
+// Overlapping or touching stretches collapsed into one. Every end here is
+// produced by toISOString(), so the strings are the same length and in the same
+// zone: lexicographic order is chronological order.
+function mergeWindows(ws: TimeWindow[]): TimeWindow[] {
+  const sorted = [...ws].sort((a, b) => a.from.localeCompare(b.from));
+  const out: TimeWindow[] = [];
+  for (const w of sorted) {
+    const last = out[out.length - 1];
+    if (last && w.from <= last.to) {
+      if (w.to > last.to) last.to = w.to;
+    } else {
+      out.push({ ...w });
+    }
+  }
+  return out;
+}
+
 // The window the Correggi panel of THIS row proposes.
 //
 // A POSITIONED gap row — one whose own punch delimits its hole — keeps its own,
@@ -865,6 +1052,55 @@ function correctionTarget(
   if (action === 'ferie') return day.schedule;
   if (action === 'permesso' && !a.work_intervals) return day.schedule;
   return a;
+}
+
+// Identity of the proposal a Correggi panel is CURRENTLY describing: the row it
+// belongs to, the two instants it proposes, and the fasce the stepper is
+// clamped to and the booking is cut against (correctionTarget picks the row the
+// permesso is actually posted from). Everything the admin can tune is valid
+// only against this answer.
+//
+// It is what makes the panel's window a function of the anomaly on screen. The
+// window used to be seeded in three places — at mount, when Correggi is opened,
+// and after THIS row's own confirm was refused — so an already-open panel
+// survived every other reload: correct one row of the day, apply a bulk action,
+// press Aggiorna, and the recap went on stating a window computed against
+// stamps that no longer existed, which is the one thing clamping it to the
+// fasce was added to rule out. Comparing seeds instead re-proposes exactly when
+// the giornata underneath moved, and leaves deliberate stepping alone when it
+// did not — a refetch that changes nothing changes nothing here.
+function permSeed(a: Anomaly, day: DayCorrection | undefined): string {
+  const w = rowWindow(a, day);
+  return JSON.stringify([
+    keyOf(a),
+    w?.from ?? null,
+    w?.to ?? null,
+    correctionTarget('permesso', a, day).work_intervals,
+  ]);
+}
+
+// Refusals that leave the giornata EXACTLY as the panel is describing it, so
+// the admin's tuned window is still the right thing to send.
+//
+// The backend answers every refusal with a machine code on the error envelope
+// (apps/backend/src/errors/index.ts, surfaced as ApiError.code by lib/api.ts),
+// and of the codes the leave endpoints raise only this one means "nothing was
+// written, ask again": lockLeaveUser throws it when its 5s lock_timeout fires
+// because the bulk bar (mapLimit, concurrency 4) or another admin is holding
+// that employee's advisory lock. Its message ends in "Riprova tra qualche
+// istante", and riprova has to mean retrying THE SAME THING — an admin who
+// stepped Dalle to 14:00 so that only the afternoon fascia is booked must find
+// 14:00 still on screen.
+//
+// Every other refusal is the server disagreeing about the STATE of the day —
+// LEAVE_OVERLAP, the per-day capacity VALIDATION, a membership that is gone —
+// and a window tuned against the state it disagrees with is not worth keeping.
+const RETRYABLE_CONFLICT_CODES = new Set(['LEAVE_LOCK_TIMEOUT']);
+
+function isRetryableConflict(e: unknown): boolean {
+  if (!(e instanceof Error)) return false;
+  const { code } = e as ApiError;
+  return code !== undefined && RETRYABLE_CONFLICT_CODES.has(code);
 }
 
 function fmtMins(totalMin: number): string {
@@ -1004,31 +1240,36 @@ async function applyCorrection(
     });
   } else if (action === 'permesso') {
     if (!opts.pFrom || !opts.pTo) throw new Error(t('errors.invalidPermWindow'));
-    // One permesso per scheduled fascia inside the window. On a single-fascia
-    // schedule that is one request with the window unchanged; on an orario
-    // spezzato it is one per fascia, and the unpaid gap between them is charged
-    // to nobody. Both the per-row panel and the bulk bar land here, so the two
-    // paths cannot diverge on what a window means.
+    // One permesso per scheduled fascia inside the window, in ONE request. On a
+    // single-fascia schedule that is a set of one with the window unchanged; on
+    // an orario spezzato it is one row per fascia, and the unpaid gap between
+    // them is charged to nobody. Both the per-row panel and the bulk bar land
+    // here, so the two paths cannot diverge on what a window means — nor on how
+    // many requests it costs.
     const parts = permessoParts(a, opts.pFrom, opts.pTo);
     if (parts.length === 0) throw new Error(t('errors.permMinDuration'));
-    // Sequential, not Promise.all: every write for one employee serializes on
-    // the same advisory lock server-side (lib/leave-quota.ts), and firing them
-    // together would only queue them behind each other with a 5s timeout at the
-    // end. A later part failing leaves the earlier ones inserted — the error
-    // reaches the admin, and re-running is refused as an overlap rather than
-    // booked twice.
-    for (const part of parts) {
-      await api('/api/v1/leaves/admin-create', {
-        method: 'POST',
-        json: {
-          user_id: a.user_id,
-          type: 'permessi',
-          from_ts: part.from,
-          to_ts: part.to,
-          user_note: note || undefined,
-        },
-      });
-    }
+    // POST /leaves/admin-create-day, not a loop over /admin-create: the whole
+    // set is judged together under one advisory lock and written all-or-nothing,
+    // with a single notification to the employee.
+    //
+    // The loop this replaced posted the fasce one at a time and each call read
+    // the day's remaining capacity as it found it. Time System, 20/08/2026: a
+    // giornata on 09:00–13:00 + 14:00–18:00 already carrying a one-hour
+    // permesso, corrected with 4h + 4h — nine hours against an eight-hour day.
+    // The morning fascia committed, the afternoon one was refused by the per-day
+    // cap, and the day was left half-booked: half a permesso in the payroll, an
+    // "assenza inserita" notification already sent, and a re-run refused as an
+    // overlap on the fascia that HAD landed. The set is now accepted or refused
+    // as one answer.
+    await api('/api/v1/leaves/admin-create-day', {
+      method: 'POST',
+      json: {
+        user_id: a.user_id,
+        type: 'permessi',
+        windows: parts.map((p) => ({ from_ts: p.from, to_ts: p.to })),
+        user_note: note || undefined,
+      },
+    });
   } else {
     if (note.length < 1) throw new Error(t('errors.noteRequired'));
     await api('/api/v1/shifts/anomalies/justify', {
@@ -1149,6 +1390,7 @@ async function mapLimit<T, R>(
 function AnomalyItem({
   a,
   day,
+  unbookable,
   selected,
   onToggle,
   onDone,
@@ -1157,6 +1399,11 @@ function AnomalyItem({
   // What this row's giornata can take (see buildDays); undefined when the day
   // has no unworked time to book an absence against.
   day: DayCorrection | undefined;
+  // Set when the GIORNATA describes unworked time and can still take no absence
+  // at all (buildUnbookableDays): the minutes left over, to name in the panel.
+  // A property of the day, so every row of it explains itself — the pausa row
+  // lost the same two actions as the missing-entrata row next to it.
+  unbookable: TimeWindow[] | undefined;
   selected: boolean;
   onToggle: () => void;
   onDone: () => void;
@@ -1170,10 +1417,24 @@ function AnomalyItem({
   // missing entrata/uscita, whose absent punch is the very anchor it would need.
   const ownWindow = useMemo(() => isPositionedGapRow(a), [a]);
   const gap0 = useMemo(() => rowWindow(a, day), [a, day]);
+  const slivers = unbookable ?? [];
   const [open, setOpen] = useState(false);
   const [action, setAction] = useState<CorrectionAction>(defaultActionFor(a, actions));
-  const [pFrom, setPFrom] = useState<string | null>(gap0?.from ?? null);
-  const [pTo, setPTo] = useState<string | null>(gap0?.to ?? null);
+  // The window the admin STEPPED to, tagged with the proposal it was stepped
+  // from. Never the source of truth on its own: the two ends below fall back to
+  // the current proposal the moment that tag stops matching, which is what
+  // makes an open panel unable to outlive the anomaly it was derived from. A
+  // tag that comes back — the giornata reverted to the state it was tuned
+  // against — brings the tuning with it, which is the same answer the admin
+  // gave to the same question.
+  //
+  // Plain derivation rather than an effect: no render can show one window and
+  // book another, not even for the frame before an effect would have run.
+  const [tuned, setTuned] = useState<{ seed: string; from: string; to: string } | null>(null);
+  const seed = useMemo(() => permSeed(a, day), [a, day]);
+  const fresh = tuned?.seed === seed ? tuned : null;
+  const pFrom = fresh ? fresh.from : (gap0?.from ?? null);
+  const pTo = fresh ? fresh.to : (gap0?.to ?? null);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -1197,12 +1458,34 @@ function AnomalyItem({
   );
   const permMin = permessoMinutes(permTarget, pFrom, pTo);
 
-  function stepPerm(which: 'from' | 'to', dir: -1 | 1) {
+  // Where a step would land, or null when it is refused. One function behind
+  // both the disabled state of the button and the step it applies, so a live
+  // button always moves and a dead one always says so.
+  function steppedTo(which: 'from' | 'to', dir: -1 | 1): string | null {
     const cur = which === 'from' ? pFrom : pTo;
-    if (!cur) return;
-    const next = new Date(new Date(cur).getTime() + dir * QUARTER_MS).toISOString();
-    if (which === 'from') setPFrom(next);
-    else setPTo(next);
+    if (!cur) return null;
+    const next = nextPermInstant(permTarget, new Date(cur).getTime(), which, dir);
+    if (next === null) return null;
+    // The ends may not cross, nor meet: a permesso is at least one quarter of an
+    // hour, and the recap must never show a window the booking would refuse.
+    const other = which === 'from' ? pTo : pFrom;
+    if (other) {
+      const o = new Date(other).getTime();
+      if (which === 'from' ? next >= o : next <= o) return null;
+    }
+    return new Date(next).toISOString();
+  }
+  function stepPerm(which: 'from' | 'to', dir: -1 | 1) {
+    const next = steppedTo(which, dir);
+    // steppedTo already refuses a step whose own end is unset, and the two ends
+    // are seeded and cleared together, so both are non-null whenever a step
+    // lands. The guard is what says so to the type checker.
+    if (!next || !pFrom || !pTo) return;
+    setTuned({
+      seed,
+      from: which === 'from' ? next : pFrom,
+      to: which === 'to' ? next : pTo,
+    });
   }
 
   async function confirm() {
@@ -1220,6 +1503,20 @@ function AnomalyItem({
       onDone();
     } catch (e) {
       setErr(e instanceof Error ? e.message : t('common:state.error'));
+      // A retryable conflict wrote nothing and disagreed about nothing: another
+      // operation simply held the employee's lock (see isRetryableConflict).
+      // Leave the panel exactly as it is — the tuned window included — so the
+      // "Riprova tra qualche istante" the message asks for means sending the
+      // same request again. Refetching here would spend a request to learn
+      // nothing, and the giornata is about to move anyway under whoever holds
+      // the lock; the seed picks that up on the next load.
+      if (isRetryableConflict(e)) return;
+      // Everything else is the server disagreeing about the state of the day,
+      // so the admin's next move must be judged against the real state rather
+      // than against the window still on screen. The refetch re-seeds it: the
+      // rows come back with a new proposal, the seed changes, and the tuning
+      // computed against the refused state is dropped.
+      onDone();
     } finally {
       setBusy(false);
     }
@@ -1274,13 +1571,12 @@ function AnomalyItem({
         <button
           className="btn btn-secondary btn-sm shrink-0"
           onClick={() => {
-            // Re-seed from the CURRENT proposal on every opening. pFrom/pTo are
-            // component state and a reload between two openings can move the
-            // giornata's gap under a panel that was never opened — the stepper
-            // must not show a window computed against stamps that have changed.
+            // Every opening starts from the CURRENT proposal: dropping the
+            // tuning is enough, since the two ends are derived from it. (A
+            // reload while the panel is open is handled by the seed itself, not
+            // here — that is the case this branch could never see.)
             if (!open) {
-              setPFrom(gap0?.from ?? null);
-              setPTo(gap0?.to ?? null);
+              setTuned(null);
               setErr(null);
             }
             setOpen((o) => !o);
@@ -1314,6 +1610,46 @@ function AnomalyItem({
               ))}
             </select>
           </div>
+
+          {/* The giornata has unworked time and can take neither absence: what
+              is left of it is shorter than the quarter of an hour a leave must
+              be a multiple of. Both entries are missing from the list above, and
+              without this the admin sees a day that offered them yesterday and
+              offers nothing today. Name the leftovers and point at the orario
+              they come from — a fascia ending at 13:20 leaves five minutes
+              nobody can book, every single day.
+
+              Shown on EVERY row of such a giornata, pausa and uscita fuori area
+              included: they lost the same two actions, from the same cause.
+
+              The way out is read off `actions`, never assumed. "Timbratura
+              standard" is offered only where a punch is ABSENT, and a day can be
+              unbookable with both punches present — a single fascia 09:00–17:40
+              with tolleranza in uscita 0 is exactly that — so naming it there
+              would send the admin to a menu entry that is not in the menu. */}
+          {unbookable !== undefined && (
+            <div className="text-xs muted" data-testid="perm-unbookable-hint">
+              <Trans t={t} i18nKey="recap.noBookableWindow" components={{ strong: <strong /> }} />{' '}
+              {t(
+                actions.includes('standard')
+                  ? 'recap.noBookableWindowFixStamps'
+                  : 'recap.noBookableWindowFixNote'
+              )}
+              {slivers.length > 0 && (
+                <>
+                  {' '}
+                  <Trans
+                    t={t}
+                    i18nKey="recap.noBookableWindowLeft"
+                    values={{
+                      windows: slivers.map((w) => `${fmtTime(w.from)}–${fmtTime(w.to)}`).join(' · '),
+                    }}
+                    components={{ strong: <strong /> }}
+                  />
+                </>
+              )}
+            </div>
+          )}
 
           {/* "Inserisci permesso" is simply absent from the list above on a
               split day, which on its own reads as "the product won't let me".
@@ -1399,21 +1735,39 @@ function AnomalyItem({
             <div className="text-sm space-y-2">
               <div className="muted text-xs font-semibold uppercase tracking-wide">{t('recap.title')}</div>
               <div className="flex flex-wrap items-center gap-4">
+                {/* Clamped to the fasce: a step that would land outside the
+                    scheduled hours jumps the unpaid gap whole, and the outer
+                    edges of the schedule disable the button rather than moving
+                    the window somewhere the booking would clip back. */}
                 <TimeStepper
+                  testId="perm-from"
                   label={t('recap.permFrom')}
                   value={pFrom}
                   onStep={(d) => stepPerm('from', d)}
+                  canStep={(d) => steppedTo('from', d) !== null}
                 />
-                <TimeStepper label={t('recap.permTo')} value={pTo} onStep={(d) => stepPerm('to', d)} />
+                <TimeStepper
+                  testId="perm-to"
+                  label={t('recap.permTo')}
+                  value={pTo}
+                  onStep={(d) => stepPerm('to', d)}
+                  canStep={(d) => steppedTo('to', d) !== null}
+                />
                 <div>
                   <div className="label">{t('recap.duration')}</div>
-                  <div className="font-medium">{permMin > 0 ? fmtMins(permMin) : '—'}</div>
+                  <div className="font-medium" data-testid="perm-duration">
+                    {permMin > 0 ? fmtMins(permMin) : '—'}
+                  </div>
                 </div>
               </div>
               {/* Orario spezzato: the window crosses the unpaid gap between two
                   fasce, so it is booked as one permesso per fascia and the gap
                   is charged to nobody. Without this line the duration above —
-                  5h on a 12:00–18:00 window — reads as an arithmetic error. */}
+                  5h on a 12:00–18:00 window — reads as an arithmetic error.
+                  Since the stepper is clamped to the fasce, Dalle and Alle are
+                  the first part's start and the last part's end: the duration
+                  differs from the span if and only if there is more than one
+                  part, which is exactly when this line is on screen. */}
               {permParts.length > 1 && (
                 <div className="text-xs muted" data-testid="perm-split-shift">
                   <Trans
@@ -1488,11 +1842,17 @@ function AnomalyItem({
 function BulkCorrectBar({
   items,
   days,
+  unbookable,
   onDone,
   onClear,
 }: {
   items: Anomaly[];
   days: Map<string, DayCorrection>;
+  // Giornate that describe unworked time and can take no absence at all, the
+  // same map the per-row panels read (buildUnbookableDays). The bar used to
+  // re-derive this per ROW and reached a different answer on the days whose
+  // rows are not day-level kinds.
+  unbookable: Map<string, TimeWindow[]>;
   onDone: () => void;
   onClear: () => void;
 }) {
@@ -1533,6 +1893,19 @@ function BulkCorrectBar({
   // and mean different things, which is why targets.length can no longer stand
   // in for either: rows MERGE into a giornata, and giornate are SKIPPED.
   const selectedDays = useMemo(() => new Set(items.map(dayKeyOf)).size, [items]);
+  // Giornate that describe unworked time and can still take no absence at all,
+  // because what is left of them holds no bookable quarter. Counted straight
+  // off the map the per-row panels read, so the bar and the panel agree on
+  // which days those are whatever kind of row the admin happened to tick.
+  // They are already inside skippedDays — or, when they are the whole selection,
+  // they are why ferie/permesso are missing from the dropdown entirely. Either
+  // way the count alone does not say WHY, and this is the same explanation the
+  // per-row panel gives.
+  const unbookableDays = useMemo(() => {
+    const k = new Set<string>();
+    for (const a of items) if (unbookable.has(dayKeyOf(a))) k.add(dayKeyOf(a));
+    return k.size;
+  }, [items, unbookable]);
   // Giornate the bar will book as SEVERAL permessi — one per fascia — because
   // their window crosses the unpaid gap of an orario spezzato. Counted from the
   // same targets the bar will POST, so the number cannot drift from what
@@ -1577,6 +1950,12 @@ function BulkCorrectBar({
     // from the day's whole anomaly set — not re-derived here from whichever row
     // ended up representing the day. That re-derivation is what booked
     // 16:30–18:00 on a day whose hole was 09:00–10:30.
+    //
+    // One applyCorrection call per giornata, and applyCorrection is one request
+    // per giornata: a split-shift day either gets both its fasce or neither, and
+    // a failure here can no longer leave a day half-booked in the middle of a
+    // month-long selection. The bar and the per-row panel share that guarantee
+    // because they share this function — an invariant, not a coincidence.
     const res = await mapLimit(rows, 4, (x) =>
       applyCorrection(action, x.a, {
         note,
@@ -1703,6 +2082,16 @@ function BulkCorrectBar({
         </div>
       )}
 
+      {/* Giornate whose unworked time no absence can cover. Shown whatever the
+          chosen action, because it is also the reason ferie and permesso may be
+          missing from the dropdown above — the one case where the skip counter
+          cannot appear at all. */}
+      {unbookableDays > 0 && (
+        <div className="text-xs" data-testid="bulk-unbookable" style={{ color: 'var(--color-primary)' }}>
+          {t('bulk.unbookableDays', { count: unbookableDays })}
+        </div>
+      )}
+
       {/* No shared time-window editor here on purpose: the window is derived
           per giornata. Fine-tuning stays in the single-row Correggi panel. */}
       {action === 'permesso' && (
@@ -1766,20 +2155,37 @@ function TimeStepper({
   label,
   value,
   onStep,
+  canStep,
+  testId,
 }: {
   label: string;
   value: string | null;
   onStep: (dir: -1 | 1) => void;
+  testId: string;
+  // Which directions still have somewhere to go. The permesso stepper is
+  // clamped to the day's fasce, so it runs out of moves at the edges of the
+  // schedule — and a button that looks live but does nothing reads as a bug.
+  canStep?: (dir: -1 | 1) => boolean;
 }) {
   return (
-    <div>
+    <div data-testid={testId}>
       <div className="label">{label}</div>
       <div className="flex items-center gap-1">
-        <button type="button" className="btn btn-secondary btn-sm" onClick={() => onStep(-1)}>
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          onClick={() => onStep(-1)}
+          disabled={canStep ? !canStep(-1) : false}
+        >
           −
         </button>
         <span className="font-medium min-w-[3.5rem] text-center">{fmtTime(value)}</span>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={() => onStep(1)}>
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          onClick={() => onStep(1)}
+          disabled={canStep ? !canStep(1) : false}
+        >
           +
         </button>
       </div>

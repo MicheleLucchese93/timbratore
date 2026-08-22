@@ -8,7 +8,7 @@
 // unknown key falls back to a humanized version of itself, an unknown enum value
 // falls back to the raw string, and internal columns (ids, tenant_id, …) are
 // dropped so they never reach the grid.
-import { fmtDate, fmtDateTime, fmtNumber, localeTag } from '../i18n/format.ts';
+import { fmtDate, fmtDateTime, fmtNumber, fmtTime, localeTag } from '../i18n/format.ts';
 
 export type TFn = (key: string, opts?: Record<string, unknown>) => string;
 
@@ -37,6 +37,9 @@ const DT: Intl.DateTimeFormatOptions = {
   minute: '2-digit',
 };
 
+/** Time of day alone, for values whose date is already on the entry. */
+const HM: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO_DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -58,6 +61,12 @@ const HIDDEN = new Set([
   'body_html',
   'reminder_sent_at',
   'queued_hours',
+  // The leave rows a split giornata was booked as (leave.admin_create). The
+  // entry already resolves to one of them and `parts` says how the day was
+  // cut, so the uuids add nothing — and being plural they slip past the `_id`
+  // rule below, which is why they were reaching the dialog as an unlabeled
+  // "2 selezionati".
+  'request_ids',
 ]);
 
 // Flags that describe how the operation was performed rather than what it
@@ -231,9 +240,53 @@ function formatSlots(slots: unknown[], t: TFn): string {
     .join(' · ');
 }
 
+function isPart(v: unknown): v is { from: string; to: string } {
+  if (typeof v !== 'object' || v === null) return false;
+  const o = v as Record<string, unknown>;
+  return (
+    typeof o.from === 'string' &&
+    typeof o.to === 'string' &&
+    ISO_DATETIME_RE.test(o.from) &&
+    ISO_DATETIME_RE.test(o.to)
+  );
+}
+
+/**
+ * `12:00–13:00 · 14:00–18:00` — the windows one giornata's absence was actually
+ * booked over, from `leave.admin_create`'s `parts` (an orario spezzato takes one
+ * leave row per fascia, and the unpaid gap between them is charged to nobody).
+ *
+ * Times only: the entry already carries the giornata's own Dal / Al, and
+ * repeating the date on all four endpoints of a two-fascia day buries the one
+ * thing this field adds — WHERE the gap fell. A part that does not begin on the
+ * giornata's first day keeps its full date instead: the backend caps a giornata
+ * at 24 hours, it does not force it inside one calendar date, so a turno across
+ * midnight must never read as the wrong day.
+ *
+ * Null for a payload that is not this list of {from, to}, so an unexpected shape
+ * degrades to the generic array rendering rather than disappearing.
+ */
+function formatParts(parts: unknown[]): string | null {
+  const windows: { from: string; to: string }[] = [];
+  for (const p of parts) {
+    if (!isPart(p)) return null;
+    windows.push(p);
+  }
+  const first = windows[0];
+  if (!first) return null;
+  const day = fmtDate(first.from);
+  const at = (iso: string) => (fmtDate(iso) === day ? fmtTime(iso, HM) : fmtDateTime(iso, DT));
+  return windows.map((w) => `${at(w.from)}–${at(w.to)}`).join(' · ');
+}
+
 function formatArray(key: string, arr: unknown[], t: TFn): string {
   if (arr.length === 0) return t('detail.none');
   if (key === 'slots') return formatSlots(arr, t);
+  // A split giornata's fasce are time ranges, not a list of objects.
+  if (key === 'parts') {
+    const windows = formatParts(arr);
+    if (windows !== null) return windows;
+  }
   // Lists of references (user_ids, branch_ids, cantiere_ids, …) say nothing as
   // uuids — the count is the only readable fact.
   if (arr.every((v) => typeof v === 'string' && UUID_RE.test(v))) {

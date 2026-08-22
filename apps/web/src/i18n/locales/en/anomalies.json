@@ -37,6 +37,10 @@
     "permDayScope": "Window computed on the <strong>whole day</strong> of {{date}}: it is the unworked period taken from the \"{{kind}}\" anomaly — not a figure of the row you opened the correction from (the length of the break, the hours shortfall or the missing stamp).",
     "permSplitDay": "This day is unworked at <strong>both ends</strong> (\"{{leading}}\" and \"{{trailing}}\"): the unworked periods are two separate stretches, and one leave cannot cover them without recording the other as worked. Insert them with <strong>Correct</strong> on the day's two rows, one per stretch. Holiday stays available, because it covers the whole shift.",
     "permSplitShift": "<strong>Split shift</strong>: the window crosses the unpaid gap between the two blocks, which is not charged. Separate leaves are inserted for {{windows}}, and the duration above is their sum.",
+    "noBookableWindow": "<strong>No absence can be inserted on this day.</strong> The unworked time left is shorter than the 15 minutes a leave must be a multiple of, and it does not fall on a quarter of an hour: that is why \"Add holiday\" and \"Add leave\" are missing from the menu above, on every row of the day.",
+    "noBookableWindowFixStamps": "Add the missing stamps with \"Standard stamping\", or close the row with \"Justify with a note\".",
+    "noBookableWindowFixNote": "The day's stamps are all there, so there is nothing to complete: close the row with \"Justify with a note\".",
+    "noBookableWindowLeft": "Still uncovered: <strong>{{windows}}</strong>. If this happens on every day of this schedule, check its blocks under <strong>Work schedules</strong>: a block that does not start and end on a quarter of an hour (e.g. 13:20 or 17:40) leaves those minutes over every day, and no absence can cover them.",
     "permFrom": "From",
     "permTo": "To",
     "duration": "Duration"
@@ -68,6 +72,8 @@
     "permessoSplitDays_other": "{{count}} selected days are unworked at both ends (clock-in and clock-out) with worked hours in between: the unworked periods are two per day, and one leave cannot cover them without recording the other as worked — so those days are skipped. Insert the leaves with Correct on those days' own rows; bulk holiday still covers them, because it applies to the whole shift.",
     "permessoSplitShift_one": "1 selected day has a split shift: the window crosses the unpaid gap between the blocks, which is not charged, and that day gets one leave per block instead of a single one.",
     "permessoSplitShift_other": "{{count}} selected days have a split shift: the window crosses the unpaid gap between the blocks, which is not charged, and each day gets one leave per block instead of a single one.",
+    "unbookableDays_one": "1 selected day has unworked time no absence can cover: what is left uncovered is shorter than the 15 minutes a leave must be a multiple of, and it does not fall on a quarter of an hour. Holiday and leave are not applied to it — open Correct on one of its rows to see which minutes are left and which block they come from.",
+    "unbookableDays_other": "{{count}} selected days have unworked time no absence can cover: what is left uncovered is shorter than the 15 minutes a leave must be a multiple of, and it does not fall on a quarter of an hour. Holiday and leave are not applied to those days — open Correct on one of their rows to see which minutes are left and which block they come from.",
     "result": "{{ok}} corrected · {{fail}} failed",
     "resultDays": "{{ok}} days corrected · {{fail}} failed (from {{n}} selected anomalies)"
   },
