@@ -139,6 +139,74 @@ export function uncoveredSlotIntervals(
   return intervals.filter((iv) => iv.end > iv.start).sort((a, b) => a.start - b.start);
 }
 
+// The parts of one proposed window that may actually be BOOKED as an absence:
+// its intersection with the day's uncovered work intervals, each snapped inward
+// to a `stepMs` grid. Companion of {@link uncoveredSlotIntervals}, which
+// produces the intervals — same notion of "genuinely scheduled work", used at
+// the other end of the flow.
+//
+// A window is proposed from two anchors (the scheduled start/end of the day and
+// the punches), so on a split shift — Time System's "FULL TIME FLESSIBILE"
+// 08:00-12:00 + 13:00-17:00, and every other orario spezzato — it spans the
+// unpaid gap between two fasce. Booking that span whole charges the employee
+// for an hour nobody ever expected them to work: it comes off the permessi
+// residuo and lands in the payroll export's "Ore permessi". The gap is not
+// worked time and it is not absence either — it is simply not scheduled, which
+// is exactly what the intervals already say.
+//
+// Snapped INWARD (start up, end down) on purpose, twice over: a part must never
+// claim a minute the schedule does not hold, and the leave API only accepts
+// windows that are a whole multiple of a quarter of an hour — a fascia ending
+// at 12:50 would otherwise be refused outright. Parts left shorter than one
+// step are dropped for the same reason.
+// Where a stretch of `durationMs` of SCHEDULED work starts, counting back from
+// `endMs` through `workIntervals` (the same intervals {@link
+// scheduledWindowParts} clips against).
+//
+// For the absences that are known only as a MAGNITUDE — "four hours are
+// missing", never at which end of the turno — and therefore anchored at the end
+// of the day and measured backwards. Plain subtraction measures through the
+// unpaid gap of a split shift: on 09:00–13:00 + 14:00–18:00 a 300-minute
+// shortfall reaches back to 13:00, an instant nobody is scheduled at, and a
+// window opened there covers only the afternoon fascia — 240 minutes offered
+// against a 300-minute hole. Counting through the fasce reaches 12:00.
+//
+// Stops at the earliest interval when the schedule holds less than
+// `durationMs`: there is nothing bookable before it. With no intervals at all
+// there is nothing to walk, and the caller's own fallback applies.
+export function scheduledStartBefore(
+  endMs: number,
+  workIntervals: Array<{ start: number; end: number }>,
+  durationMs: number
+): number {
+  const sorted = workIntervals.slice().sort((a, b) => a.start - b.start);
+  let remaining = durationMs;
+  let start = endMs;
+  for (let i = sorted.length - 1; i >= 0 && remaining > 0; i--) {
+    const to = Math.min(endMs, sorted[i]!.end);
+    if (to <= sorted[i]!.start) continue; // fascia entirely past the anchor
+    const take = Math.min(remaining, to - sorted[i]!.start);
+    start = to - take;
+    remaining -= take;
+  }
+  return start;
+}
+
+export function scheduledWindowParts(
+  window: { start: number; end: number },
+  workIntervals: Array<{ start: number; end: number }>,
+  stepMs: number
+): Array<{ start: number; end: number }> {
+  const out: Array<{ start: number; end: number }> = [];
+  for (const iv of workIntervals) {
+    const start = Math.ceil(Math.max(window.start, iv.start) / stepMs) * stepMs;
+    const end = Math.floor(Math.min(window.end, iv.end) / stepMs) * stepMs;
+    if (end - start < stepMs) continue;
+    out.push({ start, end });
+  }
+  return out.sort((a, b) => a.start - b.start);
+}
+
 // First uncovered start / last uncovered end for late/early breach anchors,
 // falling back to the raw slot span when there's no leave (unchanged behaviour).
 // `fullyCovered` = the whole scheduled day is approved leave → skip breaches.

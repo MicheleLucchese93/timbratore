@@ -891,6 +891,24 @@ export interface Anomaly {
     | 'clock_out_out_of_area';
   expected_start_at: string | null;
   expected_end_at: string | null;
+  // The day's genuinely scheduled work, fascia by fascia, with approved leave
+  // already carved out — {@link uncoveredWorkIntervals}, serialized.
+  //
+  // expected_start_at/expected_end_at are the FIRST slot's start and the LAST
+  // slot's end, so on an orario spezzato everything between them includes the
+  // unpaid gap. That is harmless for describing the deviation and wrong for
+  // BOOKING one: the web correction panel proposes a permesso anchored on those
+  // two instants, and on Time System's 08:00-12:00 + 13:00-17:00 templates the
+  // proposal charged the midday gap to the employee's permessi residuo (and to
+  // "Ore permessi" in the payroll export). The client cannot subtract what it
+  // cannot see, hence this field: it is the same notion the late/early rules
+  // are already judged against, and the single source of truth for it stays
+  // uncoveredSlotIntervals in packages/shared.
+  //
+  // Null on the anomalies raised before a schedule is resolved at all — an
+  // out-of-area clock-out, a giorno di riposo — which carry no expected_* to
+  // book an absence against either.
+  work_intervals: { from: string; to: string }[] | null;
   actual_start_at: string | null;
   actual_end_at: string | null;
   delta_minutes: number | null;
@@ -985,7 +1003,7 @@ export function computeAnomalies(
     // surfaces here even with no shift. Emitted before the template gate below.
     for (const s of row.stamps) {
       if (s.event_type === 'clock_out' && s.out_of_geofence) {
-        const a = buildAnomaly(row, date, 'clock_out_out_of_area', null, null, row.stamps);
+        const a = buildAnomaly(row, date, 'clock_out_out_of_area', null, null, row.stamps, null);
         a.actual_end_at = s.occurred_at;
         a.details =
           s.geofence_distance_m != null
@@ -1008,7 +1026,7 @@ export function computeAnomalies(
         (s) => s.event_type === 'clock_in' || s.event_type === 'clock_out'
       );
       if (worked) {
-        out.push(buildAnomaly(row, date, 'worked_on_rest_day', null, null, stamps));
+        out.push(buildAnomaly(row, date, 'worked_on_rest_day', null, null, stamps, null));
       }
       continue;
     }
@@ -1057,7 +1075,8 @@ export function computeAnomalies(
             'missing_clock_in',
             expectedStart.toISOString(),
             expectedEnd.toISOString(),
-            stamps
+            stamps,
+            workIntervals
           )
         );
       }
@@ -1074,7 +1093,8 @@ export function computeAnomalies(
           'late_clock_in',
           expectedStart.toISOString(),
           expectedEnd.toISOString(),
-          stamps
+          stamps,
+          workIntervals
         );
         a.actual_start_at = actual.toISOString();
         a.delta_minutes = deltaMin;
@@ -1093,7 +1113,8 @@ export function computeAnomalies(
             'missing_clock_out',
             expectedStart.toISOString(),
             expectedEnd.toISOString(),
-            stamps
+            stamps,
+            workIntervals
           )
         );
       }
@@ -1110,7 +1131,8 @@ export function computeAnomalies(
           'early_clock_out',
           expectedStart.toISOString(),
           expectedEnd.toISOString(),
-          stamps
+          stamps,
+          workIntervals
         );
         a.actual_end_at = actual.toISOString();
         a.delta_minutes = deltaMin;
@@ -1179,7 +1201,8 @@ export function computeAnomalies(
           'short_hours',
           expectedStart.toISOString(),
           expectedEnd.toISOString(),
-          stamps
+          stamps,
+          workIntervals
         );
         a.delta_minutes = shortfall;
         a.details =
@@ -1206,7 +1229,8 @@ export function computeAnomalies(
           'break_too_short',
           expectedStart.toISOString(),
           expectedEnd.toISOString(),
-          stamps
+          stamps,
+          workIntervals
         );
         a.break_total_min = breakTotal;
         a.details = `Pausa ${breakTotal} min, minima ${bMin} min`;
@@ -1218,7 +1242,8 @@ export function computeAnomalies(
           'break_too_long',
           expectedStart.toISOString(),
           expectedEnd.toISOString(),
-          stamps
+          stamps,
+          workIntervals
         );
         a.break_total_min = breakTotal;
         a.details = `Pausa ${breakTotal} min, massima ${bMax} min`;
@@ -1236,7 +1261,8 @@ export function computeAnomalies(
           'lunch_too_short',
           expectedStart.toISOString(),
           expectedEnd.toISOString(),
-          stamps
+          stamps,
+          workIntervals
         );
         a.lunch_total_min = lunchTotal;
         a.details = `Pausa pranzo ${lunchTotal} min, minima ${lMin} min`;
@@ -1248,7 +1274,8 @@ export function computeAnomalies(
           'lunch_too_long',
           expectedStart.toISOString(),
           expectedEnd.toISOString(),
-          stamps
+          stamps,
+          workIntervals
         );
         a.lunch_total_min = lunchTotal;
         a.details = `Pausa pranzo ${lunchTotal} min, massima ${lMax} min`;
@@ -1296,7 +1323,8 @@ export function computeAnomalies(
             'lunch_outside_window',
             expectedStart.toISOString(),
             expectedEnd.toISOString(),
-            stamps
+            stamps,
+            workIntervals
           );
           a.lunch_total_min = lunchTotal;
           a.details =
@@ -1317,7 +1345,8 @@ function buildAnomaly(
   kind: Anomaly['kind'],
   expectedStart: string | null,
   expectedEnd: string | null,
-  stamps: AnomalyRow['stamps']
+  stamps: AnomalyRow['stamps'],
+  workIntervals: { start: number; end: number }[] | null
 ): Anomaly {
   // Same open-session rule as the anomaly logic: a day left on an unclosed
   // clock_in reports no exit, so the web panel can offer Timbratura standard.
@@ -1332,6 +1361,11 @@ function buildAnomaly(
     kind,
     expected_start_at: expectedStart,
     expected_end_at: expectedEnd,
+    work_intervals:
+      workIntervals?.map((iv) => ({
+        from: new Date(iv.start).toISOString(),
+        to: new Date(iv.end).toISOString(),
+      })) ?? null,
     actual_start_at: firstIn?.occurred_at ?? null,
     actual_end_at: lastOut?.occurred_at ?? null,
     delta_minutes: null,

@@ -36,6 +36,7 @@
     "ferieDayScope": "Le ferie coprono l'intera giornata di lavoro: l'anomalia da cui hai aperto la correzione è solo il punto di partenza.",
     "permDayScope": "Finestra calcolata sull'<strong>intera giornata</strong> del {{date}}: è il periodo non lavorato ricavato dall'anomalia «{{kind}}», non un dato della riga da cui hai aperto la correzione (la durata della pausa, l'ammanco di ore o il timbro mancante).",
     "permSplitDay": "Questa giornata non è lavorata a <strong>entrambi gli estremi</strong> («{{leading}}» e «{{trailing}}»): i periodi non lavorati sono due e distinti, e un solo permesso non può coprirli senza registrare l'altro come lavorato. Inseriscili con <strong>Correggi</strong> sulle due righe della giornata, una per periodo. Le ferie restano disponibili, perché coprono il turno intero.",
+    "permSplitShift": "<strong>Orario spezzato</strong>: la finestra attraversa la pausa non retribuita fra le fasce, che non viene addebitata. Vengono inseriti permessi separati per {{windows}}, e la durata qui sopra è la loro somma.",
     "permFrom": "Dalle",
     "permTo": "Alle",
     "duration": "Durata"
@@ -65,6 +66,8 @@
     "permessoPerDay": "La finestra del permesso è calcolata per ogni giornata dal periodo non lavorato dell'intera giornata — l'entrata in ritardo o mancante, oppure l'uscita anticipata o mancante — qualunque sia il tipo delle righe selezionate. Per modificarla usa Correggi sulla singola anomalia.",
     "permessoSplitDays_one": "1 giornata selezionata non è lavorata a entrambi gli estremi (entrata e uscita) con ore lavorate in mezzo: i periodi non lavorati sono due e distinti, e un solo permesso non può coprirli senza registrare l'altro come lavorato — per questo viene saltata. Inserisci i due permessi con Correggi sulle singole righe di quella giornata; le ferie in blocco la coprono comunque, perché valgono per il turno intero.",
     "permessoSplitDays_other": "{{count}} giornate selezionate non sono lavorate a entrambi gli estremi (entrata e uscita) con ore lavorate in mezzo: i periodi non lavorati sono due per giornata, e un solo permesso non può coprirli senza registrare l'altro come lavorato — per questo vengono saltate. Inserisci i permessi con Correggi sulle singole righe di quelle giornate; le ferie in blocco le coprono comunque, perché valgono per il turno intero.",
+    "permessoSplitShift_one": "1 giornata selezionata ha un orario spezzato: la finestra attraversa la pausa non retribuita fra le fasce, che non viene addebitata, e la giornata riceve un permesso per fascia invece di uno solo.",
+    "permessoSplitShift_other": "{{count}} giornate selezionate hanno un orario spezzato: la finestra attraversa la pausa non retribuita fra le fasce, che non viene addebitata, e ogni giornata riceve un permesso per fascia invece di uno solo.",
     "result": "{{ok}} corrette · {{fail}} non riuscite",
     "resultDays": "{{ok}} giornate corrette · {{fail}} non riuscite (da {{n}} anomalie selezionate)"
   },

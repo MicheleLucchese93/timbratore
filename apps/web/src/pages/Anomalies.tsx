@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
+import { scheduledStartBefore, scheduledWindowParts } from '@sonoqui/shared';
 import { api, type ApiError } from '../lib/api.ts';
 import { isoLocalDate, isoLocalDaysAgo } from '../lib/dates.ts';
 import { fmtDate as fmtDateI18n, fmtTime as fmtTimeI18n } from '../i18n/format.ts';
@@ -28,6 +29,13 @@ interface Anomaly {
     | 'clock_out_out_of_area';
   expected_start_at: string | null;
   expected_end_at: string | null;
+  // The day's scheduled work fascia by fascia, approved leave already carved
+  // out (backend uncoveredWorkIntervals). expected_start_at/expected_end_at are
+  // the first slot's start and the last slot's end, so on an orario spezzato
+  // the stretch between them contains the unpaid inter-fascia gap; these
+  // intervals are what say where the gap is. Null on rows raised without a
+  // resolved schedule (uscita fuori area, giorno di riposo).
+  work_intervals: { from: string; to: string }[] | null;
   actual_start_at: string | null;
   actual_end_at: string | null;
   delta_minutes: number | null;
@@ -69,7 +77,8 @@ const KIND_COLOR: Record<Anomaly['kind'], string> = {
 //
 // Reading this order as a window priority is precisely what broke the page.
 // 'short_hours' sits first because its delta_minutes is the day's real
-// shortfall, but proposeGap('short_hours') is END-anchored (ee − delta → ee).
+// shortfall, but proposeGap('short_hours') is END-anchored (the last `delta`
+// minutes of scheduled work before the end of the turno).
 // On a 09:00–13:00 / 14:00–18:00 schedule entered at 10:30 the day raises both
 // late_clock_in and short_hours with delta 90, and letting 'short_hours' speak
 // for the giornata proposed 16:30–18:00 — ninety minutes the employee had
@@ -413,8 +422,90 @@ function ceil15(ms: number): number {
   return Math.ceil(ms / QUARTER_MS) * QUARTER_MS;
 }
 
+// The stretches of [from, to) that a permesso may actually be BOOKED over: the
+// window intersected with the day's scheduled fasce (approved leave already
+// carved out server-side), each piece snapped inward to the 15-minute grid.
+//
+// One window, several pieces, on every orario spezzato. Time System's "FULL
+// TIME FLESSIBILE" is 08:00–12:00 + 13:00–17:00: a day left at 12:00 proposes
+// 12:00 → 17:00, and the midday hour inside it is neither worked nor absence —
+// it is simply not scheduled. Booking the span whole took an extra hour off the
+// employee's permessi residuo and put it in the payroll export's "Ore
+// permessi", while the day's own 'short_hours' delta said the shortfall was one
+// hour smaller. Each piece is inserted as its own permesso instead.
+//
+// Delegates to @sonoqui/shared, whose uncoveredSlotIntervals produced
+// work_intervals in the first place — the same rule the backend's late/early
+// anomalies, the counted day and the export all judge presence with.
+//
+// A payload without work_intervals (an API older than the field, or a row
+// raised with no schedule at all) leaves the window exactly as proposed: that
+// is the previous behaviour, and it is the right answer on every schedule with
+// a single fascia, where the intersection is the window itself.
+function permessoParts(
+  a: Anomaly,
+  from: string,
+  to: string
+): { from: string; to: string }[] {
+  const start = new Date(from).getTime();
+  const end = new Date(to).getTime();
+  if (!(end > start)) return [];
+  if (!a.work_intervals) return [{ from, to }];
+  return scheduledWindowParts(
+    { start, end },
+    a.work_intervals.map((w) => ({
+      start: new Date(w.from).getTime(),
+      end: new Date(w.to).getTime(),
+    })),
+    QUARTER_MS
+  ).map((p) => ({
+    from: new Date(p.start).toISOString(),
+    to: new Date(p.end).toISOString(),
+  }));
+}
+
+// Where the last `minutes` of SCHEDULED work before `endMs` begin.
+//
+// 'short_hours' is a magnitude — it says four hours are missing, never where —
+// so its window is anchored at the end of the day and measured backwards. On a
+// split shift plain subtraction measures through the unpaid gap and lands on an
+// instant nobody is scheduled at, which then clips to less than the shortfall;
+// walking the fasce lands on the instant that makes the two agree, and on the
+// same window the day's 'early_clock_out' row proposes. Falls back to plain
+// subtraction when the day's fasce are unknown.
+function shortHoursStart(a: Anomaly, endMs: number, minutes: number): number {
+  const durationMs = minutes * 60_000;
+  if (!a.work_intervals || a.work_intervals.length === 0) return endMs - durationMs;
+  return scheduledStartBefore(
+    endMs,
+    a.work_intervals.map((w) => ({
+      start: new Date(w.from).getTime(),
+      end: new Date(w.to).getTime(),
+    })),
+    durationMs
+  );
+}
+
+/** Total bookable minutes of a window — the pieces, never the raw span. */
+function permessoMinutes(a: Anomaly, from: string | null, to: string | null): number {
+  if (!from || !to) return 0;
+  return permessoParts(a, from, to).reduce(
+    (sum, p) => sum + Math.round((new Date(p.to).getTime() - new Date(p.from).getTime()) / 60_000),
+    0
+  );
+}
+
 // Default permesso window = the uncovered part of the scheduled day ("copri il
-// gap mancante"), snapped to a 15-minute grid. Admin can fine-tune in the recap.
+// gap mancante"), snapped to a 15-minute grid and then trimmed to the day's
+// fasce. Admin can fine-tune in the recap.
+//
+// It stays ONE window on purpose: everything above (the day-level union, the
+// split detection, the bulk bar) reasons about a single stretch, and the
+// fasce inside it are subtracted again — from this very function's output — at
+// the moment the permesso is posted. What the trimming changes here is the
+// window's ENDS: a day left at 13:30 on 09:00–13:00 + 14:00–18:00 proposes
+// 14:00 → 18:00, not 13:30 → 18:00, so the stepper never shows an instant the
+// booking will not use. Null when the window holds no scheduled work at all.
 function proposeGap(a: Anomaly): { from: string; to: string } | null {
   const es = a.expected_start_at ? new Date(a.expected_start_at).getTime() : null;
   const ee = a.expected_end_at ? new Date(a.expected_end_at).getTime() : null;
@@ -435,7 +526,7 @@ function proposeGap(a: Anomaly): { from: string; to: string } | null {
       break;
     case 'short_hours':
       if (ee != null && a.delta_minutes) {
-        from = ee - Math.abs(a.delta_minutes) * 60_000;
+        from = shortHoursStart(a, ee, Math.abs(a.delta_minutes));
         to = ee;
       } else {
         from = es;
@@ -450,7 +541,9 @@ function proposeGap(a: Anomaly): { from: string; to: string } | null {
   from = floor15(from);
   to = ceil15(to);
   if (to <= from) to = from + QUARTER_MS;
-  return { from: new Date(from).toISOString(), to: new Date(to).toISOString() };
+  const parts = permessoParts(a, new Date(from).toISOString(), new Date(to).toISOString());
+  if (parts.length === 0) return null;
+  return { from: parts[0]!.from, to: parts[parts.length - 1]!.to };
 }
 
 // A row that contributes unworked time to its giornata: a day-level kind,
@@ -750,18 +843,28 @@ function defaultActionFor(a: Anomaly, actions: CorrectionAction[]): CorrectionAc
 
 // What a correction is actually POSTed against.
 //
-// Only 'ferie' is re-targeted, and only to read a schedule: the clicked row can
-// be a 'clock_out_out_of_area' whose expected_* are null, which would post
-// from_ts: null. Everything else stays on the clicked row — 'standard' inserts
-// the punches THAT row reports absent, 'note' is stored per (user, date, kind),
-// and 'permesso' carries its window in pFrom/pTo, taking only user_id from the
-// row.
+// 'ferie' is re-targeted to read a schedule: the clicked row can be a
+// 'clock_out_out_of_area' whose expected_* are null, which would post
+// from_ts: null. 'standard' inserts the punches THAT row reports absent and
+// 'note' is stored per (user, date, kind), so both stay on the clicked row.
+//
+// 'permesso' carries its window in pFrom/pTo and takes user_id from the row —
+// and, since the window is subtracted against the day's fasce before it is
+// posted, work_intervals as well. The rows raised before a schedule is
+// resolved (uscita fuori area, giorno di riposo) have none, and they are
+// exactly the rows that reach 'permesso' only by borrowing the giornata's
+// window: posting from one of them would book the inter-fascia gap the
+// borrowed window was already trimmed of. They read the day's schedule row,
+// which is where the giornata's window came from.
 function correctionTarget(
   action: CorrectionAction,
   a: Anomaly,
   day: DayCorrection | undefined
 ): Anomaly {
-  return action === 'ferie' && day ? day.schedule : a;
+  if (!day) return a;
+  if (action === 'ferie') return day.schedule;
+  if (action === 'permesso' && !a.work_intervals) return day.schedule;
+  return a;
 }
 
 function fmtMins(totalMin: number): string {
@@ -901,20 +1004,31 @@ async function applyCorrection(
     });
   } else if (action === 'permesso') {
     if (!opts.pFrom || !opts.pTo) throw new Error(t('errors.invalidPermWindow'));
-    const permMin = Math.round(
-      (new Date(opts.pTo).getTime() - new Date(opts.pFrom).getTime()) / 60_000
-    );
-    if (permMin < 15) throw new Error(t('errors.permMinDuration'));
-    await api('/api/v1/leaves/admin-create', {
-      method: 'POST',
-      json: {
-        user_id: a.user_id,
-        type: 'permessi',
-        from_ts: opts.pFrom,
-        to_ts: opts.pTo,
-        user_note: note || undefined,
-      },
-    });
+    // One permesso per scheduled fascia inside the window. On a single-fascia
+    // schedule that is one request with the window unchanged; on an orario
+    // spezzato it is one per fascia, and the unpaid gap between them is charged
+    // to nobody. Both the per-row panel and the bulk bar land here, so the two
+    // paths cannot diverge on what a window means.
+    const parts = permessoParts(a, opts.pFrom, opts.pTo);
+    if (parts.length === 0) throw new Error(t('errors.permMinDuration'));
+    // Sequential, not Promise.all: every write for one employee serializes on
+    // the same advisory lock server-side (lib/leave-quota.ts), and firing them
+    // together would only queue them behind each other with a 5s timeout at the
+    // end. A later part failing leaves the earlier ones inserted — the error
+    // reaches the admin, and re-running is refused as an overlap rather than
+    // booked twice.
+    for (const part of parts) {
+      await api('/api/v1/leaves/admin-create', {
+        method: 'POST',
+        json: {
+          user_id: a.user_id,
+          type: 'permessi',
+          from_ts: part.from,
+          to_ts: part.to,
+          user_note: note || undefined,
+        },
+      });
+    }
   } else {
     if (note.length < 1) throw new Error(t('errors.noteRequired'));
     await api('/api/v1/shifts/anomalies/justify', {
@@ -1073,10 +1187,15 @@ function AnomalyItem({
   }, [a, actions, action]);
 
   const toAdd = useMemo(() => missingEvents(a), [a]);
-  const permMin =
-    pFrom && pTo
-      ? Math.round((new Date(pTo).getTime() - new Date(pFrom).getTime()) / 60_000)
-      : 0;
+  // What the window will actually book, fascia by fascia — the same pieces
+  // applyCorrection posts. On an orario spezzato this is shorter than
+  // pTo − pFrom, which is the whole point: the unpaid gap is not absence.
+  const permTarget = useMemo(() => correctionTarget('permesso', a, day), [a, day]);
+  const permParts = useMemo(
+    () => (pFrom && pTo ? permessoParts(permTarget, pFrom, pTo) : []),
+    [permTarget, pFrom, pTo]
+  );
+  const permMin = permessoMinutes(permTarget, pFrom, pTo);
 
   function stepPerm(which: 'from' | 'to', dir: -1 | 1) {
     const cur = which === 'from' ? pFrom : pTo;
@@ -1291,6 +1410,24 @@ function AnomalyItem({
                   <div className="font-medium">{permMin > 0 ? fmtMins(permMin) : '—'}</div>
                 </div>
               </div>
+              {/* Orario spezzato: the window crosses the unpaid gap between two
+                  fasce, so it is booked as one permesso per fascia and the gap
+                  is charged to nobody. Without this line the duration above —
+                  5h on a 12:00–18:00 window — reads as an arithmetic error. */}
+              {permParts.length > 1 && (
+                <div className="text-xs muted" data-testid="perm-split-shift">
+                  <Trans
+                    t={t}
+                    i18nKey="recap.permSplitShift"
+                    values={{
+                      windows: permParts
+                        .map((w) => `${fmtTime(w.from)}–${fmtTime(w.to)}`)
+                        .join(' · '),
+                    }}
+                    components={{ strong: <strong /> }}
+                  />
+                </div>
+              )}
               {/* Without this line "dalle 14:45 alle 17:00" on a 'pausa pranzo
                   troppo breve' row reads as the length of the lunch break — and
                   on an 'ore giornaliere insufficienti' row, as the shortfall.
@@ -1396,6 +1533,17 @@ function BulkCorrectBar({
   // and mean different things, which is why targets.length can no longer stand
   // in for either: rows MERGE into a giornata, and giornate are SKIPPED.
   const selectedDays = useMemo(() => new Set(items.map(dayKeyOf)).size, [items]);
+  // Giornate the bar will book as SEVERAL permessi — one per fascia — because
+  // their window crosses the unpaid gap of an orario spezzato. Counted from the
+  // same targets the bar will POST, so the number cannot drift from what
+  // applyCorrection does with them.
+  const splitShiftDays = useMemo(
+    () =>
+      action === 'permesso'
+        ? targets.filter((x) => x.gap && permessoParts(x.a, x.gap.from, x.gap.to).length > 1).length
+        : 0,
+    [action, targets]
+  );
   const perDay = action !== 'note';
   // >0 only when several anomalies of the same giornata were selected and the
   // action is day-level. The admin has to see it BEFORE confirming: they
@@ -1563,6 +1711,15 @@ function BulkCorrectBar({
         </div>
       )}
 
+      {/* Orario spezzato: those giornate are corrected, not skipped, but they
+          take more than one permesso each — say so before the click, since the
+          result recap counts giornate and the employee's Richieste will show
+          two rows for one day. */}
+      {action === 'permesso' && splitShiftDays > 0 && (
+        <div className="text-xs muted" data-testid="bulk-permesso-split-shift">
+          {t('bulk.permessoSplitShift', { count: splitShiftDays })}
+        </div>
+      )}
 
       {/* WHICH giornate the skip notice above is counting, when 'permesso' is
           the action: the ones un-worked at both ends. Without it the admin sees
