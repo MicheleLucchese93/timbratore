@@ -139,26 +139,6 @@ export function uncoveredSlotIntervals(
   return intervals.filter((iv) => iv.end > iv.start).sort((a, b) => a.start - b.start);
 }
 
-// The parts of one proposed window that may actually be BOOKED as an absence:
-// its intersection with the day's uncovered work intervals, each snapped inward
-// to a `stepMs` grid. Companion of {@link uncoveredSlotIntervals}, which
-// produces the intervals — same notion of "genuinely scheduled work", used at
-// the other end of the flow.
-//
-// A window is proposed from two anchors (the scheduled start/end of the day and
-// the punches), so on a split shift — Time System's "FULL TIME FLESSIBILE"
-// 08:00-12:00 + 13:00-17:00, and every other orario spezzato — it spans the
-// unpaid gap between two fasce. Booking that span whole charges the employee
-// for an hour nobody ever expected them to work: it comes off the permessi
-// residuo and lands in the payroll export's "Ore permessi". The gap is not
-// worked time and it is not absence either — it is simply not scheduled, which
-// is exactly what the intervals already say.
-//
-// Snapped INWARD (start up, end down) on purpose, twice over: a part must never
-// claim a minute the schedule does not hold, and the leave API only accepts
-// windows that are a whole multiple of a quarter of an hour — a fascia ending
-// at 12:50 would otherwise be refused outright. Parts left shorter than one
-// step are dropped for the same reason.
 // Where a stretch of `durationMs` of SCHEDULED work starts, counting back from
 // `endMs` through `workIntervals` (the same intervals {@link
 // scheduledWindowParts} clips against).
@@ -192,6 +172,26 @@ export function scheduledStartBefore(
   return start;
 }
 
+// The parts of one proposed window that may actually be BOOKED as an absence:
+// its intersection with the day's uncovered work intervals, each snapped inward
+// to a `stepMs` grid. Companion of {@link uncoveredSlotIntervals}, which
+// produces the intervals — same notion of "genuinely scheduled work", used at
+// the other end of the flow.
+//
+// A window is proposed from two anchors (the scheduled start/end of the day and
+// the punches), so on a split shift — Time System's "FULL TIME FLESSIBILE"
+// 08:00-12:00 + 13:00-17:00, and every other orario spezzato — it spans the
+// unpaid gap between two fasce. Booking that span whole charges the employee
+// for an hour nobody ever expected them to work: it comes off the permessi
+// residuo and lands in the payroll export's "Ore permessi". The gap is not
+// worked time and it is not absence either — it is simply not scheduled, which
+// is exactly what the intervals already say.
+//
+// Snapped INWARD (start up, end down) on purpose, twice over: a part must never
+// claim a minute the schedule does not hold, and the leave API only accepts
+// windows that are a whole multiple of a quarter of an hour — a fascia ending
+// at 12:50 would otherwise be refused outright. Parts left shorter than one
+// step are dropped for the same reason.
 export function scheduledWindowParts(
   window: { start: number; end: number },
   workIntervals: Array<{ start: number; end: number }>,
