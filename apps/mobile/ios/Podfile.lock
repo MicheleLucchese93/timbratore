@@ -3,7 +3,7 @@ PODS:
     - ExpoModulesCore
   - EXApplication (56.0.3):
     - ExpoModulesCore
-  - EXConstants (56.0.22):
+  - EXConstants (56.0.24):
     - ExpoModulesCore
   - EXJSONUtils (56.0.0)
   - EXManifests (56.0.4):
@@ -50,7 +50,7 @@ PODS:
     - ExpoModulesCore
   - ExpoKeepAwake (56.0.3):
     - ExpoModulesCore
-  - ExpoLinking (56.0.16):
+  - ExpoLinking (56.0.17):
     - ExpoModulesCore
   - ExpoLocalAuthentication (56.0.5):
     - ExpoModulesCore
@@ -95,7 +95,7 @@ PODS:
     - RNWorklets
   - ExpoNotifications (56.0.22):
     - ExpoModulesCore
-  - ExpoRouter (56.2.17):
+  - ExpoRouter (56.2.19):
     - ExpoModulesCore
     - RNScreens
   - ExpoSecureStore (56.0.4):
@@ -104,11 +104,11 @@ PODS:
     - ExpoModulesCore
   - ExpoSQLite (56.0.5):
     - ExpoModulesCore
-  - ExpoSymbols (56.0.6):
+  - ExpoSymbols (56.0.7):
     - ExpoModulesCore
   - ExpoSystemUI (56.0.5):
     - ExpoModulesCore
-  - ExpoUI (56.0.24):
+  - ExpoUI (56.0.26):
     - ExpoModulesCore
     - ExpoModulesWorklets
     - React-RCTFabric
@@ -2289,7 +2289,7 @@ DEPENDENCIES:
   - ExpoModulesWorklets (from `../../../node_modules/expo-modules-core/ExpoModulesWorklets.podspec`)
   - ExpoModulesWorkletsAdapter (from `../../../node_modules/expo-modules-core`)
   - ExpoNotifications (from `../../../node_modules/expo-notifications/ios`)
-  - ExpoRouter (from `../node_modules/expo-router/ios`)
+  - ExpoRouter (from `../../../node_modules/expo-router/ios`)
   - ExpoSecureStore (from `../../../node_modules/expo-secure-store/ios`)
   - ExpoSplashScreen (from `../../../node_modules/expo-splash-screen/ios`)
   - ExpoSQLite (from `../../../node_modules/expo-sqlite/ios`)
@@ -2436,7 +2436,7 @@ EXTERNAL SOURCES:
   ExpoNotifications:
     :path: "../../../node_modules/expo-notifications/ios"
   ExpoRouter:
-    :path: "../node_modules/expo-router/ios"
+    :path: "../../../node_modules/expo-router/ios"
   ExpoSecureStore:
     :path: "../../../node_modules/expo-secure-store/ios"
   ExpoSplashScreen:
@@ -2626,7 +2626,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   EASClient: 2321f8d99fa86c710a6f68e017f3b54366baed9f
   EXApplication: e6040c92edc5522accd62852342e6b14742d42c0
-  EXConstants: 9fff81852f1d2e72502786a66f5ddb6d0eb76436
+  EXConstants: dd9a5bd947ed55aff86318db9268e44b1d499089
   EXJSONUtils: dba2755f4e24009eaf87a876b2d615ea06c16e42
   EXManifests: 7e19be8df665a338493060a419847dae76ffcd43
   Expo: c9a574554757067cac2ebe8de1f0426728c13fb8
@@ -2638,7 +2638,7 @@ SPEC CHECKSUMS:
   ExpoGlassEffect: 7d4233dc0727ee2b28dd757eda70e1b6abf662fd
   ExpoImage: 93cda9464c2c62a5244931b66edeb0b24ed204c2
   ExpoKeepAwake: 359c47a1d9ccc3a3c519bca6e39562cce230c5bb
-  ExpoLinking: 58d1cc05b96ead9e921353464ad03651eeb71ab9
+  ExpoLinking: 2e7b346a5a60e1f5de25fc207a8105832bf12214
   ExpoLocalAuthentication: d8dc72d217facafed303ef3417c3f448edf74819
   ExpoLocation: 241be9ed2f1278f5290f91e29e86e3e9edbe92fc
   ExpoLogBox: cdad5c9402a186574fb5924ea91df1f08ba9a98a
@@ -2647,13 +2647,13 @@ SPEC CHECKSUMS:
   ExpoModulesWorklets: 3aaf91bb08abf910858592221480d6519f0daa1e
   ExpoModulesWorkletsAdapter: 527770f3490c73ba0ee82b5320d2144278ead0e7
   ExpoNotifications: ac87d6f9e52a4c855775e73f692ac1e95ca63f27
-  ExpoRouter: 9feb279cb2d4051c1b828c91f7640f03d3a93ff8
+  ExpoRouter: 717af198faf167feed85b8439131ec3b70c06054
   ExpoSecureStore: f1bd083c1b7b8d4142013ffcc0082d377d9f49f4
   ExpoSplashScreen: 0c06099febe733279021ca62b0b7534005a43c93
   ExpoSQLite: eba0f88d7c17165f4af12fb311b30d5a6a34b00e
-  ExpoSymbols: 377747de25bcb1ab68ec68f23d81fb81d43eae83
+  ExpoSymbols: 37e96a38eed3fb50af4b7c86b8a80ed3054a0a01
   ExpoSystemUI: 8f4fb641c6a6ebe2a01dda0fbd3fdd952ab5823a
-  ExpoUI: f9e6ceecc862e81051b9397a97fae0fc55003725
+  ExpoUI: 15c5293922df464aefcfb528396c4db211795322
   ExpoWebBrowser: 71e66c4f796a591708b4353d3aef2d1bd8cad49a
   EXStructuredHeaders: 9e89bcdd636ae2ecb59995cfba3230f5d7547c08
   EXUpdates: a9deed7815876aff4c66cb20a8d940d568c48d6e
