@@ -59,14 +59,28 @@ interface DayAgg {
    * day, or a user with no shift assigned) stays 0 — that is the default set
    * when the day bucket is created, and the per-day loop below `continue`s
    * before touching it.
+   *
+   * Resolved from the assignment in force ON THAT DAY, never from a single
+   * assignment picked for the whole period — see configForDay().
    */
   ordinary_minutes: number;
   overtime_minutes: number;
   ferie_minutes: number;
   permessi_minutes: number;
   malattia_minutes: number;
-  /** Marker: 'F' full-day ferie, 'P' partial permesso, 'M' malattia. Null otherwise. */
-  leave_marker: 'F' | 'P' | 'M' | null;
+  /**
+   * Justified absences that are neither ferie/permesso nor malattia: the
+   * `assenza` rows (lutto, Legge 104, congedo parentale, visita medica,
+   * permesso non retribuito…), each with its own subtype.
+   */
+  assenza_minutes: number;
+  /** Employer-imposed company closure (`chiusura`), the kind that does NOT
+   *  consume ferie — POST /leaves/bulk with deduct_ferie:false. A closure
+   *  charged to ferie is stored as type 'ferie' and lands in ferie_minutes. */
+  chiusura_minutes: number;
+  /** Marker: 'M' malattia, 'C' chiusura aziendale, 'F' full-day ferie,
+   *  'A' assenza giustificata, 'P' partial permesso. Null otherwise. */
+  leave_marker: 'F' | 'P' | 'M' | 'A' | 'C' | null;
 }
 
 interface UserAgg {
@@ -83,9 +97,11 @@ interface UserAgg {
   ferie_minutes_total: number;
   permessi_minutes_total: number;
   malattia_minutes_total: number;
+  assenza_minutes_total: number;
+  chiusura_minutes_total: number;
 }
 
-interface ShiftConfig {
+export interface ShiftConfig {
   tolerance_in_min: number;
   tolerance_out_min: number;
   expected_break_max_min: number;
@@ -103,6 +119,47 @@ interface ShiftConfig {
   slotsByDow: Map<number, Array<{ start: string; end: string }>>;
   /** Feature B auto-deduct lunch minutes per weekday (absent = none). */
   lunchByDow: Map<number, number>;
+}
+
+/** One shift assignment with its validity window. The dates are tenant-local
+ *  YYYY-MM-DD strings on purpose, so they compare lexicographically against a
+ *  day key without ever becoming a Date (which would flatten to UTC midnight
+ *  and shift the boundary by a day for half the year). */
+export interface ShiftAssignment {
+  validFrom: string;
+  validTo: string | null;
+  cfg: ShiftConfig;
+}
+
+/**
+ * The assignment in force on `day`, or undefined when none covers it.
+ *
+ * `assigns` is ordered by valid_from ASC, so scanning backwards returns the
+ * latest window that still contains the day. This replaces a
+ * `DISTINCT ON (a.user_id) … ORDER BY a.valid_from DESC` that collapsed the
+ * whole export period onto ONE assignment: an employee moved from 'Part-time
+ * 4h' to 'Full-time 8h' on 16 September got 8,00 "Ore ordinarie" printed for
+ * 1–15 September as well (11 working days overstated by 4h each), because the
+ * later row won for every day of the month. The Anomalie page has always
+ * joined per day (routes/shifts.ts: `a.valid_from <= r.d AND (a.valid_to IS
+ * NULL OR a.valid_to >= r.d)`), so the screen and the payroll file disagreed.
+ *
+ * Everything shift-driven in the day loop reads through here — tolerances,
+ * breach deductions, auto-lunch, overtime flag and slots — not just the
+ * ordinary-hours figure: they came from the same stale `cfg` and were skewed
+ * the same way (the old part-time tolerances and 4h anchor were applied to
+ * full-time days, and vice versa).
+ */
+export function configForDay(
+  assigns: ShiftAssignment[] | undefined,
+  day: string
+): ShiftConfig | undefined {
+  if (!assigns) return undefined;
+  for (let i = assigns.length - 1; i >= 0; i--) {
+    const a = assigns[i]!;
+    if (a.validFrom <= day && (a.validTo === null || a.validTo >= day)) return a.cfg;
+  }
+  return undefined;
 }
 
 export async function generateExportFile(job: ExportJobRow): Promise<ExportResult> {
@@ -143,6 +200,176 @@ function periodWindow(job: ExportJobRow, timeZone: string): { start: Date; end: 
   };
 }
 
+/**
+ * Whether an employee belongs in this period's export at all.
+ *
+ * One definition for both writers on purpose. The xlsx aggregate used to select
+ * its people implicitly — whoever had a stamp or an approved leave — while the
+ * Centro Paghe writer selected them explicitly from the membership list, so the
+ * two files for the same month disagreed about who works here. Active members
+ * always export (a month with nothing in it is itself the payroll signal);
+ * inactive ones only if they were still around for part of the period.
+ *
+ * Deliberately blind to memberships.deleted_at: a member removed from the app
+ * still worked the hours the period records, and both files have to report them.
+ * Removal bounds the CONTRACT (contractedDaysUntil), not the reporting.
+ */
+export function exportsEmployee(active: boolean, hadActivity: boolean): boolean {
+  return active || hadActivity;
+}
+
+/** What both writers need to know about one person's employment to decide how
+ *  far into the period they may still be charged contracted hours. */
+export interface EmploymentWindow {
+  /** memberships.active, as it stands the moment the export runs. Present tense
+   *  and undated: it says the person is gone NOW, never when they went. */
+  active: boolean;
+  /** Tenant-local day of memberships.deleted_at, null when still a member. */
+  deletedDay: string | null;
+  /** Last day of the period with a real punch or an approved leave, null when
+   *  the person has neither. NOT derived from seeded days — that would let the
+   *  bound justify itself. */
+  lastActivityDay: string | null;
+}
+
+/**
+ * Last day of the period on which a contracted day ("Ore ordinarie" in the
+ * xlsx, ore teoriche in the LUL) may still be asserted for this person.
+ * Returns null when none may be.
+ *
+ * Two independent ceilings, both of which the scheduled-day seeding was missing.
+ *
+ * 1. THE PERSON LEFT — when, and only when, the departure can be placed INSIDE
+ *    the period. Nothing in the product ever closes a shift assignment when an
+ *    employee goes: POST /users/:id/deactivate (routes/users.ts) sets
+ *    memberships.active = FALSE, DELETE /users/:id sets deleted_at + active =
+ *    FALSE, and routes/shifts.ts only closes valid_to when a NEW assignment is
+ *    created. So the open (valid_to IS NULL) assignment of a full-timer
+ *    deactivated on 15 September still resolves for 16–30 September, and the
+ *    period-wide seeding invented 11 working days × 480 min: Riepilogo printed
+ *    176,00 "Ore ordinarie" against ~88,00 worked, plus 11 Dettaglio rows dated
+ *    after the person's last day.
+ *
+ *    memberships CARRIES NO TERMINATION DATE. `deleted_at` is the one dated
+ *    departure the schema has, and only the removal path sets it; `active` is a
+ *    bare boolean with no timestamp at all.
+ *
+ *    That distinction decides the rule, because a bound read off undated
+ *    present-tense state makes the SAME closed month export differently
+ *    depending on the day somebody happens to run it. Employee M, full-time
+ *    Mon–Fri, last punch Friday 25 September, 28–30 September an unpaid absence
+ *    settled off-system: exported on 1 October while M was still active the file
+ *    carried all 22 September weekdays (176,00). HR deactivated M on 5 October —
+ *    an event that says nothing whatever about September — and the identical
+ *    export silently lost three days. A payroll file re-issued for a period that
+ *    has already been filed must not disagree with the copy the commercialista
+ *    already holds, so:
+ *
+ *      • `deleted_at` bounds the period whenever it falls on or before its last
+ *        day. It is a real date, it never moves, and a removal recorded in
+ *        December cannot shorten a September that was fully worked.
+ *      • `active = FALSE` bounds the period only while the period is still
+ *        RUNNING. There "gone by today" does place the departure inside the
+ *        window, and the last day the person showed up — a punch or an approved
+ *        leave — is then the safest bound available.
+ *      • Once the period has fully elapsed, `active` no longer moves anything.
+ *
+ *    RESIDUAL LIMITATION, deliberate and not a gap to close here: an employee
+ *    merely DEACTIVATED (no deleted_at) partway through a month that has since
+ *    closed keeps contracted days to the end of that month. Nothing recorded
+ *    anywhere distinguishes that departure from one that happened after the
+ *    period, and between the two possible errors this picks the visible one — a
+ *    Dettaglio row reading 0,00 worked against 8,00 ordinarie is a line payroll
+ *    looks at and questions, whereas a day that simply vanishes from a file
+ *    already delivered is a difference nobody sees. Removing the member (which
+ *    dates the departure) or exporting the period before it closes both make the
+ *    ceiling bite. The Metadati glossary tells the commercialista exactly this;
+ *    the two texts must not drift apart.
+ *
+ * 2. THE DAY HAS NOT HAPPENED YET. Exporting the current month on 5 August used
+ *    to seed the whole month, so a full-timer read 176,00 ordinarie against
+ *    ~24,00 worked with ~17 future dates listed as untimbrated days. Contracted
+ *    hours describe an elapsed period; a Tuesday three weeks out owes nothing.
+ *    For the ordinary case — a closed month exported after it ends — `today` is
+ *    past `periodTo` and this ceiling does nothing at all.
+ */
+export function contractedDaysUntil(
+  periodTo: string,
+  today: string,
+  employment: EmploymentWindow | undefined
+): string | null {
+  // Zero-padded YYYY-MM-DD compares lexicographically in chronological order.
+  const bound = today < periodTo ? today : periodTo;
+  // No membership row at all for a user the stamps surfaced: there is no
+  // employment to read a contract off, which is a different thing from a
+  // departure — so nothing is contracted rather than everything.
+  if (employment === undefined) return null;
+
+  const { active, deletedDay, lastActivityDay } = employment;
+
+  // A dated departure is a property of the PERIOD, so the answer survives a
+  // re-run. Compared against `bound` (≤ periodTo) on purpose: a removal
+  // recorded after the period ended does not shorten a month fully worked.
+  if (deletedDay !== null) return deletedDay < bound ? deletedDay : bound;
+
+  if (!active) {
+    // Not one punch, not one approved leave. exportsEmployee() already keeps
+    // these people out of both files; this is the belt that stops the bound
+    // from inventing a month for somebody whose only record is that they left.
+    if (lastActivityDay === null) return null;
+    // `active` is undated, so it may only bound a period that is still running:
+    // there, and only there, does "gone by today" place the departure inside the
+    // window. For an elapsed period it is deliberately inert — see above.
+    if (today <= periodTo && lastActivityDay < bound) return lastActivityDay;
+  }
+  return bound;
+}
+
+/**
+ * Whether `day` is inside the ceiling contractedDaysUntil() returned.
+ *
+ * Trivial, and a named function anyway, because the ceiling has to gate EVERY
+ * place a contracted figure is written and it originally gated only the place
+ * that computed it. The xlsx seeding walk stopped at the bound while the per-day
+ * loop that assigns ordinary_minutes did not, so any day that entered the
+ * aggregate some other route — approved leave is merged in before the seeding
+ * even runs — was still charged a full contracted day: ferie 24–28 August in a
+ * month exported on the 21st printed 40 hours the Centro Paghe file had gated to
+ * 00000 on the same dates. Three call sites now, one rule.
+ */
+export function contractsDay(contractedUntil: string | null, day: string): boolean {
+  return contractedUntil !== null && day <= contractedUntil;
+}
+
+/** DayAgg while it is still being built: the two open-punch anchors live here
+ *  and are dropped before the day leaves the aggregator. */
+type DayAccumulator = DayAgg & { firstIn: Date | null; lastOut: Date | null };
+
+/** Empty per-day accumulator.
+ *
+ *  One factory instead of an object literal repeated at every place a day can
+ *  first appear (stamps, leaves, and now the scheduled-day seeding). The
+ *  duplicated literals are how a new bucket gets forgotten in one branch and
+ *  reads `undefined` at the other end. */
+function newDayAccumulator(day: string): DayAccumulator {
+  return {
+    day,
+    worked_minutes: 0,
+    paid_break_minutes: 0,
+    unpaid_break_minutes: 0,
+    ordinary_minutes: 0,
+    overtime_minutes: 0,
+    ferie_minutes: 0,
+    permessi_minutes: 0,
+    malattia_minutes: 0,
+    assenza_minutes: 0,
+    chiusura_minutes: 0,
+    leave_marker: null,
+    firstIn: null,
+    lastOut: null,
+  };
+}
+
 async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
   // Tenant timezone drives both the period window and every business-day key, so
   // it has to be resolved before the first query. Also used to resolve schedule
@@ -163,8 +390,16 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
     [job.tenant_id, periodStart.toISOString(), periodEnd.toISOString()]
   );
 
-  const shiftByUser = await loadShiftConfigs(job);
+  const shiftByUser = await loadShiftAssignments(job);
   const leavesByUserDay = await loadLeavesPerDay(job, timeZone);
+  // Every calendar day of the period, computed once: the scheduled-day seeding
+  // below walks it per user.
+  const periodDates = eachDateInclusive(job.period_from, job.period_to);
+  // Today in the TENANT's zone, not the server's: the seeding stops here for a
+  // period that is still running (see contractedDaysUntil). Read once so every
+  // user of one export file agrees on where "not yet" begins, even across a
+  // midnight that falls while the job is generating.
+  const todayKey = zonedDateKey(new Date(), timeZone);
   // Raw approved-leave intervals (windowed), used to waive late-in / early-out
   // breach deductions when an approved ferie/permesso covers the stretch —
   // mirroring the presence-anomaly logic in routes/shifts.ts (leaveOverlapMin).
@@ -177,47 +412,76 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
     u.stamps.push({ event: r.event_type, at: new Date(r.occurred_at) });
     byUser.set(r.user_id, u);
   }
+  // Everyone the stamp query did not surface but who still belongs in the
+  // export, collected first so their emails cost one round trip instead of one
+  // query per user.
+  const extraUserIds = new Set<string>();
+
   // Ensure users that only have leave (no stamps) still appear in the export.
+  // Keyed off the leave map rather than the membership list on purpose: an
+  // approved leave belonging to a member since removed still has to export.
   for (const userId of leavesByUserDay.keys()) {
-    if (!byUser.has(userId)) {
-      const meta = await adminPool.query(
-        // $1::uuid pins the param type. The old `COALESCE(au.email, $1::text)`
-        // forced $1 to text, so `au.id = $1` became uuid=text and threw
-        // "operator does not exist: uuid = text" for any user with approved
-        // leave but no stamps in the period. The `?? userId` below is the
-        // email fallback the COALESCE used to provide.
-        `SELECT email FROM auth_users WHERE id = $1::uuid`,
-        [userId]
-      );
-      byUser.set(userId, { email: meta.rows[0]?.email ?? userId, stamps: [] });
+    if (!byUser.has(userId)) extraUserIds.add(userId);
+  }
+
+  // Same employee set as the Centro Paghe writer, read from the same source.
+  //
+  // byUser only holds people with at least one stamp or one approved leave in
+  // the period, so an employee with a shift assignment and neither produced no
+  // UserAgg row at all — the scheduled-day seeding below can only add days to a
+  // user who already made it into this map. The xlsx then showed them with no
+  // line (0,00 "Ore ordinarie") while writeCentroPaghe, which iterates
+  // loadAnagrafica, wrote a full month of theoretical hours for the same month:
+  // 176:00 against nothing. That divergence is what the seeding exists to close,
+  // so the selection has to come from the same place with the same filter — see
+  // writeCentroPaghe's `exportsEmployee(ana.active, hadActivity)`. Reaching the
+  // body below means no stamp and no leave, i.e. hadActivity === false, so only
+  // active members survive: a long-gone employee stays out of both exports.
+  // Someone who left mid-period is exported for the hours they worked; how far
+  // their CONTRACT runs is a separate question, answered per date by
+  // configForDay (the assignment window) and contractedDaysUntil (the
+  // employment), never by dropping them from the file.
+  const anagrafica = await loadAnagrafica(job);
+  for (const [userId, ana] of anagrafica) {
+    // No special case for a removed member: DELETE /users/:id sets active =
+    // FALSE alongside deleted_at, so exportsEmployee() already refuses to ADD
+    // one who has no activity, and one who DOES have activity is carried in by
+    // their own stamps or leave above. Removal decides how far their contract
+    // runs (contractedDaysUntil reads deleted_at as the dated departure), never
+    // whether the hours they worked get reported — see writeCentroPaghe.
+    const hadActivity = byUser.has(userId) || extraUserIds.has(userId);
+    if (hadActivity) continue; // already in, through a stamp or an approved leave
+    if (!exportsEmployee(ana.active, hadActivity)) continue;
+    extraUserIds.add(userId);
+  }
+
+  if (extraUserIds.size > 0) {
+    const meta = await adminPool.query<{ id: string; email: string | null }>(
+      // $1::uuid[] pins the param type. The old per-user
+      // `COALESCE(au.email, $1::text)` forced $1 to text, so `au.id = $1` became
+      // uuid=text and threw "operator does not exist: uuid = text" for any user
+      // with approved leave but no stamps in the period. The `?? userId` below
+      // is the email fallback the COALESCE used to provide.
+      `SELECT id, email FROM auth_users WHERE id = ANY($1::uuid[])`,
+      [[...extraUserIds]]
+    );
+    const emailById = new Map(meta.rows.map((r) => [r.id, r.email]));
+    for (const userId of extraUserIds) {
+      byUser.set(userId, { email: emailById.get(userId) ?? userId, stamps: [] });
     }
   }
 
   const out: UserAgg[] = [];
   for (const [userId, u] of byUser) {
-    const cfg = shiftByUser.get(userId);
-    const days = new Map<string, DayAgg & { firstIn: Date | null; lastOut: Date | null }>();
+    const assigns = shiftByUser.get(userId);
+    const days = new Map<string, DayAccumulator>();
     let openClockIn: Date | null = null;
     let openBreak: Date | null = null;
     let openLunch: Date | null = null;
 
     for (const s of u.stamps) {
       const dayKey = zonedDateKey(s.at, timeZone);
-      const day =
-        days.get(dayKey) ?? {
-          day: dayKey,
-          worked_minutes: 0,
-          paid_break_minutes: 0,
-          unpaid_break_minutes: 0,
-          ordinary_minutes: 0,
-          overtime_minutes: 0,
-          ferie_minutes: 0,
-          permessi_minutes: 0,
-          malattia_minutes: 0,
-          leave_marker: null,
-          firstIn: null,
-          lastOut: null,
-        };
+      const day = days.get(dayKey) ?? newDayAccumulator(dayKey);
 
       if (s.event === 'clock_in') {
         openClockIn = s.at;
@@ -252,30 +516,72 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
     const userLeaves = leavesByUserDay.get(userId);
     if (userLeaves) {
       for (const [dayKey, leave] of userLeaves) {
-        const day =
-          days.get(dayKey) ?? {
-            day: dayKey,
-            worked_minutes: 0,
-            paid_break_minutes: 0,
-            unpaid_break_minutes: 0,
-            ordinary_minutes: 0,
-            overtime_minutes: 0,
-            ferie_minutes: 0,
-            permessi_minutes: 0,
-            malattia_minutes: 0,
-            leave_marker: null,
-            firstIn: null,
-            lastOut: null,
-          };
-        day.ferie_minutes = (day.ferie_minutes ?? 0) + leave.ferie;
-        day.permessi_minutes = (day.permessi_minutes ?? 0) + leave.permessi;
-        day.malattia_minutes = (day.malattia_minutes ?? 0) + leave.malattia;
+        const day = days.get(dayKey) ?? newDayAccumulator(dayKey);
+        day.ferie_minutes += leave.ferie;
+        day.permessi_minutes += leave.permessi;
+        day.malattia_minutes += leave.malattia;
+        day.assenza_minutes += leave.assenza;
+        day.chiusura_minutes += leave.chiusura;
         days.set(dayKey, day);
       }
     }
 
+    // Seed every day the schedule plans for, even with neither a punch nor an
+    // approved leave.
+    //
+    // Days only ever entered the aggregate through a stamp or a leave, so an
+    // employee who simply forgot to badge contributed nothing: a full-timer
+    // (8h × 22 days) who missed 3 days had the Riepilogo print 152,00 "Ore
+    // ordinarie" instead of 176,00 — while the Centro Paghe file for the SAME
+    // month wrote 8h of theoretical hours on each of those dates, because that
+    // builder enumerates the whole month. Ore ordinarie is the CONTRACT, so it
+    // must not depend on whether the person remembered to badge. Seeding also
+    // makes the missed day visible in Dettaglio giornaliero as a row with
+    // 0,00 worked against 8,00 ordinarie, which is exactly the day payroll
+    // needs to look at.
+    //
+    // Scoped by the per-day assignment, so a period that starts before the
+    // hire (or continues past a closed assignment) still seeds nothing — and
+    // bounded above by contractedDaysUntil(), because the assignment alone is
+    // NOT enough: nothing in the product closes valid_to when an employee
+    // leaves, so a leaver's open assignment would otherwise seed every
+    // remaining working day of the month.
+    //
+    // `days` at this point holds exactly the days with a punch or an approved
+    // leave — nothing seeded yet — which is what makes it a usable last-day
+    // signal for a member the schema gives no termination date for.
+    let lastActivityDay: string | null = null;
+    for (const dayKey of days.keys()) {
+      if (lastActivityDay === null || dayKey > lastActivityDay) lastActivityDay = dayKey;
+    }
+    const ana = anagrafica.get(userId);
+    const contractedUntil = contractedDaysUntil(job.period_to, todayKey, {
+      active: ana?.active ?? false,
+      deletedDay: ana?.deletedAt ? zonedDateKey(ana.deletedAt, timeZone) : null,
+      lastActivityDay,
+    });
+    // contractsDay() gates the seeding walk below AND the per-day loop that
+    // assigns ordinary_minutes. Two loops, one ceiling: `days` already holds
+    // every date a punch or an approved leave put there, and those never pass
+    // through this walk at all.
+    for (const dayKey of periodDates) {
+      // periodDates is chronological, so the first date past the ceiling ends
+      // the walk.
+      if (!contractsDay(contractedUntil, dayKey)) break;
+      if (days.has(dayKey)) continue;
+      const dayCfg = configForDay(assigns, dayKey);
+      if (!dayCfg) continue;
+      const slots = dayCfg.slotsByDow.get(isoDowUtc(dayKey));
+      if (!slots || slots.length === 0) continue;
+      days.set(dayKey, newDayAccumulator(dayKey));
+    }
+
     // Apply shift-driven breach deductions + overtime calc per day.
     for (const day of days.values()) {
+      // Per-DAY assignment: tolerances, anchors, auto-lunch and the ordinary
+      // figure all belong to the shift in force on THIS date, not to whichever
+      // assignment happened to be the latest in the period.
+      const cfg = configForDay(assigns, day.day);
       if (!cfg) continue;
       const dowSlots = cfg.slotsByDow.get(isoDowUtc(day.day));
       if (!dowSlots || dowSlots.length === 0) continue;
@@ -323,7 +629,18 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
       // worked_minutes, so counting it as ordinary work would make a 09:00–18:00
       // template print 9 ordinarie against 8 worked every single day, and the
       // overtime column would start at −60 minutes' worth of slack.
-      day.ordinary_minutes = Math.max(0, expectedDurationMin - autoLunch);
+      //
+      // Gated by contractsDay(), the same ceiling the seeding walk uses: a day
+      // that reached `days` through an approved leave or a punch past the
+      // person's ceiling keeps its leave hours and its punches — an approved
+      // leave stays an approved leave — but owes no contract, which is exactly
+      // what writeCentroPaghe writes for those dates (00000 theoretical, 00000
+      // contract, blank tipo giorno). Only the contract figure is gated; the
+      // overtime threshold below still reads the schedule, mirroring the LUL,
+      // which gates the theoretical minutes but never the giustificativi.
+      day.ordinary_minutes = contractsDay(contractedUntil, day.day)
+        ? Math.max(0, expectedDurationMin - autoLunch)
+        : 0;
 
       // Flextime widens the late/early anchors before the breach deduction.
       const flexInAfterMin = cfg.flexible_enabled ? cfg.flex_in_after_min : 0;
@@ -385,12 +702,19 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
 
     const dayList = [...days.values()]
       .map((d): DayAgg => {
-        const ferie = d.ferie_minutes ?? 0;
-        const permessi = d.permessi_minutes ?? 0;
-        const malattia = d.malattia_minutes ?? 0;
-        let marker: 'F' | 'P' | 'M' | null = null;
+        const ferie = d.ferie_minutes;
+        const permessi = d.permessi_minutes;
+        const malattia = d.malattia_minutes;
+        const assenza = d.assenza_minutes;
+        const chiusura = d.chiusura_minutes;
+        // Most-consequential-first. 'C' and 'A' were added with their columns:
+        // a company closure used to print 'M' on every one of its days because
+        // its hours had been filed as malattia.
+        let marker: DayAgg['leave_marker'] = null;
         if (malattia > 0) marker = 'M';
+        else if (chiusura > 0) marker = 'C';
         else if (ferie > 0 && d.worked_minutes === 0) marker = 'F';
+        else if (assenza > 0) marker = 'A';
         else if (permessi > 0) marker = 'P';
         return {
           day: d.day,
@@ -404,6 +728,8 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
           ferie_minutes: ferie,
           permessi_minutes: permessi,
           malattia_minutes: malattia,
+          assenza_minutes: assenza,
+          chiusura_minutes: chiusura,
           leave_marker: marker,
         };
       })
@@ -416,14 +742,18 @@ async function aggregateForExport(job: ExportJobRow): Promise<UserAgg[]> {
       worked_minutes_total: sum(dayList.map((d) => d.worked_minutes)),
       paid_break_minutes_total: sum(dayList.map((d) => d.paid_break_minutes)),
       unpaid_break_minutes_total: sum(dayList.map((d) => d.unpaid_break_minutes)),
-      // Only over the days that actually reach the export (a day exists here if
-      // it has a stamp or an approved leave): a month's worth of contracted
-      // hours for someone who never showed up is not what this column means.
+      // Over every day the schedule plans for in the period — including the
+      // ones with no punch and no leave, which the seeding above adds. This is
+      // the full contracted monte ore, the same one the Centro Paghe file sums
+      // as theoretical hours; it used to stop at the days that had a stamp or a
+      // leave and silently under-reported every forgotten badge.
       ordinary_minutes_total: sum(dayList.map((d) => d.ordinary_minutes)),
       overtime_minutes_total: sum(dayList.map((d) => d.overtime_minutes)),
       ferie_minutes_total: sum(dayList.map((d) => d.ferie_minutes)),
       permessi_minutes_total: sum(dayList.map((d) => d.permessi_minutes)),
       malattia_minutes_total: sum(dayList.map((d) => d.malattia_minutes)),
+      assenza_minutes_total: sum(dayList.map((d) => d.assenza_minutes)),
+      chiusura_minutes_total: sum(dayList.map((d) => d.chiusura_minutes)),
       worked_days: dayList.filter((d) => d.worked_minutes > 0).length,
     });
   }
@@ -434,16 +764,79 @@ interface DayLeaveBucket {
   ferie: number;
   permessi: number;
   malattia: number;
+  assenza: number;
+  chiusura: number;
 }
 
-async function loadLeavesPerDay(
-  job: ExportJobRow,
-  timeZone: string
-): Promise<Map<string, Map<string, DayLeaveBucket>>> {
+export type LeaveBucketKey = keyof DayLeaveBucket;
+
+/**
+ * Which per-day bucket a leave row's hours belong to — the xlsx counterpart of
+ * centroPagheKeyForLeave(). Same source column (leave_requests.type), same five
+ * kinds, so the two exports of one month can no longer contradict each other.
+ *
+ * It exists because loadLeavesPerDay used to be a two-way branch — 'ferie',
+ * ELSE malattia — with no type filter on the query. An August shutdown filed
+ * through POST /leaves/bulk with deduct_ferie:false inserts type 'chiusura',
+ * status 'approved'; it fell into the else, so the Riepilogo printed "Ore
+ * malattia 40,00" for every employee and Dettaglio giornaliero stamped 'M' on
+ * all five days — while the Centro Paghe export of the SAME month mapped it
+ * through centroPagheKeyForLeave() to the closure giustificativo. Every
+ * 'assenza' row (lutto, Legge 104, congedo parentale…) was misfiled the same
+ * way.
+ */
+export function leaveBucketKey(type: string): LeaveBucketKey {
+  switch (type) {
+    case 'ferie':
+      return 'ferie';
+    case 'permessi':
+      return 'permessi';
+    case 'malattia':
+      return 'malattia';
+    case 'chiusura':
+      return 'chiusura';
+    // 'assenza' — and anything a later migration adds to leave_requests.type.
+    // A generic justified absence is the honest default for an unknown kind;
+    // malattia never is, because sick hours carry INPS and payroll
+    // consequences that a fallback must not invent.
+    default:
+      return 'assenza';
+  }
+}
+
+function emptyLeaveBucket(): DayLeaveBucket {
+  return { ferie: 0, permessi: 0, malattia: 0, assenza: 0, chiusura: 0 };
+}
+
+/** One approved leave row overlapping the export period.
+ *
+ *  `from`/`to` are the row's REAL window, deliberately NOT clipped to the
+ *  period: clipping before the per-day arithmetic is exactly the defect
+ *  leaveDayShares() documents. */
+export interface LeaveRow {
+  userId: string;
+  type: string;
+  /** leave_requests.assenza_subtype — only the Centro Paghe projection uses it. */
+  subtype: string | null;
+  from: Date;
+  to: Date;
+  durationHours: number;
+}
+
+/**
+ * Approved leave overlapping the export period, loaded once for both per-day
+ * projections.
+ *
+ * loadLeavesPerDay (xlsx) and loadLeavesPerDayDetailed (Centro Paghe) each ran
+ * this same SELECT and then repeated the same distribution arithmetic by hand.
+ * That is how one rounding defect ended up in two places and had to be found
+ * twice: the two now share leaveDayShares() and can only be wrong together.
+ */
+async function loadLeaveRows(job: ExportJobRow, timeZone: string): Promise<LeaveRow[]> {
   const { start: periodFrom, end: periodEnd } = periodWindow(job, timeZone);
   // approved + cancellation_pending count as "user is out" for export purposes.
   const r = await adminPool.query(
-    `SELECT lr.user_id, lr.type, lr.from_ts, lr.to_ts, lr.duration_hours
+    `SELECT lr.user_id, lr.type, lr.assenza_subtype, lr.from_ts, lr.to_ts, lr.duration_hours
        FROM leave_requests lr
       WHERE lr.tenant_id = $1
         AND lr.status IN ('approved','cancellation_pending')
@@ -451,41 +844,102 @@ async function loadLeavesPerDay(
         AND lr.from_ts <  $3::timestamptz`,
     [job.tenant_id, periodFrom.toISOString(), periodEnd.toISOString()]
   );
+  return r.rows.map(
+    (row): LeaveRow => ({
+      userId: row.user_id,
+      type: row.type,
+      subtype: row.assenza_subtype ?? null,
+      from: new Date(row.from_ts),
+      to: new Date(row.to_ts),
+      durationHours: Number(row.duration_hours),
+    })
+  );
+}
+
+/** One day a leave covers inside the export period, and the minutes it claims. */
+export interface LeaveDayShare {
+  day: string;
+  minutes: number;
+}
+
+/**
+ * The days of `row` that fall inside the export period, each with its share of
+ * the row's duration_hours.
+ *
+ * DISTRIBUTE OVER THE ROW'S OWN SPAN, THEN CLIP — never the other way round.
+ * Both callers used to clip the row to the period first and divide
+ * duration_hours by the number of days that SURVIVED the clip, so a leave
+ * straddling a period boundary reported its whole duration in BOTH periods. A
+ * Christmas closure filed through POST /leaves/bulk as one row 24/12/2026 →
+ * 06/01/2027 with duration_hours 48 (6 working days × 8h) printed
+ * 8 days × round(48×60/8) = 8 × 360 min = 48,00h of "Ore chiusura aziendale"
+ * in the December file, and 6 days × 480 min = 48,00h again in January: 96
+ * hours billed for a 48-hour shutdown, in two files that each looked
+ * self-consistent. Dividing by the row's own day count makes the two periods
+ * split one total instead of each claiming all of it.
+ *
+ * The share is a flat average over the calendar days of the span, NOT a
+ * weighting by each day's scheduled hours, so a span that crosses a weekend
+ * still puts hours on the Saturday. Weighting by configForDay() would be the
+ * better daily figure — it is the exact inverse of computeHoursPerDay(), the
+ * function that produced duration_hours in the first place — but it cannot be
+ * applied here alone: the xlsx and the Centro Paghe file would then report
+ * different hours for the SAME leave in the same month, which is the class of
+ * divergence this whole export pass exists to close. Applying it to both moves
+ * the fixed-width payroll bytes for every leave that spans a non-working day,
+ * which is a deliberate, announced change and not a side effect of a rounding
+ * fix. Left for that change; keep the two projections on one rule until then.
+ */
+export function leaveDayShares(
+  row: LeaveRow,
+  timeZone: string,
+  periodFromDay: string,
+  periodToDay: string
+): LeaveDayShare[] {
+  // 'permessi' is a window INSIDE one day: its minutes are the window itself,
+  // never a share of duration_hours, so there is nothing to distribute and
+  // clipping the instants is the whole job.
+  if (row.type === 'permessi') {
+    const periodFrom = new Date(startOfZonedDayUtcMs(periodFromDay, timeZone));
+    // Last instant still inside the period.
+    const periodTo = new Date(startOfZonedDayUtcMs(nextIsoDate(periodToDay), timeZone) - 1);
+    const clipFrom = row.from < periodFrom ? periodFrom : row.from;
+    const clipTo = row.to > periodTo ? periodTo : row.to;
+    const minutes = Math.max(0, Math.round((clipTo.getTime() - clipFrom.getTime()) / 60000));
+    if (minutes <= 0) return [];
+    return [{ day: zonedDateKey(clipFrom, timeZone), minutes }];
+  }
+
+  // ferie / malattia / assenza / chiusura: span whole days.
+  const span = eachZonedDateKeyInclusive(row.from, row.to, timeZone);
+  if (span.length === 0) return [];
+  const perDayMin = Math.round((row.durationHours * 60) / span.length);
+  if (perDayMin <= 0) return [];
+  // Zero-padded YYYY-MM-DD compares lexicographically in chronological order,
+  // and both sides are tenant-local day keys, so this is the clip.
+  return span
+    .filter((day) => day >= periodFromDay && day <= periodToDay)
+    .map((day) => ({ day, minutes: perDayMin }));
+}
+
+async function loadLeavesPerDay(
+  job: ExportJobRow,
+  timeZone: string
+): Promise<Map<string, Map<string, DayLeaveBucket>>> {
+  const rows = await loadLeaveRows(job, timeZone);
   const result = new Map<string, Map<string, DayLeaveBucket>>();
-  if (r.rowCount === 0) return result;
-
-  // Last instant still inside the period, for clipping a leave that overruns it.
-  const periodTo = new Date(periodEnd.getTime() - 1);
-
-  for (const row of r.rows) {
-    const from = new Date(row.from_ts);
-    const to = new Date(row.to_ts);
-    const userMap = result.get(row.user_id) ?? new Map<string, DayLeaveBucket>();
-
-    const clipFrom = from < periodFrom ? periodFrom : from;
-    const clipTo = to > periodTo ? periodTo : to;
-
-    if (row.type === 'permessi') {
-      // single-day, distribute minutes precisely
-      const dayKey = zonedDateKey(clipFrom, timeZone);
-      const minutes = Math.max(0, Math.round((clipTo.getTime() - clipFrom.getTime()) / 60000));
-      const bucket = userMap.get(dayKey) ?? { ferie: 0, permessi: 0, malattia: 0 };
-      bucket.permessi += minutes;
-      userMap.set(dayKey, bucket);
-    } else {
-      // ferie / malattia: span multiple days. Distribute duration_hours evenly
-      // across the inclusive day count — close enough for payroll display.
-      const days = eachZonedDateKeyInclusive(clipFrom, clipTo, timeZone);
-      if (days.length === 0) continue;
-      const perDayMin = Math.round((Number(row.duration_hours) * 60) / days.length);
-      for (const d of days) {
-        const bucket = userMap.get(d) ?? { ferie: 0, permessi: 0, malattia: 0 };
-        if (row.type === 'ferie') bucket.ferie += perDayMin;
-        else bucket.malattia += perDayMin;
-        userMap.set(d, bucket);
-      }
+  for (const row of rows) {
+    const shares = leaveDayShares(row, timeZone, job.period_from, job.period_to);
+    if (shares.length === 0) continue;
+    const userMap = result.get(row.userId) ?? new Map<string, DayLeaveBucket>();
+    // Bucket by the row's REAL type — see leaveBucketKey().
+    const key = leaveBucketKey(row.type);
+    for (const s of shares) {
+      const bucket = userMap.get(s.day) ?? emptyLeaveBucket();
+      bucket[key] += s.minutes;
+      userMap.set(s.day, bucket);
     }
-    result.set(row.user_id, userMap);
+    result.set(row.userId, userMap);
   }
   return result;
 }
@@ -522,11 +976,17 @@ async function loadLeaveIntervals(
   return result;
 }
 
-async function loadShiftConfigs(job: ExportJobRow): Promise<Map<string, ShiftConfig>> {
-  // Latest active assignment overlapping the export period — one row per user.
+async function loadShiftAssignments(job: ExportJobRow): Promise<Map<string, ShiftAssignment[]>> {
+  // EVERY assignment overlapping the export period, with its window — not one
+  // row per user. The old `DISTINCT ON (a.user_id) … ORDER BY a.valid_from
+  // DESC` kept only the last one and applied it to the whole month, so a shift
+  // change mid-period rewrote history (see configForDay). valid_from/valid_to
+  // come out as text: a `date` parsed into a Date would be flattened to UTC
+  // midnight and could compare one day off against a tenant-local day key.
   const assigns = await adminPool.query(
-    `SELECT DISTINCT ON (a.user_id)
-            a.user_id, a.shift_template_id,
+    `SELECT a.user_id, a.shift_template_id,
+            to_char(a.valid_from, 'YYYY-MM-DD') AS valid_from,
+            to_char(a.valid_to,   'YYYY-MM-DD') AS valid_to,
             st.tolerance_in_min, st.tolerance_out_min,
             st.expected_break_max_min,
             st.extraordinary_threshold_min, st.count_extraordinary,
@@ -538,7 +998,7 @@ async function loadShiftConfigs(job: ExportJobRow): Promise<Map<string, ShiftCon
       WHERE a.tenant_id = $1
         AND a.valid_from <= $3::date
         AND (a.valid_to IS NULL OR a.valid_to >= $2::date)
-      ORDER BY a.user_id, a.valid_from DESC`,
+      ORDER BY a.user_id, a.valid_from`,
     [job.tenant_id, job.period_from, job.period_to]
   );
   if (assigns.rowCount === 0) return new Map();
@@ -576,9 +1036,9 @@ async function loadShiftConfigs(job: ExportJobRow): Promise<Map<string, ShiftCon
     lunchByTpl.set(r.shift_template_id, byDow);
   }
 
-  const out = new Map<string, ShiftConfig>();
+  const out = new Map<string, ShiftAssignment[]>();
   for (const r of assigns.rows) {
-    out.set(r.user_id, {
+    const cfg: ShiftConfig = {
       tolerance_in_min: r.tolerance_in_min,
       tolerance_out_min: r.tolerance_out_min,
       expected_break_max_min: r.expected_break_max_min,
@@ -592,7 +1052,12 @@ async function loadShiftConfigs(job: ExportJobRow): Promise<Map<string, ShiftCon
       flex_out_before_min: r.flex_out_before_min,
       slotsByDow: slotsByTpl.get(r.shift_template_id) ?? new Map(),
       lunchByDow: lunchByTpl.get(r.shift_template_id) ?? new Map(),
-    });
+    };
+    const list = out.get(r.user_id) ?? [];
+    // The query orders by valid_from ASC, which is what configForDay's
+    // backwards scan relies on.
+    list.push({ validFrom: r.valid_from, validTo: r.valid_to ?? null, cfg });
+    out.set(r.user_id, list);
   }
   return out;
 }
@@ -729,7 +1194,7 @@ function fmtRettificaValue(
 const SHEET_DESCRIPTIONS: Record<string, string> = {
   Riepilogo: 'Una riga per dipendente con i totali del periodo e i saldi residui.',
   'Dettaglio giornaliero':
-    'Il dettaglio giorno per giorno di TUTTI i dipendenti in un unico foglio: una riga per dipendente e per giorno. Le colonne Nome, Cognome e Codice fiscale identificano la persona, così il foglio si può filtrare, ordinare o usare come sorgente di una tabella pivot.',
+    'Il dettaglio giorno per giorno di TUTTI i dipendenti in un unico foglio: una riga per dipendente e per giorno. Le colonne Nome, Cognome e Codice fiscale identificano la persona, così il foglio si può filtrare, ordinare o usare come sorgente di una tabella pivot. Compare una riga per ogni giornata prevista dall’orario di lavoro, anche se non è stata timbrata e non risulta alcuna assenza approvata: in quel caso le ore lavorate sono 0,00 e le ore ordinarie restano quelle contrattuali. Non compaiono invece le giornate successive a oggi (esportando il mese in corso) né quelle successive alla rimozione di un dipendente eliminato entro la fine del periodo. Le giornate coperte da un’assenza approvata compaiono sempre, ma se cadono oltre uno di questi limiti riportano 0,00 ore ordinarie: l’assenza resta, le ore contrattuali no.',
   Timbrature:
     'Registro grezzo di ogni timbratura del periodo, incluse quelle eliminate (marcate nella colonna Stato). È il foglio di riferimento in caso di contestazione.',
   Rettifiche:
@@ -747,7 +1212,11 @@ const ORE_LAVORATE_DESC =
 // Same text on both sheets, with the period/day wording swapped in: the warning
 // is the important half and must not drift between the two glossary blocks.
 const oreOrdinarieDesc = (scope: 'periodo' | 'giornata'): string =>
-  `Ore contrattuali previste dall’orario di lavoro assegnato ${scope === 'periodo' ? 'nel periodo' : 'in quella giornata'}, al netto della pausa pranzo dedotta automaticamente: è il monte ore TEORICO (es. 8,00 su una giornata full-time), non le ore realmente svolte. ATTENZIONE: proprio perché è un valore teorico NON quadra necessariamente con "Ore lavorate" — nei giorni di assenza (ferie, permesso, malattia), di uscita anticipata o comunque di orario incompleto resta 8,00 anche se le ore lavorate sono meno, e l’eventuale eccedenza è riportata a parte in "Ore straordinarie". Vale 0 nei giorni non previsti dall’orario (riposo, festivi) e per i dipendenti senza orario assegnato.`;
+  `Ore contrattuali previste dall’orario di lavoro assegnato ${scope === 'periodo' ? 'nel periodo' : 'in quella giornata'}, al netto della pausa pranzo dedotta automaticamente: è il monte ore TEORICO (es. 8,00 su una giornata full-time), non le ore realmente svolte. ATTENZIONE: proprio perché è un valore teorico NON quadra necessariamente con "Ore lavorate" — nei giorni di assenza (ferie, permesso, malattia), di uscita anticipata o comunque di orario incompleto resta 8,00 anche se le ore lavorate sono meno, e l’eventuale eccedenza è riportata a parte in "Ore straordinarie". ${
+    scope === 'periodo'
+      ? 'Comprende TUTTI i giorni previsti dall’orario, compresi quelli senza alcuna timbratura e senza assenza approvata (che nel Dettaglio giornaliero compaiono con 0,00 ore lavorate): il totale non si ferma ai giorni timbrati. Si ferma però a OGGI se il periodo non è ancora concluso — esportando il mese in corso le giornate future non contano ore contrattuali — e al giorno di rimozione per un dipendente eliminato dall’azienda entro la fine del periodo. ATTENZIONE: per un dipendente soltanto DISATTIVATO l’archivio non registra la data di cessazione, quindi su un periodo già concluso le ore contrattuali arrivano comunque a fine periodo, anche se la persona se n’era andata prima; le giornate successive alla sua ultima presenza si riconoscono nel Dettaglio giornaliero perché riportano 0,00 ore lavorate. La cosa si evita esportando il periodo prima che si chiuda, oppure eliminando il dipendente anziché disattivarlo soltanto (l’eliminazione registra la data). Un dipendente disattivato o eliminato resta comunque nel file con le ore che ha effettivamente lavorato. '
+      : ''
+  }Se l’orario assegnato cambia in corso di periodo, ogni giornata usa l’orario in vigore in quella data. Vale 0 nei giorni non previsti dall’orario (riposo settimanale, giornate senza fasce) e per i dipendenti senza orario assegnato; le festività nazionali invece NON sono riconosciute, quindi una festività che cade in un giorno previsto dall’orario conta comunque le sue ore contrattuali.`;
 
 const ORE_ORIGINALI_DESC =
   'Ore risultanti dalle timbrature PRIMA di ogni rettifica: orari e tipi evento originali (quelli con cui la timbratura è stata registrata la prima volta) e timbrature eliminate ancora incluse. Confrontala con "Ore lavorate": se coincidono la giornata non è stata rettificata, altrimenti la differenza è esattamente l\'effetto delle modifiche di orario e delle eliminazioni. Le timbrature inserite da un amministratore rientrano in entrambe le colonne, quindi non generano differenza: per sapere CHI ha registrato una timbratura usa la colonna Origine del foglio Timbrature.';
@@ -766,6 +1235,10 @@ const COLUMN_DESCRIPTIONS: Record<string, Record<string, string>> = {
     'Ore ferie': 'Ore di ferie approvate ricadenti nel periodo.',
     'Ore permessi': 'Ore di permesso approvate ricadenti nel periodo.',
     'Ore malattia': 'Ore di malattia registrate nel periodo.',
+    'Ore assenze':
+      'Ore di assenza giustificata diverse da ferie, permessi e malattia: lutto, Legge 104, congedo parentale, permesso di studio o elettorale, matrimonio, allattamento, assemblea sindacale, visita medica, permesso non retribuito. Il dettaglio riga per riga, con il sottotipo di ciascuna, è nel foglio "Ferie e Permessi".',
+    'Ore chiusura aziendale':
+      'Ore di chiusura imposta dall’azienda che NON consuma ferie (ferie collettive e chiusure addebitate a ferie sono già conteggiate in "Ore ferie"). L’elenco degli eventi è nel foglio "Eventi aziendali".',
     'Giorni lavorati': 'Numero di giornate con almeno una timbratura utile.',
     'Residuo ferie (h)': 'Saldo ferie residuo alla data di generazione del file.',
     'Residuo permessi (h)': 'Saldo permessi residuo alla data di generazione del file.',
@@ -777,7 +1250,8 @@ const COLUMN_DESCRIPTIONS: Record<string, Record<string, string>> = {
     'Codice fiscale':
       'Codice fiscale registrato nell’anagrafica aziendale del dipendente. È la chiave da usare per riconciliare le righe con il gestionale paghe; vuoto se non è stato compilato.',
     Giorno: 'Data della giornata (fuso orario aziendale).',
-    Marker: 'F = ferie intera giornata, P = permesso parziale, M = malattia.',
+    Marker:
+      'M = malattia, C = chiusura aziendale, F = ferie intera giornata, A = assenza giustificata, P = permesso parziale. Vuoto se la giornata non ha assenze approvate; se ne coincidono più di una vale la prima di questo elenco.',
     'Ore lavorate': ORE_LAVORATE_DESC,
     'Ore originali': ORE_ORIGINALI_DESC,
     'Ore ordinarie': oreOrdinarieDesc('giornata'),
@@ -785,6 +1259,10 @@ const COLUMN_DESCRIPTIONS: Record<string, Record<string, string>> = {
     'Ore ferie': 'Ore di ferie approvate nella giornata.',
     'Ore permessi': 'Ore di permesso approvate nella giornata.',
     'Ore malattia': 'Ore di malattia nella giornata.',
+    'Ore assenze':
+      'Ore di assenza giustificata nella giornata, diverse da ferie, permessi e malattia (lutto, Legge 104, congedo parentale, visita medica, permesso non retribuito…).',
+    'Ore chiusura aziendale':
+      'Ore di chiusura imposta dall’azienda nella giornata, nella forma che non consuma ferie.',
     'Pausa retribuita (min)': 'Minuti di pausa retribuita nella giornata.',
     'Pausa non retribuita (min)': 'Minuti di pausa non retribuita nella giornata.',
   },
@@ -1267,7 +1745,13 @@ async function loadEventi(job: ExportJobRow, timeZone: string): Promise<EventRow
             MIN(type) AS type,
             MIN(from_ts) AS from_ts,
             MAX(to_ts) AS to_ts,
-            COUNT(*) AS users_count,
+            -- DISTINCT, because one employee can hold several rows of one
+            -- batch: splitClosureAroundOverlaps emits a segment per run of free
+            -- days, and applyMalattiaOverlap cuts a closure charged to ferie in
+            -- half when a sick note lands inside it. COUNT(*) counted rows, so
+            -- the "Dipendenti coinvolti" column of Eventi aziendali reported
+            -- more employees than the company has.
+            COUNT(DISTINCT user_id) AS users_count,
             SUM(duration_hours) AS total_hours
        FROM leave_requests
       WHERE tenant_id = $1
@@ -1429,6 +1913,12 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
     { header: 'Ore ferie', key: 'ferie', width: 12 },
     { header: 'Ore permessi', key: 'permessi', width: 14 },
     { header: 'Ore malattia', key: 'malattia', width: 14 },
+    // The two columns the shutdown incident asked for: 'chiusura' and
+    // 'assenza' hours used to be added to Ore malattia. They sit after the
+    // three historical leave columns so the leave block reads in the same
+    // order as the Tipo values of the "Ferie e Permessi" sheet.
+    { header: 'Ore assenze', key: 'assenza', width: 14 },
+    { header: 'Ore chiusura aziendale', key: 'chiusura', width: 24 },
     { header: 'Giorni lavorati', key: 'days', width: 16 },
     { header: 'Residuo ferie (h)', key: 'res_ferie', width: 18 },
     { header: 'Residuo permessi (h)', key: 'res_permessi', width: 20 },
@@ -1451,6 +1941,8 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
       ferie: u.ferie_minutes_total / 60,
       permessi: u.permessi_minutes_total / 60,
       malattia: u.malattia_minutes_total / 60,
+      assenza: u.assenza_minutes_total / 60,
+      chiusura: u.chiusura_minutes_total / 60,
       days: u.worked_days,
       res_ferie: residualOf(res, 'ferie'),
       res_permessi: residualOf(res, 'permessi'),
@@ -1458,7 +1950,7 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
   }
   setHourFormat(riep, [
     'worked', 'original', 'ordinary', 'overtime', 'paid', 'unpaid', 'ferie', 'permessi',
-    'malattia', 'res_ferie', 'res_permessi',
+    'malattia', 'assenza', 'chiusura', 'res_ferie', 'res_permessi',
   ]);
   styleHeader(riep);
 
@@ -1486,6 +1978,11 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
     { header: 'Ore ferie', key: 'ferie', width: 12 },
     { header: 'Ore permessi', key: 'permessi', width: 14 },
     { header: 'Ore malattia', key: 'malattia', width: 14 },
+    // Same block, same order as Riepilogo — the two sheets are read side by
+    // side and a column that moves between them is a column that gets summed
+    // against the wrong one.
+    { header: 'Ore assenze', key: 'assenza', width: 14 },
+    { header: 'Ore chiusura aziendale', key: 'chiusura', width: 24 },
     { header: 'Pausa retribuita (min)', key: 'paid', width: 22 },
     { header: 'Pausa non retribuita (min)', key: 'unpaid', width: 26 },
   ];
@@ -1515,6 +2012,8 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
         ferie: d.ferie_minutes / 60,
         permessi: d.permessi_minutes / 60,
         malattia: d.malattia_minutes / 60,
+        assenza: d.assenza_minutes / 60,
+        chiusura: d.chiusura_minutes / 60,
         paid: d.paid_break_minutes,
         unpaid: d.unpaid_break_minutes,
       });
@@ -1522,6 +2021,7 @@ async function writeXlsx(job: ExportJobRow, data: UserAgg[]): Promise<ExportResu
   }
   setHourFormat(dt, [
     'worked', 'original', 'ordinary', 'overtime', 'ferie', 'permessi', 'malattia',
+    'assenza', 'chiusura',
   ]);
   styleHeader(dt);
   // The identity columns stay on screen while scrolling right through the hour
@@ -1901,6 +2401,10 @@ async function loadCentroPagheTenantConfig(job: ExportJobRow): Promise<CentroPag
 
 interface Anagrafica {
   active: boolean;
+  /** memberships.deleted_at — set by DELETE /users/:id, null otherwise. The only
+   *  timestamped "this person is gone" signal the schema has; see
+   *  contractedDaysUntil(). */
+  deletedAt: Date | null;
   inail: string | null;
   qualifica: string | null;
   qualifica2: string | null;
@@ -1909,13 +2413,22 @@ interface Anagrafica {
 }
 
 async function loadAnagrafica(job: ExportJobRow): Promise<Map<string, Anagrafica>> {
-  // All non-deleted members (incl. recently deactivated, so an employee who
-  // worked part of the month still exports). The writer filters out inactive
-  // members with no activity in the period.
+  // EVERY membership row of the tenant, removed ones included — the employment
+  // status is what both writers bound their contracted days with, and a removed
+  // member still reaches the aggregate through their own stamps, so leaving
+  // them out of this map means answering "still employed?" with a shrug.
+  //
+  // `deleted_at IS NULL` used to be in the WHERE, which is how the two writers
+  // came to disagree about a removed member: the xlsx kept them (their stamps
+  // carried them in) while the LUL, reading only this map, could not see them at
+  // all. Both call sites now run the same exportsEmployee() gate over the full
+  // list. The removed rows join the `ORDER BY matricola NULLS LAST` insertion
+  // order the LUL employee sequence relies on, which is intended — they are
+  // employees of that month like any other.
   const r = await adminPool.query(
-    `SELECT user_id, active, inail, qualifica, qualifica2, matricola, codice_fiscale
+    `SELECT user_id, active, deleted_at, inail, qualifica, qualifica2, matricola, codice_fiscale
        FROM memberships
-      WHERE tenant_id = $1 AND deleted_at IS NULL
+      WHERE tenant_id = $1
       ORDER BY matricola NULLS LAST`,
     [job.tenant_id]
   );
@@ -1923,6 +2436,7 @@ async function loadAnagrafica(job: ExportJobRow): Promise<Map<string, Anagrafica
   for (const row of r.rows) {
     map.set(row.user_id, {
       active: row.active,
+      deletedAt: row.deleted_at ? new Date(row.deleted_at) : null,
       inail: row.inail,
       qualifica: row.qualifica,
       qualifica2: row.qualifica2,
@@ -1941,53 +2455,28 @@ interface DetailedLeave {
 
 /** Per user → per day → list of (type, subtype, minutes). Unlike loadLeavesPerDay
  *  (which buckets into ferie/permessi/malattia for the xlsx), this keeps the full
- *  type + assenza subtype so each maps to its own giustificativo code. */
+ *  type + assenza subtype so each maps to its own giustificativo code.
+ *
+ *  Same rows, same day shares as the xlsx projection — see leaveDayShares(). The
+ *  two used to distribute duration_hours with two hand-copied blocks of the same
+ *  arithmetic, so the boundary-straddling defect double-billed the giustificativi
+ *  in the LUL exactly as it double-billed "Ore chiusura aziendale" in the xlsx. */
 async function loadLeavesPerDayDetailed(
   job: ExportJobRow,
   timeZone: string
 ): Promise<Map<string, Map<string, DetailedLeave[]>>> {
-  const { start: periodFrom, end: periodEnd } = periodWindow(job, timeZone);
-  const r = await adminPool.query(
-    `SELECT lr.user_id, lr.type, lr.assenza_subtype, lr.from_ts, lr.to_ts, lr.duration_hours
-       FROM leave_requests lr
-      WHERE lr.tenant_id = $1
-        AND lr.status IN ('approved','cancellation_pending')
-        AND lr.to_ts   >  $2::timestamptz
-        AND lr.from_ts <  $3::timestamptz`,
-    [job.tenant_id, periodFrom.toISOString(), periodEnd.toISOString()]
-  );
+  const rows = await loadLeaveRows(job, timeZone);
   const result = new Map<string, Map<string, DetailedLeave[]>>();
-  if (r.rowCount === 0) return result;
-
-  const periodTo = new Date(periodEnd.getTime() - 1);
-
-  for (const row of r.rows) {
-    const from = new Date(row.from_ts);
-    const to = new Date(row.to_ts);
-    const userMap = result.get(row.user_id) ?? new Map<string, DetailedLeave[]>();
-    const clipFrom = from < periodFrom ? periodFrom : from;
-    const clipTo = to > periodTo ? periodTo : to;
-
-    const push = (dayKey: string, minutes: number) => {
-      if (minutes <= 0) return;
-      const list = userMap.get(dayKey) ?? [];
-      list.push({ type: row.type, subtype: row.assenza_subtype ?? null, minutes });
-      userMap.set(dayKey, list);
-    };
-
-    if (row.type === 'permessi') {
-      push(
-        zonedDateKey(clipFrom, timeZone),
-        Math.max(0, Math.round((clipTo.getTime() - clipFrom.getTime()) / 60000))
-      );
-    } else {
-      const days = eachZonedDateKeyInclusive(clipFrom, clipTo, timeZone);
-      if (days.length > 0) {
-        const perDayMin = Math.round((Number(row.duration_hours) * 60) / days.length);
-        for (const d of days) push(d, perDayMin);
-      }
+  for (const row of rows) {
+    const shares = leaveDayShares(row, timeZone, job.period_from, job.period_to);
+    if (shares.length === 0) continue;
+    const userMap = result.get(row.userId) ?? new Map<string, DetailedLeave[]>();
+    for (const s of shares) {
+      const list = userMap.get(s.day) ?? [];
+      list.push({ type: row.type, subtype: row.subtype, minutes: s.minutes });
+      userMap.set(s.day, list);
     }
-    result.set(row.user_id, userMap);
+    result.set(row.userId, userMap);
   }
   return result;
 }
@@ -2078,7 +2567,7 @@ async function writeCentroPaghe(job: ExportJobRow, data: UserAgg[]): Promise<Exp
 
   const [anagrafica, shiftByUser, leavesDetailed, inpsByUser, stampsDetail] = await Promise.all([
     loadAnagrafica(job),
-    loadShiftConfigs(job),
+    loadShiftAssignments(job),
     loadLeavesPerDayDetailed(job, timeZone),
     loadInpsEvents(job, timeZone),
     // Payroll: live punches ONLY. These become the LUL in/out pairs.
@@ -2107,18 +2596,59 @@ async function writeCentroPaghe(job: ExportJobRow, data: UserAgg[]): Promise<Exp
 
   const periodoAAAAMM = job.period_from.slice(0, 4) + job.period_from.slice(5, 7);
   const allDates = eachDateInclusive(job.period_from, job.period_to);
+  // Tenant-local today, read once for the whole file — see contractedDaysUntil().
+  const todayKey = zonedDateKey(new Date(), timeZone);
 
-  // Employee set = every active member (each gets a full month of type-1 rows).
+  // Employee set = exportsEmployee() over the membership list (each survivor
+  // gets a full month of type-1 rows).
   const employees: CentroPagheEmployee[] = [];
   for (const [userId, ana] of anagrafica) {
+    // A member removed with DELETE /users/:id is NOT skipped, and that is a
+    // change: this file used to drop them while the xlsx kept them (their own
+    // stamps put them in byUser), so the two files of one month disagreed about
+    // who worked here and only one of them said so out loud.
+    //
+    // The LUL is the register of hours actually worked. Removing somebody from
+    // the app is a membership action — a soft delete that leaves their stamps,
+    // their approved leave and their anagrafica exactly where they were — not an
+    // erasure request, and it usually happens the week AFTER the month they
+    // worked. Dropping them here meant the hours of a period already worked
+    // never reached the payroll bureau at all: unpaid wages, produced by an
+    // admin clicking "Elimina" a few days too early. No privacy is bought by it
+    // either — the employer already holds those hours in this very database, and
+    // the payroll system it is sending them to holds the person's contract.
+    //
+    // So removal now decides only WHEN the contract stops (contractedDaysUntil
+    // reads deleted_at as the one dated departure the schema has), never whether
+    // the hours are reported. exportsEmployee() is the sole gate, on both sides.
     const agg = aggByUser.get(userId);
     const userStamps = stampsByUserDay.get(userId);
     const userLeaves = leavesDetailed.get(userId);
-    const shift = shiftByUser.get(userId);
+    const shiftAssigns = shiftByUser.get(userId);
 
     // Skip long-gone employees: an inactive member with no activity this period.
+    // exportsEmployee() is the same predicate aggregateForExport() applies to
+    // this same map, with removal no longer overriding it on one side only, so
+    // the two files of one month now cover the same people. The one residual
+    // asymmetry is structural and cannot be closed from here: the xlsx reads
+    // approved leave straight out of leave_requests, so a user with leave but NO
+    // membership row at all still gets an xlsx line, while the LUL cannot emit a
+    // record for somebody who has neither matricola nor codice fiscale.
     const hadActivity = Boolean(agg) || Boolean(userStamps) || Boolean(userLeaves);
-    if (!ana.active && !hadActivity) continue;
+    if (!exportsEmployee(ana.active, hadActivity)) continue;
+
+    // Same contracted-day ceiling the xlsx aggregate applies, from the same
+    // membership row — otherwise the fix for the leaver would land in one file
+    // and not the other, and the two would disagree about the month all over
+    // again. Built from stamps ∪ approved leave only: `agg` also contains the
+    // days the xlsx seeded, and feeding those back in would let the bound
+    // authorise itself.
+    const activityDays = [...(userStamps?.keys() ?? []), ...(userLeaves?.keys() ?? [])];
+    const contractedUntil = contractedDaysUntil(job.period_to, todayKey, {
+      active: ana.active,
+      deletedDay: ana.deletedAt ? zonedDateKey(ana.deletedAt, timeZone) : null,
+      lastActivityDay: activityDays.length > 0 ? activityDays.sort().at(-1)! : null,
+    });
 
     const days: CentroPagheDay[] = allDates.map((date): CentroPagheDay => {
       const day = agg?.get(date);
@@ -2133,9 +2663,24 @@ async function writeCentroPaghe(job: ExportJobRow, data: UserAgg[]): Promise<Exp
       // date of the month, while the aggregate only holds days with a stamp or
       // an approved leave — reusing it would silently write 0 theoretical
       // minutes on every untimbrated working day of the payroll file.
+      //
+      // Left null past contractedUntil — the same three fields a date with no
+      // assignment already leaves empty (00000 theoretical, 00000 contract,
+      // blank tipo giorno), so the record layout and the record COUNT are
+      // untouched. That matters because nothing closes a shift assignment when
+      // an employee leaves: for a full-timer removed on 15 September the LUL
+      // used to carry 8h of contract and 'GL' on all eleven remaining working
+      // days, i.e. a full month of salary owed to somebody who had gone. The
+      // punches and the giustificativi of those dates are not gated — an
+      // approved leave stays an approved leave — only the contract is.
       let theoreticalMin: number | null = null;
       let contractMin: number | null = null;
       let tipoGiorno: 'GL' | 'SA' | 'DO' | '' = '';
+      // Resolved per date: a mid-month shift change must not backdate the new
+      // contract over the first half of the LUL either.
+      const shift = contractsDay(contractedUntil, date)
+        ? configForDay(shiftAssigns, date)
+        : undefined;
       if (shift) {
         const dow = isoDowUtc(date);
         const slots = shift.slotsByDow.get(dow) ?? [];

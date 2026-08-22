@@ -65,7 +65,15 @@
     "errTitle": "Inserisci un titolo.",
     "errDates": "Inserisci le date.",
     "errOrder": "La data di fine precede quella di inizio.",
-    "errSelect": "Seleziona almeno un utente."
+    "errSelect": "Seleziona almeno un utente.",
+    "partialTitle": "Evento aziendale inserito con esclusioni",
+    "partialSummary_one": "L'evento è stato inserito per {{count}} dipendente.",
+    "partialSummary_other": "L'evento è stato inserito per {{count}} dipendenti.",
+    "partialSkippedDays_one": "1 giorno non è stato inserito perché il dipendente aveva già un'assenza dello stesso tipo:",
+    "partialSkippedDays_other": "{{count}} giorni non sono stati inseriti perché il dipendente aveva già un'assenza dello stesso tipo:",
+    "partialDays_one": "1 giorno escluso: {{days}}",
+    "partialDays_other": "{{count}} giorni esclusi: {{days}}",
+    "partialHint": "Gli altri giorni del periodo sono stati inseriti regolarmente. Per coprire anche i giorni esclusi, annulla prima l'assenza già presente del dipendente e reinserisci l'evento solo su quei giorni."
   },
   "quotas": {
     "permessiPlural": "Permessi",

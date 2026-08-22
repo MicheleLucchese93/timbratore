@@ -508,6 +508,24 @@ function CalendarTab() {
   );
 }
 
+/** One employee whose closure lost some days to absences they already had. */
+interface BulkSkip {
+  user_id: string;
+  /** Europe/Rome days (YYYY-MM-DD) not inserted for this employee. */
+  days: string[];
+  /** Server-side Italian sentence naming the row that already owns them. */
+  reason: string;
+}
+
+interface BulkResult {
+  batch_id: string;
+  created_count: number;
+  user_ids: string[];
+  skipped_count: number;
+  skipped_day_count: number;
+  skipped: BulkSkip[];
+}
+
 function BulkEventModal({
   users,
   onClose,
@@ -518,7 +536,6 @@ function BulkEventModal({
   onDone: () => void;
 }) {
   const { t } = useTranslation(['leaves', 'common']);
-  useEscapeKey(onClose);
   const [title, setTitle] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -528,6 +545,18 @@ function BulkEventModal({
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // Set only when the closure went in with holes. The call answers 201 in that
+  // case — the other employees succeeded — so closing the modal on success is
+  // exactly how a Christmas closure could miss seven days for someone and be
+  // found weeks later in the payroll export. The report replaces the form and
+  // the admin has to dismiss it.
+  const [report, setReport] = useState<BulkResult | null>(null);
+
+  // Escape and the backdrop must not throw the report away without reloading:
+  // once rows exist, dismissing has to be the same "done" the button uses, or
+  // the calendar behind keeps showing the state from before the closure.
+  const dismiss = report ? onDone : onClose;
+  useEscapeKey(dismiss);
 
   function toggleUser(id: string) {
     setSelected((prev) => {
@@ -546,7 +575,7 @@ function BulkEventModal({
     if (!allUsers && selected.size === 0) return setErr(t('bulk.errSelect'));
     setBusy(true);
     try {
-      await api('/api/v1/leaves/bulk', {
+      const r = await api<BulkResult>('/api/v1/leaves/bulk', {
         method: 'POST',
         json: {
           title: title.trim(),
@@ -557,6 +586,10 @@ function BulkEventModal({
           user_note: note.trim() || undefined,
         },
       });
+      if (r.skipped.length > 0) {
+        setReport(r);
+        return;
+      }
       onDone();
     } catch (e) {
       setErr(e instanceof Error ? e.message : t('common:state.error'));
@@ -565,8 +598,48 @@ function BulkEventModal({
     }
   }
 
+  function nameOf(userId: string): string {
+    const u = users.find((x) => x.user_id === userId);
+    return u ? u.display_name || u.email : userId;
+  }
+
+  if (report) {
+    return (
+      <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50" onClick={dismiss}>
+        <div className="card w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+          <h2 className="section-title mb-3">{t('bulk.partialTitle')}</h2>
+          <p className="text-sm">{t('bulk.partialSummary', { count: report.created_count })}</p>
+          <p className="text-sm mt-1">
+            {t('bulk.partialSkippedDays', { count: report.skipped_day_count })}
+          </p>
+          <ul className="mt-3 max-h-60 overflow-auto space-y-2">
+            {report.skipped.map((s) => (
+              <li key={s.user_id} className="text-sm">
+                <div className="font-medium">{nameOf(s.user_id)}</div>
+                {/* `s.days` are bare Europe/Rome day keys. new Date('2026-12-27')
+                    parses as UTC midnight, so on a machine west of Greenwich
+                    fmtDate would print "26 dicembre" for a day skipped on the
+                    27th — and the admin would go and cancel the wrong absence.
+                    Appending the time forces LOCAL midnight, the same fix
+                    Anomalies.fmtDate applies to `a.date`. */}
+                <div>{t('bulk.partialDays', { count: s.days.length, days: s.days.map((d) => fmtDate(`${d}T00:00:00`)).join(', ') })}</div>
+                <div className="muted text-xs">{s.reason}</div>
+              </li>
+            ))}
+          </ul>
+          <p className="muted text-xs mt-3">{t('bulk.partialHint')}</p>
+          <div className="mt-4 flex justify-end">
+            <button type="button" className="btn btn-primary" onClick={onDone}>
+              {t('common:btn.close')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50" onClick={dismiss}>
       <div className="card w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
         <h2 className="section-title mb-3">{t('bulk.title')}</h2>
         <div className="space-y-3">

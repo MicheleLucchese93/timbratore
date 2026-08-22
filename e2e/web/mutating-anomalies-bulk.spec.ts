@@ -236,6 +236,11 @@ test.describe.serial('web — Anomalie bulk correction (mutating)', () => {
     await page.locator('label').filter({ hasText: 'Seleziona tutte' }).getByRole('checkbox').check();
     const bar = page.locator('div.sticky');
     await expect(bar).toBeVisible({ timeout: 10_000 });
+    // Every selected row is a day-level kind with a punch missing, so the bar
+    // opens on the correction that adds it. The preselection is asserted, not
+    // assumed: the bar used to open on whatever sorted first, which on a
+    // selection of pausa rows meant "Inserisci ferie" one enabled click away.
+    await expect(bar.getByRole('combobox')).toHaveValue('standard');
     await bar.getByRole('combobox').selectOption({ label: 'Timbratura standard (orari del giorno)' });
     // On full success the bar clears the selection and unmounts (resolved rows
     // also drop from the list); wait for that detach as the success signal.
@@ -322,7 +327,19 @@ test.describe.serial('web — Anomalie bulk correction (mutating)', () => {
     await expect(bar.getByRole('option', { name: 'Inserisci permesso' })).toHaveCount(1);
     await expect(bar.getByRole('option', { name: 'Inserisci ferie' })).toHaveCount(1);
 
+    // Both selected rows describe unworked time themselves, so the bar does
+    // open on the day-level absence — and then bulk ferie, the one action here
+    // that spends a residuo and notifies, is gated on an explicit tick naming
+    // how many whole days it books. Correggi stays disabled until then.
+    await expect(bar.getByRole('combobox')).toHaveValue('ferie');
+    const ack = page.getByTestId('bulk-ferie-ack');
+    await expect(ack).toBeVisible();
+    await expect(ack).toContainText(/giornat[ae] inter[ae] di ferie/i);
+    await expect(bar.getByRole('button', { name: /^Correggi/ })).toBeDisabled();
+
     await bar.getByRole('combobox').selectOption({ label: 'Inserisci permesso' });
+    // The tick belongs to ferie only: switching action drops both it and the gate.
+    await expect(page.getByTestId('bulk-ferie-ack')).toHaveCount(0);
     // …and the bar says so, instead of offering a shared time stepper that
     // would silently apply one day's window to all of them.
     await expect(page.getByTestId('bulk-permesso-hint')).toBeVisible();
@@ -357,6 +374,9 @@ test.describe.serial('web — Anomalie bulk correction (mutating)', () => {
     await expect(bar).toBeVisible({ timeout: 10_000 });
     await expect(page.getByTestId('bulk-merged-notice')).toBeVisible({ timeout: 10_000 });
     await bar.getByRole('combobox').selectOption({ label: 'Inserisci ferie' });
+    // Bulk ferie books whole days off the residuo, so it is gated on an
+    // explicit acknowledgement of how many. Tick it, or Correggi stays disabled.
+    await page.getByTestId('bulk-ferie-ack').getByRole('checkbox').check();
 
     // Gate on the admin-create response, never on a toast (the bar has none,
     // and a detach on its own would not prove the insert was accepted).

@@ -10,9 +10,15 @@ import {
   computeDurationHours,
   applyMalattiaOverlap,
   assertPerDayCap,
+  describeOverlap,
+  lockLeaveUser,
+  resolveMalattiaWindow,
+  splitClosureAroundOverlaps,
+  type StoredLeaveType,
 } from '../lib/leave-quota.js';
 import { TENANT_TZ_SQL } from '../lib/tz.js';
 import {
+  loadLeaveApproverIds,
   notifyLeaveSubmitted,
   notifyLeaveDecided,
   notifyLeaveAddedByAdmin,
@@ -62,6 +68,35 @@ function quarterMs(): number {
 
 async function loadRequest(client: PoolClient, id: string) {
   const r = await client.query(`SELECT * FROM leave_requests WHERE id = $1`, [id]);
+  if (r.rowCount === 0) throw new NotFoundError('leave_request');
+  return r.rows[0];
+}
+
+/**
+ * The only sanctioned way for a /leaves/:id/* handler to get a row it intends
+ * to mutate.
+ *
+ * It enforces the lock order documented in lib/leave-quota.ts — advisory user
+ * lock FIRST, leave_requests row lock second. These routes have a chicken/egg
+ * problem: the lock is keyed by employee and the employee is only known once
+ * the row is read. Doing the obvious thing (SELECT … FOR UPDATE, then
+ * assertPerDayCap) is what put the row lock first and opened the 40P01 deadlock
+ * against the malattia path, which takes the advisory lock and then updates the
+ * very same rows.
+ *
+ * So: read user_id with a plain, *unlocked* SELECT, take the advisory lock, and
+ * only then re-read FOR UPDATE. The unlocked peek can go stale in exactly one
+ * harmless way — the row could be deleted between the two reads (nothing in the
+ * app deletes leave rows; they are status-transitioned), which the second read
+ * catches. user_id itself is never updated, so the lock we took is always the
+ * right one, and every status/state check the caller makes runs on the re-read
+ * row.
+ */
+export async function lockRequestForUpdate(client: PoolClient, id: string) {
+  const peek = await client.query(`SELECT user_id FROM leave_requests WHERE id = $1`, [id]);
+  if (peek.rowCount === 0) throw new NotFoundError('leave_request');
+  await lockLeaveUser(client, peek.rows[0].user_id as string);
+  const r = await client.query(`SELECT * FROM leave_requests WHERE id = $1 FOR UPDATE`, [id]);
   if (r.rowCount === 0) throw new NotFoundError('leave_request');
   return r.rows[0];
 }
@@ -122,7 +157,7 @@ async function assertCanDecide(
 
 leavesRouter.post(
   '/',
-  tenantHandler(async (req, res, client) => {
+  tenantHandler(async (req, res, client, afterCommit) => {
     const parse = CreateBody.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     const b = parse.data;
@@ -157,7 +192,38 @@ leavesRouter.post(
     }
 
     const userId = req.user!.id;
-    const duration = await computeDurationHours(client, userId, b.type, b.from_ts, b.to_ts);
+    // Step 1 of the lock order (lib/leave-quota.ts): claim this employee before
+    // touching any leave row. The malattia branch below row-locks the user's
+    // *other* requests through applyMalattiaOverlap, and those row locks must
+    // never come first.
+    await lockLeaveUser(client, userId);
+
+    // What actually gets stored. For malattia it can be shorter than what was
+    // asked: a "certificato di continuazione" is issued ON the last day the
+    // previous certificate covers, so its first day is already certified and
+    // must be recorded once, under the protocol that claimed it. Refusing the
+    // whole request instead — which is what the plain duplicate guard did —
+    // left the employee with no way out at all, since neither
+    // /request-cancellation nor /cancel accepts a malattia.
+    let fromTs = b.from_ts;
+    let toTs = b.to_ts;
+    let alreadyCovered: string[] = [];
+    if (b.type === 'malattia') {
+      const resolved = await resolveMalattiaWindow(
+        client,
+        userId,
+        b.from_ts,
+        b.to_ts,
+        // Checked above: a malattia without its INPS protocol never gets here.
+        b.inps_protocol!,
+        null
+      );
+      fromTs = resolved.fromTs;
+      toTs = resolved.toTs;
+      alreadyCovered = resolved.alreadyCovered;
+    }
+
+    const duration = await computeDurationHours(client, userId, b.type, fromTs, toTs);
     if (duration <= 0) {
       throw new ValidationError(
         'la richiesta non copre ore lavorative (verifica l\'orario assegnato)'
@@ -165,10 +231,12 @@ leavesRouter.post(
     }
 
     // Per-day cap: the sum of (existing active requests + this one) cannot
-    // exceed the user's timesheet hours for any single day. malattia is
-    // exempt — it deliberately overrides overlapping rows via
-    // applyMalattiaOverlap below.
-    await assertPerDayCap(client, userId, b.type, b.from_ts, b.to_ts, null);
+    // exceed the user's timesheet hours for any single day, and the window may
+    // not duplicate an active request of the same type. malattia is exempt from
+    // the hours half — it deliberately overrides overlapping rows via
+    // applyMalattiaOverlap below — and its same-type question was already
+    // answered by resolveMalattiaWindow, on the window being stored.
+    await assertPerDayCap(client, userId, b.type, fromTs, toTs, null);
 
     // Quota balance is informational only. Submissions never blocked: companies
     // decide policy themselves and the counter is allowed to go negative.
@@ -188,8 +256,8 @@ leavesRouter.post(
       [
         b.type,
         status,
-        b.from_ts,
-        b.to_ts,
+        fromTs,
+        toTs,
         duration,
         b.inps_protocol ?? null,
         b.user_note ?? null,
@@ -200,14 +268,34 @@ leavesRouter.post(
       ]
     );
     const row = ins.rows[0];
-    await logEvent(client, row.id, 'submit', { type: b.type, duration_hours: duration });
+    await logEvent(client, row.id, 'submit', {
+      type: b.type,
+      duration_hours: duration,
+      // Only when the two differ, so the ordinary submit's payload is unchanged.
+      // A continuation records fewer days than the certificate names, and the
+      // trail has to say which days went where — the alternative is an employee
+      // and an admin reading the same certificate off two different windows.
+      ...(alreadyCovered.length > 0
+        ? {
+            requested_from: b.from_ts,
+            requested_to: b.to_ts,
+            already_certified_days: alreadyCovered,
+          }
+        : {}),
+    });
 
     if (b.type === 'malattia') {
-      const result = await applyMalattiaOverlap(client, userId, row.id, b.from_ts, b.to_ts);
+      const result = await applyMalattiaOverlap(client, userId, row.id, fromTs, toTs);
       if (result.supersededIds.length > 0 || result.trimmedIds.length > 0) {
         await logEvent(client, row.id, 'malattia.overlap_applied', {
           superseded: result.supersededIds,
           trimmed: result.trimmedIds,
+          // Only when there is one, so an ordinary sick note's payload is
+          // unchanged. A certificate falling INSIDE a holiday leaves the
+          // employee with two rows where they filed one; without this the days
+          // after the certificate look like they were dropped, which is exactly
+          // what they used to be.
+          ...(result.splits.length > 0 ? { split: result.splits } : {}),
         });
         for (const sid of result.supersededIds) {
           await logEvent(client, sid, 'superseded_by_malattia', { malattia_id: row.id });
@@ -215,17 +303,41 @@ leavesRouter.post(
         for (const tid of result.trimmedIds) {
           await logEvent(client, tid, 'trimmed_by_malattia', { malattia_id: row.id });
         }
+        // Both halves get the link, in both directions: an admin opening either
+        // row has to be able to reach the other one and the certificate that
+        // separated them.
+        for (const s of result.splits) {
+          await logEvent(client, s.originalId, 'split_by_malattia', {
+            malattia_id: row.id,
+            continuation_request_id: s.continuationId,
+          });
+          await logEvent(client, s.continuationId, 'resumed_after_malattia', {
+            malattia_id: row.id,
+            original_request_id: s.originalId,
+          });
+        }
       }
     } else {
-      await notifyLeaveSubmitted(req.user!.tenantId, client, {
-        requestId: row.id,
-        type: b.type,
-        from_ts: b.from_ts,
-        to_ts: b.to_ts,
-        duration_hours: duration,
-        requester_id: userId,
-        reason: b.user_note,
-      });
+      // Who to tell is a tenant-RLS read, so it has to happen on this client,
+      // inside the transaction. The sending itself (Brevo SMTP + a fetch to
+      // exp.host) does not — and must not, or it holds the employee's leave
+      // lock and a pool connection for as long as the socket hangs.
+      const approverIds = await loadLeaveApproverIds(client, userId);
+      const tenantId = req.user!.tenantId;
+      afterCommit(() =>
+        notifyLeaveSubmitted(tenantId, approverIds, {
+          requestId: row.id,
+          type: b.type,
+          // The stored window, not the requested one: they are the same for
+          // every type that reaches here, and an approver must never be shown
+          // a period the row does not hold.
+          from_ts: fromTs,
+          to_ts: toTs,
+          duration_hours: duration,
+          requester_id: userId,
+          reason: b.user_note,
+        })
+      );
     }
     ok(res, row, 201);
   })
@@ -247,7 +359,7 @@ const AdminCreateBody = z.object({
 leavesRouter.post(
   '/admin-create',
   requireAdmin,
-  tenantHandler(async (req, res, client) => {
+  tenantHandler(async (req, res, client, afterCommit) => {
     const parse = AdminCreateBody.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     const b = parse.data;
@@ -273,18 +385,24 @@ leavesRouter.post(
     );
     if (member.rowCount === 0) throw new NotFoundError('user not in tenant');
 
+    // Step 1 of the lock order (lib/leave-quota.ts), before any read the insert
+    // depends on. This is the endpoint the anomalies bulk bar calls, once per
+    // selected row and in parallel, which is how Time System got 16h of ferie
+    // on one day (August 2026).
+    await lockLeaveUser(client, b.user_id);
+
     const duration = await computeDurationHours(client, b.user_id, b.type, b.from_ts, b.to_ts);
     if (duration <= 0) {
       throw new ValidationError(
         'la richiesta non copre ore lavorative (verifica l\'orario assegnato)'
       );
     }
-    // Same per-day cap as POST '/' — an admin insert is not allowed to book
-    // more hours on a date than the employee is scheduled to work. This is
-    // also the endpoint the anomalies bulk bar calls, once per selected row
-    // and in parallel, which is how Time System got 16h of ferie on one day
-    // (August 2026): assertPerDayCap now takes a per-user advisory lock for
-    // the rest of this transaction so two concurrent calls cannot both pass.
+    // Same guards as POST '/': an admin insert may not book more hours on a
+    // date than the employee is scheduled to work, nor duplicate an active
+    // request of the same type. The lock above makes both mutually exclusive
+    // with a concurrent call for the same employee; the overlap half of
+    // assertPerDayCap is what catches the two-identical-permessi shape the
+    // hours cap lets through.
     await assertPerDayCap(client, b.user_id, b.type, b.from_ts, b.to_ts, null);
 
     const ins = await client.query(
@@ -314,19 +432,22 @@ leavesRouter.post(
       after: { type: b.type, date_from: b.from_ts, date_to: b.to_ts, status: 'approved' },
       req,
     });
-    await notifyLeaveAddedByAdmin(
-      req.user!.tenantId,
-      client,
-      {
-        requestId: row.id,
-        type: b.type,
-        from_ts: b.from_ts,
-        to_ts: b.to_ts,
-        duration_hours: duration,
-        requester_id: b.user_id,
-        reason: b.user_note ?? undefined,
-      },
-      req.user!.id
+    const tenantId = req.user!.tenantId;
+    const adminId = req.user!.id;
+    afterCommit(() =>
+      notifyLeaveAddedByAdmin(
+        tenantId,
+        {
+          requestId: row.id,
+          type: b.type,
+          from_ts: b.from_ts,
+          to_ts: b.to_ts,
+          duration_hours: duration,
+          requester_id: b.user_id,
+          reason: b.user_note ?? undefined,
+        },
+        adminId
+      )
     );
     ok(res, row, 201);
   })
@@ -451,22 +572,19 @@ const RejectBody = z.object({ rejection_reason: z.string().min(1).max(500) });
 
 leavesRouter.post(
   '/:id/approve',
-  tenantHandler(async (req, res, client) => {
-    const r = await client.query(
-      `SELECT * FROM leave_requests WHERE id = $1 FOR UPDATE`,
-      [req.params.id]
-    );
-    if (r.rowCount === 0) throw new NotFoundError('leave_request');
-    const row = r.rows[0];
+  tenantHandler(async (req, res, client, afterCommit) => {
+    const row = await lockRequestForUpdate(client, String(req.params.id));
     if (row.status !== 'pending') {
       throw new ConflictError('richiesta non più in attesa', 'NOT_PENDING');
     }
     await assertCanDecide(client, req.user!.id, req.user!.role, row.user_id);
 
-    // Re-check the per-day cap in case other requests landed between submit
-    // and approve. Exclude this row's id so an exact-match self-overlap
-    // doesn't double-count. malattia is exempt (assertPerDayCap short-
-    // circuits on type='malattia').
+    // Re-check the per-day cap and the same-type overlap in case other
+    // requests landed between submit and approve. Exclude this row's id so an
+    // exact-match self-overlap doesn't double-count. malattia is exempt
+    // (assertPerDayCap short-circuits on type='malattia'). The advisory lock it
+    // takes is already held — lockRequestForUpdate took it above, in the right
+    // order.
     await assertPerDayCap(
       client,
       row.user_id,
@@ -494,19 +612,22 @@ leavesRouter.post(
       after: { type: row.type, date_from: row.from_ts, date_to: row.to_ts, status: 'approved' },
       req,
     });
-    await notifyLeaveDecided(
-      req.user!.tenantId,
-      client,
-      {
-        requestId: row.id,
-        type: row.type,
-        from_ts: row.from_ts,
-        to_ts: row.to_ts,
-        duration_hours: Number(row.duration_hours),
-        requester_id: row.user_id,
-      },
-      'approved',
-      req.user!.id
+    const tenantId = req.user!.tenantId;
+    const approverId = req.user!.id;
+    afterCommit(() =>
+      notifyLeaveDecided(
+        tenantId,
+        {
+          requestId: row.id,
+          type: row.type,
+          from_ts: row.from_ts,
+          to_ts: row.to_ts,
+          duration_hours: Number(row.duration_hours),
+          requester_id: row.user_id,
+        },
+        'approved',
+        approverId
+      )
     );
     const updated = await loadRequest(client, row.id);
     ok(res, updated);
@@ -515,15 +636,10 @@ leavesRouter.post(
 
 leavesRouter.post(
   '/:id/reject',
-  tenantHandler(async (req, res, client) => {
+  tenantHandler(async (req, res, client, afterCommit) => {
     const parse = RejectBody.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
-    const r = await client.query(
-      `SELECT * FROM leave_requests WHERE id = $1 FOR UPDATE`,
-      [req.params.id]
-    );
-    if (r.rowCount === 0) throw new NotFoundError('leave_request');
-    const row = r.rows[0];
+    const row = await lockRequestForUpdate(client, String(req.params.id));
     if (row.status !== 'pending') {
       throw new ConflictError('richiesta non più in attesa', 'NOT_PENDING');
     }
@@ -553,20 +669,24 @@ leavesRouter.post(
       },
       req,
     });
-    await notifyLeaveDecided(
-      req.user!.tenantId,
-      client,
-      {
-        requestId: row.id,
-        type: row.type,
-        from_ts: row.from_ts,
-        to_ts: row.to_ts,
-        duration_hours: Number(row.duration_hours),
-        requester_id: row.user_id,
-      },
-      'rejected',
-      req.user!.id,
-      parse.data.rejection_reason
+    const tenantId = req.user!.tenantId;
+    const approverId = req.user!.id;
+    const rejectionReason = parse.data.rejection_reason;
+    afterCommit(() =>
+      notifyLeaveDecided(
+        tenantId,
+        {
+          requestId: row.id,
+          type: row.type,
+          from_ts: row.from_ts,
+          to_ts: row.to_ts,
+          duration_hours: Number(row.duration_hours),
+          requester_id: row.user_id,
+        },
+        'rejected',
+        approverId,
+        rejectionReason
+      )
     );
     const updated = await loadRequest(client, row.id);
     ok(res, updated);
@@ -576,12 +696,7 @@ leavesRouter.post(
 leavesRouter.post(
   '/:id/cancel',
   tenantHandler(async (req, res, client) => {
-    const r = await client.query(
-      `SELECT * FROM leave_requests WHERE id = $1 FOR UPDATE`,
-      [req.params.id]
-    );
-    if (r.rowCount === 0) throw new NotFoundError('leave_request');
-    const row = r.rows[0];
+    const row = await lockRequestForUpdate(client, String(req.params.id));
     if (row.user_id !== req.user!.id) {
       throw new ForbiddenError('solo l\'autore può annullare');
     }
@@ -604,15 +719,10 @@ const CancelRequestBody = z.object({
 
 leavesRouter.post(
   '/:id/request-cancellation',
-  tenantHandler(async (req, res, client) => {
+  tenantHandler(async (req, res, client, afterCommit) => {
     const parse = CancelRequestBody.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
-    const r = await client.query(
-      `SELECT * FROM leave_requests WHERE id = $1 FOR UPDATE`,
-      [req.params.id]
-    );
-    if (r.rowCount === 0) throw new NotFoundError('leave_request');
-    const row = r.rows[0];
+    const row = await lockRequestForUpdate(client, String(req.params.id));
     if (row.user_id !== req.user!.id) {
       throw new ForbiddenError('solo l\'autore può richiedere annullamento');
     }
@@ -638,15 +748,22 @@ leavesRouter.post(
     await logEvent(client, row.id, 'request_cancellation', {
       reason: parse.data.cancellation_reason,
     });
-    await notifyCancellationRequested(req.user!.tenantId, client, {
-      requestId: row.id,
-      type: row.type,
-      from_ts: row.from_ts,
-      to_ts: row.to_ts,
-      duration_hours: Number(row.duration_hours),
-      requester_id: row.user_id,
-      reason: parse.data.cancellation_reason,
-    });
+    // Approver lookup inside the transaction (tenant-RLS read), delivery after
+    // it — see the afterCommit contract in lib/route-helpers.ts.
+    const approverIds = await loadLeaveApproverIds(client, row.user_id);
+    const tenantId = req.user!.tenantId;
+    const cancellationReason = parse.data.cancellation_reason;
+    afterCommit(() =>
+      notifyCancellationRequested(tenantId, approverIds, {
+        requestId: row.id,
+        type: row.type,
+        from_ts: row.from_ts,
+        to_ts: row.to_ts,
+        duration_hours: Number(row.duration_hours),
+        requester_id: row.user_id,
+        reason: cancellationReason,
+      })
+    );
     const updated = await loadRequest(client, row.id);
     ok(res, updated);
   })
@@ -659,15 +776,10 @@ const DecideCancelBody = z.object({
 
 leavesRouter.post(
   '/:id/decide-cancellation',
-  tenantHandler(async (req, res, client) => {
+  tenantHandler(async (req, res, client, afterCommit) => {
     const parse = DecideCancelBody.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
-    const r = await client.query(
-      `SELECT * FROM leave_requests WHERE id = $1 FOR UPDATE`,
-      [req.params.id]
-    );
-    if (r.rowCount === 0) throw new NotFoundError('leave_request');
-    const row = r.rows[0];
+    const row = await lockRequestForUpdate(client, String(req.params.id));
     if (row.status !== 'cancellation_pending') {
       throw new ConflictError('nessuna richiesta di annullamento attiva', 'WRONG_STATE');
     }
@@ -700,18 +812,21 @@ leavesRouter.post(
       },
       req,
     });
-    await notifyCancellationDecided(
-      req.user!.tenantId,
-      client,
-      {
-        requestId: row.id,
-        type: row.type,
-        from_ts: row.from_ts,
-        to_ts: row.to_ts,
-        duration_hours: Number(row.duration_hours),
-        requester_id: row.user_id,
-      },
-      parse.data.approve
+    const tenantId = req.user!.tenantId;
+    const accepted = parse.data.approve;
+    afterCommit(() =>
+      notifyCancellationDecided(
+        tenantId,
+        {
+          requestId: row.id,
+          type: row.type,
+          from_ts: row.from_ts,
+          to_ts: row.to_ts,
+          duration_hours: Number(row.duration_hours),
+          requester_id: row.user_id,
+        },
+        accepted
+      )
     );
     const updated = await loadRequest(client, row.id);
     ok(res, updated);
@@ -725,11 +840,7 @@ leavesRouter.post(
   tenantHandler(async (req, res, client) => {
     const parse = z.object({ reason: z.string().min(1).max(500) }).safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
-    const r = await client.query(
-      `SELECT * FROM leave_requests WHERE id = $1 FOR UPDATE`,
-      [req.params.id]
-    );
-    if (r.rowCount === 0) throw new NotFoundError('leave_request');
+    const revoked = await lockRequestForUpdate(client, String(req.params.id));
     await client.query(
       `UPDATE leave_requests
           SET status = 'cancelled_post_approval',
@@ -744,11 +855,11 @@ leavesRouter.post(
       action: 'leave.admin_revoke',
       resourceType: 'leave',
       resourceId: String(req.params.id),
-      targetUserId: r.rows[0].user_id,
+      targetUserId: revoked.user_id,
       after: {
-        type: r.rows[0].type,
-        date_from: r.rows[0].from_ts,
-        date_to: r.rows[0].to_ts,
+        type: revoked.type,
+        date_from: revoked.from_ts,
+        date_to: revoked.to_ts,
         status: 'cancelled_post_approval',
         reason: parse.data.reason,
       },
@@ -775,7 +886,7 @@ const BulkBody = z.object({
 leavesRouter.post(
   '/bulk',
   requireAdmin,
-  tenantHandler(async (req, res, client) => {
+  tenantHandler(async (req, res, client, afterCommit) => {
     const parse = BulkBody.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     const b = parse.data;
@@ -793,56 +904,148 @@ leavesRouter.post(
       );
       userIds = all.rows.map((r) => r.user_id as string);
     }
-    userIds = Array.from(new Set(userIds));
+    // Sorted, not just deduplicated: this transaction ends up holding one
+    // advisory lock per user, and two concurrent bulks that grabbed overlapping
+    // user sets in different orders would deadlock on each other. A total order
+    // on the key makes that impossible.
+    userIds = Array.from(new Set(userIds)).sort();
     if (userIds.length === 0) throw new ValidationError('nessun utente selezionato');
 
-    const type = b.deduct_ferie ? 'ferie' : 'chiusura';
+    const type: StoredLeaveType = b.deduct_ferie ? 'ferie' : 'chiusura';
     const batchRow = await client.query(`SELECT gen_random_uuid() AS id`);
     const batchId = batchRow.rows[0].id as string;
 
     const created: string[] = [];
+    const skipped: Array<{ user_id: string; days: string[]; reason: string }> = [];
+    let skippedDayCount = 0;
     for (const uid of userIds) {
-      // Closures span whole days; hours follow the user's shift template, same
-      // path 'ferie' uses. Per-day cap intentionally NOT enforced — the closure
-      // is mandatory and admin-imposed.
-      const duration = await computeDurationHours(client, uid, 'ferie', b.from_ts, b.to_ts);
-      const ins = await client.query(
-        `INSERT INTO leave_requests(
-           tenant_id, user_id, type, status, from_ts, to_ts, duration_hours,
-           decided_by, decided_at, created_by_admin, batch_id, title, user_note
-         ) VALUES (
-           current_setting('app.current_tenant_id')::uuid, $1, $2, 'approved',
-           $3, $4, $5,
-           current_setting('app.current_user_id')::uuid, now(), TRUE, $6, $7, $8
-         ) RETURNING id`,
-        [uid, type, b.from_ts, b.to_ts, duration, batchId, b.title, b.user_note ?? null]
-      );
-      await logEvent(client, ins.rows[0].id, 'admin_bulk_create', {
-        batch_id: batchId,
-        title: b.title,
-        type,
-        deduct_ferie: b.deduct_ferie,
-      });
+      // Step 1 of the lock order (lib/leave-quota.ts). This endpoint used to
+      // take no lock at all and call no guard, so it could duplicate an absence
+      // that another request was creating at the same instant — the exact shape
+      // of the August incident, just with the company closure as one of the two
+      // writers.
+      await lockLeaveUser(client, uid);
+
+      // Deliberately NOT the full per-day cap. A closure is mandatory and
+      // admin-imposed: an employee who already has a 2h permesso on a closure
+      // day would push the day to 10h on an 8h capacity and the whole closure
+      // would be refused for them, which is not what "chiusura aziendale"
+      // means — payroll settles those hours by type, not by sum. What is never
+      // legitimate is filing the SAME kind of absence twice over the same
+      // window, so only the duplicate guard applies here. With deduct_ferie
+      // that also means a closure will not double-book ferie the employee had
+      // already been granted for those days.
+      //
+      // Day-granular, and that granularity is the fix: asking the guard about
+      // the window as a whole and dropping the employee on any hit deleted the
+      // other seven days of a Christmas closure for anyone with one ferie day
+      // in the middle of it. splitClosureAroundOverlaps returns the free runs
+      // to insert and names the days it had to drop.
+      const split = await splitClosureAroundOverlaps(client, uid, type, b.from_ts, b.to_ts);
+      if (split.blockedDays.length > 0) {
+        skippedDayCount += split.blockedDays.length;
+        skipped.push({
+          user_id: uid,
+          days: split.blockedDays.map((d) => d.iso),
+          reason: describeOverlap(type, split.blockedDays[0]!.clash),
+        });
+      }
+      if (split.segments.length === 0) continue;
+
+      for (const seg of split.segments) {
+        // Closures span whole days; hours follow the user's shift template, same
+        // path 'ferie' uses. Per segment, not per closure: a split employee must
+        // not be charged the hours of the days that were skipped.
+        const duration = await computeDurationHours(client, uid, 'ferie', seg.fromTs, seg.toTs);
+        const ins = await client.query(
+          `INSERT INTO leave_requests(
+             tenant_id, user_id, type, status, from_ts, to_ts, duration_hours,
+             decided_by, decided_at, created_by_admin, batch_id, title, user_note
+           ) VALUES (
+             current_setting('app.current_tenant_id')::uuid, $1, $2, 'approved',
+             $3, $4, $5,
+             current_setting('app.current_user_id')::uuid, now(), TRUE, $6, $7, $8
+           ) RETURNING id`,
+          [uid, type, seg.fromTs, seg.toTs, duration, batchId, b.title, b.user_note ?? null]
+        );
+        await logEvent(client, ins.rows[0].id, 'admin_bulk_create', {
+          batch_id: batchId,
+          title: b.title,
+          type,
+          deduct_ferie: b.deduct_ferie,
+          // The requested window and the granted one differ for a split
+          // employee; the audit trail has to say which is which.
+          requested_from: b.from_ts,
+          requested_to: b.to_ts,
+          skipped_days: split.blockedDays.map((d) => d.iso),
+        });
+      }
       created.push(uid);
+    }
+
+    // Every selected employee was fully covered → nothing happened, so do not
+    // answer 201 with an empty batch. Throwing also rolls the transaction back,
+    // so no orphan batch_id is left behind. Note this now means FULLY covered:
+    // one free day anywhere in the window puts the employee in `created` and
+    // the closure through.
+    if (created.length === 0) {
+      const first = skipped[0];
+      throw new ConflictError(
+        `Nessuna riga creata: tutti i ${skipped.length} dipendenti selezionati hanno già un'assenza dello stesso tipo per ogni giorno del periodo.${first ? ` ${first.reason}` : ''}`,
+        'LEAVE_OVERLAP'
+      );
     }
 
     await logAudit(client, {
       action: 'leave.bulk_create',
       resourceType: 'leave',
       resourceId: batchId,
-      after: { type, date_from: b.from_ts, date_to: b.to_ts, user_count: created.length },
+      after: {
+        type,
+        date_from: b.from_ts,
+        date_to: b.to_ts,
+        user_count: created.length,
+        skipped_count: skipped.length,
+        skipped_day_count: skippedDayCount,
+      },
       req,
     });
 
-    await notifyBulkEvent(req.user!.tenantId, created, {
-      title: b.title,
-      from_ts: b.from_ts,
-      to_ts: b.to_ts,
-      deducts_ferie: b.deduct_ferie,
-      batchId,
-    });
+    // Only the employees who actually got a row. notifyBulkEvent needs no
+    // transactional client (it reads recipients through adminPool), so this is
+    // purely about not holding the closure's locks across an SMTP run. The
+    // notification announces the closure's window, which is the company fact
+    // even for an employee whose own rows skip a day of it — their calendar
+    // shows what they were actually granted.
+    const tenantId = req.user!.tenantId;
+    afterCommit(() =>
+      notifyBulkEvent(tenantId, created, {
+        title: b.title,
+        from_ts: b.from_ts,
+        to_ts: b.to_ts,
+        deducts_ferie: b.deduct_ferie,
+        batchId,
+      })
+    );
 
-    ok(res, { batch_id: batchId, created_count: created.length, user_ids: created }, 201);
+    // skipped[] names the employee AND the days: a closure that silently missed
+    // three days of one person's window would otherwise be discovered in the
+    // payroll export. apps/web BulkEventModal renders it instead of closing on
+    // success — a 201 the admin never reads is how the holes stayed invisible.
+    // Additive fields; existing callers read batch_id / created_count /
+    // user_ids and are unaffected.
+    ok(
+      res,
+      {
+        batch_id: batchId,
+        created_count: created.length,
+        user_ids: created,
+        skipped_count: skipped.length,
+        skipped_day_count: skippedDayCount,
+        skipped,
+      },
+      201
+    );
   })
 );
 
@@ -852,6 +1055,31 @@ leavesRouter.post(
   tenantHandler(async (req, res, client) => {
     const parsed = z.string().uuid().safeParse(req.params.batchId);
     if (!parsed.success) throw new ValidationError('batchId non valido');
+
+    // Same lock order as everywhere else, even though this handler cannot
+    // deadlock on its own (it takes only row locks, and a transaction that
+    // never waits on an advisory lock can never close the cycle). Taking them
+    // keeps the invariant uniform — "no leave row is written without its
+    // employee's lock" — and, more usefully, stops this bulk UPDATE from
+    // interleaving with a malattia sweep that is mid-flight on one of the same
+    // rows. Sorted for the same reason as POST /bulk. The owner set cannot grow
+    // underneath us: only POST /bulk inserts rows for a batch_id, and it
+    // generates a fresh one per call.
+    //
+    // Keying on batch_id alone — never on one row per employee — is also what
+    // lets POST /bulk split a closure around days an employee already had
+    // booked: an employee with three segments revokes exactly like one with a
+    // single row, and DISTINCT collapses their locks to one.
+    const owners = await client.query(
+      `SELECT DISTINCT user_id
+         FROM leave_requests
+        WHERE batch_id = $1
+          AND status = 'approved'
+        ORDER BY user_id`,
+      [parsed.data]
+    );
+    for (const o of owners.rows) await lockLeaveUser(client, o.user_id as string);
+
     const r = await client.query(
       `UPDATE leave_requests
           SET status = 'cancelled_post_approval',

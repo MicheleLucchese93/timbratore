@@ -65,7 +65,15 @@
     "errTitle": "Enter a title.",
     "errDates": "Enter the dates.",
     "errOrder": "The end date is before the start date.",
-    "errSelect": "Select at least one employee."
+    "errSelect": "Select at least one employee.",
+    "partialTitle": "Company event added, with exclusions",
+    "partialSummary_one": "The event was added for {{count}} employee.",
+    "partialSummary_other": "The event was added for {{count}} employees.",
+    "partialSkippedDays_one": "1 day was not added because the employee already had an absence of the same type:",
+    "partialSkippedDays_other": "{{count}} days were not added because the employee already had an absence of the same type:",
+    "partialDays_one": "1 day excluded: {{days}}",
+    "partialDays_other": "{{count}} days excluded: {{days}}",
+    "partialHint": "Every other day of the period was added normally. To cover the excluded days too, first cancel the employee's existing absence and add the event again for those days only."
   },
   "quotas": {
     "permessiPlural": "Leave",

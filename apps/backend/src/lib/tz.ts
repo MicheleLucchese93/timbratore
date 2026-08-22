@@ -129,13 +129,29 @@ export function zonedDateKey(at: Date | number, timeZone: string = DEFAULT_TZ): 
 // Inclusive list of `timeZone` business days spanned by the instants `from`..`to`.
 // Iterates on the date string, not on a UTC instant stepped by 24h: a DST
 // transition day is 23 or 25 hours long, so instant arithmetic drifts across it.
+//
+// An end instant sitting exactly on local midnight is the OPEN edge of the day
+// it lands in, not a moment inside it: a leave stored 10 Aug 00:00 → 12 Aug
+// 00:00 (Rome) covers two days, not three. Keying that end to its own day gave
+// the third day a share of duration_hours — 5,33h each instead of 8h on two —
+// and the phantom day could land on top of the employee's own absence, printing
+// 13,33h and the wrong marker. Same family as the start-side bug zonedDateKey()
+// documents above (Carlo Signorato / IdealCopy, July 2026), with the boundary on
+// the other end of the span. A '…T23:59' end is untouched: it is already inside
+// its own day.
 export function eachZonedDateKeyInclusive(
   from: Date | number,
   to: Date | number,
   timeZone: string = DEFAULT_TZ
 ): string[] {
   const out: string[] = [];
-  const last = zonedDateKey(to, timeZone);
+  const toMs = typeof to === 'number' ? to : to.getTime();
+  const endKey = zonedDateKey(toMs, timeZone);
+  // Compare against local midnight of that same day rather than a fixed UTC
+  // offset: midnight is 22:00Z in summer and 23:00Z in winter, and a DST day
+  // shifts it again.
+  const last =
+    startOfZonedDayUtcMs(endKey, timeZone) === toMs ? zonedDateKey(toMs - 1, timeZone) : endKey;
   // Zero-padded YYYY-MM-DD compares lexicographically in chronological order.
   for (let cur = zonedDateKey(from, timeZone); cur <= last; cur = nextIsoDate(cur)) {
     out.push(cur);

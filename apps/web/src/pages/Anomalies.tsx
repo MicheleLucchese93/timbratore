@@ -59,13 +59,54 @@ const KIND_COLOR: Record<Anomaly['kind'], string> = {
   clock_out_out_of_area: '#7c3aed',
 };
 
-const JUSTIFIABLE_KINDS: Anomaly['kind'][] = [
+// The anomaly kinds that describe unworked time, and can therefore carry a
+// DAY-level correction (ferie / permesso) for the whole giornata.
+//
+// The order here is ONLY a tie-break for picking one representative row per
+// day — which row collapseByDay keeps, and which one a ferie reads the
+// scheduled day from. It is emphatically NOT how the proposed permesso window
+// is chosen; that is buildDayCorrection()'s job.
+//
+// Reading this order as a window priority is precisely what broke the page.
+// 'short_hours' sits first because its delta_minutes is the day's real
+// shortfall, but proposeGap('short_hours') is END-anchored (ee − delta → ee).
+// On a 09:00–13:00 / 14:00–18:00 schedule entered at 10:30 the day raises both
+// late_clock_in and short_hours with delta 90, and letting 'short_hours' speak
+// for the giornata proposed 16:30–18:00 — ninety minutes the employee had
+// actually worked — while the 09:00–10:30 hole it was meant to cover stayed
+// open and kept raising the anomaly.
+//
+// This used to be two lists holding the very same five kinds — a
+// JUSTIFIABLE_KINDS set gating the per-row menu and a COLLAPSE_PRIORITY order
+// driving the bulk bar — which is one list too many to keep in sync.
+const DAY_LEVEL_KINDS: Anomaly['kind'][] = [
   'short_hours',
-  'missing_clock_in',
-  'missing_clock_out',
-  'late_clock_in',
   'early_clock_out',
+  'late_clock_in',
+  'missing_clock_out',
+  'missing_clock_in',
 ];
+
+// WHERE in the day the unworked stretch sits: at the head of the shift
+// (expected_start → actual_start) or at its tail (actual_end → expected_end).
+//
+// 'short_hours' is deliberately in neither list: it is a MAGNITUDE, not a
+// position. It says four hours are missing, never at which end of the day they
+// are missing — which is why it can only ever be the last resort for a window.
+//
+// These two lists are the KIND half of isPositionedGapRow: a row may keep its
+// own window against the giornata's only if it appears here — and only if the
+// punch that end is measured from was actually made, which is the other half.
+// So the "last resort" rule holds for the row itself and not merely for the day.
+const LEADING_GAP_KINDS: Anomaly['kind'][] = ['late_clock_in', 'missing_clock_in'];
+const TRAILING_GAP_KINDS: Anomaly['kind'][] = ['early_clock_out', 'missing_clock_out'];
+
+function dayLevelRank(kind: Anomaly['kind']): number {
+  const i = DAY_LEVEL_KINDS.indexOf(kind);
+  // Kinds outside the list never describe unworked time (pausa, fuori area,
+  // giorno di riposo), so any rank past the end of the list will do.
+  return i === -1 ? DAY_LEVEL_KINDS.length : i;
+}
 
 function defaultRange(): { from: string; to: string } {
   return { from: isoLocalDaysAgo(30), to: isoLocalDate() };
@@ -136,6 +177,11 @@ export function Anomalies() {
     [rows, hideJustified]
   );
   const hiddenCount = rows.length - visible.length;
+
+  // Deliberately keyed off `rows`, not `visible`: which absence a giornata can
+  // take is a property of the day, and hiding a justified row must not change
+  // the answer.
+  const dayCorrections = useMemo(() => buildDays(rows), [rows]);
 
   const grouped = useMemo(() => {
     const m = new Map<string, Anomaly[]>();
@@ -309,6 +355,7 @@ export function Anomalies() {
                 <AnomalyItem
                   key={keyOf(a)}
                   a={a}
+                  day={dayCorrections.get(dayKeyOf(a))}
                   selected={selected.has(keyOf(a))}
                   onToggle={() => toggleOne(keyOf(a))}
                   onDone={() => {
@@ -324,6 +371,7 @@ export function Anomalies() {
       {selectedRows.length > 0 && (
         <BulkCorrectBar
           items={selectedRows}
+          days={dayCorrections}
           onDone={() => {
             load().catch(() => {});
           }}
@@ -405,14 +453,315 @@ function proposeGap(a: Anomaly): { from: string; to: string } | null {
   return { from: new Date(from).toISOString(), to: new Date(to).toISOString() };
 }
 
-function availableActions(a: Anomaly): CorrectionAction[] {
+// A row that contributes unworked time to its giornata: a day-level kind,
+// carrying the day's schedule, that proposeGap() can turn into a window.
+//
+// This is what makes a day correctible with an absence AT ALL — it is the
+// filter buildDayCorrection starts from. It says nothing about whether the row
+// may speak for itself; only isPositionedGapRow does.
+function isGapRow(a: Anomaly): boolean {
+  return (
+    dayLevelRank(a.kind) < DAY_LEVEL_KINDS.length &&
+    a.expected_start_at !== null &&
+    a.expected_end_at !== null &&
+    proposeGap(a) !== null
+  );
+}
+
+// A gap row whose OWN punches place its hole, and which may therefore keep its
+// own proposal against the giornata's.
+//
+// Two conditions, and the second is not a corollary of the first: the KIND has
+// to name an end of the turno (LEADING/TRAILING_GAP_KINDS), and the PUNCH that
+// end's window is measured from has to exist. proposeGap reads a leading window
+// as expected_start → actual_start and a trailing one as actual_end →
+// expected_end; with its own anchor null it falls back to the whole scheduled
+// day — an assumption about the giornata, not a position inside it.
+//
+// Keeping the row's own window where it IS anchored is one half of the bug: on
+// the 09:00–13:00 / 14:00–18:00 day entered at 10:30, the 'late_clock_in' row —
+// whose own window is 09:00–10:30 — had started showing the day's end-anchored
+// 16:30–18:00, so confirming it booked a permesso over hours that had been
+// worked and left the late entry uncorrected.
+//
+// Reading the kind alone is the mirror image of that, and was the other half.
+// 'missing_clock_in' and 'missing_clock_out' are raised precisely WHEN their own
+// anchor is absent — buildAnomaly fills actual_start_at/actual_end_at from
+// firstIn/lastOut, and each kind fires only when the one it would read is
+// missing — so their "own" window is always the entire turno. On a 09:00–18:00
+// day entered at 10:30 and never closed, the day raises late_clock_in AND
+// missing_clock_out and its hole is 09:00–10:30, but the 'missing_clock_out' row
+// proposed 09:00–18:00: six and a half worked hours booked off the residuo, from
+// the row an admin opens exactly because the exit is what is missing. The
+// missing punch is what 'Timbratura standard' is for; how much of the day it
+// leaves uncovered is a question only the giornata can answer.
+//
+// 'short_hours' is excluded by kind, one step earlier and for the same reason.
+// It is a MAGNITUDE (see LEADING/TRAILING_GAP_KINDS): it says four hours are
+// missing, never at which end of the turno. Letting it speak for its own row put the
+// identical defect back one row over — on a 09:00–18:00 day entered at 10:30
+// and left at 16:30, buildDayCorrection correctly refuses a single permesso
+// (`split`), but the 'short_hours' row went on offering its end-anchored
+// 15:00–18:00: ninety of those minutes are hours the punches prove were worked,
+// and both real holes stayed open. It now borrows the giornata's answer like a
+// pausa row does, which on a split day is "no single window exists".
+//
+// On a day whose only gap row is one of the borrowers — 'short_hours' alone, or
+// an unanchored 'missing_clock_in' alone — the borrowed answer is the very
+// window that row would have proposed (buildDayCorrection falls back to it), so
+// nothing is lost where the row is all the day knows.
+function isPositionedGapRow(a: Anomaly): boolean {
+  if (!isGapRow(a)) return false;
+  // One anchor per end: without it there is no position to keep, only
+  // proposeGap's whole-day fallback. Kinds in neither list ('short_hours',
+  // pausa, fuori area, giorno di riposo) never keep a window of their own.
+  if (LEADING_GAP_KINDS.includes(a.kind)) return a.actual_start_at !== null;
+  if (TRAILING_GAP_KINDS.includes(a.kind)) return a.actual_end_at !== null;
+  return false;
+}
+
+// What a DAY-level correction can do to one giornata, derived from that day's
+// whole anomaly SET rather than from a single representative row.
+//
+// Time System, RAO Giuseppe, 14/08/2026: orario "FULL TIME FLESSIBILE"
+// 08:00–12:00 + 13:00–17:00, punched in at 07:58 and out at 14:38 with no
+// lunch stamped. The day raised several anomalies and the admin opened the one
+// of kind 'lunch_too_short'; that row offered only "giustifica con nota",
+// which they read as "the product won't let me insert a permesso". The 2h20 of
+// unworked time is a fact about the GIORNATA, not about the row that happened
+// to be clicked — hence this per-day object.
+interface DayCorrection {
+  // Any gap row of the day. Every kind of one giornata is built from the same
+  // day of stamps and carries the same expected_start_at/expected_end_at, so
+  // this is simply where 'ferie' reads the scheduled day from.
+  schedule: Anomaly;
+  // The day's genuinely un-worked window, or null when it cannot be expressed
+  // as one (see `split`).
+  gap: { from: string; to: string } | null;
+  // The anomaly `gap` was read from — named in the recap, so "dalle 14:38 alle
+  // 17:00" shown on a pausa row is not read as the length of the break.
+  gapSource: Anomaly | null;
+  // Set when the day is un-worked at BOTH ends AND the punches prove someone
+  // was there in between: in late AND out early. Those are two disjoint
+  // stretches; one permesso cannot cover them, and silently picking one would
+  // book the other as worked. The day-level permesso is withheld and the admin
+  // is pointed at the two rows, each of which proposes its own window.
+  //
+  // Two flagged ends are NOT enough on their own — see dayGapFromBothEnds.
+  split: { leading: Anomaly; trailing: Anomaly } | null;
+}
+
+// Two windows that touch or overlap are ONE stretch, not two: their union.
+// null when they are genuinely disjoint (worked time sits between them).
+function unionWindow(
+  a: { from: string; to: string },
+  b: { from: string; to: string }
+): { from: string; to: string } | null {
+  const aFrom = new Date(a.from).getTime();
+  const aTo = new Date(a.to).getTime();
+  const bFrom = new Date(b.from).getTime();
+  const bTo = new Date(b.to).getTime();
+  if (aTo < bFrom || bTo < aFrom) return null;
+  return {
+    from: new Date(Math.min(aFrom, bFrom)).toISOString(),
+    to: new Date(Math.max(aTo, bTo)).toISOString(),
+  };
+}
+
+// A day flagged at BOTH ends, resolved into ONE window where the punches allow
+// it. null means "cannot be expressed as a single window", which the caller
+// turns into a `split` — the conservative answer, since a split only withholds
+// the day-level permesso and leaves both rows correctable on their own.
+//
+// What decides it is not the PAIR OF KINDS but the two presence anchors:
+//
+//   leading.actual_start_at  → when presence is first evidenced (null: never in)
+//   trailing.actual_end_at   → when presence is last evidenced  (null: never out)
+//
+// Reading "leading row + trailing row" as "two holes" is what broke a plain
+// absence. A scheduled day with NO punches at all raises missing_clock_in AND
+// missing_clock_out, and buildAnomaly leaves both anchors null; proposeGap's
+// "no punch → assume the whole scheduled day" fallback then hands back the SAME
+// 09:00–18:00 window twice. Calling that a split withheld the day-level
+// permesso from an ordinary absent day — and, because the bulk bar intersected
+// across the selection, from every other day selected together with it.
+//
+// The invariant the three branches share: the day's gap is whatever the day's
+// REAL punches leave uncovered. Where a punch anchors one end, that end's
+// window is the only stretch the day proves, and the other end's whole-day
+// fallback must not be unioned into it — entrato alle 10:30 e mai uscito is
+// 09:00–10:30, not 09:00–18:00; the missing exit is what "Timbratura standard"
+// is for. It is also exactly the window the day would propose once that
+// correction has run.
+function dayGapFromBothEnds(
+  leading: Anomaly,
+  trailing: Anomaly
+): { gap: { from: string; to: string }; gapSource: Anomaly } | null {
+  const presenceFrom = leading.actual_start_at
+    ? new Date(leading.actual_start_at).getTime()
+    : null;
+  const presenceTo = trailing.actual_end_at ? new Date(trailing.actual_end_at).getTime() : null;
+
+  // In late AND out early: hours that were worked sit between the two holes, so
+  // they are two stretches and one permesso genuinely cannot cover them.
+  if (presenceFrom !== null && presenceTo !== null && presenceFrom < presenceTo) return null;
+
+  // Exactly one end anchored by a real punch → that half is the day's window.
+  if (presenceFrom !== null && presenceTo === null) {
+    const gap = proposeGap(leading);
+    return gap ? { gap, gapSource: leading } : null;
+  }
+  if (presenceTo !== null && presenceFrom === null) {
+    const gap = proposeGap(trailing);
+    return gap ? { gap, gapSource: trailing } : null;
+  }
+
+  // Neither end anchored (no punch on the day at all), or anchors that leave no
+  // worked stretch between them: one continuous window. Both rows carry the
+  // same schedule, so the union is the whole giornata — which is precisely what
+  // an absence is. The null branches below are unreachable for rows that passed
+  // isGapRow (proposeGap is non-null, and both windows share expected_start, so
+  // they always overlap); they fall back to `split` rather than guess.
+  const lead = proposeGap(leading);
+  const trail = proposeGap(trailing);
+  if (!lead || !trail) return null;
+  const gap = unionWindow(lead, trail);
+  return gap ? { gap, gapSource: leading } : null;
+}
+
+function bestByRank(rows: Anomaly[], kinds: Anomaly['kind'][]): Anomaly | null {
+  let best: Anomaly | null = null;
+  for (const a of rows) {
+    if (!kinds.includes(a.kind)) continue;
+    if (!best || dayLevelRank(a.kind) < dayLevelRank(best.kind)) best = a;
+  }
+  return best;
+}
+
+// The day's un-worked stretch, as the day's anomalies describe it TOGETHER:
+//
+//   leading gap only   → expected_start → actual_start   (late / missing in)
+//   trailing gap only  → actual_end → expected_end       (early / missing out)
+//   leading AND trailing → dayGapFromBothEnds: one window when the punches
+//                          leave a single continuous stretch (an absent day is
+//                          the whole giornata), `split` only when worked hours
+//                          sit between the two holes
+//   neither, 'short_hours' alone → the end-anchored shortfall, the only thing
+//                                  a magnitude-only anomaly can say
+//
+// A day that raises 'late_clock_in' AND 'short_hours' therefore proposes the
+// leading hole, not the shortfall: both have the same delta, but only the
+// leading window points at time nobody worked.
+function buildDayCorrection(items: Anomaly[]): DayCorrection | null {
+  const gapRows = items.filter(isGapRow);
+  // 'clock_out_out_of_area' and 'worked_on_rest_day' carry no schedule at all,
+  // and a day whose only deviation is a short lunch has no unworked time: no
+  // gap row, no day-level absence.
+  if (gapRows.length === 0) return null;
+  const schedule = gapRows.reduce((best, a) =>
+    dayLevelRank(a.kind) < dayLevelRank(best.kind) ? a : best
+  );
+  const leading = bestByRank(gapRows, LEADING_GAP_KINDS);
+  const trailing = bestByRank(gapRows, TRAILING_GAP_KINDS);
+  if (leading && trailing) {
+    const both = dayGapFromBothEnds(leading, trailing);
+    if (both) return { schedule, gap: both.gap, gapSource: both.gapSource, split: null };
+    return { schedule, gap: null, gapSource: null, split: { leading, trailing } };
+  }
+  const source = leading ?? trailing ?? gapRows.find((a) => a.kind === 'short_hours') ?? null;
+  const gap = source ? proposeGap(source) : null;
+  return { schedule, gap, gapSource: gap ? source : null, split: null };
+}
+
+// dayKeyOf → its DayCorrection, for every giornata that has one.
+//
+// Built from the FULL API response and not from the visible rows: justifying
+// 'short_hours' with a note hides that row, it does not fill the gap the row
+// described, and the pausa row left on screen must still offer the absence.
+function buildDays(all: Anomaly[]): Map<string, DayCorrection> {
+  const byDay = new Map<string, Anomaly[]>();
+  for (const a of all) {
+    const k = dayKeyOf(a);
+    const arr = byDay.get(k) ?? [];
+    arr.push(a);
+    byDay.set(k, arr);
+  }
+  const out = new Map<string, DayCorrection>();
+  for (const [k, items] of byDay) {
+    const day = buildDayCorrection(items);
+    if (day) out.set(k, day);
+  }
+  return out;
+}
+
+// The window the Correggi panel of THIS row proposes.
+//
+// A POSITIONED gap row — one whose own punch delimits its hole — keeps its own,
+// always: that is the per-row behaviour the day-level work was never supposed to
+// touch, and it is exactly what makes the two halves of a split day correctible
+// one row at a time. A split is only ever late_clock_in + early_clock_out (both
+// ends anchored by a real punch, by definition of `split`), so those two rows
+// always have a window of their own to offer.
+//
+// Every other row borrows the giornata's: 'missing_clock_in' /
+// 'missing_clock_out', which cannot delimit a hole with the punch they are
+// reporting as absent; 'short_hours', which knows how much is missing but not
+// where; and pausa / uscita fuori area / giorno di riposo, which describe no
+// unworked time at all. On a split day there is nothing to borrow — day.gap is
+// null — so none of them offers a permesso, and the panel
+// says why (recap.permSplitDay) instead of proposing a window that would book
+// worked hours as absence.
+function rowWindow(
+  a: Anomaly,
+  day: DayCorrection | undefined
+): { from: string; to: string } | null {
+  if (isPositionedGapRow(a)) return proposeGap(a);
+  return day?.gap ?? null;
+}
+
+// ferie/permesso are offered on EVERY row of a day that has unworked time,
+// pausa rows included. A day with no gap row stays note-only: booking a full
+// day of ferie on a giornata whose only sin is a 90-minute lunch — hours all
+// worked — would not correct the payroll, it would falsify it.
+function availableActions(a: Anomaly, day: DayCorrection | undefined): CorrectionAction[] {
   const acts: CorrectionAction[] = [];
   if (missingEvents(a).length > 0) acts.push('standard');
-  if (JUSTIFIABLE_KINDS.includes(a.kind) && a.expected_start_at && a.expected_end_at) {
-    acts.push('ferie', 'permesso');
+  if (day) {
+    // 'ferie' books the scheduled day whole, so it never depends on WHERE the
+    // gap is and stays offered even on a split day.
+    acts.push('ferie');
+    if (rowWindow(a, day)) acts.push('permesso');
   }
   acts.push('note');
   return acts;
+}
+
+// Which action the Correggi dropdown opens on.
+//
+// Unchanged for the kinds that describe the day: they keep opening on
+// 'standard' (a punch is missing) or on 'ferie'. Rows that reach ferie/permesso
+// only THROUGH the giornata — pausa, uscita fuori area, giorno di riposo — open
+// on 'note' instead: preselecting "inserisci ferie" on a "pausa pranzo troppo
+// breve" row would leave a whole day of absence one stray Conferma away.
+function defaultActionFor(a: Anomaly, actions: CorrectionAction[]): CorrectionAction {
+  if (dayLevelRank(a.kind) < DAY_LEVEL_KINDS.length) return actions[0] ?? 'note';
+  return actions.includes('standard') ? 'standard' : 'note';
+}
+
+// What a correction is actually POSTed against.
+//
+// Only 'ferie' is re-targeted, and only to read a schedule: the clicked row can
+// be a 'clock_out_out_of_area' whose expected_* are null, which would post
+// from_ts: null. Everything else stays on the clicked row — 'standard' inserts
+// the punches THAT row reports absent, 'note' is stored per (user, date, kind),
+// and 'permesso' carries its window in pFrom/pTo, taking only user_id from the
+// row.
+function correctionTarget(
+  action: CorrectionAction,
+  a: Anomaly,
+  day: DayCorrection | undefined
+): Anomaly {
+  return action === 'ferie' && day ? day.schedule : a;
 }
 
 function fmtMins(totalMin: number): string {
@@ -439,28 +788,7 @@ function dayKeyOf(a: Anomaly): string {
   return `${a.user_id}|${a.date}`;
 }
 
-// Which anomaly of a day represents the day when the selection is collapsed,
-// best first. 'short_hours' wins because its delta_minutes is the real
-// shortfall of the day, while 'early_clock_out' proposes the whole unworked
-// tail (out at 15:00 on a 09:00–17:00 schedule → 2h, even if the employee had
-// already recovered part of it earlier). Missing punches come last: they only
-// say a stamp is absent, not how much time is actually uncovered.
-const COLLAPSE_PRIORITY: Anomaly['kind'][] = [
-  'short_hours',
-  'early_clock_out',
-  'late_clock_in',
-  'missing_clock_out',
-  'missing_clock_in',
-];
-
-function collapseRank(kind: Anomaly['kind']): number {
-  const i = COLLAPSE_PRIORITY.indexOf(kind);
-  // Kinds outside the list are never day-level correctable (they only offer
-  // 'note', which is never collapsed), so any rank past the list will do.
-  return i === -1 ? COLLAPSE_PRIORITY.length : i;
-}
-
-// One anomaly per (user, day), picked by COLLAPSE_PRIORITY. Every field a
+// One anomaly per (user, day), picked by DAY_LEVEL_KINDS. Every field a
 // day-level correction reads — expected_start_at/expected_end_at and the
 // actual anchors — is built from the same day of stamps for every kind, so the
 // representative only changes the PROPOSED WINDOW (proposeGap), never the
@@ -470,7 +798,7 @@ function collapseByDay(items: Anomaly[]): Anomaly[] {
   for (const a of items) {
     const k = dayKeyOf(a);
     const cur = best.get(k);
-    if (!cur || collapseRank(a.kind) < collapseRank(cur.kind)) best.set(k, a);
+    if (!cur || dayLevelRank(a.kind) < dayLevelRank(cur.kind)) best.set(k, a);
   }
   return [...best.values()];
 }
@@ -491,8 +819,52 @@ function collapseByDay(items: Anomaly[]): Anomaly[] {
 // 'note' is the exception and stays per-row: a justification is stored per
 // (user, date, kind), so collapsing it would leave the day's other kinds
 // unjustified.
-function bulkTargets(action: CorrectionAction, items: Anomaly[]): Anomaly[] {
-  return action === 'note' ? items : collapseByDay(items);
+//
+// ferie/permesso go one step further than collapsing: they are computed from
+// the GIORNATA, which may well include rows the admin never selected (they
+// ticked the pausa row; the hole is described by 'late_clock_in'). Collapsing
+// the selection alone would hand 'permesso' a pausa row and propose the whole
+// scheduled day.
+//
+// Day-scoped and not selection-scoped on purpose. Ticking only the
+// 'short_hours' row of a day that also came in late still books that day's
+// leading hole, because the end-anchored shortfall 'short_hours' would propose
+// on its own covers hours that were worked. The bar says as much before the
+// click ("la finestra è calcolata per ogni giornata"); fine-tuning one row's
+// own window stays in the per-row Correggi panel.
+interface BulkTarget {
+  a: Anomaly;
+  // 'permesso' only: the window computed for that giornata.
+  gap: { from: string; to: string } | null;
+}
+
+function bulkTargets(
+  action: CorrectionAction,
+  items: Anomaly[],
+  days: Map<string, DayCorrection>
+): BulkTarget[] {
+  if (action === 'note') return items.map((a) => ({ a, gap: null }));
+  if (action === 'ferie' || action === 'permesso') {
+    const byDay = new Map<string, BulkTarget>();
+    for (const a of items) {
+      const k = dayKeyOf(a);
+      const day = days.get(k);
+      // A day with no gap row cannot take a day-level absence at all, and a
+      // split day cannot take one permesso. Skipping it here is the PRIMARY
+      // mechanism, not a safety net: bulkActions offers ferie/permesso as soon
+      // as one giornata supports them, and the bar reports the skipped count
+      // before the click rather than withholding the action from the rest.
+      if (!day) continue;
+      if (action === 'permesso') {
+        if (!day.gap) continue;
+        byDay.set(k, { a: day.gapSource ?? day.schedule, gap: day.gap });
+      } else {
+        byDay.set(k, { a: day.schedule, gap: null });
+      }
+    }
+    return [...byDay.values()];
+  }
+  return collapseByDay(items).map((a) => ({ a, gap: null }));
 }
 
 // Single source of truth for applying one correction to one anomaly. Both the
@@ -552,30 +924,88 @@ async function applyCorrection(
   }
 }
 
-// Actions offered for a bulk selection: those available for EVERY row it will
-// be applied to. 'note' is always available, so a mixed-kind selection
-// collapses to note-only — that is how "select similar anomalies" is enforced
-// without a hard same-kind gate.
+// The order the dropdown lists actions in, shared by the per-row panel and the
+// bar so 'ferie' can never sort ahead of 'standard' in one and not the other.
+const ACTION_ORDER: CorrectionAction[] = ['standard', 'ferie', 'permesso', 'note'];
+
+// The two DAY-level absences. bulkTargets can drop a giornata from these
+// cleanly (it simply emits no target for it), which is what lets the bar offer
+// them on a partial selection — see bulkActions.
+const DAY_ABSENCE_ACTIONS: CorrectionAction[] = ['ferie', 'permesso'];
+
+// Actions offered for a bulk selection.
+//
+// 'standard' and 'note' are an INTERSECTION: they are properties of the row
+// itself, and applyCorrection throws for a row that has nothing to add, so
+// offering them on a partial selection would just manufacture failures.
+//
+// 'ferie' and 'permesso' are a UNION, and this is the fix to a defect that made
+// the page unusable a month at a time: they are per-GIORNATA corrections that
+// bulkTargets already skips a day for when the day cannot take them. Requiring
+// every day to support them meant ONE absent Tuesday — or one lunch-only
+// Friday — silently stripped "Inserisci permesso" from the other twenty-one
+// days selected with it, with nothing on screen saying which day was to blame.
+// They are now offered when at least one giornata supports them, and the bar
+// states, before the click, how many are skipped (bulk.skippedNotice).
 //
 // Callers pass the COLLAPSED rows (see bulkTargets): a day-level action runs
-// once per giornata, so it is the representative of each day that has to
-// support it.
-//
-// 'permesso' used to be stripped here because one shared window can't fit
-// every selected day. It is offered again, on the condition that every row has
-// a proposeGap() of its own: the bar submits each row with ITS window, so
-// there is no shared window to get wrong. A row without a proposed gap would
-// have nothing to send.
-function bulkActions(items: Anomaly[]): CorrectionAction[] {
+// once per giornata, so it is the representative of each day that is judged.
+function bulkActions(items: Anomaly[], days: Map<string, DayCorrection>): CorrectionAction[] {
   if (items.length === 0) return [];
-  let acc: CorrectionAction[] | null = null;
+  let every: CorrectionAction[] | null = null;
+  const some = new Set<CorrectionAction>();
   for (const a of items) {
-    const avail: CorrectionAction[] = availableActions(a).filter(
-      (x) => x !== 'permesso' || proposeGap(a) !== null
-    );
-    acc = acc === null ? avail : acc.filter((x) => avail.includes(x));
+    const avail = bulkDayActions(a, days.get(dayKeyOf(a)));
+    every = every === null ? avail : every.filter((x) => avail.includes(x));
+    for (const x of avail) some.add(x);
   }
-  return acc ?? [];
+  const all = new Set(every ?? []);
+  return ACTION_ORDER.filter((x) => (DAY_ABSENCE_ACTIONS.includes(x) ? some.has(x) : all.has(x)));
+}
+
+// Which action the BULK bar opens on: defaultActionFor()'s rule, applied to the
+// selection as a whole.
+//
+// The bar used to preselect actions[0] regardless. Once ferie/permesso became
+// available from ANY row of a day with unworked time, that meant ticking five
+// 'lunch_too_short' rows — the very thing bulk.hint tells the admin to do —
+// opened the bar on "Inserisci ferie" with Correggi already enabled: one click
+// away from five whole days of ferie off the residuo and five "assenza
+// inserita" notifications. A day-level absence is only preselected when EVERY
+// giornata the bar will act on is represented by a row that describes unworked
+// time itself.
+function bulkDefaultAction(reps: Anomaly[], actions: CorrectionAction[]): CorrectionAction {
+  if (actions.length === 0) return 'note';
+  const everyRowIsDayLevel =
+    reps.length > 0 && reps.every((a) => dayLevelRank(a.kind) < DAY_LEVEL_KINDS.length);
+  if (everyRowIsDayLevel) return actions[0] ?? 'note';
+  return actions.includes('standard') ? 'standard' : 'note';
+}
+
+// availableActions() judged per GIORNATA rather than per row, which is the unit
+// the bar actually applies.
+//
+// The difference that matters is 'permesso' on a split day, and it is now the
+// ONLY one: the per-row panel offers it on the 'late_clock_in' and
+// 'early_clock_out' rows — the two that say where their own half of the day is
+// — but the bar cannot, because it sends one correction per giornata and would
+// have to choose a half. Such a day is skipped by bulkTargets and counted in
+// bulk.permessoSplitDays, which says why and where to go instead; it no longer
+// removes the action from the days around it.
+//
+// Every other row of that day agrees with the bar and offers no permesso,
+// 'short_hours' included (see isPositionedGapRow). Judging the day by day.gap
+// here and the row by rowWindow() there is what keeps the two in step: both
+// read the same DayCorrection.
+function bulkDayActions(rep: Anomaly, day: DayCorrection | undefined): CorrectionAction[] {
+  const acts: CorrectionAction[] = [];
+  if (missingEvents(rep).length > 0) acts.push('standard');
+  if (day) {
+    acts.push('ferie');
+    if (day.gap) acts.push('permesso');
+  }
+  acts.push('note');
+  return acts;
 }
 
 // Run fn over items with bounded concurrency; never rejects (per-item outcome
@@ -604,26 +1034,43 @@ async function mapLimit<T, R>(
 
 function AnomalyItem({
   a,
+  day,
   selected,
   onToggle,
   onDone,
 }: {
   a: Anomaly;
+  // What this row's giornata can take (see buildDays); undefined when the day
+  // has no unworked time to book an absence against.
+  day: DayCorrection | undefined;
   selected: boolean;
   onToggle: () => void;
   onDone: () => void;
 }) {
   const { t } = useTranslation(['anomalies', 'common']);
-  const actions = useMemo(() => availableActions(a), [a]);
-  const gap0 = useMemo(() => proposeGap(a), [a]);
+  const actions = useMemo(() => availableActions(a, day), [a, day]);
+  // True when this row's own punches say WHERE its unworked stretch is. It then
+  // keeps its own proposal and needs none of the "this covers the giornata" copy
+  // below. Everything else borrows the day's — a pausa / fuori area / giorno di
+  // riposo row, 'short_hours', which only knows how much is missing, and a
+  // missing entrata/uscita, whose absent punch is the very anchor it would need.
+  const ownWindow = useMemo(() => isPositionedGapRow(a), [a]);
+  const gap0 = useMemo(() => rowWindow(a, day), [a, day]);
   const [open, setOpen] = useState(false);
-  const [action, setAction] = useState<CorrectionAction>(actions[0] ?? 'note');
+  const [action, setAction] = useState<CorrectionAction>(defaultActionFor(a, actions));
   const [pFrom, setPFrom] = useState<string | null>(gap0?.from ?? null);
   const [pTo, setPTo] = useState<string | null>(gap0?.to ?? null);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [dossier, setDossier] = useState(false);
+
+  // A correction elsewhere on the same giornata can change what this row is
+  // allowed to do (its neighbour's 'short_hours' gets justified, the day's gap
+  // is filled). Keep the chosen action valid, the way the bulk bar does.
+  useEffect(() => {
+    if (!actions.includes(action)) setAction(defaultActionFor(a, actions));
+  }, [a, actions, action]);
 
   const toAdd = useMemo(() => missingEvents(a), [a]);
   const permMin =
@@ -643,7 +1090,12 @@ function AnomalyItem({
     setBusy(true);
     setErr(null);
     try {
-      await applyCorrection(action, a, { note, pFrom, pTo, t });
+      await applyCorrection(action, correctionTarget(action, a, day), {
+        note,
+        pFrom,
+        pTo,
+        t,
+      });
       setOpen(false);
       setNote('');
       onDone();
@@ -702,7 +1154,18 @@ function AnomalyItem({
         </button>
         <button
           className="btn btn-secondary btn-sm shrink-0"
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => {
+            // Re-seed from the CURRENT proposal on every opening. pFrom/pTo are
+            // component state and a reload between two openings can move the
+            // giornata's gap under a panel that was never opened — the stepper
+            // must not show a window computed against stamps that have changed.
+            if (!open) {
+              setPFrom(gap0?.from ?? null);
+              setPTo(gap0?.to ?? null);
+              setErr(null);
+            }
+            setOpen((o) => !o);
+          }}
           aria-expanded={open}
         >
           {open ? t('common:btn.close') : t('correct')}
@@ -732,6 +1195,28 @@ function AnomalyItem({
               ))}
             </select>
           </div>
+
+          {/* "Inserisci permesso" is simply absent from the list above on a
+              split day, which on its own reads as "the product won't let me".
+              Say why, and where the two permessi are inserted from.
+              Shown on the 'short_hours' row too: it borrows the day's window
+              like a pausa row, so on a split day it has none either — and it is
+              the row the admin most often opens, since its delta is the day's
+              whole shortfall. The two rows the copy points at are exactly the
+              ones that DO keep a window (day.split.leading/trailing). */}
+          {!ownWindow && day?.split && (
+            <div className="text-xs muted" data-testid="perm-split-hint">
+              <Trans
+                t={t}
+                i18nKey="recap.permSplitDay"
+                values={{
+                  leading: t(`common:anomaly.${day.split.leading.kind}`),
+                  trailing: t(`common:anomaly.${day.split.trailing.kind}`),
+                }}
+                components={{ strong: <strong /> }}
+              />
+            </div>
+          )}
 
           {/* Recap of what will change */}
           {action === 'standard' && (
@@ -770,12 +1255,23 @@ function AnomalyItem({
                   i18nKey="recap.ferieFor"
                   values={{
                     date: fmtDate(a.date),
-                    from: fmtTime(a.expected_start_at),
-                    to: fmtTime(a.expected_end_at),
+                    // The day's schedule, not the clicked row's: an out-of-area
+                    // row carries no expected_* at all.
+                    from: fmtTime((day ? day.schedule : a).expected_start_at),
+                    to: fmtTime((day ? day.schedule : a).expected_end_at),
                   }}
                   components={{ strong: <strong /> }}
                 />
               </div>
+              {/* Opened from a row that reaches ferie only through the giornata
+                  — pausa, fuori area, and 'short_hours', whose delta is a
+                  shortfall and not a whole day: say that the booking covers the
+                  entire working day before it is confirmed. */}
+              {!ownWindow && day && (
+                <div className="text-xs muted" data-testid="ferie-day-scope">
+                  {t('recap.ferieDayScope')}
+                </div>
+              )}
               <NoteField value={note} onChange={setNote} optional />
             </div>
           )}
@@ -795,6 +1291,25 @@ function AnomalyItem({
                   <div className="font-medium">{permMin > 0 ? fmtMins(permMin) : '—'}</div>
                 </div>
               </div>
+              {/* Without this line "dalle 14:45 alle 17:00" on a 'pausa pranzo
+                  troppo breve' row reads as the length of the lunch break — and
+                  on an 'ore giornaliere insufficienti' row, as the shortfall.
+                  Suppressed when the giornata read its window off THIS very row
+                  (a day whose only gap row is 'short_hours'): naming the row
+                  back to itself explains nothing. */}
+              {!ownWindow && day?.gapSource && keyOf(day.gapSource) !== keyOf(a) && (
+                <div className="text-xs muted" data-testid="perm-day-scope">
+                  <Trans
+                    t={t}
+                    i18nKey="recap.permDayScope"
+                    values={{
+                      date: fmtDate(a.date),
+                      kind: t(`common:anomaly.${day.gapSource.kind}`),
+                    }}
+                    components={{ strong: <strong /> }}
+                  />
+                </div>
+              )}
               <NoteField value={note} onChange={setNote} optional />
             </div>
           )}
@@ -835,10 +1350,12 @@ function AnomalyItem({
 
 function BulkCorrectBar({
   items,
+  days,
   onDone,
   onClear,
 }: {
   items: Anomaly[];
+  days: Map<string, DayCorrection>;
   onDone: () => void;
   onClear: () => void;
 }) {
@@ -846,9 +1363,16 @@ function BulkCorrectBar({
   // One row per giornata: what a day-level action is applied to, and what the
   // offered actions have to be valid for.
   const collapsed = useMemo(() => collapseByDay(items), [items]);
-  const actions = useMemo(() => bulkActions(collapsed), [collapsed]);
-  const [action, setAction] = useState<CorrectionAction>(actions[0] ?? 'note');
+  const actions = useMemo(() => bulkActions(collapsed, days), [collapsed, days]);
+  const [action, setAction] = useState<CorrectionAction>(() =>
+    bulkDefaultAction(collapsed, actions)
+  );
   const [note, setNote] = useState('');
+  // Bulk 'ferie' is the one action here that spends something irreversible —
+  // whole days off the residuo, one notification per employee — and it is also
+  // the one the dropdown can preselect. It gets an explicit acknowledgement of
+  // how many days that is.
+  const [ferieAck, setFerieAck] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{
     ok: number;
@@ -859,39 +1383,63 @@ function BulkCorrectBar({
     days: number;
   } | null>(null);
 
-  const targets = useMemo(() => bulkTargets(action, items), [action, items]);
+  const targets = useMemo(() => bulkTargets(action, items, days), [action, items, days]);
+  // Giornate in the selection that are un-worked at both ends with worked hours
+  // in between, and therefore cannot take a single day-level permesso. Shown
+  // while 'permesso' is chosen: they are the giornate the bar will skip.
+  const splitDays = useMemo(() => {
+    const k = new Set<string>();
+    for (const a of items) if (days.get(dayKeyOf(a))?.split) k.add(dayKeyOf(a));
+    return k.size;
+  }, [items, days]);
+  // Distinct giornate in the selection. The two counts below both hang off it
+  // and mean different things, which is why targets.length can no longer stand
+  // in for either: rows MERGE into a giornata, and giornate are SKIPPED.
+  const selectedDays = useMemo(() => new Set(items.map(dayKeyOf)).size, [items]);
+  const perDay = action !== 'note';
   // >0 only when several anomalies of the same giornata were selected and the
   // action is day-level. The admin has to see it BEFORE confirming: they
   // selected N rows and only M corrections will be sent.
-  const mergedCount = items.length - targets.length;
+  const mergedCount = perDay ? items.length - selectedDays : 0;
+  // Giornate the chosen action cannot be applied to (no unworked time at all,
+  // or — for 'permesso' — un-worked at both ends). Reported, not silently
+  // dropped, and never a reason to withhold the action from the other days.
+  const skippedDays = perDay ? selectedDays - targets.length : 0;
 
-  // Keep the chosen action valid as the selection (and its intersection) changes.
+  // Keep the chosen action valid as the selection (and what it offers) changes.
   useEffect(() => {
-    if (!actions.includes(action)) setAction(actions[0] ?? 'note');
-  }, [actions, action]);
+    if (!actions.includes(action)) setAction(bulkDefaultAction(collapsed, actions));
+  }, [collapsed, actions, action]);
+
+  // Re-arm the confirmation whenever what it confirms changes: another action,
+  // another selection, or a refetch that moved the giornate under it.
+  useEffect(() => {
+    setFerieAck(false);
+  }, [action, items]);
 
   const needsNote = action === 'note';
   const noteEmpty = note.trim().length === 0;
+  const needsFerieAck = action === 'ferie' && !ferieAck;
 
   async function apply() {
     setBusy(true);
     setResult(null);
     const rows = targets;
-    const res = await mapLimit(rows, 4, (a) => {
-      // Per-row window, never a shared one: each giornata submits the gap
-      // computed from its own schedule and its own punches. The shared
-      // fine-tuning stepper stays in the single-row Correggi panel.
-      const gap = action === 'permesso' ? proposeGap(a) : null;
-      return applyCorrection(action, a, {
+    // Per-giornata window, never a shared one, and computed by bulkTargets
+    // from the day's whole anomaly set — not re-derived here from whichever row
+    // ended up representing the day. That re-derivation is what booked
+    // 16:30–18:00 on a day whose hole was 09:00–10:30.
+    const res = await mapLimit(rows, 4, (x) =>
+      applyCorrection(action, x.a, {
         note,
-        pFrom: gap?.from ?? null,
-        pTo: gap?.to ?? null,
+        pFrom: x.gap?.from ?? null,
+        pTo: x.gap?.to ?? null,
         t,
-      });
-    });
+      })
+    );
     const ok = res.filter((r) => r.status === 'fulfilled').length;
     const failed = res
-      .map((r, i) => ({ r, a: rows[i]! }))
+      .map((r, i) => ({ r, a: rows[i]!.a }))
       .filter((x) => x.r.status === 'rejected')
       .map((x) => {
         const reason = (x.r as PromiseRejectedResult).reason;
@@ -948,11 +1496,17 @@ function BulkCorrectBar({
           onClick={() => {
             apply().catch(() => {});
           }}
-          disabled={busy || actions.length === 0 || (needsNote && noteEmpty)}
+          disabled={
+            busy ||
+            actions.length === 0 ||
+            targets.length === 0 ||
+            (needsNote && noteEmpty) ||
+            needsFerieAck
+          }
         >
           {busy
             ? t('common:state.saving')
-            : mergedCount > 0
+            : perDay && targets.length !== items.length
               ? t('bulk.applyDays', { n: items.length, days: targets.length })
               : t('bulk.apply', { n: items.length })}
         </button>
@@ -961,11 +1515,43 @@ function BulkCorrectBar({
         </button>
       </div>
 
+      {/* Full-day ferie is the one bulk action that spends a quota and notifies
+          the employee, and the only one the dropdown may open on. Name the
+          number of whole days before the click can send them. */}
+      {action === 'ferie' && (
+        <label
+          className="text-xs flex items-start gap-2 cursor-pointer"
+          data-testid="bulk-ferie-ack"
+          style={{ color: 'var(--color-primary)' }}
+        >
+          <input
+            type="checkbox"
+            className="mt-0.5 shrink-0"
+            checked={ferieAck}
+            onChange={(e) => setFerieAck(e.target.checked)}
+          />
+          <span>{t('bulk.ferieConfirm', { count: targets.length })}</span>
+        </label>
+      )}
+
       {/* Say it before the click, not only in the recap: the admin selected N
           rows and is about to send M corrections. */}
       {mergedCount > 0 && (
         <div className="text-xs" data-testid="bulk-merged-notice" style={{ color: 'var(--color-primary)' }}>
-          {t('bulk.mergedNotice', { n: items.length, days: targets.length })}
+          {t('bulk.mergedNotice', { n: items.length, days: selectedDays })}
+        </div>
+      )}
+
+      {/* The other half of "apply where the day supports it": the giornate this
+          action will pass over, counted before the click instead of the action
+          quietly vanishing from the dropdown. */}
+      {skippedDays > 0 && (
+        <div className="text-xs" data-testid="bulk-skipped-notice" style={{ color: 'var(--color-primary)' }}>
+          {t('bulk.skippedNotice', {
+            count: skippedDays,
+            total: selectedDays,
+            applied: targets.length,
+          })}
         </div>
       )}
 
@@ -974,6 +1560,16 @@ function BulkCorrectBar({
       {action === 'permesso' && (
         <div className="text-xs muted" data-testid="bulk-permesso-hint">
           {t('bulk.permessoPerDay')}
+        </div>
+      )}
+
+
+      {/* WHICH giornate the skip notice above is counting, when 'permesso' is
+          the action: the ones un-worked at both ends. Without it the admin sees
+          a skip count and has no way to find the two rows that can take it. */}
+      {action === 'permesso' && splitDays > 0 && (
+        <div className="text-xs" data-testid="bulk-permesso-split" style={{ color: 'var(--color-primary)' }}>
+          {t('bulk.permessoSplitDays', { count: splitDays })}
         </div>
       )}
 

@@ -21,7 +21,10 @@ import { romeWallClockISO } from '../fixtures/time';
 //   - Timbratura standard → POST /admin/stamps/fix-anomaly adds the missing
 //     clock-out → `missing_clock_out` disappears.
 //   - A day left on an open clock-in → `missing_clock_out` (not `early_clock_out`),
-//     and Timbratura standard resolves it.
+//     and Timbratura standard resolves it even though the day already holds the
+//     lunch clock-out.
+//   - A day with no punches at all → Timbratura standard inserts BOTH ends, and
+//     re-running it on the now-closed day inserts nothing.
 //   - Inserisci ferie → POST /leaves/admin-create full-day → `missing_clock_in`
 //     disappears (leave covers the whole expected window).
 //   - Inserisci permesso → POST /leaves/admin-create covering the late stretch
@@ -78,9 +81,13 @@ test.describe.serial('web — Anomalie Correggi menu resolves anomalies (mutatin
     admin = await loadHandleFromStorage(STORAGE.webAuth, CREDS.admin);
     user = await loadHandleFromStorage(STORAGE.webUserAuth, CREDS.user);
 
-    rangeFrom = nthWeekdayBack(10, 0, 0).date;
+    // The band has to reach back past every day this file seeds. n=15 (the
+    // open-session day) is the oldest, and n=9..14 are reserved by
+    // mutating-anomalies-bulk.spec.ts — hence a shift valid from n=17 and a
+    // query range from n=18.
+    rangeFrom = nthWeekdayBack(18, 0, 0).date;
     rangeTo = new Date().toISOString().slice(0, 10);
-    validFrom = nthWeekdayBack(9, 0, 0).date;
+    validFrom = nthWeekdayBack(17, 0, 0).date;
 
     const tpl = await createShiftTemplate(admin.token, {
       name: `e2e-correction-${Date.now()}`,
@@ -169,10 +176,13 @@ test.describe.serial('web — Anomalie Correggi menu resolves anomalies (mutatin
     // genuinely missing, so the lunch clock-out must not be read as the exit
     // (which would raise early_clock_out with a non-null actual_end_at and hide
     // the Timbratura standard action). Prod repro: Bruno Borroni, 2026-07-29.
-    const day = nthWeekdayBack(4, 9, 0);
-    const lunchOut = nthWeekdayBack(4, 12, 30);
-    const backIn = nthWeekdayBack(4, 14, 0);
-    const out = nthWeekdayBack(4, 17, 0);
+    // n=15, not one of n=2..4: mutating-anomalies-bulk.spec.ts seeds those as its
+    // standard-correction band and its bulk "Timbratura standard" leaves a live
+    // clock_out behind, which would close this day before it is even seeded.
+    const day = nthWeekdayBack(15, 9, 0);
+    const lunchOut = nthWeekdayBack(15, 12, 30);
+    const backIn = nthWeekdayBack(15, 14, 0);
+    const out = nthWeekdayBack(15, 17, 0);
 
     for (const [event_type, at] of [
       ['clock_in', day],
@@ -206,11 +216,128 @@ test.describe.serial('web — Anomalie Correggi menu resolves anomalies (mutatin
       },
     );
     expect(fix.status, `fix-anomaly: ${fix.code ?? ''} ${fix.message ?? ''}`).toBe(200);
+    // The punch must really be inserted, not reported back as 'skipped': the
+    // day already holds a clock_out (the 12:30 lunch), and the old "this type
+    // is already present today" rule dropped the closing punch because of it.
+    expect(fix.data?.results.map((r) => r.status)).toEqual(['created']);
     const created = fix.data?.results.find((r) => r.status === 'created');
+    expect(created?.id).toBeTruthy();
     if (created?.id) stampIds.push(created.id);
 
     const after = await anomalies(day.date);
     expect(after.map((a) => a.kind)).not.toContain('missing_clock_out');
+  });
+
+  // Read-only, and declared before the test that fills n=16: describe.serial
+  // runs in declaration order, so the day still has zero punches here.
+  test('a day with no punches at all is ONE unworked window, not a split', async ({ page }) => {
+    // A scheduled day with no stamps raises missing_clock_in AND
+    // missing_clock_out, and buildAnomaly leaves both actual_* anchors null —
+    // so proposeGap hands back the SAME expected_start→expected_end window for
+    // each. Reading a leading row plus a trailing row as "two disjoint
+    // stretches" classified a plain absence as a split day: "Inserisci
+    // permesso" vanished from its rows, and because the bulk bar intersected
+    // across the selection, from every other day selected with it.
+    const day = nthWeekdayBack(16, 9, 0);
+    const kinds = (await anomalies(day.date)).map((a) => a.kind);
+    expect(kinds, 'precondition: the day must be flagged at both ends').toEqual(
+      expect.arrayContaining(['missing_clock_in', 'missing_clock_out']),
+    );
+
+    const userName = await resolveDisplayName(admin.token, CREDS.user.email);
+    await page.goto('/anomalies');
+    await expect(page.getByRole('heading', { name: /Anomalie orario/i })).toBeVisible({
+      timeout: 15_000,
+    });
+    await page
+      .waitForResponse((r) => r.url().includes('/api/v1/shifts/anomalies'), { timeout: 15_000 })
+      .catch(() => {});
+    await page.locator('input[type="date"]').first().fill(day.date);
+    await page.locator('input[type="date"]').nth(1).fill(day.date);
+    await page.locator('select').first().selectOption({ label: userName });
+    await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes('/api/v1/shifts/anomalies') && r.url().includes(user.userId),
+        { timeout: 15_000 },
+      ),
+      page.getByRole('button', { name: 'Aggiorna' }).click(),
+    ]);
+
+    const row = page
+      .locator('li')
+      .filter({ hasText: 'Entrata mancante' })
+      .filter({ hasText: userName })
+      .first();
+    await expect(row).toBeVisible({ timeout: 15_000 });
+    await row.getByRole('button', { name: /Correggi/ }).click();
+
+    // The whole giornata is the single unworked stretch, so the permesso is
+    // offered and the split explanation must NOT be on screen.
+    //
+    // 'Entrata mancante' has no entry punch to anchor a window of its own, so it
+    // now borrows the giornata's — which is what gives the assertion below its
+    // teeth: the hint is suppressed because the day is genuinely not a split,
+    // and no longer merely because the row was speaking for itself.
+    await expect(row.getByRole('option', { name: 'Inserisci permesso' })).toHaveCount(1);
+    await expect(row.getByRole('option', { name: 'Inserisci ferie' })).toHaveCount(1);
+    await expect(page.getByTestId('perm-split-hint')).toHaveCount(0);
+
+    // Both punches are missing, so the menu opens on the correction that adds
+    // them — never on an absence.
+    await expect(row.getByRole('combobox')).toHaveValue('standard');
+
+    // Nothing applied: the next test needs this day still empty.
+    await row.getByRole('button', { name: 'Annulla' }).click();
+  });
+
+  test('Timbratura standard fills a day with no punches at all, once', async () => {
+    // Both ends missing: the correction sends clock_in + clock_out in the same
+    // request, and both must land. The clock_out is judged against the day's
+    // session state, so it is only insertable because the clock_in of the same
+    // request went in first — the handler sorts the events chronologically for
+    // exactly this reason.
+    // n=16 is the last day free between the open-session day (n=15) and the
+    // shift's valid_from (n=17).
+    const day = nthWeekdayBack(16, 9, 0);
+    const out = nthWeekdayBack(16, 17, 0);
+
+    const before = (await anomalies(day.date)).map((a) => a.kind);
+    expect(before).toContain('missing_clock_in');
+    expect(before).toContain('missing_clock_out');
+
+    const payload = {
+      user_id: user.userId,
+      events: [
+        { event_type: 'clock_in', occurred_at: day.iso },
+        { event_type: 'clock_out', occurred_at: out.iso },
+      ],
+      justification: 'e2e timbratura standard giornata vuota',
+    };
+
+    const fix = await apiPost<{ results: Array<{ status: string; id?: string }> }>(
+      admin.token,
+      '/api/v1/admin/stamps/fix-anomaly',
+      payload,
+    );
+    expect(fix.status, `fix-anomaly: ${fix.code ?? ''} ${fix.message ?? ''}`).toBe(200);
+    expect(fix.data?.results.map((r) => r.status)).toEqual(['created', 'created']);
+    for (const r of fix.data?.results ?? []) if (r.id) stampIds.push(r.id);
+
+    const after = (await anomalies(day.date)).map((a) => a.kind);
+    expect(after).not.toContain('missing_clock_in');
+    expect(after).not.toContain('missing_clock_out');
+
+    // The day is now closed, so re-running the same correction — a double-click,
+    // or the row re-selected in the bulk bar — must add nothing. Anything
+    // created here would be a duplicate punch in the payroll export.
+    const again = await apiPost<{ results: Array<{ status: string; id?: string }> }>(
+      admin.token,
+      '/api/v1/admin/stamps/fix-anomaly',
+      payload,
+    );
+    expect(again.status, `fix-anomaly (2): ${again.code ?? ''} ${again.message ?? ''}`).toBe(200);
+    expect(again.data?.results.map((r) => r.status)).toEqual(['skipped', 'skipped']);
+    for (const r of again.data?.results ?? []) if (r.id) stampIds.push(r.id);
   });
 
   test('Inserisci ferie (full day) clears missing_clock_in', async () => {

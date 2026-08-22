@@ -91,7 +91,15 @@ async function tenantAdminIds(client: PoolClient): Promise<string[]> {
   return r.rows.map((row) => row.user_id);
 }
 
-async function loadLeaveApproverIds(client: PoolClient, requesterId: string): Promise<string[]> {
+/**
+ * Who must be told about a submission. Exported because the leave routes now
+ * resolve it INSIDE their transaction (it is a tenant-RLS read) and hand the
+ * ids to the notifier, which then runs after COMMIT with no client at all.
+ */
+export async function loadLeaveApproverIds(
+  client: PoolClient,
+  requesterId: string
+): Promise<string[]> {
   const r = await client.query(
     `SELECT approver_user_id FROM leave_approvers WHERE user_id = $1`,
     [requesterId]
@@ -289,10 +297,9 @@ interface LeaveContext {
 
 export async function notifyLeaveSubmitted(
   tenantId: string,
-  client: PoolClient,
+  approverIds: string[],
   ctx: LeaveContext
 ): Promise<void> {
-  const approverIds = await loadLeaveApproverIds(client, ctx.requester_id);
   if (approverIds.length === 0) return;
   const [requesterRow] = await loadRecipients([ctx.requester_id]);
   const approvers = await loadRecipients(approverIds);
@@ -327,7 +334,6 @@ export async function notifyLeaveSubmitted(
 
 export async function notifyLeaveDecided(
   tenantId: string,
-  client: PoolClient,
   ctx: LeaveContext,
   decision: 'approved' | 'rejected',
   approverId: string,
@@ -359,7 +365,6 @@ export async function notifyLeaveDecided(
     { ...mail, prefKey: 'email_leave_decisions' },
     'richieste'
   );
-  void client;
 }
 
 /**
@@ -371,7 +376,6 @@ export async function notifyLeaveDecided(
  */
 export async function notifyLeaveAddedByAdmin(
   tenantId: string,
-  client: PoolClient,
   ctx: LeaveContext,
   adminId: string
 ): Promise<void> {
@@ -402,15 +406,13 @@ export async function notifyLeaveAddedByAdmin(
     { ...mail, prefKey: 'email_leave_decisions' },
     'richieste'
   );
-  void client;
 }
 
 export async function notifyCancellationRequested(
   tenantId: string,
-  client: PoolClient,
+  approverIds: string[],
   ctx: LeaveContext
 ): Promise<void> {
-  const approverIds = await loadLeaveApproverIds(client, ctx.requester_id);
   if (approverIds.length === 0) return;
   const [requester] = await loadRecipients([ctx.requester_id]);
   const approvers = await loadRecipients(approverIds);
@@ -443,7 +445,6 @@ export async function notifyCancellationRequested(
 
 export async function notifyCancellationDecided(
   tenantId: string,
-  _client: PoolClient,
   ctx: LeaveContext,
   accepted: boolean
 ): Promise<void> {
