@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import path from 'node:path';
 import { env } from './env.js';
 import { requestId } from './middleware/request-id.js';
+import { isAllowedOrigin } from './lib/cors-origins.js';
 import { requestLogger } from './middleware/request-logger.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { healthRouter } from './routes/health.js';
@@ -47,21 +48,13 @@ export function createApp(): Express {
   // BACKEND_URL and POST same-origin to /api/v1/auth/*; the browser still
   // attaches an Origin header to those POSTs, so the API must allow its own
   // origin or they fail with CORS_NOT_ALLOWED (hit both recovery and invite).
-  const allowed = [
-    ...env.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean),
-    env.BACKEND_URL.replace(/\/+$/, ''),
-  ];
+  // The list itself lives in lib/cors-origins.ts because Timing-Allow-Origin
+  // (request-logger) must gate on exactly the same set.
   app.use(
     cors({
       origin: (origin, cb) => {
         if (!origin) return cb(null, true);
-        if (allowed.includes(origin)) return cb(null, true);
-        // Local dev: allow any localhost:<port> so the several dev SPAs (web
-        // 5173, mobile 8082, partner 5175, …) work without per-port env config.
-        // Never fires in production (NODE_ENV pinned to 'production').
-        if (env.NODE_ENV !== 'production' && /^http:\/\/localhost(:\d+)?$/.test(origin)) {
-          return cb(null, true);
-        }
+        if (isAllowedOrigin(origin)) return cb(null, true);
         return cb(new Error('CORS_NOT_ALLOWED'));
       },
       credentials: true,

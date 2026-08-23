@@ -1,8 +1,21 @@
+# Container logs are the only performance history this stack keeps (there is no
+# metrics backend), so they must survive and must not fill the disk. Docker's
+# json-file driver defaults to UNBOUNDED on this host — /etc/docker/daemon.json
+# sets no default — which meant one runaway service could eat the root volume,
+# and `docker logs` only ever reached back to the last container restart.
+# 20 MB x 5 files per service ~= 100 MB retained each, several days of history.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
 services:
   sonoqui-api:
     build: .
     container_name: sonoqui-api
     restart: unless-stopped
+    logging: *default-logging
     env_file:
       - apps/backend/.env.production
     environment:
@@ -52,6 +65,7 @@ services:
     image: supabase/auth:v2.194.0
     container_name: gotrue-sonoqui
     restart: unless-stopped
+    logging: *default-logging
     environment:
       GOTRUE_API_HOST: "0.0.0.0"
       GOTRUE_API_PORT: "9999"
@@ -121,6 +135,7 @@ services:
     image: centrifugo/centrifugo:v6
     container_name: centrifugo-sonoqui
     restart: unless-stopped
+    logging: *default-logging
     entrypoint: ["/bin/sh", "-c"]
     command:
       - >-
@@ -156,6 +171,7 @@ services:
         VITE_GOOGLE_MAPS_API_KEY: "${VITE_GOOGLE_MAPS_API_KEY:-}"
     container_name: sonoqui-web
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - gateway
     deploy:
@@ -184,6 +200,7 @@ services:
         VITE_GOOGLE_MAPS_API_KEY: "${VITE_GOOGLE_MAPS_API_KEY:-}"
     container_name: sonoqui-web-pro
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - gateway
     deploy:
@@ -205,6 +222,7 @@ services:
         VITE_AUTH_URL: "https://partners.sonoqui.pro/auth"
     container_name: sonoqui-partner
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - gateway
     deploy:
@@ -219,6 +237,7 @@ services:
       dockerfile: apps/mobile/Dockerfile
     container_name: sonoqui-mobile-web
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - gateway
     deploy:
@@ -233,6 +252,7 @@ services:
       dockerfile: apps/website/Dockerfile
     container_name: sonoqui-website
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - gateway
     deploy:
@@ -254,6 +274,7 @@ services:
     container_name: ota-sonoqui
     platform: linux/amd64
     restart: unless-stopped
+    logging: *default-logging
     environment:
       PORT: "3000"
       BASE_URL: "https://ota.sonoqui.pro"

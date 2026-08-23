@@ -1,6 +1,7 @@
 import { Pool, types } from 'pg';
 import type { PoolClient } from 'pg';
 import { env } from '../env.js';
+import { instrumentClient, instrumentPool } from './request-perf.js';
 
 // DATE OID 1082 kept as string (boilerplate convention)
 types.setTypeParser(1082, (val) => val);
@@ -11,6 +12,10 @@ export const pool = new Pool({
   idleTimeoutMillis: 30_000,
 });
 
+// Every statement's duration is attributed to the request that issued it (see
+// lib/request-perf.ts) so the http log can split durMs into dbMs + app time.
+instrumentPool(pool);
+
 export type { PoolClient };
 
 export async function withTenantRLS<T>(
@@ -19,6 +24,7 @@ export async function withTenantRLS<T>(
   fn: (client: PoolClient) => Promise<T>
 ): Promise<T> {
   const client = await pool.connect();
+  const untime = instrumentClient(client);
   try {
     await client.query('BEGIN');
     await client.query("SELECT set_config('app.current_user_id', $1, true)", [userId]);
@@ -30,6 +36,9 @@ export async function withTenantRLS<T>(
     await client.query('ROLLBACK');
     throw err;
   } finally {
+    // Undo BEFORE release: pg hands the same client object back on the next
+    // connect(), so a patch left in place would leak into the next request.
+    untime();
     client.release();
   }
 }
@@ -56,6 +65,7 @@ export async function withSupportRLS<T>(
   fn: (client: PoolClient) => Promise<T>
 ): Promise<T> {
   const client = await pool.connect();
+  const untime = instrumentClient(client);
   try {
     await client.query('BEGIN');
     await client.query('SET TRANSACTION READ ONLY');
@@ -69,6 +79,9 @@ export async function withSupportRLS<T>(
     await client.query('ROLLBACK');
     throw err;
   } finally {
+    // Undo BEFORE release: pg hands the same client object back on the next
+    // connect(), so a patch left in place would leak into the next request.
+    untime();
     client.release();
   }
 }
@@ -78,6 +91,7 @@ export async function withRLS<T>(
   fn: (client: PoolClient) => Promise<T>
 ): Promise<T> {
   const client = await pool.connect();
+  const untime = instrumentClient(client);
   try {
     await client.query('BEGIN');
     await client.query("SELECT set_config('app.current_user_id', $1, true)", [userId]);
@@ -88,6 +102,9 @@ export async function withRLS<T>(
     await client.query('ROLLBACK');
     throw err;
   } finally {
+    // Undo BEFORE release: pg hands the same client object back on the next
+    // connect(), so a patch left in place would leak into the next request.
+    untime();
     client.release();
   }
 }
@@ -96,6 +113,7 @@ export async function withAdminTx<T>(
   fn: (client: PoolClient) => Promise<T>
 ): Promise<T> {
   const client = await pool.connect();
+  const untime = instrumentClient(client);
   try {
     await client.query('BEGIN');
     const result = await fn(client);
@@ -105,6 +123,9 @@ export async function withAdminTx<T>(
     await client.query('ROLLBACK');
     throw err;
   } finally {
+    // Undo BEFORE release: pg hands the same client object back on the next
+    // connect(), so a patch left in place would leak into the next request.
+    untime();
     client.release();
   }
 }

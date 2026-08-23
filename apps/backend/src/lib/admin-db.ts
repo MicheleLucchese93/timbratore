@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { env } from '../env.js';
+import { instrumentPool } from './request-perf.js';
 
 // Superuser/owner connection — for bootstrap, migrations, system queries
 // that must read across tenants (membership lookup in auth middleware,
@@ -9,3 +10,7 @@ export const adminPool = new Pool({
   connectionString: env.ADMIN_DATABASE_URL ?? env.DATABASE_URL,
   max: 5,
 });
+
+// The auth middleware resolves the membership through this pool on every single
+// request, so its time belongs in the request's dbMs like any other statement.
+instrumentPool(adminPool);

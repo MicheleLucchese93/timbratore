@@ -48,6 +48,12 @@ const Env = z.object({
     .default('false'),
   CRON_SECRET: z.string().min(8),
   TRUSTED_PROXY_HOPS: z.coerce.number().default(0),
+  // Observability thresholds. A request at or over SLOW_REQUEST_MS is logged at
+  // `warn` instead of `info` so the slow tail is greppable without parsing every
+  // line; a single SQL statement at or over SLOW_QUERY_MS gets its own `warn`
+  // with the statement text (never the parameters — see lib/request-perf.ts).
+  SLOW_REQUEST_MS: z.coerce.number().default(500),
+  SLOW_QUERY_MS: z.coerce.number().default(150),
   DEV_AUTH_ENABLED: z
     .string()
     .transform((v) => v === 'true')
