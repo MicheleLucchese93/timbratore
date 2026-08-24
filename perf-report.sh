@@ -140,8 +140,8 @@ echo "slow requests: $SR    slow queries: $SQ"
 echo
 echo "=== pg_stat_statements: top 10 by mean (calls>=5) ==="
 echo "    excluded as noise: the centrifugo outbox poll (~10x/s at ~0.03ms, it would"
-echo "    otherwise fill every row), transaction control, and COPY (pg_dump backups —"
-echo "    the application itself issues no COPY)"
+echo "    otherwise fill every row), transaction control, COPY (pg_dump backups — the"
+echo "    application issues none), and catalog introspection (Adminer)"
 docker exec postgres psql -U penno -d sonoqui -X -c "
   SELECT calls,
          mean_exec_time::numeric(10,1) AS mean_ms,
@@ -155,6 +155,10 @@ docker exec postgres psql -U penno -d sonoqui -X -c "
      AND query NOT LIKE 'begin%' AND query NOT LIKE 'BEGIN%'
      AND query NOT LIKE 'COMMIT%' AND query NOT LIKE 'ROLLBACK%'
      AND query NOT LIKE 'COPY %'
+     -- Adminer's own catalog introspection, which the report is not about. The
+     -- application never reads pg_catalog.
+     AND query NOT LIKE '%pg_catalog%'
+     AND query NOT LIKE '%information_schema%'
    ORDER BY mean_exec_time DESC
    LIMIT 10;"
 
