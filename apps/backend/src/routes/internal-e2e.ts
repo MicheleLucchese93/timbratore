@@ -143,6 +143,40 @@ internalE2eRouter.post(
           WHERE tenant_id IN (SELECT id FROM tenants WHERE ragione_sociale LIKE 'e2e-%' AND id <> $1)`,
         [TEST_TENANT_ID]
       );
+      // Support tickets (migration 061) + their messages and attachments (FK
+      // cascade). Must run BEFORE the auth_users delete below:
+      // support_tickets.user_id references auth_users, so a ticket raised by a
+      // fixture admin blocks that delete outright with a FK violation.
+      //
+      // Two predicates, because a ticket can sit in either place: the pinned
+      // tenant (whole-tenant wipe, same hard scoping as notifications — the
+      // partner suite raises and answers tickets there) or an e2e fixture user's
+      // account anywhere. The audit rows the console wrote about them go first;
+      // they are keyed on target_id, and the actor is often a REAL platform
+      // admin rather than a fixture account, so the actor sweep below would not
+      // catch them.
+      const tkq = await client.query(
+        `SELECT a.r2_key
+           FROM support_ticket_attachments a
+           JOIN support_tickets t ON t.id = a.ticket_id
+          WHERE t.tenant_id = $2 OR t.user_id ${inE2eUsers}`,
+        argsT
+      );
+      const ticketKeys: string[] = tkq.rows.map((row) => row.r2_key).filter(Boolean);
+      await client.query(
+        `DELETE FROM partnership_audit_log
+          WHERE target_type = 'ticket'
+            AND target_id IN (
+                  SELECT id FROM support_tickets
+                   WHERE tenant_id = $2 OR user_id ${inE2eUsers}
+                )`,
+        argsT
+      );
+      const tkt = await client.query(
+        `DELETE FROM support_tickets WHERE tenant_id = $2 OR user_id ${inE2eUsers}`,
+        argsT
+      );
+
       // Read-only support sessions (migration 058). FKs point at auth_users AND
       // tenants, so these must go before both deletes below — a leftover row on
       // a fixture partner would block the auth_users purge outright.
@@ -306,7 +340,7 @@ internalE2eRouter.post(
       // Best-effort R2 object cleanup for the purged fixture documents. A
       // failure here must not fail the purge (the DB rows are already gone).
       let docObjectsDeleted = 0;
-      for (const key of docKeys) {
+      for (const key of [...docKeys, ...ticketKeys]) {
         try {
           await storageDelete(key);
           docObjectsDeleted += 1;
@@ -345,6 +379,7 @@ internalE2eRouter.post(
           cantieri: cant.rowCount,
           mezzi: mez.rowCount,
           cantieri_field_defs: cfd.rowCount,
+          support_tickets: tkt.rowCount,
           support_sessions: ssess.rowCount,
           partnership_members: pmembers.rowCount,
           partnership_audit_log: palog.rowCount,

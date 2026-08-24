@@ -21,13 +21,20 @@ export type PartnershipAction =
   | 'partner.update_profile'
   | 'partner.activate'
   | 'partner.deactivate'
-  | 'partner.resend';
+  | 'partner.resend'
+  // Support-ticket console (migration 061). Every console write on a ticket is
+  // attributable: the operator is acting on somebody else's data, and
+  // 'ticket.reply' in particular sends mail from our domain in the platform's name.
+  | 'ticket.status'
+  | 'ticket.assign'
+  | 'ticket.reply'
+  | 'ticket.note';
 
 export interface PartnershipAuditEntry {
   actorUserId: string;
   actorRole: string;
   action: PartnershipAction;
-  targetType?: 'tenant' | 'partner' | null;
+  targetType?: 'tenant' | 'partner' | 'ticket' | null;
   targetId?: string | null;
   targetLabel?: string | null;
   before?: unknown;

@@ -15,3 +15,4 @@ export * from './payroll/centro-paghe-map.js';
 export * from './documents/index.js';
 export * from './bulletins/index.js';
 export * from './cantieri/index.js';
+export * from './tickets/index.js';

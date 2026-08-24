@@ -1,5 +1,5 @@
 import nodemailer, { type Transporter } from 'nodemailer';
-import type { DocumentCategory } from '@sonoqui/shared';
+import { color, type DocumentCategory } from '@sonoqui/shared';
 import { env } from '../env.js';
 import { createLogger } from './logger.js';
 import { renderTemplate, escapeHtml, stripHeader } from './template-renderer.js';
@@ -821,6 +821,285 @@ export function buildDocumentOtpMail(p: DocumentOtpMailPayload): {
     language,
     Code: p.code,
     TtlMinutes: String(p.ttlMinutes),
+  });
+  return { subject, text, html };
+}
+
+/* ----- Support ticket emails (migration 061) ----- */
+
+/**
+ * FOUR MESSAGES, TWO AUDIENCES, AND THE ASYMMETRY IS THE DESIGN.
+ *
+ *   to the customer — we received your request; an operator replied; the team
+ *                     moved the state. Bilingual, from the opener's own
+ *                     `user_preferences.language`.
+ *   to the operator — a company raised a request; the customer replied. ITALIAN
+ *                     ONLY: these go to a mailbox and to reseller addresses, not
+ *                     to user rows with a language preference, so there is no
+ *                     honest way to pick a language per recipient. The partner
+ *                     console itself is bilingual; its notices are not.
+ *
+ * Every one carries the CONTENT, not "you have a new notification". An alert
+ * that only says "open the console to see whether this is worth opening" makes
+ * the operator open the console to triage instead of to answer.
+ *
+ * Inline HTML, no template files — same choice as the Bacheca and Cantieri
+ * mails, and it keeps the four bodies next to the copy they render.
+ */
+
+const TICKET_HANDLING_MAIL_LABEL: Record<string, { it: string; en: string }> = {
+  nuovo: { it: 'Ricevuta', en: 'Received' },
+  in_lavorazione: { it: 'Presa in carico', en: 'In progress' },
+  in_attesa_cliente: { it: 'In attesa di una tua risposta', en: 'Waiting for your reply' },
+  risolto: { it: 'Risolta', en: 'Resolved' },
+  chiuso: { it: 'Chiusa', en: 'Closed' },
+};
+
+/** One sentence saying what the new state means FOR THE CUSTOMER. */
+const TICKET_STATUS_HINT: Record<string, { it: string; en: string }> = {
+  in_lavorazione: {
+    it: 'Un operatore ha preso in carico la richiesta. Ti scriviamo appena c’è una risposta.',
+    en: 'An operator has taken the request in charge. We will write as soon as there is an answer.',
+  },
+  risolto: {
+    it: 'Per noi la richiesta è risolta. Se non lo è, rispondi nel thread: la riapriamo.',
+    en: 'We consider the request resolved. If it is not, reply in the thread and we will reopen it.',
+  },
+  chiuso: {
+    it: 'La richiesta è chiusa. Puoi comunque rispondere: la riapriamo e la riprendiamo in carico.',
+    en: 'The request is closed. You can still reply: that reopens it and puts it back on us.',
+  },
+};
+
+function ticketsActionUrl(): string {
+  return env.WEB_PUBLIC_URL.replace(/\/$/, '') + '/tickets';
+}
+
+function consoleTicketUrl(ticketId: string): string {
+  return (
+    env.PARTNER_PUBLIC_URL.replace(/\/$/, '') + '/tickets?ticket=' + encodeURIComponent(ticketId)
+  );
+}
+
+/** Shared shell so the five bodies below cannot drift apart visually. */
+function ticketMailShell(parts: {
+  heading: string;
+  rows: { label: string; value: string }[];
+  /** Free text (a request, a reply) rendered pre-wrapped and escaped. */
+  quote?: string;
+  note?: string;
+  ctaLabel: string;
+  ctaUrl: string;
+}): string {
+  const rows = parts.rows
+    .map(
+      (r) =>
+        `<tr><td style="color:#64748b;padding:2px 12px 2px 0;white-space:nowrap">${escapeHtml(r.label)}</td>` +
+        `<td style="color:#0f172a">${escapeHtml(r.value)}</td></tr>`
+    )
+    .join('');
+  const quote = parts.quote
+    ? `<div style="white-space:pre-wrap;margin:16px 0;padding:14px 16px;background:#f1f5f9;` +
+      `border-radius:8px;border-left:3px solid ${color.primary};color:#0f172a;font-size:14px;line-height:1.55">` +
+      `${escapeHtml(parts.quote)}</div>`
+    : '';
+  const note = parts.note
+    ? `<p style="margin:16px 0 0;color:#64748b;font-size:12px">${escapeHtml(parts.note)}</p>`
+    : '';
+  return (
+    `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;padding:24px">` +
+    `<h2 style="color:${color.primary};font-size:18px;margin:0 0 12px">${escapeHtml(parts.heading)}</h2>` +
+    `<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px">${rows}</table>` +
+    quote +
+    `<p style="margin:20px 0 0"><a href="${parts.ctaUrl}" style="display:inline-block;background:${color.primary};` +
+    `color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">${escapeHtml(parts.ctaLabel)}</a></p>` +
+    note +
+    `<p style="margin-top:16px;color:#94a3b8;font-size:12px">sonoQui</p>` +
+    `</div>`
+  );
+}
+
+export interface TicketOperatorMailPayload {
+  kind: 'new' | 'reply';
+  ticketId: string;
+  ticketRef: string;
+  subject: string;
+  /** The request, or the customer's reply. Whole, not a preview. */
+  body: string;
+  /** Company that raised it, as an operator knows it (ragione sociale). */
+  tenantName: string;
+  /** Category · priority, or '—'. */
+  meta: string;
+  /** The admin who wrote, so an operator can reply by mail if they prefer. */
+  authorEmail: string | null;
+}
+
+/** The console-shaped notice: a company raised a request, or answered on one. */
+export function buildTicketOperatorMail(p: TicketOperatorMailPayload): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const heading =
+    p.kind === 'new' ? 'Nuova richiesta di assistenza' : 'Il cliente ha risposto';
+  const subject = `[sonoQui][${stripHeader(p.ticketRef)}] ${
+    p.kind === 'new' ? 'Nuova richiesta' : 'Risposta del cliente'
+  } — ${stripHeader(p.tenantName)}`;
+  const text =
+    `${heading}\n\n` +
+    `Riferimento: ${p.ticketRef}\nAzienda: ${p.tenantName}\nOggetto: ${p.subject}\n` +
+    `Categoria: ${p.meta}\n` +
+    (p.authorEmail ? `Scritto da: ${p.authorEmail}\n` : '') +
+    `\n${p.body}\n\n` +
+    `Apri la richiesta nella console:\n${consoleTicketUrl(p.ticketId)}`;
+  const html = ticketMailShell({
+    heading,
+    rows: [
+      { label: 'Riferimento', value: p.ticketRef },
+      { label: 'Azienda', value: p.tenantName },
+      { label: 'Oggetto', value: p.subject },
+      { label: 'Categoria', value: p.meta },
+      ...(p.authorEmail ? [{ label: 'Scritto da', value: p.authorEmail }] : []),
+    ],
+    quote: p.body,
+    ctaLabel: 'Apri nella console',
+    ctaUrl: consoleTicketUrl(p.ticketId),
+    // Said out loud because it is a real gap: replying to this mail reaches the
+    // customer but NOT the in-app thread, so the next reader of the ticket sees
+    // nothing.
+    note: 'Rispondendo a questa email scrivi direttamente all’azienda, ma la risposta non finisce nel thread dentro sonoQui: per quello serve la console.',
+  });
+  return { subject, text, html };
+}
+
+export interface TicketAckMailPayload {
+  ticketRef: string;
+  subject: string;
+  language?: 'it' | 'en';
+}
+
+/** "We have your request" — sent to the admin who opened it, with its reference. */
+export function buildTicketAckMail(p: TicketAckMailPayload): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const language = p.language ?? 'it';
+  const subject =
+    language === 'it'
+      ? `[sonoQui][${stripHeader(p.ticketRef)}] Abbiamo ricevuto la tua richiesta`
+      : `[sonoQui][${stripHeader(p.ticketRef)}] We received your request`;
+  const cta = language === 'it' ? 'Apri la richiesta' : 'Open the request';
+  const text =
+    language === 'it'
+      ? `Abbiamo ricevuto la tua richiesta di assistenza.\n\n` +
+        `Riferimento: ${p.ticketRef}\nOggetto: ${p.subject}\n\n` +
+        `Ti risponderemo qui dentro: trovi la richiesta e le risposte in Assistenza.\n${ticketsActionUrl()}`
+      : `We received your support request.\n\n` +
+        `Reference: ${p.ticketRef}\nSubject: ${p.subject}\n\n` +
+        `We will answer in the app: the request and its replies live under Support.\n${ticketsActionUrl()}`;
+  const html = ticketMailShell({
+    heading:
+      language === 'it' ? 'Abbiamo ricevuto la tua richiesta' : 'We received your request',
+    rows: [
+      { label: language === 'it' ? 'Riferimento' : 'Reference', value: p.ticketRef },
+      { label: language === 'it' ? 'Oggetto' : 'Subject', value: p.subject },
+    ],
+    ctaLabel: cta,
+    ctaUrl: ticketsActionUrl(),
+    note:
+      language === 'it'
+        ? 'Conserva il riferimento: lo citiamo in ogni messaggio su questa richiesta.'
+        : 'Keep the reference: we quote it in every message about this request.',
+  });
+  return { subject, text, html };
+}
+
+export interface TicketReplyMailPayload {
+  ticketRef: string;
+  subject: string;
+  /** The reply, in full. The whole point of this mail is that it carries it. */
+  body: string;
+  handlingStatus: string;
+  language?: 'it' | 'en';
+}
+
+/** An operator answered. */
+export function buildTicketReplyMail(p: TicketReplyMailPayload): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const language = p.language ?? 'it';
+  const statusLabel =
+    TICKET_HANDLING_MAIL_LABEL[p.handlingStatus]?.[language] ?? p.handlingStatus;
+  const subject =
+    language === 'it'
+      ? `[sonoQui][${stripHeader(p.ticketRef)}] Risposta dell’assistenza`
+      : `[sonoQui][${stripHeader(p.ticketRef)}] Support replied`;
+  const text =
+    language === 'it'
+      ? `L’assistenza ha risposto alla tua richiesta.\n\n` +
+        `Riferimento: ${p.ticketRef}\nOggetto: ${p.subject}\nStato: ${statusLabel}\n\n` +
+        `${p.body}\n\n` +
+        `Rispondi dentro sonoQui:\n${ticketsActionUrl()}`
+      : `Support replied to your request.\n\n` +
+        `Reference: ${p.ticketRef}\nSubject: ${p.subject}\nStatus: ${statusLabel}\n\n` +
+        `${p.body}\n\n` +
+        `Reply inside sonoQui:\n${ticketsActionUrl()}`;
+  const html = ticketMailShell({
+    heading: language === 'it' ? 'Risposta dell’assistenza' : 'Support replied',
+    rows: [
+      { label: language === 'it' ? 'Riferimento' : 'Reference', value: p.ticketRef },
+      { label: language === 'it' ? 'Oggetto' : 'Subject', value: p.subject },
+      { label: language === 'it' ? 'Stato' : 'Status', value: statusLabel },
+    ],
+    quote: p.body,
+    ctaLabel: language === 'it' ? 'Rispondi nella richiesta' : 'Reply in the request',
+    ctaUrl: ticketsActionUrl(),
+  });
+  return { subject, text, html };
+}
+
+export interface TicketStatusMailPayload {
+  ticketRef: string;
+  subject: string;
+  handlingStatus: string;
+  language?: 'it' | 'en';
+}
+
+/** The team moved the ticket. Only for the states worth a message. */
+export function buildTicketStatusMail(p: TicketStatusMailPayload): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const language = p.language ?? 'it';
+  const statusLabel =
+    TICKET_HANDLING_MAIL_LABEL[p.handlingStatus]?.[language] ?? p.handlingStatus;
+  const hint = TICKET_STATUS_HINT[p.handlingStatus]?.[language] ?? '';
+  const subject = `[sonoQui][${stripHeader(p.ticketRef)}] ${statusLabel}`;
+  const text =
+    (language === 'it'
+      ? `La tua richiesta di assistenza è ora: ${statusLabel}.\n\n`
+      : `Your support request is now: ${statusLabel}.\n\n`) +
+    `${language === 'it' ? 'Riferimento' : 'Reference'}: ${p.ticketRef}\n` +
+    `${language === 'it' ? 'Oggetto' : 'Subject'}: ${p.subject}\n\n` +
+    (hint ? `${hint}\n\n` : '') +
+    ticketsActionUrl();
+  const html = ticketMailShell({
+    heading:
+      language === 'it'
+        ? `Richiesta ${p.ticketRef}: ${statusLabel.toLowerCase()}`
+        : `Request ${p.ticketRef}: ${statusLabel.toLowerCase()}`,
+    rows: [
+      { label: language === 'it' ? 'Riferimento' : 'Reference', value: p.ticketRef },
+      { label: language === 'it' ? 'Oggetto' : 'Subject', value: p.subject },
+      { label: language === 'it' ? 'Stato' : 'Status', value: statusLabel },
+    ],
+    quote: hint || undefined,
+    ctaLabel: language === 'it' ? 'Apri la richiesta' : 'Open the request',
+    ctaUrl: ticketsActionUrl(),
   });
   return { subject, text, html };
 }

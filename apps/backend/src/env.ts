@@ -83,6 +83,16 @@ const Env = z.object({
   SMTP_FROM: z.string().optional(),
   // Recipient for website "Contattaci" form submissions (routes/helpdesk.ts).
   HELPDESK_TO: z.string().optional(),
+  // The platform's support mailbox: every operator-side notice about a support
+  // ticket (a new one, a customer reply) is ALWAYS sent here, on top of the
+  // assigned operator or the tenant's managing partner when there is one. It is
+  // the address that guarantees a ticket reaches a human even for a tenant no
+  // partner manages — which is why it has a default rather than being optional.
+  SUPPORT_TICKET_TO: z.string().email().default('michele.lucchese@outlook.it'),
+  // Public origin of the partner console, for the "open in the console" link in
+  // operator notices. Kept out of WEB_PUBLIC_URL because they are two different
+  // apps on two different hostnames.
+  PARTNER_PUBLIC_URL: z.string().min(1).default('https://partners.sonoqui.pro'),
   // Cloudflare Turnstile secret. When set, the helpdesk route requires + verifies a token.
   TURNSTILE_SECRET_KEY: z.string().optional(),
   // Bearer secret for the e2e fixture purge endpoint. Endpoint is only

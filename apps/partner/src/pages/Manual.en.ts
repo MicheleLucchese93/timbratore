@@ -20,6 +20,8 @@ export const TOC_EN = `
       <a href="#aziende-admin" class="sub">Administrators</a>
       <a href="#aziende-supporto" class="sub">Read-only access</a>
       <a href="#aziende-elimina" class="sub">Deleting</a>
+      <a href="#richieste">Requests</a>
+      <a href="#richieste-lavorare" class="sub">Working a request</a>
       <a href="#partner">Partners</a>
       <a href="#partner-crea" class="sub">Creating a partner</a>
       <a href="#partner-caps" class="sub">Partner caps</a>
@@ -301,6 +303,47 @@ export const MAIN_EN = `
       </div>
     </section>
 
+    <section class="chapter" id="richieste">
+      <h2><span class="chapter-num">06a</span>Requests</h2>
+      <p class="lead">The support queue: the requests customers open from the <strong>Support</strong> entry in their web panel. You read and answer them here, and the answer lands inside the customer's application — not in a mailbox they then have to cross-reference with a ticket.</p>
+
+      <div class="feature">
+        <h3>What you see</h3>
+        <p>A <strong>platform administrator</strong> sees every company's requests. A <strong>partner</strong> sees only those of the companies they created: a company created by the platform belongs to no partner and stays platform work.</p>
+        <p>The grid shows when it was opened, the <strong>reference</strong> (e.g. <em>SQ-20260824-0431</em>, the code the customer quotes), the <strong>company</strong>, the subject, the <strong>state</strong>, the <strong>assignee</strong> and how many customer replies are still unread.</p>
+        <ul class="tidy">
+          <li><strong>To work on</strong> — everything neither resolved nor closed, oldest first: a queue is worked from the front.</li>
+          <li><strong>Waiting on customer</strong> — the ball is on the other side.</li>
+          <li><strong>Resolved</strong>, <strong>All states</strong> — the archive, newest first.</li>
+          <li><strong>All / Mine / Unassigned</strong> — the second filter, on assignment.</li>
+        </ul>
+        <p>The search box filters by reference, subject, company and the writer's email.</p>
+      </div>
+
+      <div class="feature" id="richieste-lavorare">
+        <h3>Working a request</h3>
+        <p>Click a row to open it. You get the <strong>full</strong> text of the report, the customer's attachments, the whole thread and the company's details (who wrote, category, priority, the company's partner).</p>
+        <ul class="tidy">
+          <li><strong>Take it</strong> — assigns the request to you. A <em>New</em> request moves to <em>In progress</em> at the same time: a request taken in charge and still marked new tells the queue nothing. <strong>Release</strong> hands it back to nobody.</li>
+          <li><strong>State</strong> — <em>New</em>, <em>In progress</em>, <em>Waiting on customer</em>, <em>Resolved</em>, <em>Closed</em>. The customer is emailed when it moves to <em>In progress</em>, <em>Resolved</em> or <em>Closed</em>.</li>
+          <li><strong>Assign to</strong> (platform administrators only) — hand the request to another active operator. A partner can only take it or release it.</li>
+          <li><strong>Internal note</strong> — operators only. It never appears in the customer's panel and is never quoted in any email.</li>
+          <li><strong>Reply</strong> — lands in the customer's thread and in their inbox, carrying the text. The menu next to it decides <strong>where the reply leaves the request</strong>: the person writing chooses, because the same paragraph can mean “resolved” or “waiting on you”. Up to 3 files of 10 MB.</li>
+        </ul>
+        <p>Opening a request marks it read for the team. The operator's name shows in the console but <strong>not</strong> to the customer: for them the answer comes from support, not from a person.</p>
+      </div>
+
+      <div class="feature">
+        <h3>What you cannot touch</h3>
+        <p>The customer's own tick (“I no longer need an answer”) is theirs: no control in the console changes it. You see it because it is useful information — a request the customer considers closed is worked with less urgency — but it stays their statement.</p>
+        <p>A request you close can still be reopened by a customer reply: it goes back to <em>In progress</em>. A reply that vanishes is worse than a reopened request.</p>
+      </div>
+
+      <div class="callout callout-warn">
+        <strong>You are reading somebody else's data.</strong> A request's text and attachments can name an employee of the company. Every write from this page — state change, assignment, note, reply — lands in the <strong>Activity log</strong> with the request's reference.
+      </div>
+    </section>
+
     <section class="chapter" id="partner">
       <h2><span class="chapter-num">07</span>Partners <span class="badge badge-admin">admin</span></h2>
       <p class="lead">Reseller management. This section is visible <strong>only to the platform administrator</strong>.</p>
@@ -359,6 +402,7 @@ export const MAIN_EN = `
         <ul class="tidy">
           <li>Companies: creation, limit changes, suspension, resume, note changes, partner assignment, adding/removing/re-inviting administrators, deletion.</li>
           <li>Partners: creation, caps changes, profile changes, activation, disabling, resend.</li>
+          <li>Support requests: state change, assignment, reply to the customer, internal-note change. The target is the request's reference (e.g. <em>SQ-20260824-0431</em>) rather than the customer's subject line, which could carry an employee's name into a log that is never erased.</li>
         </ul>
         <p>The <strong>Refresh</strong> button reloads the list. On mobile entries are shown as cards.</p>
       </div>

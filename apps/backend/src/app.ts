@@ -35,6 +35,8 @@ import { helpdeskRouter } from './routes/helpdesk.js';
 import { internalE2eRouter } from './routes/internal-e2e.js';
 import { internalProvisionRouter } from './routes/internal-provision.js';
 import { partnershipRouter } from './routes/partnership.js';
+import { ticketsRouter } from './routes/tickets.js';
+import { partnershipTicketsRouter } from './routes/partnership-tickets.js';
 
 export function createApp(): Express {
   const app = express();
@@ -126,10 +128,14 @@ export function createApp(): Express {
   app.use('/api/v1/audit', auditRouter);
   app.use('/api/v1/cantieri', cantieriRouter);
   app.use('/api/v1/helpdesk', helpdeskRouter);
+  app.use('/api/v1/tickets', ticketsRouter);
   // Reseller / tenant-management surface (partners.sonoqui.pro). Each route is
   // gated by its own partnership-member auth (see middleware/partnership-auth.ts);
   // wholly isolated from the per-tenant routes above. Always mounted — access is
   // controlled by partnership_members, not by a mount-time secret.
+  // Mounted BEFORE the partnership router so the literal /tickets prefix is
+  // matched by its own router rather than falling into partnership's handlers.
+  app.use('/api/v1/partnership/tickets', partnershipTicketsRouter);
   app.use('/api/v1/partnership', partnershipRouter);
   // The internal-e2e router runs destructive cross-table deletes. It mounts
   // ONLY when both the bearer secret AND the tenant pin are configured — so a

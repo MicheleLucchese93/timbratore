@@ -27,6 +27,7 @@ const TOC_IT = `
       <a href="#web-admin-esportazioni" class="sub">Esportazioni</a>
       <a href="#web-admin-documenti" class="sub">Documenti</a>
       <a href="#web-admin-registro" class="sub">Registro attività</a>
+      <a href="#web-admin-assistenza" class="sub">Assistenza</a>
       <a href="#web-admin-impostazioni" class="sub">Impostazioni</a>
 
       <h3>Web · Dipendente</h3>
@@ -979,6 +980,48 @@ const MAIN_IT = `
 
       <div class="callout callout-warn">
         <strong>Registro inalterabile:</strong> le voci sono conservate senza limiti di tempo e non possono essere modificate né eliminate, nemmeno da un amministratore: il registro cresce solo in aggiunta ed è pensato come traccia di controllo permanente.
+      </div>
+    </section>
+
+    <section class="chapter" id="web-admin-assistenza">
+      <h2><span class="chapter-num">14b</span>Assistenza <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
+      <p class="lead">Il canale diretto verso chi ti assiste su sonoQui. Apri una richiesta dalla voce <strong>Assistenza</strong> della barra laterale e la risposta arriva nello stesso posto: la conversazione resta dentro l'applicazione, così non serve incrociare email e ticket per capire a che punto è.</p>
+
+      <div class="feature">
+        <h3>Chi può aprire una richiesta</h3>
+        <p>Solo gli <strong>amministratori</strong>. Una richiesta di assistenza riguarda l'azienda e il suo abbonamento, non la giornata di un singolo dipendente: per quello ci sono le <em>Correzioni</em> e le <em>Ferie &amp; Permessi</em>, che restano interne all'azienda. Tutti gli amministratori vedono tutte le richieste dell'azienda, comprese quelle aperte da un collega — una conversazione che può leggere una sola persona è una conversazione che si blocca quando quella persona è in ferie.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Aprire una richiesta</h3>
+        <p><strong>Nuova richiesta</strong> chiede quattro cose: <strong>oggetto</strong>, <strong>categoria</strong> (problema, domanda, richiesta di modifica, abbonamento e fatturazione, altro), <strong>priorità</strong> e <strong>descrizione</strong>. Descrivi cosa stavi facendo, cosa ti aspettavi e cosa è successo: è quello che permette di riprodurre il problema senza scriverti per chiederlo.</p>
+        <p>Puoi allegare fino a <strong>3 file</strong> da <strong>10 MB</strong> ciascuno — immagini, PDF, testo, CSV, JSON. Uno screenshot dell'errore vale più di qualunque descrizione.</p>
+        <p>Ogni richiesta riceve un <strong>riferimento</strong> nella forma <em>SQ-20260824-0431</em>. È il codice che citiamo in ogni email e al telefono: conservalo.</p>
+      </div>
+
+      <div class="feature">
+        <h3>I due stati, e perché sono due</h3>
+        <p>Sulla riga di una richiesta compaiono due informazioni diverse, e nessuna delle due sostituisce l'altra:</p>
+        <ul class="tidy">
+          <li><strong>Lo stato dell'assistenza</strong> — cosa stiamo facendo noi: <em>Ricevuta</em> (nessuno l'ha ancora presa in carico), <em>Presa in carico</em>, <em>In attesa di una tua risposta</em>, <em>Risolta dall'assistenza</em>, <em>Chiusa</em>. Lo decidiamo noi; tu lo leggi.</li>
+          <li><strong>La tua spunta</strong> — <em>Non mi serve più</em> chiude la richiesta dal tuo punto di vista, e <em>Mi serve ancora</em> la riapre. Non avvisa nessuno e non cambia il nostro stato: serve a te per togliere dall'elenco quello che hai risolto da solo.</li>
+        </ul>
+        <p>Il filtro <strong>Aperte</strong> mostra quello che è ancora in gioco; <strong>Tutte</strong> mostra anche l'archivio.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Rispondere</h3>
+        <p>La scheda della richiesta è un thread: la tua segnalazione, le nostre risposte, i tuoi allegati e i nostri. Un badge segnala le <strong>nuove risposte</strong> non ancora lette. Puoi rispondere in qualsiasi momento, anche a una richiesta <em>chiusa</em>: in quel caso la richiesta <strong>si riapre</strong> e torna in carico a noi — una risposta che cade nel vuoto è peggio di una richiesta riaperta.</p>
+        <p class="muted">Le risposte arrivano da «Assistenza sonoQui» e non dal nome di una persona: chi ti risponde può cambiare, andare in ferie o lavorare per il rivenditore che ti ha attivato, e la richiesta deve restare indirizzata al gruppo che la lavora.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Email</h3>
+        <p>Ogni richiesta genera una conferma di ricezione con il riferimento. Ricevi un'email anche quando l'assistenza <strong>risponde</strong> e quando la richiesta viene <strong>presa in carico</strong>, <strong>risolta</strong> o <strong>chiusa</strong>. Le email arrivano nella lingua impostata nel tuo profilo. Puoi rispondere direttamente all'email, ma la conversazione dentro sonoQui è il canale che tutti vedono.</p>
+      </div>
+
+      <div class="callout callout-warn">
+        <strong>Chi legge le tue richieste:</strong> oltre al team della piattaforma, la richiesta è visibile al <strong>rivenditore che ha attivato la tua azienda</strong>, se ce n'è uno — è la persona che ti risponde. Testo, allegati e conversazione sono leggibili per intero, quindi valuta cosa scrivi: se devi citare un dipendente, il nome e cognome bastano, non serve altro. Ogni intervento dell'assistenza su una richiesta viene registrato lato piattaforma.
       </div>
     </section>
 

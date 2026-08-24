@@ -23,6 +23,8 @@ const TOC_IT = `
       <a href="#aziende-admin" class="sub">Amministratori</a>
       <a href="#aziende-supporto" class="sub">Accesso in sola lettura</a>
       <a href="#aziende-elimina" class="sub">Eliminare</a>
+      <a href="#richieste">Richieste</a>
+      <a href="#richieste-lavorare" class="sub">Lavorare una richiesta</a>
       <a href="#partner">Partner</a>
       <a href="#partner-crea" class="sub">Creare un partner</a>
       <a href="#partner-caps" class="sub">Limiti del partner</a>
@@ -304,6 +306,47 @@ const MAIN_IT = `
       </div>
     </section>
 
+    <section class="chapter" id="richieste">
+      <h2><span class="chapter-num">06a</span>Richieste</h2>
+      <p class="lead">La coda dell'assistenza: le richieste che i clienti aprono dalla voce <strong>Assistenza</strong> del loro pannello web. Si leggono e si rispondono da qui, e la risposta arriva dentro l'applicazione del cliente — non in una casella email che poi deve incrociare con il ticket.</p>
+
+      <div class="feature">
+        <h3>Cosa vedi</h3>
+        <p>Un <strong>amministratore di piattaforma</strong> vede le richieste di tutte le aziende. Un <strong>partner</strong> vede solo quelle delle aziende che ha creato: un'azienda creata dalla piattaforma non appartiene a nessun partner e resta lavoro della piattaforma.</p>
+        <p>La griglia mostra data di apertura, <strong>riferimento</strong> (es. <em>SQ-20260824-0431</em>, il codice che il cliente cita), <strong>azienda</strong>, oggetto, <strong>stato</strong>, <strong>assegnatario</strong> e quante risposte del cliente non sono ancora state lette.</p>
+        <ul class="tidy">
+          <li><strong>Da lavorare</strong> — tutto quello che non è risolto né chiuso, dal più vecchio: una coda si lavora dal fondo della fila.</li>
+          <li><strong>Attendono il cliente</strong> — la palla è dall'altra parte.</li>
+          <li><strong>Risolte</strong>, <strong>Tutti gli stati</strong> — l'archivio, dal più recente.</li>
+          <li><strong>Tutte / Le mie / Non assegnate</strong> — il secondo filtro, sull'assegnazione.</li>
+        </ul>
+        <p>Il campo di ricerca filtra per riferimento, oggetto, azienda ed email di chi ha scritto.</p>
+      </div>
+
+      <div class="feature" id="richieste-lavorare">
+        <h3>Lavorare una richiesta</h3>
+        <p>Clicca una riga per aprirla. Trovi il testo <strong>integrale</strong> della segnalazione, gli allegati del cliente, tutto il thread e i dati dell'azienda (chi ha scritto, categoria, priorità, partner di riferimento).</p>
+        <ul class="tidy">
+          <li><strong>Prendi in carico</strong> — assegna la richiesta a te. Se era <em>Nuova</em> passa automaticamente a <em>In lavorazione</em>: una richiesta presa in carico e ancora marcata come nuova non dice nulla alla coda. <strong>Lascia</strong> la restituisce a nessuno.</li>
+          <li><strong>Stato</strong> — <em>Nuova</em>, <em>In lavorazione</em>, <em>In attesa del cliente</em>, <em>Risolta</em>, <em>Chiusa</em>. Il cliente riceve un'email quando la richiesta passa a <em>In lavorazione</em>, <em>Risolta</em> o <em>Chiusa</em>.</li>
+          <li><strong>Assegna a</strong> (solo amministratori di piattaforma) — passa la richiesta a un altro operatore attivo. Un partner può solo prenderla o lasciarla.</li>
+          <li><strong>Nota interna</strong> — visibile solo agli operatori. Non compare mai nel pannello del cliente e non viene citata in nessuna email.</li>
+          <li><strong>Risposta</strong> — arriva nel thread del cliente e per email, con il testo dentro. Il menù accanto decide <strong>dove lascia la richiesta</strong>: lo sceglie chi scrive, perché lo stesso paragrafo può voler dire «risolta» o «attendo risposta». Puoi allegare fino a 3 file da 10 MB.</li>
+        </ul>
+        <p>Aprire una richiesta la segna come letta per il team. Il nome dell'operatore compare in console ma <strong>non</strong> al cliente: per lui la risposta arriva dall'assistenza, non da una persona.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Quello che non puoi toccare</h3>
+        <p>La spunta del cliente («non mi serve più una risposta») è sua: non esiste nessun comando in console che la cambi. La vedi perché è informazione utile — una richiesta che il cliente considera chiusa si lavora con meno urgenza — ma resta una sua dichiarazione.</p>
+        <p>Una richiesta che chiudi può comunque essere riaperta da una risposta del cliente: torna <em>In lavorazione</em>. Una risposta che cade nel vuoto è peggio di una richiesta riaperta.</p>
+      </div>
+
+      <div class="callout callout-warn">
+        <strong>Stai leggendo dati di qualcun altro.</strong> Il testo di una richiesta e i suoi allegati possono contenere il nome di un dipendente dell'azienda. Ogni scrittura da questa pagina — cambio di stato, assegnazione, nota, risposta — finisce nel <strong>Registro attività</strong> con il riferimento della richiesta.
+      </div>
+    </section>
+
     <section class="chapter" id="partner">
       <h2><span class="chapter-num">07</span>Partner <span class="badge badge-admin">admin</span></h2>
       <p class="lead">La gestione dei rivenditori. Questa sezione è visibile <strong>solo all'amministratore di piattaforma</strong>.</p>
@@ -362,6 +405,7 @@ const MAIN_IT = `
         <ul class="tidy">
           <li>Aziende: creazione, modifica limiti, sospensione, riattivazione, modifica note, assegnazione a partner, aggiunta/rimozione/reinvito di amministratori, eliminazione.</li>
           <li>Partner: creazione, modifica caps, modifica anagrafica, attivazione, disattivazione, reinvito.</li>
+          <li>Richieste di assistenza: cambio di stato, assegnazione, risposta al cliente, modifica della nota interna. L'oggetto è il riferimento della richiesta (es. <em>SQ-20260824-0431</em>) e non l'oggetto scritto dal cliente, che potrebbe portare il nome di un dipendente in un registro che non si cancella.</li>
         </ul>
         <p>Il pulsante <strong>Aggiorna</strong> ricarica l'elenco. Su mobile le voci sono mostrate come schede.</p>
       </div>

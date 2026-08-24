@@ -21,6 +21,7 @@ export const TOC_EN = `
       <a href="#web-admin-esportazioni" class="sub">Exports</a>
       <a href="#web-admin-documenti" class="sub">Documents</a>
       <a href="#web-admin-registro" class="sub">Activity log</a>
+      <a href="#web-admin-assistenza" class="sub">Support</a>
       <a href="#web-admin-impostazioni" class="sub">Settings</a>
 
       <h3>Web · Employee</h3>
@@ -972,6 +973,48 @@ export const MAIN_EN = `
 
       <div class="callout callout-warn">
         <strong>Tamper-proof log:</strong> entries are kept with no time limit and cannot be edited or deleted, not even by an administrator: the log is append-only and is meant as a permanent audit trail.
+      </div>
+    </section>
+
+    <section class="chapter" id="web-admin-assistenza">
+      <h2><span class="chapter-num">14b</span>Support <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
+      <p class="lead">The direct channel to whoever supports you on sonoQui. Open a request from the <strong>Support</strong> sidebar entry and the answer arrives in the same place: the conversation stays inside the application, so you never have to cross-reference an inbox with a ticket to find out where things stand.</p>
+
+      <div class="feature">
+        <h3>Who can open a request</h3>
+        <p><strong>Administrators only.</strong> A support request is about the company and its subscription, not about one employee's day — that is what <em>Corrections</em> and <em>Holiday &amp; time off</em> are for, and those stay inside the company. Every administrator sees every request the company opened, including a colleague's: a conversation only one person can read is one that stalls the week they are away.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Opening a request</h3>
+        <p><strong>New request</strong> asks for four things: <strong>subject</strong>, <strong>category</strong> (problem, how-to question, change request, subscription and billing, other), <strong>priority</strong> and <strong>description</strong>. Say what you were doing, what you expected and what happened — that is what makes the problem reproducible without another round of questions.</p>
+        <p>You can attach up to <strong>3 files</strong> of <strong>10 MB</strong> each — images, PDF, text, CSV, JSON. A screenshot of the error beats any description of it.</p>
+        <p>Every request gets a <strong>reference</strong> shaped like <em>SQ-20260824-0431</em>. It is the code we quote in every email and on the phone: keep it.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Two states, and why there are two</h3>
+        <p>A row carries two different pieces of information, and neither replaces the other:</p>
+        <ul class="tidy">
+          <li><strong>The support state</strong> — what we are doing: <em>Received</em> (nobody has picked it up yet), <em>In progress</em>, <em>Waiting for your reply</em>, <em>Resolved by support</em>, <em>Closed</em>. We set it; you read it.</li>
+          <li><strong>Your own tick</strong> — <em>I no longer need this</em> closes the request from your side and <em>I still need this</em> reopens it. It notifies nobody and does not change our state: it is there so you can clear what you worked out yourself.</li>
+        </ul>
+        <p>The <strong>Open</strong> filter shows what is still in play; <strong>All</strong> shows the archive too.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Replying</h3>
+        <p>The request opens as a thread: your report, our answers, your attachments and ours. A badge marks <strong>new replies</strong> you have not read. You can reply at any time, including on a <em>closed</em> request — that <strong>reopens</strong> it and puts it back on us, because a reply that vanishes is worse than a reopened request.</p>
+        <p class="muted">Replies come from “sonoQui support”, not from a person's name: whoever answers may change, may be away, and may work for the reseller who set your company up, and the request has to stay addressed to the group that works it.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Email</h3>
+        <p>Every request gets an acknowledgement carrying its reference. You also get an email when support <strong>replies</strong>, and when the request is <strong>taken in charge</strong>, <strong>resolved</strong> or <strong>closed</strong>. Emails follow the language set in your profile. You can answer the email directly, but the thread inside sonoQui is the channel everyone can see.</p>
+      </div>
+
+      <div class="callout callout-warn">
+        <strong>Who reads your requests:</strong> besides the platform team, a request is visible to the <strong>reseller who set your company up</strong>, if there is one — they are the person answering you. Text, attachments and the whole conversation are readable, so weigh what you write: if you have to name an employee, a name is enough. Every support action on a request is logged on the platform side.
       </div>
     </section>
 

@@ -1,0 +1,74 @@
+{
+  "title": "Support",
+  "subtitle": "Your company's support requests and our answers.",
+  "new": "New request",
+  "empty": "No support requests.",
+  "emptyOpen": "No open requests.",
+  "emptyHint": "Open a request to report a problem or ask for a change: we answer right here.",
+  "unread": "{{count}} new reply",
+  "unread_other": "{{count}} new replies",
+  "filter": {
+    "aperte": "Open",
+    "tutte": "All"
+  },
+  "handling": {
+    "nuovo": "Received",
+    "in_lavorazione": "In progress",
+    "in_attesa_cliente": "Waiting for your reply",
+    "risolto": "Resolved by support",
+    "chiuso": "Closed"
+  },
+  "handlingHint": {
+    "nuovo": "We have the request; nobody has picked it up yet.",
+    "in_lavorazione": "An operator is working on it. We will write as soon as there is an answer.",
+    "in_attesa_cliente": "We are waiting for your reply to move on.",
+    "risolto": "We consider it resolved. If it is not, reply here and we will reopen it.",
+    "chiuso": "The request is closed. You can still reply: that reopens it and puts it back on us."
+  },
+  "category": {
+    "problema": "Problem / malfunction",
+    "domanda": "How-to question",
+    "richiesta": "Change request",
+    "fatturazione": "Subscription and billing",
+    "altro": "Other"
+  },
+  "priority": {
+    "bassa": "Low",
+    "media": "Medium",
+    "alta": "High"
+  },
+  "mine": {
+    "resolved": "Closed by you",
+    "resolve": "I no longer need this",
+    "reopen": "I still need this"
+  },
+  "form": {
+    "title": "New support request",
+    "intro": "Describe the problem as you see it: what you were doing, what you expected and what happened. Attach a screenshot if you have one.",
+    "subject": "Subject",
+    "category": "Category",
+    "priority": "Priority",
+    "body": "Description",
+    "bodyPlaceholder": "e.g. Since this morning the June export stops with an error after about a minute…",
+    "send": "Send request",
+    "subjectRequired": "Enter a subject (at least 3 characters).",
+    "bodyRequired": "Describe the request (at least 10 characters)."
+  },
+  "files": {
+    "add": "Attach files",
+    "remove": "Remove",
+    "hint": "Up to {{n}} files, max {{mb}} MB each (images, PDF, text).",
+    "badType": "\"{{name}}\": file type not accepted.",
+    "tooBig": "\"{{name}}\" is over {{mb}} MB.",
+    "max": "You can attach at most {{n}} files.",
+    "uploadFailed": "Could not upload \"{{name}}\".",
+    "downloadFailed": "Attachment download failed."
+  },
+  "thread": {
+    "you": "Your company",
+    "support": "sonoQui support",
+    "replyPlaceholder": "Write a reply…",
+    "send": "Send reply",
+    "reopenWarning": "This request is no longer in progress: replying reopens it and puts it back on us."
+  }
+}

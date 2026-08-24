@@ -33,6 +33,7 @@ const Bacheca = lazy(() => import('../pages/Bacheca.tsx').then((m) => ({ default
 const MyDocuments = lazy(() => import('../pages/MyDocuments.tsx').then((m) => ({ default: m.MyDocuments })));
 const Manual = lazy(() => import('../pages/Manual.tsx').then((m) => ({ default: m.Manual })));
 const Audit = lazy(() => import('../pages/Audit.tsx').then((m) => ({ default: m.Audit })));
+const Tickets = lazy(() => import('../pages/Tickets.tsx').then((m) => ({ default: m.Tickets })));
 const Cantieri = lazy(() => import('../pages/Cantieri.tsx').then((m) => ({ default: m.Cantieri })));
 const Mezzi = lazy(() => import('../pages/Mezzi.tsx').then((m) => ({ default: m.Mezzi })));
 const CantieriCampi = lazy(() => import('../pages/CantieriCampi.tsx').then((m) => ({ default: m.CantieriCampi })));
@@ -107,6 +108,7 @@ export function App() {
               {isCantieriAdmin && <Route path="/cantieri/campi" element={<CantieriCampi />} />}
               {isCantieriAdmin && <Route path="/cantieri/mezzi" element={<Mezzi />} />}
               <Route path="/me/documents" element={<MyDocuments />} />
+              <Route path="/tickets" element={<Tickets />} />
               <Route path="/audit" element={<Audit />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/shifts" element={<Shifts />} />

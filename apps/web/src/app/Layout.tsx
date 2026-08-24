@@ -21,6 +21,7 @@ const adminNav: NavItem[] = [
   { to: '/exports', key: 'exports', icon: <IconDownload /> },
   { to: '/me/documents', key: 'myDocuments', icon: <IconFile /> },
   { to: '/users', key: 'users', icon: <IconUsers /> },
+  { to: '/tickets', key: 'tickets', icon: <IconLifebuoy /> },
   { to: '/audit', key: 'audit', icon: <IconHistory /> },
   { to: '/settings', key: 'settings', icon: <IconCog /> },
   { to: '/manual', key: 'manual', icon: <IconBook /> },
@@ -64,7 +65,7 @@ const COLLAPSED_KEY = 'sonoqui.sidebar.collapsed';
 // Sidebar entries hidden during a read-only partner support session: employee
 // documents (own-only + Documentale-gated, denied server-side) and exports
 // (generating and downloading are both writes / bulk data extraction).
-const SUPPORT_HIDDEN_NAV = new Set(['documents', 'myDocuments', 'exports']);
+const SUPPORT_HIDDEN_NAV = new Set(['documents', 'myDocuments', 'exports', 'tickets']);
 
 export function Layout({ children }: { children: ReactNode }) {
   const { me, logout } = useSession();
@@ -509,6 +510,15 @@ function IconHistory() {
       <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
       <path d="M3 3v5h5" />
       <path d="M12 7v5l3 3" />
+    </svg>
+  );
+}
+function IconLifebuoy() {
+  return (
+    <svg {...ICON_PROPS}>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="4" />
+      <path d="M5.6 5.6l3.6 3.6M14.8 14.8l3.6 3.6M18.4 5.6l-3.6 3.6M9.2 14.8l-3.6 3.6" />
     </svg>
   );
 }

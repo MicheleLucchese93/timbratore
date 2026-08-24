@@ -1,8 +1,31 @@
 {
-  "app": { "name": "sonoQui", "suffix": "Partner", "subtitle": "Reseller tenant management" },
-  "lists": { "badge_documentale": "Documentale", "badge_inactive": "Inactive" },
-  "nav": { "tenants": "Companies", "partners": "Partners", "audit": "Activity log", "settings": "Settings", "manual": "Manual", "logout": "Sign out", "openMenu": "Open menu", "closeMenu": "Close menu" },
-  "settings": { "title": "Settings", "subtitle": "Console preferences", "language": "Language", "security": "Security", "securityDesc": "Change your account password: enter your current one and choose a new one that meets the security requirements." },
+  "app": {
+    "name": "sonoQui",
+    "suffix": "Partner",
+    "subtitle": "Reseller tenant management"
+  },
+  "lists": {
+    "badge_documentale": "Documentale",
+    "badge_inactive": "Inactive"
+  },
+  "nav": {
+    "tenants": "Companies",
+    "tickets": "Requests",
+    "partners": "Partners",
+    "audit": "Activity log",
+    "settings": "Settings",
+    "manual": "Manual",
+    "logout": "Sign out",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Console preferences",
+    "language": "Language",
+    "security": "Security",
+    "securityDesc": "Change your account password: enter your current one and choose a new one that meets the security requirements."
+  },
   "password": {
     "title": "Change password",
     "current": "Current password",
@@ -25,9 +48,20 @@
     "show": "Show password",
     "hide": "Hide password"
   },
-  "role": { "admin": "Administrator", "partner": "Partner" },
-  "profile": { "title": "Profile", "email": "Email", "first_name": "First name", "last_name": "Last name", "saved": "Profile updated." },
-  "confirm": { "title": "Confirm" },
+  "role": {
+    "admin": "Administrator",
+    "partner": "Partner"
+  },
+  "profile": {
+    "title": "Profile",
+    "email": "Email",
+    "first_name": "First name",
+    "last_name": "Last name",
+    "saved": "Profile updated."
+  },
+  "confirm": {
+    "title": "Confirm"
+  },
   "admins": {
     "label": "Admins",
     "title": "Administrators",
@@ -49,19 +83,37 @@
     "limit_reached": "Administrator limit reached."
   },
   "actions": {
-    "save": "Save", "cancel": "Cancel", "create": "Create", "edit": "Edit",
-    "close": "Close", "confirm": "Confirm", "search": "Search", "refresh": "Refresh"
+    "save": "Save",
+    "cancel": "Cancel",
+    "create": "Create",
+    "edit": "Edit",
+    "close": "Close",
+    "confirm": "Confirm",
+    "search": "Search",
+    "refresh": "Refresh"
   },
   "common": {
-    "loading": "Loading…", "none": "—", "unlimited": "Unlimited", "yes": "Yes", "no": "No",
-    "of": "of", "saving": "Saving…", "empty": "No results"
+    "loading": "Loading…",
+    "none": "—",
+    "unlimited": "Unlimited",
+    "yes": "Yes",
+    "no": "No",
+    "of": "of",
+    "saving": "Saving…",
+    "empty": "No results"
   },
   "login": {
     "tagline": "Partner console",
-    "hero": { "payoff": "Manage your clients. All in one console.", "managed": "Managed companies", "statusActive": "Active" },
-    "email": "Email", "password": "Password",
+    "hero": {
+      "payoff": "Manage your clients. All in one console.",
+      "managed": "Managed companies",
+      "statusActive": "Active"
+    },
+    "email": "Email",
+    "password": "Password",
     "emailPlaceholder": "you@company.com",
-    "signIn": "Sign in", "signingIn": "Signing in…",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
     "forgot": "Forgot password?",
     "discoverSite": "Discover sonoQui",
     "errors": {
@@ -81,15 +133,28 @@
     "backToLogin": "Back to sign in"
   },
   "tenants": {
-    "title": "Companies", "subtitle_admin": "All platform companies",
+    "title": "Companies",
+    "subtitle_admin": "All platform companies",
     "subtitle_partner": "Companies you created",
     "new": "New company",
     "col": {
-      "name": "Company name", "admin_email": "Admin email", "owner": "Partner", "language": "Language",
-      "users": "Users", "admins": "Admins", "documentali": "Documentali", "branches": "Branches",
-      "note": "Note", "status": "Status", "created": "Created", "actions": "Actions"
+      "name": "Company name",
+      "admin_email": "Admin email",
+      "owner": "Partner",
+      "language": "Language",
+      "users": "Users",
+      "admins": "Admins",
+      "documentali": "Documentali",
+      "branches": "Branches",
+      "note": "Note",
+      "status": "Status",
+      "created": "Created",
+      "actions": "Actions"
     },
-    "status": { "active": "Active", "suspended": "Suspended" },
+    "status": {
+      "active": "Active",
+      "suspended": "Suspended"
+    },
     "platform": "Platform",
     "create": {
       "title": "New company",
@@ -101,15 +166,20 @@
       "limits": "Limits",
       "package": "Package",
       "pkg": {
-        "piccola": "Small", "piccola_limits": "10 users · 3 branches",
-        "media": "Medium", "media_limits": "20 users · 5 branches",
-        "custom": "Custom", "custom_limits": "Free limits",
+        "piccola": "Small",
+        "piccola_limits": "10 users · 3 branches",
+        "media": "Medium",
+        "media_limits": "20 users · 5 branches",
+        "custom": "Custom",
+        "custom_limits": "Free limits",
         "piccola_hint": "Small plan: 10 employees and 3 branches included. You can add extra users and branches as pay-per-use.",
         "media_hint": "Medium plan: 20 employees and 5 branches included. You can add extra users and branches as pay-per-use.",
         "custom_hint": "Custom plan: set users, branches and the other limits freely."
       },
-      "max_users": "Max users", "max_admins": "Max admins",
-      "max_documentali": "Max documentali", "max_branches": "Max branches",
+      "max_users": "Max users",
+      "max_admins": "Max admins",
+      "max_documentali": "Max documentali",
+      "max_branches": "Max branches",
       "submit": "Create company",
       "send_invite": "Send the admin's access email now",
       "send_invite_hint": "Recommended. If unchecked, the admin is created with no email — send it later via the envelope icon.",
@@ -118,10 +188,27 @@
       "done_membership": "Company created. Access-to-company email sent to the existing admin.",
       "done_none": "Company created. No email sent."
     },
-    "edit": { "title": "Edit company", "submit": "Save", "saved": "Company updated.", "owner": "Assigned partner", "note": "Note" },
-    "suspend": { "label": "Suspend", "confirm": "Suspend this company? Its users will no longer be able to sign in.", "done": "Company suspended." },
-    "resume": { "label": "Resume", "confirm": "Resume this company? Its users will be able to sign in again.", "done": "Company resumed." },
-    "reinvite": { "label": "Re-invite admin", "done": "Access email sent to {{email}}." },
+    "edit": {
+      "title": "Edit company",
+      "submit": "Save",
+      "saved": "Company updated.",
+      "owner": "Assigned partner",
+      "note": "Note"
+    },
+    "suspend": {
+      "label": "Suspend",
+      "confirm": "Suspend this company? Its users will no longer be able to sign in.",
+      "done": "Company suspended."
+    },
+    "resume": {
+      "label": "Resume",
+      "confirm": "Resume this company? Its users will be able to sign in again.",
+      "done": "Company resumed."
+    },
+    "reinvite": {
+      "label": "Re-invite admin",
+      "done": "Access email sent to {{email}}."
+    },
     "delete": {
       "label": "Delete",
       "title": "Delete company",
@@ -132,21 +219,33 @@
     }
   },
   "partners": {
-    "title": "Partners", "subtitle": "Resellers and their caps",
+    "title": "Partners",
+    "subtitle": "Resellers and their caps",
     "new": "New partner",
     "col": {
-      "partner_name": "Partner name", "email": "Email", "note": "Note",
-      "tenants": "Companies", "cap_tenants": "Max companies",
-      "cap_users": "Max users/company", "cap_admins": "Max admins/company",
-      "cap_documentali": "Max documentali/company", "cap_branches": "Max branches/company",
-      "status": "Status", "actions": "Actions"
+      "partner_name": "Partner name",
+      "email": "Email",
+      "note": "Note",
+      "tenants": "Companies",
+      "cap_tenants": "Max companies",
+      "cap_users": "Max users/company",
+      "cap_admins": "Max admins/company",
+      "cap_documentali": "Max documentali/company",
+      "cap_branches": "Max branches/company",
+      "status": "Status",
+      "actions": "Actions"
     },
-    "status": { "active": "Active", "inactive": "Disabled" },
+    "status": {
+      "active": "Active",
+      "inactive": "Disabled"
+    },
     "create": {
       "title": "New partner",
       "email": "Partner email",
-      "partner_name": "Partner name (opt.)", "note": "Note (opt.)",
-      "first_name": "First name (opt.)", "last_name": "Last name (opt.)",
+      "partner_name": "Partner name (opt.)",
+      "note": "Note (opt.)",
+      "first_name": "First name (opt.)",
+      "last_name": "Last name (opt.)",
       "caps": "Partner caps",
       "caps_hint": "Leave blank for unlimited.",
       "submit": "Create partner",
@@ -156,10 +255,28 @@
       "done_recovery": "Partner created. Password reset email sent.",
       "done_none": "Partner created. No email sent."
     },
-    "edit": { "title": "Edit partner caps", "submit": "Save", "saved": "Partner caps updated." },
-    "activate": { "label": "Activate", "confirm": "Reactivate this partner? They will be able to sign in again.", "done": "Partner activated." },
-    "deactivate": { "label": "Disable", "confirm": "Disable this partner? They will no longer be able to sign in.", "done": "Partner disabled." },
-    "resend": { "label": "Resend", "confirm": "Resend the access email to {{email}}?", "done_invite": "Invite sent to {{email}}.", "done_recovery": "Password reset email sent to {{email}}.", "done_none": "No email sent." }
+    "edit": {
+      "title": "Edit partner caps",
+      "submit": "Save",
+      "saved": "Partner caps updated."
+    },
+    "activate": {
+      "label": "Activate",
+      "confirm": "Reactivate this partner? They will be able to sign in again.",
+      "done": "Partner activated."
+    },
+    "deactivate": {
+      "label": "Disable",
+      "confirm": "Disable this partner? They will no longer be able to sign in.",
+      "done": "Partner disabled."
+    },
+    "resend": {
+      "label": "Resend",
+      "confirm": "Resend the access email to {{email}}?",
+      "done_invite": "Invite sent to {{email}}.",
+      "done_recovery": "Password reset email sent to {{email}}.",
+      "done_none": "No email sent."
+    }
   },
   "caps": {
     "cap_tenants": "Max companies they can create",
@@ -189,7 +306,9 @@
     "col": "Modules",
     "manage": "Manage modules",
     "create": "Enable the {{module}} module",
-    "enable": { "done": "{{module}} module enabled." },
+    "enable": {
+      "done": "{{module}} module enabled."
+    },
     "disable": {
       "label": "Disable {{module}}",
       "confirm": "Disable the {{module}} module for this company? The module disappears for all its users; the data stays and comes back on re-enable.",
@@ -201,8 +320,15 @@
     }
   },
   "audit": {
-    "title": "Activity log", "subtitle": "Every operation performed in the console",
-    "col": { "when": "When", "actor": "Actor", "role": "Role", "action": "Operation", "target": "Target" },
+    "title": "Activity log",
+    "subtitle": "Every operation performed in the console",
+    "col": {
+      "when": "When",
+      "actor": "Actor",
+      "role": "Role",
+      "action": "Operation",
+      "target": "Target"
+    },
     "action": {
       "tenant.create": "Company created",
       "tenant.update_limits": "Company limits changed",
@@ -223,7 +349,11 @@
       "partner.update_profile": "Partner profile changed",
       "partner.activate": "Partner activated",
       "partner.deactivate": "Partner disabled",
-      "partner.resend": "Invite resent"
+      "partner.resend": "Invite resent",
+      "ticket.status": "Request state changed",
+      "ticket.assign": "Request assigned",
+      "ticket.reply": "Reply sent to the customer",
+      "ticket.note": "Internal note changed"
     }
   },
   "errors": {
@@ -241,5 +371,90 @@
     "SUPER_ADMIN_REQUIRED": "Only the super-user can delete a company.",
     "NAME_MISMATCH": "The company name you typed doesn't match.",
     "default": "Operation failed. Try again."
+  },
+  "tickets": {
+    "title": "Requests",
+    "subtitle": "Customer support — {{count}} requests in the current filter",
+    "open": "Open",
+    "searchPlaceholder": "Search reference, subject, company…",
+    "col": {
+      "when": "Opened",
+      "ref": "Reference",
+      "company": "Company",
+      "subject": "Subject",
+      "state": "State",
+      "assignee": "Assigned to",
+      "unread": "Unread"
+    },
+    "filter": {
+      "aperti": "To work on",
+      "in_attesa_cliente": "Waiting on customer",
+      "risolto": "Resolved",
+      "tutti": "All states"
+    },
+    "assignment": {
+      "tutte": "All",
+      "mie": "Mine",
+      "non_assegnate": "Unassigned"
+    },
+    "handling": {
+      "nuovo": "New",
+      "in_lavorazione": "In progress",
+      "in_attesa_cliente": "Waiting on customer",
+      "risolto": "Resolved",
+      "chiuso": "Closed"
+    },
+    "thenStatus": {
+      "nuovo": "…and leave it new",
+      "in_lavorazione": "…and mark it in progress",
+      "in_attesa_cliente": "…and wait on the customer",
+      "risolto": "…and mark it resolved",
+      "chiuso": "…and close it"
+    },
+    "keepStatus": "Keep the current state",
+    "categoryLabel": {
+      "problema": "Problem / malfunction",
+      "domanda": "How-to question",
+      "richiesta": "Change request",
+      "fatturazione": "Subscription and billing",
+      "altro": "Other"
+    },
+    "priorityLabel": {
+      "bassa": "Low priority",
+      "media": "Medium priority",
+      "alta": "High priority"
+    },
+    "customerClosed": "Closed by the customer",
+    "unread": "{{count}} unread",
+    "openedBy": "Opened by",
+    "category": "Category",
+    "partner": "Company's partner",
+    "noPartner": "None (platform company)",
+    "claim": "Take it",
+    "release": "Release",
+    "claimed": "Request taken.",
+    "released": "Request released.",
+    "statusChanged": "State updated.",
+    "assigned": "Assignment updated.",
+    "unassigned": "Unassigned",
+    "thread": {
+      "operator": "Support",
+      "customer": "Customer"
+    },
+    "note": "Internal note",
+    "notePlaceholder": "Visible to operators only — never to the customer.",
+    "saveNote": "Save note",
+    "noteSaved": "Note saved.",
+    "reply": "Reply to the customer",
+    "replyPlaceholder": "The reply lands in the customer's app and in their inbox.",
+    "send": "Send reply",
+    "replied": "Reply sent.",
+    "files": {
+      "add": "Attach files",
+      "badType": "\"{{name}}\": file type not accepted.",
+      "tooBig": "\"{{name}}\" is over {{mb}} MB.",
+      "uploadFailed": "Upload of \"{{name}}\" failed.",
+      "downloadFailed": "Attachment download failed."
+    }
   }
 }

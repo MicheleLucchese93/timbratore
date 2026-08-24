@@ -131,3 +131,22 @@ export async function storagePresignedGetUrl(
   }
   return getPresignedGetUrl(key, ttlSeconds);
 }
+
+/**
+ * Read an object back, whichever driver is active.
+ *
+ * Support-ticket attachments are streamed through the API on both sides rather
+ * than handed out as presigned URLs: the customer's route and the console's route
+ * each authorise the read against a different scope (RLS on one side, the partner
+ * scope on the other), and a presigned URL is a bearer capability that survives
+ * both. routes/documents.ts keeps its own inline copy of this for its /raw
+ * fallback; that one predates this helper.
+ */
+export async function storageGet(key: string): Promise<Buffer> {
+  if (env.STORAGE_DRIVER === 'disk') {
+    const { readFile } = await import('node:fs/promises');
+    const { join } = await import('node:path');
+    return readFile(join(env.STORAGE_DISK_PATH, key));
+  }
+  return getObject(key);
+}

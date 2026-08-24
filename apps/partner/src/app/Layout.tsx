@@ -78,6 +78,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
         <nav className="sidebar-nav">
           <NavLink to="/" end onClick={closeMobile}>{t('nav.tenants')}</NavLink>
+          <NavLink to="/tickets" onClick={closeMobile}>{t('nav.tickets')}</NavLink>
           {isAdmin && <NavLink to="/partners" onClick={closeMobile}>{t('nav.partners')}</NavLink>}
           <NavLink to="/audit" onClick={closeMobile}>{t('nav.audit')}</NavLink>
           <NavLink to="/settings" onClick={closeMobile}>{t('nav.settings')}</NavLink>

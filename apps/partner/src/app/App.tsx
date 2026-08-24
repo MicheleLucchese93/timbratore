@@ -5,6 +5,7 @@ import { Login } from '../pages/Login.tsx';
 import { ForgotPassword } from '../pages/ForgotPassword.tsx';
 import { Layout } from './Layout.tsx';
 import { Tenants } from '../pages/Tenants.tsx';
+import { Tickets } from '../pages/Tickets.tsx';
 import { Partners } from '../pages/Partners.tsx';
 import { Audit } from '../pages/Audit.tsx';
 import { Settings } from '../pages/Settings.tsx';
@@ -41,6 +42,7 @@ export function App() {
     <Layout>
       <Routes>
         <Route path="/" element={<Tenants />} />
+        <Route path="/tickets" element={<Tickets />} />
         {isAdmin && <Route path="/partners" element={<Partners />} />}
         <Route path="/audit" element={<Audit />} />
         <Route path="/settings" element={<Settings />} />

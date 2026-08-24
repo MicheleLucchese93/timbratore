@@ -72,6 +72,22 @@ ssh -p 2222 ubuntu@57.131.52.5 \
 
 Production migrations are **never** auto-applied by the API container — operator-triggered only.
 
+**Migration 061 (support tickets) — order.** The API image has no source bind
+mount, so `scripts/migrate.ts` inside the container only knows about a migration
+once the image carrying it has been rebuilt: run `./deploy.sh` FIRST, then the
+migrate command above. Between the two the new `/api/v1/tickets` routes answer
+500 (their tables do not exist yet) — nothing else is affected, because 061 only
+adds tables and widens a CHECK. `deploy.sh` rebuilds the API and the partner
+console in the same pass, so their relative order takes care of itself; a
+hand-deploy of the console alone against an old API shows an error where the
+Richieste queue should be. New env for this feature (both are defaulted in code,
+so an existing `.env` keeps working):
+
+| var | default | what it does |
+| --- | --- | --- |
+| `SUPPORT_TICKET_TO` | `michele.lucchese@outlook.it` | always receives the operator-side notice for a new ticket or a customer reply, on top of the assignee / managing partner |
+| `PARTNER_PUBLIC_URL` | `https://partners.sonoqui.pro` | builds the "open in the console" link inside those notices |
+
 ## 3. Rolling back
 
 ```bash

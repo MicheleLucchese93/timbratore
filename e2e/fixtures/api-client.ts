@@ -1487,3 +1487,124 @@ export async function getCantiereReportPdf(
     magic: buf.subarray(0, 5).toString('latin1'),
   };
 }
+
+/* ---------------- Support tickets (migration 061) ---------------- */
+
+export interface TicketRow {
+  id: string;
+  ref: string;
+  subject: string;
+  body: string;
+  category: string | null;
+  priority: string | null;
+  status: 'open' | 'resolved';
+  handling_status: string;
+  last_message_at: string | null;
+  unread_count: number;
+  opened_by_name: string | null;
+  created_at: string;
+  resolved_at: string | null;
+  first_message_id?: string;
+}
+
+export interface TicketThreadMessage {
+  id: string;
+  author: 'user' | 'operator';
+  body: string;
+  created_at: string;
+  attachments: Array<{ id: string; filename: string; mime: string; size_bytes: number }>;
+}
+
+export async function createTicket(
+  adminToken: string,
+  body: { subject: string; body: string; category?: string; priority?: string },
+): Promise<TicketRow> {
+  const r = await apiPost<TicketRow>(adminToken, '/api/v1/tickets', body);
+  if (r.status !== 201 || !r.data) {
+    throw new Error(`createTicket → ${r.status}: ${r.message ?? r.code ?? ''}`);
+  }
+  return r.data;
+}
+
+export async function listTickets(adminToken: string): Promise<TicketRow[]> {
+  return apiGet<TicketRow[]>(adminToken, '/api/v1/tickets');
+}
+
+export async function getTicket(
+  adminToken: string,
+  id: string,
+): Promise<{ ticket: TicketRow; messages: TicketThreadMessage[] }> {
+  return apiGet<{ ticket: TicketRow; messages: TicketThreadMessage[] }>(
+    adminToken,
+    `/api/v1/tickets/${id}`,
+  );
+}
+
+export async function replyToTicket(
+  adminToken: string,
+  id: string,
+  body: string,
+): Promise<{ message: TicketThreadMessage; handling_status: string }> {
+  const r = await apiPost<{ message: TicketThreadMessage; handling_status: string }>(
+    adminToken,
+    `/api/v1/tickets/${id}/messages`,
+    { body },
+  );
+  if (r.status !== 200 || !r.data) {
+    throw new Error(`replyToTicket → ${r.status}: ${r.message ?? r.code ?? ''}`);
+  }
+  return r.data;
+}
+
+export async function setTicketStatus(
+  adminToken: string,
+  id: string,
+  status: 'open' | 'resolved',
+): Promise<TicketRow> {
+  return apiPatch<TicketRow>(adminToken, `/api/v1/tickets/${id}`, { status });
+}
+
+/**
+ * Attach a file to a message. Raw bytes, metadata in the query string — the
+ * upload shape both apps use (no multipart parser in the API image).
+ */
+export async function attachToTicketMessage(
+  adminToken: string,
+  ticketId: string,
+  messageId: string,
+  file: { name: string; mime: string; bytes: Buffer | Uint8Array },
+): Promise<{ id: string; filename: string; size_bytes: number }> {
+  const params = new URLSearchParams({ filename: file.name, mime: file.mime });
+  const r = await apiFetch(
+    adminToken,
+    `/api/v1/tickets/${ticketId}/messages/${messageId}/attachments?${params}`,
+    {
+      // octet-stream on purpose — see the comment in the web page's uploader:
+      // the API's global express.json() would swallow an application/json body.
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body: file.bytes as unknown as BodyInit,
+    },
+  );
+  const parsed = (await r.json().catch(() => null)) as
+    | { ok?: boolean; data?: { id: string; filename: string; size_bytes: number }; error?: { message?: string } }
+    | null;
+  if (!r.ok || !parsed?.data) {
+    throw new Error(`attachToTicketMessage → ${r.status}: ${parsed?.error?.message ?? ''}`);
+  }
+  return parsed.data;
+}
+
+/** Download an attachment through the tenant API. Returns the raw bytes. */
+export async function downloadTicketAttachment(
+  adminToken: string,
+  ticketId: string,
+  attachmentId: string,
+): Promise<Buffer> {
+  const r = await apiFetch(
+    adminToken,
+    `/api/v1/tickets/${ticketId}/attachments/${attachmentId}`,
+  );
+  if (!r.ok) throw new Error(`downloadTicketAttachment → ${r.status}`);
+  return Buffer.from(await r.arrayBuffer());
+}

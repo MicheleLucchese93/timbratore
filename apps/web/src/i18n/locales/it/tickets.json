@@ -1,0 +1,74 @@
+{
+  "title": "Assistenza",
+  "subtitle": "Le richieste di assistenza della tua azienda e le nostre risposte.",
+  "new": "Nuova richiesta",
+  "empty": "Nessuna richiesta di assistenza.",
+  "emptyOpen": "Nessuna richiesta aperta.",
+  "emptyHint": "Apri una richiesta per segnalare un problema o chiedere una modifica: ti rispondiamo qui dentro.",
+  "unread": "{{count}} nuova risposta",
+  "unread_other": "{{count}} nuove risposte",
+  "filter": {
+    "aperte": "Aperte",
+    "tutte": "Tutte"
+  },
+  "handling": {
+    "nuovo": "Ricevuta",
+    "in_lavorazione": "Presa in carico",
+    "in_attesa_cliente": "In attesa di una tua risposta",
+    "risolto": "Risolta dall'assistenza",
+    "chiuso": "Chiusa"
+  },
+  "handlingHint": {
+    "nuovo": "Abbiamo ricevuto la richiesta: nessuno l'ha ancora presa in carico.",
+    "in_lavorazione": "Un operatore ci sta lavorando. Ti scriviamo appena c'è una risposta.",
+    "in_attesa_cliente": "Aspettiamo una tua risposta per andare avanti.",
+    "risolto": "Per noi la richiesta è risolta. Se non lo è, rispondi qui: la riapriamo.",
+    "chiuso": "La richiesta è chiusa. Puoi comunque rispondere: la riapriamo e la riprendiamo in carico."
+  },
+  "category": {
+    "problema": "Problema / malfunzionamento",
+    "domanda": "Domanda sull'uso",
+    "richiesta": "Richiesta di modifica",
+    "fatturazione": "Abbonamento e fatturazione",
+    "altro": "Altro"
+  },
+  "priority": {
+    "bassa": "Bassa",
+    "media": "Media",
+    "alta": "Alta"
+  },
+  "mine": {
+    "resolved": "Chiusa da te",
+    "resolve": "Non mi serve più",
+    "reopen": "Mi serve ancora"
+  },
+  "form": {
+    "title": "Nuova richiesta di assistenza",
+    "intro": "Descrivi il problema come lo vedi tu: cosa stavi facendo, cosa ti aspettavi e cosa è successo. Se hai uno screenshot, allegalo.",
+    "subject": "Oggetto",
+    "category": "Categoria",
+    "priority": "Priorità",
+    "body": "Descrizione",
+    "bodyPlaceholder": "Es. Da stamattina l'esportazione di giugno si interrompe con un errore dopo circa un minuto…",
+    "send": "Invia richiesta",
+    "subjectRequired": "Inserisci un oggetto (almeno 3 caratteri).",
+    "bodyRequired": "Descrivi la richiesta (almeno 10 caratteri)."
+  },
+  "files": {
+    "add": "Allega file",
+    "remove": "Rimuovi",
+    "hint": "Fino a {{n}} file, max {{mb}} MB ciascuno (immagini, PDF, testo).",
+    "badType": "\"{{name}}\": formato non accettato.",
+    "tooBig": "\"{{name}}\" supera {{mb}} MB.",
+    "max": "Puoi allegare al massimo {{n}} file.",
+    "uploadFailed": "Non è stato possibile caricare \"{{name}}\".",
+    "downloadFailed": "Download dell'allegato non riuscito."
+  },
+  "thread": {
+    "you": "La tua azienda",
+    "support": "Assistenza sonoQui",
+    "replyPlaceholder": "Scrivi una risposta…",
+    "send": "Invia risposta",
+    "reopenWarning": "Questa richiesta non è più in lavorazione: rispondendo la riapriamo e la riprendiamo in carico."
+  }
+}

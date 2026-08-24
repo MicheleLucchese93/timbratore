@@ -48,6 +48,11 @@ test.describe('web — Accessibility audits', () => {
     expect(blocking, JSON.stringify(blocking, null, 2)).toHaveLength(0);
   });
 
+  test('Assistenza has no NEW critical violations', async ({ page }) => {
+    const blocking = await audit(page, '/tickets');
+    expect(blocking, JSON.stringify(blocking, null, 2)).toHaveLength(0);
+  });
+
   test('Settings has no NEW critical violations', async ({ page }) => {
     const blocking = await audit(page, '/settings');
     expect(blocking, JSON.stringify(blocking, null, 2)).toHaveLength(0);

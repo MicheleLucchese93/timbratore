@@ -1,8 +1,31 @@
 {
-  "app": { "name": "sonoQui", "suffix": "Partner", "subtitle": "Gestione tenant rivenditori" },
-  "lists": { "badge_documentale": "Documentale", "badge_inactive": "Disattivato" },
-  "nav": { "tenants": "Aziende", "partners": "Partner", "audit": "Registro attività", "settings": "Impostazioni", "manual": "Manuale", "logout": "Esci", "openMenu": "Apri menu", "closeMenu": "Chiudi menu" },
-  "settings": { "title": "Impostazioni", "subtitle": "Preferenze della console", "language": "Lingua", "security": "Sicurezza", "securityDesc": "Cambia la password del tuo account: inserisci quella attuale e scegline una nuova rispettando i requisiti di sicurezza." },
+  "app": {
+    "name": "sonoQui",
+    "suffix": "Partner",
+    "subtitle": "Gestione tenant rivenditori"
+  },
+  "lists": {
+    "badge_documentale": "Documentale",
+    "badge_inactive": "Disattivato"
+  },
+  "nav": {
+    "tenants": "Aziende",
+    "tickets": "Richieste",
+    "partners": "Partner",
+    "audit": "Registro attività",
+    "settings": "Impostazioni",
+    "manual": "Manuale",
+    "logout": "Esci",
+    "openMenu": "Apri menu",
+    "closeMenu": "Chiudi menu"
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "subtitle": "Preferenze della console",
+    "language": "Lingua",
+    "security": "Sicurezza",
+    "securityDesc": "Cambia la password del tuo account: inserisci quella attuale e scegline una nuova rispettando i requisiti di sicurezza."
+  },
   "password": {
     "title": "Cambia password",
     "current": "Password attuale",
@@ -25,9 +48,20 @@
     "show": "Mostra password",
     "hide": "Nascondi password"
   },
-  "role": { "admin": "Amministratore", "partner": "Partner" },
-  "profile": { "title": "Profilo", "email": "Email", "first_name": "Nome", "last_name": "Cognome", "saved": "Profilo aggiornato." },
-  "confirm": { "title": "Conferma" },
+  "role": {
+    "admin": "Amministratore",
+    "partner": "Partner"
+  },
+  "profile": {
+    "title": "Profilo",
+    "email": "Email",
+    "first_name": "Nome",
+    "last_name": "Cognome",
+    "saved": "Profilo aggiornato."
+  },
+  "confirm": {
+    "title": "Conferma"
+  },
   "admins": {
     "label": "Admin",
     "title": "Amministratori",
@@ -49,19 +83,37 @@
     "limit_reached": "Limite amministratori raggiunto."
   },
   "actions": {
-    "save": "Salva", "cancel": "Annulla", "create": "Crea", "edit": "Modifica",
-    "close": "Chiudi", "confirm": "Conferma", "search": "Cerca", "refresh": "Aggiorna"
+    "save": "Salva",
+    "cancel": "Annulla",
+    "create": "Crea",
+    "edit": "Modifica",
+    "close": "Chiudi",
+    "confirm": "Conferma",
+    "search": "Cerca",
+    "refresh": "Aggiorna"
   },
   "common": {
-    "loading": "Caricamento…", "none": "—", "unlimited": "Illimitato", "yes": "Sì", "no": "No",
-    "of": "di", "saving": "Salvataggio…", "empty": "Nessun risultato"
+    "loading": "Caricamento…",
+    "none": "—",
+    "unlimited": "Illimitato",
+    "yes": "Sì",
+    "no": "No",
+    "of": "di",
+    "saving": "Salvataggio…",
+    "empty": "Nessun risultato"
   },
   "login": {
     "tagline": "Console partner",
-    "hero": { "payoff": "Gestisci i tuoi clienti. Tutto in una console.", "managed": "Aziende gestite", "statusActive": "Attiva" },
-    "email": "Email", "password": "Password",
+    "hero": {
+      "payoff": "Gestisci i tuoi clienti. Tutto in una console.",
+      "managed": "Aziende gestite",
+      "statusActive": "Attiva"
+    },
+    "email": "Email",
+    "password": "Password",
     "emailPlaceholder": "tu@azienda.it",
-    "signIn": "Accedi", "signingIn": "Accesso…",
+    "signIn": "Accedi",
+    "signingIn": "Accesso…",
     "forgot": "Password dimenticata?",
     "discoverSite": "Scopri sonoQui",
     "errors": {
@@ -81,15 +133,28 @@
     "backToLogin": "Torna all'accesso"
   },
   "tenants": {
-    "title": "Aziende", "subtitle_admin": "Tutte le aziende della piattaforma",
+    "title": "Aziende",
+    "subtitle_admin": "Tutte le aziende della piattaforma",
     "subtitle_partner": "Le aziende che hai creato",
     "new": "Nuova azienda",
     "col": {
-      "name": "Ragione sociale", "admin_email": "Email admin", "owner": "Partner", "language": "Lingua",
-      "users": "Utenti", "admins": "Admin", "documentali": "Documentali", "branches": "Sedi",
-      "note": "Note", "status": "Stato", "created": "Creata", "actions": "Azioni"
+      "name": "Ragione sociale",
+      "admin_email": "Email admin",
+      "owner": "Partner",
+      "language": "Lingua",
+      "users": "Utenti",
+      "admins": "Admin",
+      "documentali": "Documentali",
+      "branches": "Sedi",
+      "note": "Note",
+      "status": "Stato",
+      "created": "Creata",
+      "actions": "Azioni"
     },
-    "status": { "active": "Attiva", "suspended": "Sospesa" },
+    "status": {
+      "active": "Attiva",
+      "suspended": "Sospesa"
+    },
     "platform": "Piattaforma",
     "create": {
       "title": "Nuova azienda",
@@ -101,15 +166,20 @@
       "limits": "Limiti",
       "package": "Pacchetto",
       "pkg": {
-        "piccola": "Piccola", "piccola_limits": "10 utenti · 3 sedi",
-        "media": "Media", "media_limits": "20 utenti · 5 sedi",
-        "custom": "Su misura", "custom_limits": "Limiti liberi",
+        "piccola": "Piccola",
+        "piccola_limits": "10 utenti · 3 sedi",
+        "media": "Media",
+        "media_limits": "20 utenti · 5 sedi",
+        "custom": "Su misura",
+        "custom_limits": "Limiti liberi",
         "piccola_hint": "Piano Piccola: 10 dipendenti e 3 sedi inclusi. Puoi aggiungere utenti e sedi extra a consumo.",
         "media_hint": "Piano Media: 20 dipendenti e 5 sedi inclusi. Puoi aggiungere utenti e sedi extra a consumo.",
         "custom_hint": "Piano su misura: imposta liberamente utenti, sedi e gli altri limiti."
       },
-      "max_users": "Max utenti", "max_admins": "Max admin",
-      "max_documentali": "Max documentali", "max_branches": "Max sedi",
+      "max_users": "Max utenti",
+      "max_admins": "Max admin",
+      "max_documentali": "Max documentali",
+      "max_branches": "Max sedi",
       "submit": "Crea azienda",
       "send_invite": "Invia subito l'email di accesso all'amministratore",
       "send_invite_hint": "Consigliato. Se la togli, l'admin viene creato senza email: gliela invii dopo dall'icona busta.",
@@ -118,10 +188,27 @@
       "done_membership": "Azienda creata. All'amministratore esistente è stata inviata l'email di accesso all'azienda.",
       "done_none": "Azienda creata. Nessuna email inviata."
     },
-    "edit": { "title": "Modifica azienda", "submit": "Salva", "saved": "Azienda aggiornata.", "owner": "Partner assegnato", "note": "Note" },
-    "suspend": { "label": "Sospendi", "confirm": "Sospendere questa azienda? Gli utenti non potranno più accedere.", "done": "Azienda sospesa." },
-    "resume": { "label": "Riattiva", "confirm": "Riattivare questa azienda? Gli utenti potranno nuovamente accedere.", "done": "Azienda riattivata." },
-    "reinvite": { "label": "Reinvita admin", "done": "Email di accesso inviata a {{email}}." },
+    "edit": {
+      "title": "Modifica azienda",
+      "submit": "Salva",
+      "saved": "Azienda aggiornata.",
+      "owner": "Partner assegnato",
+      "note": "Note"
+    },
+    "suspend": {
+      "label": "Sospendi",
+      "confirm": "Sospendere questa azienda? Gli utenti non potranno più accedere.",
+      "done": "Azienda sospesa."
+    },
+    "resume": {
+      "label": "Riattiva",
+      "confirm": "Riattivare questa azienda? Gli utenti potranno nuovamente accedere.",
+      "done": "Azienda riattivata."
+    },
+    "reinvite": {
+      "label": "Reinvita admin",
+      "done": "Email di accesso inviata a {{email}}."
+    },
     "delete": {
       "label": "Elimina",
       "title": "Elimina azienda",
@@ -132,21 +219,33 @@
     }
   },
   "partners": {
-    "title": "Partner", "subtitle": "Rivenditori e relativi limiti",
+    "title": "Partner",
+    "subtitle": "Rivenditori e relativi limiti",
     "new": "Nuovo partner",
     "col": {
-      "partner_name": "Nome partner", "email": "Email", "note": "Note",
-      "tenants": "Aziende", "cap_tenants": "Max aziende",
-      "cap_users": "Max utenti/azienda", "cap_admins": "Max admin/azienda",
-      "cap_documentali": "Max documentali/azienda", "cap_branches": "Max sedi/azienda",
-      "status": "Stato", "actions": "Azioni"
+      "partner_name": "Nome partner",
+      "email": "Email",
+      "note": "Note",
+      "tenants": "Aziende",
+      "cap_tenants": "Max aziende",
+      "cap_users": "Max utenti/azienda",
+      "cap_admins": "Max admin/azienda",
+      "cap_documentali": "Max documentali/azienda",
+      "cap_branches": "Max sedi/azienda",
+      "status": "Stato",
+      "actions": "Azioni"
     },
-    "status": { "active": "Attivo", "inactive": "Disattivato" },
+    "status": {
+      "active": "Attivo",
+      "inactive": "Disattivato"
+    },
     "create": {
       "title": "Nuovo partner",
       "email": "Email partner",
-      "partner_name": "Nome partner (opz.)", "note": "Note (opz.)",
-      "first_name": "Nome (opz.)", "last_name": "Cognome (opz.)",
+      "partner_name": "Nome partner (opz.)",
+      "note": "Note (opz.)",
+      "first_name": "Nome (opz.)",
+      "last_name": "Cognome (opz.)",
       "caps": "Limiti del partner",
       "caps_hint": "Lascia vuoto per illimitato.",
       "submit": "Crea partner",
@@ -156,10 +255,28 @@
       "done_recovery": "Partner creato. Email di reset password inviata.",
       "done_none": "Partner creato. Nessuna email inviata."
     },
-    "edit": { "title": "Modifica limiti partner", "submit": "Salva", "saved": "Limiti partner aggiornati." },
-    "activate": { "label": "Attiva", "confirm": "Riattivare questo partner? Potrà nuovamente accedere.", "done": "Partner attivato." },
-    "deactivate": { "label": "Disattiva", "confirm": "Disattivare questo partner? Non potrà più accedere.", "done": "Partner disattivato." },
-    "resend": { "label": "Reinvita", "confirm": "Reinviare l'email di accesso a {{email}}?", "done_invite": "Invito inviato a {{email}}.", "done_recovery": "Email di reset password inviata a {{email}}.", "done_none": "Nessuna email inviata." }
+    "edit": {
+      "title": "Modifica limiti partner",
+      "submit": "Salva",
+      "saved": "Limiti partner aggiornati."
+    },
+    "activate": {
+      "label": "Attiva",
+      "confirm": "Riattivare questo partner? Potrà nuovamente accedere.",
+      "done": "Partner attivato."
+    },
+    "deactivate": {
+      "label": "Disattiva",
+      "confirm": "Disattivare questo partner? Non potrà più accedere.",
+      "done": "Partner disattivato."
+    },
+    "resend": {
+      "label": "Reinvita",
+      "confirm": "Reinviare l'email di accesso a {{email}}?",
+      "done_invite": "Invito inviato a {{email}}.",
+      "done_recovery": "Email di reset password inviata a {{email}}.",
+      "done_none": "Nessuna email inviata."
+    }
   },
   "caps": {
     "cap_tenants": "Max aziende creabili",
@@ -189,7 +306,9 @@
     "col": "Moduli",
     "manage": "Gestisci moduli",
     "create": "Attiva il modulo {{module}}",
-    "enable": { "done": "Modulo {{module}} attivato." },
+    "enable": {
+      "done": "Modulo {{module}} attivato."
+    },
     "disable": {
       "label": "Disattiva {{module}}",
       "confirm": "Disattivare il modulo {{module}} per questa azienda? Il modulo sparirà per tutti i suoi utenti; i dati restano e tornano disponibili alla riattivazione.",
@@ -201,8 +320,15 @@
     }
   },
   "audit": {
-    "title": "Registro attività", "subtitle": "Ogni operazione effettuata nella console",
-    "col": { "when": "Data/ora", "actor": "Autore", "role": "Ruolo", "action": "Operazione", "target": "Oggetto" },
+    "title": "Registro attività",
+    "subtitle": "Ogni operazione effettuata nella console",
+    "col": {
+      "when": "Data/ora",
+      "actor": "Autore",
+      "role": "Ruolo",
+      "action": "Operazione",
+      "target": "Oggetto"
+    },
     "action": {
       "tenant.create": "Azienda creata",
       "tenant.update_limits": "Limiti azienda modificati",
@@ -223,7 +349,11 @@
       "partner.update_profile": "Anagrafica partner modificata",
       "partner.activate": "Partner attivato",
       "partner.deactivate": "Partner disattivato",
-      "partner.resend": "Invito reinviato"
+      "partner.resend": "Invito reinviato",
+      "ticket.status": "Stato richiesta modificato",
+      "ticket.assign": "Richiesta assegnata",
+      "ticket.reply": "Risposta inviata al cliente",
+      "ticket.note": "Nota interna modificata"
     }
   },
   "errors": {
@@ -241,5 +371,90 @@
     "SUPER_ADMIN_REQUIRED": "Solo il super-utente può eliminare un'azienda.",
     "NAME_MISMATCH": "La ragione sociale digitata non corrisponde.",
     "default": "Operazione non riuscita. Riprova."
+  },
+  "tickets": {
+    "title": "Richieste",
+    "subtitle": "Assistenza dei clienti — {{count}} richieste nel filtro corrente",
+    "open": "Apri",
+    "searchPlaceholder": "Cerca riferimento, oggetto, azienda…",
+    "col": {
+      "when": "Aperta il",
+      "ref": "Riferimento",
+      "company": "Azienda",
+      "subject": "Oggetto",
+      "state": "Stato",
+      "assignee": "Assegnata a",
+      "unread": "Da leggere"
+    },
+    "filter": {
+      "aperti": "Da lavorare",
+      "in_attesa_cliente": "Attendono il cliente",
+      "risolto": "Risolte",
+      "tutti": "Tutti gli stati"
+    },
+    "assignment": {
+      "tutte": "Tutte",
+      "mie": "Le mie",
+      "non_assegnate": "Non assegnate"
+    },
+    "handling": {
+      "nuovo": "Nuova",
+      "in_lavorazione": "In lavorazione",
+      "in_attesa_cliente": "In attesa del cliente",
+      "risolto": "Risolta",
+      "chiuso": "Chiusa"
+    },
+    "thenStatus": {
+      "nuovo": "…e lasciala nuova",
+      "in_lavorazione": "…e mettila in lavorazione",
+      "in_attesa_cliente": "…e attendi il cliente",
+      "risolto": "…e segnala risolta",
+      "chiuso": "…e chiudila"
+    },
+    "keepStatus": "Non cambiare stato",
+    "categoryLabel": {
+      "problema": "Problema / malfunzionamento",
+      "domanda": "Domanda sull'uso",
+      "richiesta": "Richiesta di modifica",
+      "fatturazione": "Abbonamento e fatturazione",
+      "altro": "Altro"
+    },
+    "priorityLabel": {
+      "bassa": "Priorità bassa",
+      "media": "Priorità media",
+      "alta": "Priorità alta"
+    },
+    "customerClosed": "Il cliente l'ha chiusa",
+    "unread": "{{count}} da leggere",
+    "openedBy": "Aperta da",
+    "category": "Categoria",
+    "partner": "Partner dell'azienda",
+    "noPartner": "Nessuno (azienda della piattaforma)",
+    "claim": "Prendi in carico",
+    "release": "Lascia",
+    "claimed": "Richiesta presa in carico.",
+    "released": "Richiesta rilasciata.",
+    "statusChanged": "Stato aggiornato.",
+    "assigned": "Assegnazione aggiornata.",
+    "unassigned": "Non assegnata",
+    "thread": {
+      "operator": "Assistenza",
+      "customer": "Cliente"
+    },
+    "note": "Nota interna",
+    "notePlaceholder": "Visibile solo agli operatori: mai al cliente.",
+    "saveNote": "Salva nota",
+    "noteSaved": "Nota salvata.",
+    "reply": "Risposta al cliente",
+    "replyPlaceholder": "La risposta arriva nell'app del cliente e per email.",
+    "send": "Invia risposta",
+    "replied": "Risposta inviata.",
+    "files": {
+      "add": "Allega file",
+      "badType": "\"{{name}}\": formato non accettato.",
+      "tooBig": "\"{{name}}\" supera {{mb}} MB.",
+      "uploadFailed": "Caricamento di \"{{name}}\" non riuscito.",
+      "downloadFailed": "Download dell'allegato non riuscito."
+    }
   }
 }

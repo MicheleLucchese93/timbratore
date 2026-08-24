@@ -12,6 +12,7 @@ const ADMIN_PAGES: Array<{ label: string; url: RegExp; heading: RegExp | string 
   { label: 'Anomalie', url: /\/anomalies$/, heading: /Anomalie/i },
   { label: 'Ferie & Permessi', url: /\/leaves$/, heading: /Ferie|Permessi/i },
   { label: 'Esportazioni', url: /\/exports$/, heading: /Esportazioni/i },
+  { label: 'Assistenza', url: /\/tickets$/, heading: /Assistenza/i },
   { label: 'Impostazioni', url: /\/settings$/, heading: /Impostazioni/i },
 ];
 
