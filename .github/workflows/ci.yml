@@ -178,8 +178,17 @@ jobs:
           GRANT SELECT ON auth.users TO app;
           SQL
 
+      # Both steps are bounded with `timeout`. A script that hangs instead of
+      # failing used to burn the job's entire 20-minute budget and surface as a
+      # bare "Cancelled" with no step attribution — that was the pino-pretty
+      # worker-thread exit race, now fixed in apps/backend/src/lib/logger.ts.
+      # The bound keeps the next occurrence of anything similar cheap and
+      # attributable: exit 124, against the step that caused it.
       - name: Apply migrations
-        run: npm run migrate
+        run: timeout 300 npm run migrate
 
+      # `--test-timeout` in the backend test script fails a single wedged test
+      # by name; this outer bound catches a child process that finishes its
+      # tests and then refuses to exit, which the per-test timeout cannot see.
       - name: Unit + integration tests
-        run: npm test
+        run: timeout 600 npm test

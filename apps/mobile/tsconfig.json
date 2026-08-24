@@ -3,6 +3,7 @@
   "compilerOptions": {
     "strict": true,
     "moduleSuffixes": [".native", ""],
+    "types": ["node"],
     "paths": {
       "@/*": [
         "./src/*"

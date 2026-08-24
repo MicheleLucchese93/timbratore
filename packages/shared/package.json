@@ -6,7 +6,7 @@
   "main": "./src/index.ts",
   "scripts": {
     "build": "echo 'no build (consumed as source)'",
-    "test": "node --import tsx --test src/__tests__/*.test.ts",
+    "test": "node --import tsx --test --test-timeout=120000 src/__tests__/*.test.ts",
     "tokens": "node scripts/gen-tokens-css.mjs"
   },
   "devDependencies": {
