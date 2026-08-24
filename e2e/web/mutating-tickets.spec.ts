@@ -160,9 +160,16 @@ test.describe('web — Assistenza: raise, reply, resolve', () => {
     // It is gone from «Aperte» and back under «Tutte», carrying the customer's
     // own badge — which is NOT the team's «Risolta dall'assistenza».
     await expect(page.getByTestId('ticket-row').filter({ hasText: marker })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Tutte', exact: true }).click();
+    // The tab's accessible name now carries its count ("Tutte 3"), so the testid
+    // is the stable handle.
+    await page.getByTestId('ticket-filter-tutte').click();
     const row = page.getByTestId('ticket-row').filter({ hasText: marker });
     await expect(row).toContainText('Risolta da te');
+
+    // …and it is exactly what the «Chiuse» view is for.
+    await page.getByTestId('ticket-filter-chiuse').click();
+    await expect(page.getByTestId('ticket-row').filter({ hasText: marker })).toHaveCount(1);
+    await page.getByTestId('ticket-filter-tutte').click();
 
     // Reopening is the opposite click, so it keeps the panel open.
     await row.click();

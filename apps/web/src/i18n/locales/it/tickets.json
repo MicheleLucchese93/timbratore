@@ -2,13 +2,11 @@
   "title": "Assistenza",
   "subtitle": "Le richieste di assistenza della tua azienda e le nostre risposte.",
   "new": "Nuova richiesta",
-  "empty": "Nessuna richiesta di assistenza.",
-  "emptyOpen": "Nessuna richiesta aperta.",
-  "emptyHint": "Apri una richiesta per segnalare un problema o chiedere una modifica: ti rispondiamo qui dentro.",
   "unread": "{{count}} nuova risposta",
   "unread_other": "{{count}} nuove risposte",
   "filter": {
     "aperte": "Aperte",
+    "chiuse": "Chiuse",
     "tutte": "Tutte"
   },
   "handling": {
@@ -72,5 +70,12 @@
     "replyPlaceholder": "Scrivi una risposta…",
     "send": "Invia risposta",
     "reopenWarning": "Questa richiesta non è più in lavorazione: rispondendo la riapriamo e la riprendiamo in carico."
+  },
+  "empty": {
+    "none": "Nessuna richiesta di assistenza",
+    "noneHint": "Apri una richiesta per segnalare un problema o chiedere una modifica: ti rispondiamo qui dentro.",
+    "aperte": "Nessuna richiesta aperta",
+    "chiuse": "Nessuna richiesta chiusa",
+    "tutte": "Nessuna richiesta di assistenza"
   }
 }

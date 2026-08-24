@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   TICKET_ATTACHMENT_MAX_BYTES,
@@ -39,7 +39,22 @@ import { fmtDateTime } from '../i18n/format.ts';
  * the next request to be addressed to that person.
  */
 
-type StatusFilter = 'aperte' | 'tutte';
+/**
+ * The three views.
+ *
+ * `chiuse` is the exact complement of `aperte`, not a third independent slice:
+ * a request leaves the work list either because the customer ticked it
+ * «Risolto» or because the team closed it, and a reader looking for one they
+ * finished with should not have to know which of the two happened.
+ */
+type StatusFilter = 'aperte' | 'chiuse' | 'tutte';
+
+const FILTERS: StatusFilter[] = ['aperte', 'chiuse', 'tutte'];
+
+/** Still in play: the customer has not ticked it off and we have not closed it. */
+function isOpen(t: TicketFeedItem): boolean {
+  return t.status === 'open' && t.handling_status !== 'chiuso';
+}
 
 const MB = Math.round(TICKET_ATTACHMENT_MAX_BYTES / (1024 * 1024));
 
@@ -54,6 +69,110 @@ function toneOf(s: TicketHandlingStatus): string {
     default:
       return 'badge-muted';
   }
+}
+
+/**
+ * Which dot a row wears.
+ *
+ * Three outcomes only — needs us / waiting on you / done — because a dot that
+ * mirrors all five handling states is a colour code nobody memorises.
+ */
+function dotOf(t: TicketFeedItem): string {
+  if (!isOpen(t)) return 'ticket-dot--done';
+  if (t.handling_status === 'in_attesa_cliente') return 'ticket-dot--you';
+  return 'ticket-dot--open';
+}
+
+/** Same shape the Dashboard uses, plus an optional call to action. */
+function EmptyState({
+  icon,
+  title,
+  hint,
+  action,
+}: {
+  icon: ReactNode;
+  title: string;
+  hint?: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="empty-state" data-testid="ticket-empty">
+      <div className="empty-state-icon">{icon}</div>
+      <div className="empty-state-title">{title}</div>
+      {hint && <div className="empty-state-hint">{hint}</div>}
+      {action}
+    </div>
+  );
+}
+
+// Page-local icon set, matching the stroke/size conventions the other pages use.
+const I = {
+  width: 14,
+  height: 14,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+  'aria-hidden': true,
+};
+
+function IconLifebuoy() {
+  return (
+    <svg {...I} width={18} height={18}>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="4" />
+      <path d="M5.6 5.6l3.6 3.6M14.8 14.8l3.6 3.6M18.4 5.6l-3.6 3.6M9.2 14.8l-3.6 3.6" />
+    </svg>
+  );
+}
+function IconArchive() {
+  return (
+    <svg {...I} width={18} height={18}>
+      <rect x="3" y="4" width="18" height="5" rx="1" />
+      <path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9" />
+      <path d="M10 13h4" />
+    </svg>
+  );
+}
+function IconClock() {
+  return (
+    <svg {...I}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+function IconTag() {
+  return (
+    <svg {...I}>
+      <path d="M20.6 13.4 12 22l-9-9V3h10l7.6 7.6a2 2 0 0 1 0 2.8z" />
+      <circle cx="7.5" cy="7.5" r="1.5" />
+    </svg>
+  );
+}
+function IconUser() {
+  return (
+    <svg {...I}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" />
+    </svg>
+  );
+}
+function IconChevronRight() {
+  return (
+    <svg {...I} width={16} height={16} className="ticket-row-chevron">
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
+function IconPaperclip() {
+  return (
+    <svg {...I}>
+      <path d="M21 12.5 12.5 21a5 5 0 0 1-7-7l8.5-8.5a3.5 3.5 0 0 1 5 5L10.5 19a2 2 0 0 1-3-3l8-8" />
+    </svg>
+  );
 }
 
 function fmtBytes(bytes: number): string {
@@ -157,10 +276,17 @@ export function Tickets() {
     void load();
   }, [load]);
 
+  const counts = {
+    aperte: items.filter(isOpen).length,
+    chiuse: items.filter((i) => !isOpen(i)).length,
+    tutte: items.length,
+  };
   const shown =
     filter === 'aperte'
-      ? items.filter((i) => i.status === 'open' && i.handling_status !== 'chiuso')
-      : items;
+      ? items.filter(isOpen)
+      : filter === 'chiuse'
+        ? items.filter((i) => !isOpen(i))
+        : items;
 
   return (
     <div className="space-y-5">
@@ -168,9 +294,34 @@ export function Tickets() {
         title={t('title')}
         subtitle={t('subtitle')}
         actions={
-          <button className="btn btn-primary" onClick={() => setComposing(true)}>
-            {t('new')}
-          </button>
+          <>
+            {/* The app's segmented switcher, same control the Timbrature view
+                toggle and the Cantieri section nav use — filter pills built out
+                of `btn btn-primary` read as four competing actions next to the
+                real one. */}
+            <div className="cal-seg" role="tablist" aria-label={t('title')}>
+              {FILTERS.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  role="tab"
+                  className="cal-seg-btn"
+                  aria-pressed={filter === f}
+                  aria-selected={filter === f}
+                  onClick={() => setFilter(f)}
+                  data-testid={`ticket-filter-${f}`}
+                >
+                  {t(`filter.${f}`)}
+                  {/* The count is what makes the tab worth reading before
+                      clicking it: "Aperte 0" answers the question outright. */}
+                  <span className="num ml-1 opacity-60">{counts[f]}</span>
+                </button>
+              ))}
+            </div>
+            <button className="btn btn-primary" onClick={() => setComposing(true)}>
+              {t('new')}
+            </button>
+          </>
         }
       />
 
@@ -180,58 +331,78 @@ export function Tickets() {
         </div>
       )}
 
-      <div className="flex gap-2">
-        {(['aperte', 'tutte'] as StatusFilter[]).map((f) => (
-          <button
-            key={f}
-            type="button"
-            className={`btn btn-sm ${filter === f ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setFilter(f)}
-          >
-            {t(`filter.${f}`)}
-          </button>
-        ))}
-      </div>
-
       {loading ? (
-        <div className="muted text-sm">{t('common:state.loading')}</div>
+        <ul className="space-y-2" aria-busy="true">
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="card ticket-row-skeleton" />
+          ))}
+        </ul>
       ) : shown.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-title">{t(filter === 'aperte' ? 'emptyOpen' : 'empty')}</div>
-          <p className="muted text-sm">{t('emptyHint')}</p>
-        </div>
+        // One empty state per view, because "nothing here" means three different
+        // things: nothing yet, nothing outstanding, nothing finished.
+        <EmptyState
+          icon={filter === 'chiuse' ? <IconArchive /> : <IconLifebuoy />}
+          title={t(`empty.${items.length === 0 ? 'none' : filter}`)}
+          hint={items.length === 0 ? t('empty.noneHint') : undefined}
+          action={
+            items.length === 0 ? (
+              <button className="btn btn-primary btn-sm" onClick={() => setComposing(true)}>
+                {t('new')}
+              </button>
+            ) : undefined
+          }
+        />
       ) : (
         <ul className="space-y-2">
           {shown.map((it) => (
-            <li key={it.id} className="card">
+            <li key={it.id}>
               <button
                 type="button"
-                className="w-full text-left"
+                className="card ticket-row w-full text-left"
                 onClick={() => setOpenId(it.id)}
                 data-testid="ticket-row"
               >
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="num text-xs muted">{it.ref}</span>
-                  <span className="font-semibold text-sm truncate" title={it.subject}>
-                    {it.subject}
-                  </span>
-                  <span className={`badge ${toneOf(it.handling_status)}`}>
-                    {t(`handling.${it.handling_status}`)}
-                  </span>
-                  {it.status === 'resolved' && (
-                    <span className="badge badge-muted">{t('mine.resolved')}</span>
-                  )}
-                  {it.unread_count > 0 && (
-                    <span className="badge badge-ok">
-                      {t('unread', { count: it.unread_count })}
+                {/* Leading status dot: the state is the first thing scanned, and
+                    a colour reaches the eye before a word does. */}
+                <span className={`ticket-dot ${dotOf(it)}`} aria-hidden="true" />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2 flex-wrap">
+                    <span className="num text-xs muted">{it.ref}</span>
+                    <span className="font-semibold text-sm truncate" title={it.subject}>
+                      {it.subject}
                     </span>
-                  )}
-                </div>
-                <div className="text-xs muted mt-1 flex items-center gap-3 flex-wrap num">
-                  <span>{fmtDateTime(it.created_at)}</span>
-                  {it.category && <span>{t(`category.${it.category}`, { defaultValue: it.category })}</span>}
-                  {it.opened_by_name && <span>{it.opened_by_name}</span>}
-                </div>
+                    <span className={`badge ${toneOf(it.handling_status)}`}>
+                      {t(`handling.${it.handling_status}`)}
+                    </span>
+                    {it.status === 'resolved' && (
+                      <span className="badge badge-muted">{t('mine.resolved')}</span>
+                    )}
+                    {it.unread_count > 0 && (
+                      <span className="badge badge-ok">
+                        {t('unread', { count: it.unread_count })}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-xs muted mt-1 flex items-center gap-3 flex-wrap">
+                    <span className="inline-flex items-center gap-1">
+                      <IconClock />
+                      <span className="num">{fmtDateTime(it.created_at)}</span>
+                    </span>
+                    {it.category && (
+                      <span className="inline-flex items-center gap-1">
+                        <IconTag />
+                        {t(`category.${it.category}`, { defaultValue: it.category })}
+                      </span>
+                    )}
+                    {it.opened_by_name && (
+                      <span className="inline-flex items-center gap-1">
+                        <IconUser />
+                        {it.opened_by_name}
+                      </span>
+                    )}
+                  </span>
+                </span>
+                <IconChevronRight />
               </button>
             </li>
           ))}
@@ -617,13 +788,14 @@ function TicketModal({ ticketId, onClose }: { ticketId: string; onClose: () => v
                         <li key={a.id} className="text-xs flex items-center gap-2">
                           <button
                             type="button"
-                            className="btn btn-ghost btn-sm"
+                            className="btn btn-ghost btn-sm inline-flex items-center gap-1"
                             onClick={() =>
                               downloadAttachment(ticketId, a).catch(() =>
                                 setErr(t('files.downloadFailed'))
                               )
                             }
                           >
+                            <IconPaperclip />
                             {a.filename}
                           </button>
                           <span className="muted num">{fmtBytes(a.size_bytes)}</span>

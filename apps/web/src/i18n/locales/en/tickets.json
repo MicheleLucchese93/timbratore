@@ -2,13 +2,11 @@
   "title": "Support",
   "subtitle": "Your company's support requests and our answers.",
   "new": "New request",
-  "empty": "No support requests.",
-  "emptyOpen": "No open requests.",
-  "emptyHint": "Open a request to report a problem or ask for a change: we answer right here.",
   "unread": "{{count}} new reply",
   "unread_other": "{{count}} new replies",
   "filter": {
     "aperte": "Open",
+    "chiuse": "Closed",
     "tutte": "All"
   },
   "handling": {
@@ -72,5 +70,12 @@
     "replyPlaceholder": "Write a reply…",
     "send": "Send reply",
     "reopenWarning": "This request is no longer in progress: replying reopens it and puts it back on us."
+  },
+  "empty": {
+    "none": "No support requests",
+    "noneHint": "Open a request to report a problem or ask for a change: we answer right here.",
+    "aperte": "Nothing outstanding",
+    "chiuse": "No closed requests",
+    "tutte": "No support requests"
   }
 }

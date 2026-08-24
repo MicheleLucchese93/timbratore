@@ -1006,7 +1006,7 @@ const MAIN_IT = `
           <li><strong>Lo stato dell'assistenza</strong> — cosa stiamo facendo noi: <em>Ricevuta</em> (nessuno l'ha ancora presa in carico), <em>Presa in carico</em>, <em>In attesa di una tua risposta</em>, <em>Risolta dall'assistenza</em>, <em>Chiusa</em>. Lo decidiamo noi; tu lo leggi.</li>
           <li><strong>La tua spunta</strong> — <em>Risolto</em> chiude la richiesta dal tuo punto di vista (e chiude la scheda), <em>Riapri</em> la rimette fra le aperte. Non avvisa nessuno e non cambia il nostro stato: serve a te, sia quando la risposta dell'assistenza ha risolto sia quando te la sei cavata da solo.</li>
         </ul>
-        <p>Il filtro <strong>Aperte</strong> mostra quello che è ancora in gioco; <strong>Tutte</strong> mostra anche l'archivio.</p>
+        <p>In alto tre viste, ognuna con il proprio conteggio: <strong>Aperte</strong> è quello che è ancora in gioco, <strong>Chiuse</strong> è l'archivio — ci finisce sia quello che hai marcato <em>Risolto</em> tu, sia quello che ha chiuso l'assistenza — e <strong>Tutte</strong> non filtra niente. Nell'elenco, il pallino a sinistra dice a colpo d'occhio di chi è la palla: pieno se la richiesta è da noi, arancione se aspettiamo una tua risposta, vuoto se è chiusa.</p>
       </div>
 
       <div class="feature">

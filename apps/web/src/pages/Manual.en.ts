@@ -999,7 +999,7 @@ export const MAIN_EN = `
           <li><strong>The support state</strong> — what we are doing: <em>Received</em> (nobody has picked it up yet), <em>In progress</em>, <em>Waiting for your reply</em>, <em>Resolved by support</em>, <em>Closed</em>. We set it; you read it.</li>
           <li><strong>Your own tick</strong> — <em>Resolved</em> closes the request from your side (and closes the panel); <em>Reopen</em> puts it back among the open ones. It notifies nobody and does not change our state: it is yours to use whether support's answer settled it or you worked it out yourself.</li>
         </ul>
-        <p>The <strong>Open</strong> filter shows what is still in play; <strong>All</strong> shows the archive too.</p>
+        <p>Three views at the top, each with its own count: <strong>Open</strong> is what is still in play, <strong>Closed</strong> is the archive — holding both what you marked <em>Resolved</em> and what support closed — and <strong>All</strong> filters nothing. In the list, the dot on the left says at a glance whose ball it is: filled when the request is with us, amber when we are waiting on your reply, hollow when it is closed.</p>
       </div>
 
       <div class="feature">

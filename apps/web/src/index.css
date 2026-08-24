@@ -1466,3 +1466,71 @@ select.input { background-color: white; }
   opacity: 0.4;
   pointer-events: none;
 }
+
+/* Assistenza (support tickets) ------------------------------------------ */
+/* A row is one big button, so it needs the affordances a card does not have on
+   its own: a hover lift, a focus ring that is not the browser's default outline
+   on a full-width block, and a chevron that only asserts itself on hover. */
+.ticket-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+.ticket-row:hover {
+  border-color: color-mix(in oklab, var(--color-primary) 35%, var(--color-surface-variant));
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.06);
+}
+.ticket-row:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.ticket-row-chevron {
+  color: var(--color-on-surface-variant);
+  opacity: 0.45;
+  flex: none;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+.ticket-row:hover .ticket-row-chevron {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+/* Three outcomes, three colours: needs us, waiting on you, done. Any more and
+   it stops being a glance and becomes a legend to memorise. */
+.ticket-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex: none;
+  background: var(--color-outline, var(--color-on-surface-variant));
+}
+.ticket-dot--open { background: var(--color-primary); }
+.ticket-dot--you { background: var(--color-warning); }
+.ticket-dot--done {
+  background: transparent;
+  border: 2px solid color-mix(in oklab, var(--color-on-surface-variant) 45%, transparent);
+}
+
+/* Loading placeholders shaped like the rows they replace, so the list does not
+   jump when the data lands. */
+.ticket-row-skeleton {
+  height: 4.25rem;
+  background: linear-gradient(
+    90deg,
+    var(--color-surface) 0%,
+    color-mix(in oklab, var(--color-surface-variant) 55%, var(--color-surface)) 50%,
+    var(--color-surface) 100%
+  );
+  background-size: 200% 100%;
+  animation: ticket-skeleton 1.2s ease-in-out infinite;
+}
+@keyframes ticket-skeleton {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticket-row-skeleton { animation: none; }
+  .ticket-row, .ticket-row-chevron { transition: none; }
+}
