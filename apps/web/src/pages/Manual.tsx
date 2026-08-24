@@ -1004,7 +1004,7 @@ const MAIN_IT = `
         <p>Sulla riga di una richiesta compaiono due informazioni diverse, e nessuna delle due sostituisce l'altra:</p>
         <ul class="tidy">
           <li><strong>Lo stato dell'assistenza</strong> — cosa stiamo facendo noi: <em>Ricevuta</em> (nessuno l'ha ancora presa in carico), <em>Presa in carico</em>, <em>In attesa di una tua risposta</em>, <em>Risolta dall'assistenza</em>, <em>Chiusa</em>. Lo decidiamo noi; tu lo leggi.</li>
-          <li><strong>La tua spunta</strong> — <em>Non mi serve più</em> chiude la richiesta dal tuo punto di vista, e <em>Mi serve ancora</em> la riapre. Non avvisa nessuno e non cambia il nostro stato: serve a te per togliere dall'elenco quello che hai risolto da solo.</li>
+          <li><strong>La tua spunta</strong> — <em>Risolto</em> chiude la richiesta dal tuo punto di vista (e chiude la scheda), <em>Riapri</em> la rimette fra le aperte. Non avvisa nessuno e non cambia il nostro stato: serve a te, sia quando la risposta dell'assistenza ha risolto sia quando te la sei cavata da solo.</li>
         </ul>
         <p>Il filtro <strong>Aperte</strong> mostra quello che è ancora in gioco; <strong>Tutte</strong> mostra anche l'archivio.</p>
       </div>

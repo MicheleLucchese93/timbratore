@@ -38,9 +38,11 @@
     "alta": "Alta"
   },
   "mine": {
-    "resolved": "Chiusa da te",
-    "resolve": "Non mi serve più",
-    "reopen": "Mi serve ancora"
+    "resolved": "Risolta da te",
+    "resolve": "Risolto",
+    "resolveHint": "Segna la richiesta come risolta e chiudila. Puoi sempre riaprirla.",
+    "reopen": "Riapri",
+    "reopenHint": "Riapri la richiesta: torna fra quelle aperte."
   },
   "form": {
     "title": "Nuova richiesta di assistenza",

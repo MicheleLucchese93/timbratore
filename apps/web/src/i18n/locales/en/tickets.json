@@ -38,9 +38,11 @@
     "alta": "High"
   },
   "mine": {
-    "resolved": "Closed by you",
-    "resolve": "I no longer need this",
-    "reopen": "I still need this"
+    "resolved": "Resolved by you",
+    "resolve": "Resolved",
+    "resolveHint": "Mark the request resolved and close it. You can always reopen it.",
+    "reopen": "Reopen",
+    "reopenHint": "Reopen the request: it goes back among the open ones."
   },
   "form": {
     "title": "New support request",

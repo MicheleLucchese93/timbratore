@@ -424,7 +424,7 @@
       "media": "Medium priority",
       "alta": "High priority"
     },
-    "customerClosed": "Closed by the customer",
+    "customerClosed": "Resolved by the customer",
     "unread": "{{count}} unread",
     "openedBy": "Opened by",
     "category": "Category",

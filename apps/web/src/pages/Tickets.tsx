@@ -503,14 +503,30 @@ function TicketModal({ ticketId, onClose }: { ticketId: string; onClose: () => v
     }
   }
 
+  /**
+   * The customer's own flag: «Risolto» when the answer settled it, «Riapri» to
+   * take that back.
+   *
+   * Marking it resolved also CLOSES the dialog. The click means "I am done with
+   * this", and leaving the reader parked on a request they just finished with —
+   * on a list filtered to «Aperte», where the row has already gone — is the
+   * moment they wonder whether the button did anything. Reopening keeps the
+   * dialog open, because that click means the opposite: they are back to needing
+   * an answer and want to type one more line.
+   */
   async function toggleResolved() {
     if (!detail) return;
+    const resolving = detail.ticket.status !== 'resolved';
     setBusy(true);
     try {
       await api(`/api/v1/tickets/${ticketId}`, {
         method: 'PATCH',
-        json: { status: detail.ticket.status === 'resolved' ? 'open' : 'resolved' },
+        json: { status: resolving ? 'resolved' : 'open' },
       });
+      if (resolving) {
+        onClose();
+        return;
+      }
       await load();
     } catch (e) {
       setErr(e instanceof Error ? e.message : t('common:state.error'));
@@ -543,11 +559,30 @@ function TicketModal({ ticketId, onClose }: { ticketId: string; onClose: () => v
                 <div className="text-xs muted num">{fmtDateTime(ticket.created_at)}</div>
               </div>
               <div className="flex items-center gap-2">
-                <button className="btn btn-secondary btn-sm" onClick={toggleResolved} disabled={busy}>
+                {/* «Risolto» is the primary action: on a request the support team
+                    has already answered, saying so is what the reader came here
+                    to do. The dismiss control next to it is an ✕ and not a
+                    «Chiudi» button on purpose — two text buttons side by side,
+                    one closing the REQUEST and one closing the WINDOW, is a trap
+                    that reads the same either way. */}
+                <button
+                  className={`btn btn-sm ${ticket.status === 'resolved' ? 'btn-secondary' : 'btn-primary'}`}
+                  onClick={toggleResolved}
+                  disabled={busy}
+                  title={t(ticket.status === 'resolved' ? 'mine.reopenHint' : 'mine.resolveHint')}
+                  data-testid="ticket-resolve"
+                >
                   {ticket.status === 'resolved' ? t('mine.reopen') : t('mine.resolve')}
                 </button>
-                <button className="btn btn-ghost btn-sm" onClick={onClose}>
-                  {t('common:btn.close')}
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={onClose}
+                  title={t('common:btn.close')}
+                  aria-label={t('common:btn.close')}
+                  data-testid="ticket-dismiss"
+                >
+                  ✕
                 </button>
               </div>
             </div>

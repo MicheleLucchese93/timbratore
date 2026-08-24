@@ -997,7 +997,7 @@ export const MAIN_EN = `
         <p>A row carries two different pieces of information, and neither replaces the other:</p>
         <ul class="tidy">
           <li><strong>The support state</strong> — what we are doing: <em>Received</em> (nobody has picked it up yet), <em>In progress</em>, <em>Waiting for your reply</em>, <em>Resolved by support</em>, <em>Closed</em>. We set it; you read it.</li>
-          <li><strong>Your own tick</strong> — <em>I no longer need this</em> closes the request from your side and <em>I still need this</em> reopens it. It notifies nobody and does not change our state: it is there so you can clear what you worked out yourself.</li>
+          <li><strong>Your own tick</strong> — <em>Resolved</em> closes the request from your side (and closes the panel); <em>Reopen</em> puts it back among the open ones. It notifies nobody and does not change our state: it is yours to use whether support's answer settled it or you worked it out yourself.</li>
         </ul>
         <p>The <strong>Open</strong> filter shows what is still in play; <strong>All</strong> shows the archive too.</p>
       </div>

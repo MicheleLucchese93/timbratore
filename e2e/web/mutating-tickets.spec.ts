@@ -147,18 +147,31 @@ test.describe('web — Assistenza: raise, reply, resolve', () => {
     const detail = page.getByTestId('ticket-detail');
     await expect(detail).toBeVisible();
 
+    // «Risolto» flags it AND dismisses the panel: the click means "I am done
+    // with this", so being left parked on it — on a list filtered to «Aperte»,
+    // where the row has just gone — would read as the button doing nothing.
     const patched = page.waitForResponse(
       (r) => r.request().method() === 'PATCH' && r.url().includes('/api/v1/tickets/') && r.ok(),
     );
-    await detail.getByRole('button', { name: 'Non mi serve più' }).click();
+    await detail.getByTestId('ticket-resolve').click();
     await patched;
-    await expect(detail.getByText('Chiusa da te')).toBeVisible();
+    await expect(detail).toHaveCount(0);
 
+    // It is gone from «Aperte» and back under «Tutte», carrying the customer's
+    // own badge — which is NOT the team's «Risolta dall'assistenza».
+    await expect(page.getByTestId('ticket-row').filter({ hasText: marker })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Tutte', exact: true }).click();
+    const row = page.getByTestId('ticket-row').filter({ hasText: marker });
+    await expect(row).toContainText('Risolta da te');
+
+    // Reopening is the opposite click, so it keeps the panel open.
+    await row.click();
     const reopened = page.waitForResponse(
       (r) => r.request().method() === 'PATCH' && r.url().includes('/api/v1/tickets/') && r.ok(),
     );
-    await detail.getByRole('button', { name: 'Mi serve ancora' }).click();
+    await page.getByTestId('ticket-resolve').click();
     await reopened;
-    await expect(detail.getByText('Chiusa da te')).toHaveCount(0);
+    await expect(page.getByTestId('ticket-detail')).toBeVisible();
+    await expect(page.getByTestId('ticket-detail').getByText('Risolta da te')).toHaveCount(0);
   });
 });
