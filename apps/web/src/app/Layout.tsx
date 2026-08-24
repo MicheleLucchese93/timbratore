@@ -21,10 +21,13 @@ const adminNav: NavItem[] = [
   { to: '/exports', key: 'exports', icon: <IconDownload /> },
   { to: '/me/documents', key: 'myDocuments', icon: <IconFile /> },
   { to: '/users', key: 'users', icon: <IconUsers /> },
-  { to: '/tickets', key: 'tickets', icon: <IconLifebuoy /> },
   { to: '/audit', key: 'audit', icon: <IconHistory /> },
   { to: '/settings', key: 'settings', icon: <IconCog /> },
   { to: '/manual', key: 'manual', icon: <IconBook /> },
+  // Last, under the manual: reaching us is what you do when the manual did not
+  // answer the question, so it reads as the end of the "help" pair rather than
+  // as another management surface sitting among Utenti and Registro attività.
+  { to: '/tickets', key: 'tickets', icon: <IconLifebuoy /> },
 ];
 
 const userNav: NavItem[] = [
