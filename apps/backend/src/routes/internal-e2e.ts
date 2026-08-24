@@ -413,6 +413,7 @@ internalE2eRouter.post(
         cantieri_deleted: cant.rowCount,
         mezzi_deleted: mez.rowCount,
         cantieri_field_defs_deleted: cfd.rowCount,
+        support_tickets_deleted: tkt.rowCount,
         support_sessions_deleted: ssess.rowCount,
         partnership_members_deleted: pmembers.rowCount,
         partnership_audit_log_deleted: palog.rowCount,
