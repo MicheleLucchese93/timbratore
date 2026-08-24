@@ -4,6 +4,7 @@ import { env } from '../env.js';
 import { createLogger } from '../lib/logger.js';
 import { isAllowedOrigin } from '../lib/cors-origins.js';
 import { runWithPerf, type RequestPerf } from '../lib/request-perf.js';
+import { recordRequest } from '../lib/metrics.js';
 
 const logger = createLogger('http');
 
@@ -104,6 +105,16 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
     };
     if (durMs >= env.SLOW_REQUEST_MS) logger.warn(line, 'slow request');
     else logger.info(line);
+    // Same numbers, aggregated hourly and persisted, so a week-over-week
+    // comparison outlives the log's retention and the next deploy.
+    recordRequest({
+      method: line.method,
+      route: line.route,
+      status: line.status,
+      durMs,
+      dbMs: line.dbMs,
+      bytes,
+    });
   });
 
   runWithPerf(perf, () => next());

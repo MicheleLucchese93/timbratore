@@ -13,6 +13,8 @@ import { stampReminder } from './jobs/stamp-reminder.js';
 import { documentsRetention } from './jobs/documents-retention.js';
 import { cleanupReadNotifications } from './jobs/cleanup-read-notifications.js';
 import { bulletinActivation } from './jobs/bulletin-activation.js';
+import { flushRequestMetrics } from './jobs/metrics-flush.js';
+import { perfDigest } from './jobs/perf-digest.js';
 
 const logger = createLogger('scheduler');
 
@@ -132,6 +134,21 @@ class SchedulerService {
     // start_at has passed (immediate posts are notified inline at create).
     this.jobs.push(
       cron.schedule('*/5 * * * *', () => safeRun('bulletin_activation', bulletinActivation))
+    );
+    // Two minutes past every hour — persist the hour that just closed into
+    // request_metrics and mail any route whose p95 crossed PERF_ALERT_P95_MS.
+    // The offset gives in-flight requests time to land in the closing bucket.
+    this.jobs.push(
+      cron.schedule('2 * * * *', () => safeRun('metrics_flush', flushRequestMetrics))
+    );
+    // Mondays 07:00 Europe/Rome — last 7 days of request_metrics against the 7
+    // before, so a regression introduced by a deploy surfaces without being asked.
+    this.jobs.push(
+      cron.schedule(
+        '0 7 * * 1',
+        () => safeRun('perf_digest', perfDigest),
+        { timezone: 'Europe/Rome' }
+      )
     );
     logger.info({ jobs: this.jobs.length }, 'scheduler started');
   }

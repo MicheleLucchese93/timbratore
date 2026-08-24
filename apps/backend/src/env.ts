@@ -54,6 +54,13 @@ const Env = z.object({
   // with the statement text (never the parameters — see lib/request-perf.ts).
   SLOW_REQUEST_MS: z.coerce.number().default(500),
   SLOW_QUERY_MS: z.coerce.number().default(150),
+  // Hourly alert: a route whose p95 crosses this (with enough calls in the hour)
+  // is mailed to PERF_DIGEST_TO. 0 disables the alert; the weekly digest is
+  // unaffected either way.
+  PERF_ALERT_P95_MS: z.coerce.number().default(1500),
+  // Recipient for the perf alert and the weekly digest. Defaults to
+  // SUPER_ADMIN_EMAIL when unset.
+  PERF_DIGEST_TO: z.string().email().optional(),
   DEV_AUTH_ENABLED: z
     .string()
     .transform((v) => v === 'true')
