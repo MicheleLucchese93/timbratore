@@ -1544,34 +1544,59 @@ select.input { background-color: white; }
   overflow-y: auto;
 }
 
-/* A timeline, not a table: one rail, a dot per step, the timestamp right-aligned
-   so the dates line up and the eye can run down them. */
+/* A timeline, not a table.
+ *
+ * GRID, NOT A FLEX ROW WITH A NEGATIVE MARGIN. The first cut hung each dot off
+ * the rail with `align-items: baseline` and a nudge — and a 6px empty span has
+ * no baseline to align to, so every dot floated a little above its own line and
+ * the column looked broken. Here the marker owns a column and is centred in its
+ * row, which is true whatever the label's font-size or wrapping does.
+ *
+ * The rail is drawn per row rather than as a border on the list, so it can stop
+ * at the first and last markers instead of overshooting past them. */
 .ticket-history {
   list-style: none;
   margin: 0;
-  padding: 0.75rem 0 0.75rem 0.5rem;
-  border-left: 2px solid var(--color-surface-variant);
+  padding: 0.25rem 0;
   display: grid;
-  gap: 0.5rem;
 }
 .ticket-history li {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: 1rem 1fr auto;
+  align-items: center;
+  column-gap: 0.625rem;
+  padding: 0.3125rem 0;
+  position: relative;
   font-size: 0.8125rem;
 }
+.ticket-history li::before {
+  content: '';
+  position: absolute;
+  left: calc(0.5rem - 1px);
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-surface-variant);
+}
+.ticket-history li:first-child::before { top: 50%; }
+.ticket-history li:last-child::before { bottom: 50%; }
+/* The ring is the page background, so the rail appears to pass behind the dot
+   rather than through it. */
 .ticket-history-dot {
-  width: 6px;
-  height: 6px;
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 999px;
   background: var(--color-primary);
-  flex: none;
-  margin-left: -0.9375rem;
-  transform: translateY(-1px);
+  justify-self: center;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 0 3px var(--color-surface);
 }
-.ticket-history-label { color: var(--color-on-surface); }
+.ticket-history-label {
+  color: var(--color-on-surface);
+  min-width: 0;
+}
 .ticket-history-at {
-  margin-left: auto;
   color: var(--color-on-surface-variant);
   white-space: nowrap;
 }

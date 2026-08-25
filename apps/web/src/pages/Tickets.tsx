@@ -843,11 +843,15 @@ function TicketModal({ ticketId, onClose }: { ticketId: string; onClose: () => v
                   <li key={e.id}>
                     <span className="ticket-history-dot" aria-hidden="true" />
                     <span className="ticket-history-label">{t(`history.${eventKey(e)}`)}</span>
-                    <span className="ticket-history-at num">{fmtDateTime(e.at)}</span>
+                    <time className="ticket-history-at num" dateTime={e.at}>
+                      {fmtDateTime(e.at)}
+                    </time>
                   </li>
                 ))}
                 {detail!.events.length === 0 && (
-                  <li className="muted text-sm">{t('history.empty')}</li>
+                  <li className="muted" style={{ gridTemplateColumns: '1fr' }}>
+                    {t('history.empty')}
+                  </li>
                 )}
               </ol>
             )}
