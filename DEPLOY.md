@@ -72,6 +72,41 @@ ssh -p 2222 ubuntu@57.131.52.5 \
 
 Production migrations are **never** auto-applied by the API container — operator-triggered only.
 
+**Migration 064 (API module) — the window is wider than 061's.** Same mechanic
+(the API image has no source bind mount, so `migrate.ts` only sees a migration
+once the image carrying it has been rebuilt: `./deploy.sh` FIRST, then migrate),
+but a different blast radius. `middleware/auth.ts`, `routes/me.ts` and
+`lib/support-session.ts` all SELECT `tenants.api_enabled`, so between `up -d` and
+`migrate.ts` **every authenticated request 500s**, not just the new routes.
+
+Keep the two steps back to back in one SSH session and skip the health probes in
+between — the probes add ~10s to an outage that is otherwise a couple of seconds:
+
+```bash
+ssh -p 2222 ubuntu@57.131.52.5 '
+  set -euo pipefail
+  cd /opt/sonoqui
+  git pull origin main
+  docker compose build --no-cache sonoqui-api sonoqui-web sonoqui-web-pro \
+    sonoqui-website sonoqui-partner sonoqui-mobile-web   # running containers untouched
+  docker compose up -d                                   # window opens
+  docker exec -i sonoqui-api npx tsx scripts/migrate.ts   # window closes
+  docker image prune -f'
+```
+
+Then run the probe half of `deploy.sh` (or curl the four xdevapp endpoints).
+
+If a future migration cannot tolerate any window at all, build first and run
+`docker compose run --rm sonoqui-api npx tsx scripts/migrate.ts` — a throwaway
+container from the NEW image, while the old one keeps serving — then `up -d`.
+
+**Do not pipe `docker compose build` through `tail` under `set -e`.** The
+pipeline's exit status is `tail`'s, so a failed build reports success and the
+script sails on to `up -d` + migrate against unchanged images. That happened on
+the 064 deploy: `sonoqui-mobile-web` died on a transient `npm ci`, nothing was
+rebuilt, and migrate found only 063. Redirect to a file and test the exit code,
+or set `-o pipefail`.
+
 **Migration 061 (support tickets) — order.** The API image has no source bind
 mount, so `scripts/migrate.ts` inside the container only knows about a migration
 once the image carrying it has been rebuilt: run `./deploy.sh` FIRST, then the
