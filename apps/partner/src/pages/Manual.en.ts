@@ -312,7 +312,7 @@ export const MAIN_EN = `
         <p>A <strong>platform administrator</strong> sees every company's requests. A <strong>partner</strong> sees only those of the companies they created: a company created by the platform belongs to no partner and stays platform work.</p>
         <p>The grid shows when it was opened, the <strong>reference</strong> (e.g. <em>SQ-20260824-0431</em>, the code the customer quotes), the <strong>company</strong>, the subject, the <strong>state</strong>, the <strong>assignee</strong> and how many customer replies are still unread.</p>
         <ul class="tidy">
-          <li><strong>To work on</strong> — everything neither resolved nor closed, oldest first: a queue is worked from the front.</li>
+          <li><strong>To work on</strong> — everything neither resolved nor closed, oldest first: a queue is worked from the front. Requests the <strong>customer</strong> has already marked resolved are not here: "I no longer need an answer" means there is no work left, whatever state we had reached. They stay visible under <em>All states</em>, and if the customer reopens one it is back in the queue immediately.</li>
           <li><strong>Waiting on customer</strong> — the ball is on the other side.</li>
           <li><strong>Resolved</strong>, <strong>All states</strong> — the archive, newest first.</li>
           <li><strong>All / Mine / Unassigned</strong> — the second filter, on assignment.</li>

@@ -315,7 +315,7 @@ const MAIN_IT = `
         <p>Un <strong>amministratore di piattaforma</strong> vede le richieste di tutte le aziende. Un <strong>partner</strong> vede solo quelle delle aziende che ha creato: un'azienda creata dalla piattaforma non appartiene a nessun partner e resta lavoro della piattaforma.</p>
         <p>La griglia mostra data di apertura, <strong>riferimento</strong> (es. <em>SQ-20260824-0431</em>, il codice che il cliente cita), <strong>azienda</strong>, oggetto, <strong>stato</strong>, <strong>assegnatario</strong> e quante risposte del cliente non sono ancora state lette.</p>
         <ul class="tidy">
-          <li><strong>Da lavorare</strong> — tutto quello che non è risolto né chiuso, dal più vecchio: una coda si lavora dal fondo della fila.</li>
+          <li><strong>Da lavorare</strong> — tutto quello che non è risolto né chiuso, dal più vecchio: una coda si lavora dal fondo della fila. Non compaiono le richieste che il <strong>cliente</strong> ha già marcato come risolte: «non mi serve più una risposta» vuol dire che non c'è più lavoro, qualunque stato avessimo raggiunto noi. Restano visibili in <em>Tutti gli stati</em>, e se il cliente riapre tornano subito in coda.</li>
           <li><strong>Attendono il cliente</strong> — la palla è dall'altra parte.</li>
           <li><strong>Risolte</strong>, <strong>Tutti gli stati</strong> — l'archivio, dal più recente.</li>
           <li><strong>Tutte / Le mie / Non assegnate</strong> — il secondo filtro, sull'assegnazione.</li>

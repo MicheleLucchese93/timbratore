@@ -148,6 +148,40 @@ test.describe('partner · Richieste (support queue)', () => {
     expect(detail.data!.ticket.internal_note ?? null).not.toBeUndefined();
   });
 
+  test('a request the customer resolves leaves the work queue', async () => {
+    const token = await devLogin(PARTNER_CREDS.admin.email);
+    const inQueue = async (): Promise<boolean> => {
+      const r = await partnerApi<{ items: TicketRow[] }>(
+        token,
+        `/api/v1/partnership/tickets?handling=aperti&q=${encodeURIComponent(marker)}`
+      );
+      return (r.data?.items ?? []).some((i) => i.ref === ticket.ref);
+    };
+    expect(await inQueue(), 'in the queue before the customer settles it').toBe(true);
+
+    // The customer's own flag — the console has no control that touches it.
+    await tenantApi(customerToken, TENANT_ID, `/api/v1/tickets/${ticket.id}`, {
+      method: 'PATCH',
+      json: { status: 'resolved' },
+    });
+    expect(await inQueue(), 'gone once the customer says they need nothing').toBe(false);
+
+    // It is a filter, not a state change: the ticket is still there under
+    // «Tutti gli stati», carrying whatever the team had last said about it.
+    const all = await partnerApi<{ items: TicketRow[] }>(
+      token,
+      `/api/v1/partnership/tickets?handling=tutti&q=${encodeURIComponent(marker)}`
+    );
+    expect(all.data!.items.some((i) => i.ref === ticket.ref)).toBe(true);
+
+    // And a reopen puts it straight back on the queue.
+    await tenantApi(customerToken, TENANT_ID, `/api/v1/tickets/${ticket.id}`, {
+      method: 'PATCH',
+      json: { status: 'open' },
+    });
+    expect(await inQueue(), 'back in the queue after the customer reopens').toBe(true);
+  });
+
   test('a request the console closes is still reopenable by the customer', async () => {
     const token = await devLogin(PARTNER_CREDS.admin.email);
     const closed = await partnerApi<TicketRow>(

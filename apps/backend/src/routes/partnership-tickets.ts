@@ -188,7 +188,18 @@ partnershipTicketsRouter.get(
 
     if (f.handling === 'aperti') {
       // "Da lavorare": the work, not the archive.
-      where.push(`t.handling_status NOT IN ('risolto', 'chiuso')`);
+      //
+      // `status <> 'resolved'` matters as much as the team's own state here. The
+      // customer's flag is theirs, and the console has no control that touches
+      // it — but "non mi serve più una risposta" is exactly the sentence that
+      // means there is no work left, whatever state we had reached. Without this
+      // a request the customer settled themselves sits in the queue as «Nuova»
+      // for good, and the queue stops being a list of things to do.
+      //
+      // It is a FILTER, not a state change: nothing writes handling_status on
+      // their behalf, the request keeps whatever we had said about it, and a
+      // reopen puts it straight back in the queue.
+      where.push(`t.handling_status NOT IN ('risolto', 'chiuso') AND t.status <> 'resolved'`);
     } else if (f.handling !== 'tutti') {
       params.push(f.handling);
       where.push(`t.handling_status = $${params.length}`);
