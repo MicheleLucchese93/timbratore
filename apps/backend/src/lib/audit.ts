@@ -84,6 +84,11 @@ export type AuditAction =
   | 'document.upload'
   | 'document.delete'
   | 'document.session_start'
+  // api module (keys are company credentials: every lifecycle event is
+  // attributable, because a key can read the whole company's data)
+  | 'api_key.create'
+  | 'api_key.update'
+  | 'api_key.revoke'
   // settings
   | 'tenant.update'
   | 'tenant.export_recipient_add'

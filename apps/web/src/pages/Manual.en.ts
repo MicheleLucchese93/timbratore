@@ -51,6 +51,9 @@ export const TOC_EN = `
       <a href="#cantieri">Management (web)</a>
       <a href="#cantieri-mobile" class="sub">Logging activities (mobile)</a>
 
+      <h3>API module</h3>
+      <a href="#api">API keys</a>
+
       <h3>References</h3>
       <a href="#geofence">Geolocation</a>
       <a href="#notifiche">Notifications</a>
@@ -1735,6 +1738,63 @@ export const MAIN_EN = `
           <li>Any <strong>custom fields</strong> configured for that site.</li>
         </ul>
         <p>You can log <strong>multiple activities on the same day</strong>, even on different sites.</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="api">
+      <h2><span class="chapter-num">29c</span>API module <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
+      <p class="lead">The API module lets one of your own systems — an HR or payroll system, a turnstile or badge reader, a reporting tool — read and write the company data without anyone signing in by hand. It is an optional module, switched on for the company by your partner/reseller.</p>
+
+      <div class="feature">
+        <h3>What it is for</h3>
+        <ul class="tidy">
+          <li><strong>Staff records in step</strong> — the system that already knows your employees creates and updates them here, instead of somebody retyping them.</li>
+          <li><strong>Punches from the field</strong> — a turnstile or badge reader files clock-ins and clock-outs directly.</li>
+          <li><strong>Data out to accounting or BI</strong> — worked hours, absences, anomalies and export files pulled every night by a job of yours.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h3>Creating a key</h3>
+        <p>Keys live in <strong>Settings → API</strong>, a section only administrators see and only while the module is on. Press <strong>New key</strong> and fill in:</p>
+        <ul class="tidy">
+          <li><strong>Name</strong> — what the key is for ("Payroll system", "Entrance turnstile"). It appears in the <em>activity log</em> beside every operation the key performs.</li>
+          <li><strong>Permissions</strong> — per kind of data, choose <em>Read</em> or <em>Write</em>. Grant only what is genuinely needed: a key for reporting wants read only. Write automatically includes read.</li>
+          <li><strong>Requests per minute</strong> — the traffic ceiling for that key. 120 is plenty for normal use; raise it if you run a nightly job that pulls a lot of data.</li>
+          <li><strong>Expiry</strong> — optional. Useful for a temporary key (a one-off migration); leave it empty for a permanent integration.</li>
+        </ul>
+      </div>
+
+      <div class="callout callout-warn">
+        <strong>The key is shown exactly once.</strong> It appears in full at creation: copy it straight away and hand it to whoever builds the integration. It cannot be retrieved later — we keep only a hash of it, never the value. If you lose it, or suspect it has ended up in the wrong hands, revoke it and create another.
+      </div>
+
+      <div class="feature">
+        <h3>Revoking a key</h3>
+        <p><strong>Revoke</strong> disables the key <em>immediately</em>: the system using it stops working on its very next attempt. Revoking cannot be undone; the row stays in the list marked <em>Revoked</em>, so the activity log can still say what that key had done.</p>
+        <p>The list also shows each key's <strong>last use</strong> — the way to tell whether an old key is still being used by somebody before you revoke it.</p>
+      </div>
+
+      <div class="feature">
+        <h3>What a key may do</h3>
+        <p>A key acts <strong>for the company</strong>, not for a person: it has no mailbox, receives no notifications and does not appear among your users. Some operations are therefore deliberately kept off the API:</p>
+        <ul class="tidy">
+          <li><strong>Approving leave or corrections</strong> — that is a decision with somebody's name on it, and the API has no name to put there. Absences can be read, not granted.</li>
+          <li><strong>HR documents</strong> — they stay behind the one-time code emailed to the Documentale. An automated credential would by construction be a way around that, so the API does not expose them at any permission level.</li>
+          <li><strong>Posting to the bulletin board</strong> — a company announcement comes from somebody and mails and notifies everyone. You can, however, read <em>who has opened</em> each message.</li>
+        </ul>
+        <p>Everything else — employees, sites, punches, anomalies, schedules, exports — is readable and, where it makes sense, writable.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Traceability</h3>
+        <p>Every operation performed through the API lands in the <strong>activity log</strong> like any other, with the author shown as <em>API · key name</em>. Creating, editing and revoking a key are recorded too. If a punch is filed or corrected by an external system, the employee sees it in that day's history exactly like a correction made by hand.</p>
+      </div>
+
+      <div class="feature">
+        <h3>For whoever builds the integration</h3>
+        <p>Under the key list there is a <strong>Technical documentation</strong> link: the API contract in OpenAPI format, with every endpoint, parameter and required permission. You can hand it to your supplier <em>before</em> creating the key — it contains none of your company's data.</p>
+        <p>In short: the key is presented as an <code>Authorization: Bearer …</code> header (or <code>X-Api-Key</code>), the company is resolved from the key itself, and every response has the shape <code>{ "ok": true, "data": … }</code>.</p>
       </div>
     </section>
 

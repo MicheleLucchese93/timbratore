@@ -40,7 +40,7 @@ interface MembershipCounts {
   total: number;
 }
 
-async function fetchLimits(
+export async function fetchLimits(
   client: PoolClient
 ): Promise<{ limits: TenantLimits; counts: MembershipCounts }> {
   const tenant = await client.query(
@@ -176,7 +176,7 @@ const anagraficaShape = {
   external_id: AnagraficaField(64).optional(),
 };
 
-const Invite = z.object({
+export const Invite = z.object({
   email: z.string().email(),
   first_name: NameField.optional(),
   last_name: NameField.optional(),
@@ -294,7 +294,7 @@ async function ensureAuthUser(
   return { userId, created: true };
 }
 
-async function performInvite(client: PoolClient, inv: InviteInput): Promise<InviteOutcome> {
+export async function performInvite(client: PoolClient, inv: InviteInput): Promise<InviteOutcome> {
   const { userId, created } = await ensureAuthUser(
     client,
     inv.email,

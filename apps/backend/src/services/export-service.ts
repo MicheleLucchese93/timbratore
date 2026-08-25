@@ -1151,6 +1151,9 @@ const RETTIFICA_KIND_LABEL: Record<StampChangeKind, string> = {
   anomaly_fix: 'Correzione anomalia (orario standard)',
   bulk_apply: 'Applicazione massiva orario standard',
   auto_clockout: 'Uscita automatica dopo 15 ore',
+  api_create: 'Inserita da un sistema esterno (API)',
+  api_edit: 'Modificata da un sistema esterno (API)',
+  api_delete: 'Eliminata da un sistema esterno (API)',
   unknown: 'Modifica',
 };
 

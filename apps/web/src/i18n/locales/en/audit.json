@@ -29,7 +29,8 @@
     "cantieri": "Work sites",
     "exports": "Exports",
     "documents": "Documents",
-    "settings": "Settings"
+    "settings": "Settings",
+    "api": "API"
   },
   "action": {
     "user": {
@@ -140,6 +141,11 @@
       "create": "Work site activity logged",
       "update": "Work site activity updated",
       "delete": "Work site activity deleted"
+    },
+    "api_key": {
+      "create": "API key created",
+      "update": "API key updated",
+      "revoke": "API key revoked"
     }
   },
   "detail": {
@@ -272,14 +278,21 @@
     "required": "Required",
     "scope": "Scope",
     "position": "Position",
-    "key": "Key"
+    "key": "Key",
+    "key_id": "Key ID",
+    "scopes": "Scopes",
+    "rate_limit_per_min": "Requests per minute",
+    "expires_at": "Expiry",
+    "revoked_at": "Revoked at",
+    "via": "Source"
   },
   "value": {
     "source": {
       "employee_app": "Employee app",
       "employee_correction": "Employee correction",
       "admin_manual": "Admin entry",
-      "system_auto": "Automatic"
+      "system_auto": "Automatic",
+      "api": "API"
     },
     "status": {
       "open": "Open",
@@ -325,7 +338,8 @@
     "is_edit": {
       "true": "Edit of an existing stamp",
       "false": "Missing stamp"
-    }
+    },
+    "api": "API"
   },
   "emptyHint": "Every administrative action taken in your company is recorded here."
 }

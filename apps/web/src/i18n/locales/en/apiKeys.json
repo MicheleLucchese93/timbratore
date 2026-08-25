@@ -1,0 +1,88 @@
+{
+  "section": "API",
+  "sectionDesc": "Keys that connect your own systems to the company data",
+  "intro": "An API key lets one of your systems — a management system, a turnstile, a reporting tool — read and write the company data without anyone signing in by hand. A key is valid for this company only, and acts with exactly the permissions you give it.",
+  "new": {
+    "title": "New key",
+    "create": "Create key"
+  },
+  "edit": {
+    "title": "Edit key",
+    "save": "Save",
+    "done": "Key updated."
+  },
+  "created": {
+    "title": "Key created",
+    "warning": "This is the only time the key is shown — it cannot be retrieved later. Copy it now and store it where it is needed. If you lose it, revoke it and create another.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "done": "I have copied the key"
+  },
+  "field": {
+    "name": "Name",
+    "namePlaceholder": "Management system, entrance turnstile…",
+    "nameHint": "What this key is for. It appears in the activity log beside every operation the key performs.",
+    "scopes": "Permissions",
+    "scopesHint": "Grant only what is needed. \"Write\" automatically includes read.",
+    "rateLimit": "Requests per minute",
+    "rateLimitHint": "Ceiling for this key. 120 is plenty for normal use; raise it for a nightly job.",
+    "expiresAt": "Expiry",
+    "expiresAtHint": "Optional. Empty = valid until revoked."
+  },
+  "access": {
+    "read": "Read",
+    "write": "Write",
+    "readOnly": "read only"
+  },
+  "resource": {
+    "users": "Employees",
+    "branches": "Sites",
+    "stamps": "Punches",
+    "anomalies": "Anomalies",
+    "corrections": "Corrections",
+    "leaves": "Absences",
+    "quotas": "Quotas and balances",
+    "shifts": "Schedules",
+    "bulletins": "Bulletin board",
+    "cantieri": "Cantieri",
+    "exports": "Exports",
+    "reports": "Reports",
+    "audit": "Activity log"
+  },
+  "col": {
+    "name": "Name",
+    "key": "Key",
+    "scopes": "Permissions",
+    "lastUsed": "Last used",
+    "state": "State",
+    "createdBy": "created by {{who}}",
+    "neverUsed": "never used"
+  },
+  "state": {
+    "active": "Active",
+    "revoked": "Revoked",
+    "expired": "Expired"
+  },
+  "revoke": {
+    "action": "Revoke",
+    "title": "Revoke \"{{name}}\"?",
+    "message": "The system using this key stops working immediately. Revoking cannot be undone: to restore the integration you will have to create a new key.",
+    "confirm": "Revoke",
+    "done": "Key revoked."
+  },
+  "empty": {
+    "title": "No keys yet",
+    "hint": "Create the first key when you need to connect one of your systems to sonoQui."
+  },
+  "atLimit": "You have reached the maximum of {{max}} active keys. Revoke one you no longer use to create another.",
+  "docs": {
+    "label": "Technical documentation",
+    "hint": "The full endpoint list in OpenAPI format, to hand to whoever builds the integration."
+  },
+  "err": {
+    "load": "Could not load the keys.",
+    "generic": "That did not work. Please try again.",
+    "limit": "You have reached the maximum number of active keys.",
+    "readOnly": "Read-only session: keys cannot be created or revoked."
+  }
+}

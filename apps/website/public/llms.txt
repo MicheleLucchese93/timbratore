@@ -24,11 +24,19 @@ sonoQui è un servizio SaaS italiano dedicato alla rilevazione presenze. Il prod
 - Export XLSX mensile per le paghe italiane (ore ordinarie e straordinari, ferie, permessi, anomalie, totali per dipendente e sede).
 - Documenti per i dipendenti (cedolini, CU, contratti) con presa visione tracciata, archiviazione 36 mesi e accesso all'archivio completo riservato a un responsabile autorizzato con codice di verifica.
 
+## Moduli aggiuntivi (opzionali)
+
+I moduli si aggiungono all'abbonamento base, si attivano su richiesta per singola azienda e si pagano a consumo mensile, con prezzo su richiesta.
+
+- Cantieri: gli addetti registrano dal telefono le attività di cantiere (tempo di viaggio, ore di lavoro, mezzo utilizzato, campi personalizzati definiti dall'azienda); l'azienda ottiene un riepilogo mensile per cantiere e un report PDF scaricabile o inviato via email.
+- API: l'azienda crea chiavi di accesso con cui i propri sistemi (gestionale del personale, tornelli e lettori badge, strumenti di analisi) leggono e scrivono i dati di sonoQui senza inserimenti manuali. Ogni chiave ha permessi separati per tipo di dato (sola lettura o lettura e scrittura), un tetto di richieste al minuto e una scadenza facoltativa; è revocabile in qualsiasi momento e ogni operazione compare nel registro attività dell'azienda. I documenti del personale e l'approvazione delle assenze restano deliberatamente esclusi dall'API.
+- Su richiesta è possibile sviluppare moduli su misura per settori specifici.
+
 ## Conformità e sicurezza
 
 - Pensata nel rispetto dell'art. 4 della Legge 300/1970 (Statuto dei Lavoratori): nessun tracciamento continuo della posizione.
 - Nessun riconoscimento facciale e nessun dato biometrico per la timbratura.
-- Dati GPS dettagliati mascherati dopo 90 giorni: rimane solo la sede di riferimento.
+- Le coordinate GPS non vengono conservate: la posizione è letta solo nell'istante della timbratura per verificare se il dipendente è nell'area della sede, e subito scartata. Sulla timbratura restano sede, data e ora, più i contrassegni «fuori area» (con la distanza dalla sede) e «posizione sospetta».
 - Architettura multi-tenant con isolamento dei dati per azienda (Row Level Security su PostgreSQL).
 - Cifratura in transito (TLS 1.2+) e a riposo; backup cifrati; dati conservati su server nell'Unione Europea, nel rispetto del GDPR (Regolamento UE 2016/679).
 - Conservazione delle timbrature per 5 anni di default (configurabile fino a 10 anni).

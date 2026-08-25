@@ -343,6 +343,17 @@ internalE2eRouter.post(
         [TEST_TENANT_ID]
       );
 
+      // API module keys (migration 064). Fixture-named ('e2e-…') rather than a
+      // whole-tenant wipe, deliberately: a hand-made key on the QA tenant may be
+      // wired into somebody's integration test on the other side, and a purge
+      // that silently revoked it would look like the API breaking. A leftover
+      // e2e key is harmless — it is scoped to the test tenant and its secret was
+      // never written down.
+      const akeys = await client.query(
+        `DELETE FROM api_keys WHERE tenant_id = $1 AND name LIKE 'e2e-%'`,
+        [TEST_TENANT_ID]
+      );
+
       await client.query('COMMIT');
 
       // Best-effort R2 object cleanup for the purged fixture documents. A
@@ -387,6 +398,7 @@ internalE2eRouter.post(
           cantieri: cant.rowCount,
           mezzi: mez.rowCount,
           cantieri_field_defs: cfd.rowCount,
+          api_keys: akeys.rowCount,
           support_tickets: tkt.rowCount,
           support_sessions: ssess.rowCount,
           partnership_members: pmembers.rowCount,

@@ -24,6 +24,7 @@ interface TenantRow {
   max_documentali: number;
   max_branches: number;
   cantieri_enabled: boolean;
+  api_enabled: boolean;
   suspended_at: string | null;
   created_at: string;
   created_by_partner: string | null;

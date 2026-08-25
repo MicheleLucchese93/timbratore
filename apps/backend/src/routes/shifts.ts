@@ -646,14 +646,21 @@ const AnomalyQuery = z.object({
   user_id: z.string().uuid().optional(),
 });
 
-shiftsRouter.get(
-  '/anomalies',
-  requireAdmin,
-  tenantHandler(async (req, res, client) => {
-    const parse = AnomalyQuery.safeParse(req.query);
-    if (!parse.success) throw new ValidationError('invalid query', parse.error.flatten());
-    const { from, to, user_id } = parse.data;
-    if (from > to) throw new ValidationError('from > to');
+/**
+ * The anomaly report for a date range, as data.
+ *
+ * Extracted from the route handler because the API module serves exactly the
+ * same report at /api/public/v1/anomalies, and the alternative was a second
+ * copy of this query — the query that already needed fixing three times for
+ * tenant-zone day bucketing, split-shift windows and leave-covered slots. One
+ * copy, two callers.
+ */
+export async function loadAnomalies(
+  client: PoolClient,
+  params: { from: string; to: string; user_id?: string | undefined }
+): Promise<Anomaly[]> {
+  const { from, to, user_id } = params;
+  if (from > to) throw new ValidationError('from > to');
 
     // Pull all stamps in range with assigned template and tolerances.
     // Then iterate in JS to flag deviations — clearer than a megaquery and fast
@@ -776,6 +783,16 @@ shiftsRouter.get(
         }
       }
     }
+  return anomalies;
+}
+
+shiftsRouter.get(
+  '/anomalies',
+  requireAdmin,
+  tenantHandler(async (req, res, client) => {
+    const parse = AnomalyQuery.safeParse(req.query);
+    if (!parse.success) throw new ValidationError('invalid query', parse.error.flatten());
+    const anomalies = await loadAnomalies(client, parse.data);
     ok(res, anomalies);
   })
 );

@@ -60,7 +60,7 @@ export const homeFaq: Record<Lang, FaqItem[]> = {
     {
       question: "sonoQui è conforme all'art. 4 dello Statuto dei Lavoratori?",
       answer:
-        "sonoQui è progettata nel rispetto dell'art. 4: rileva la posizione solo al momento della timbratura, mai in continuo, e non utilizza riconoscimento facciale né dati biometrici. I dati GPS vengono mascherati dopo 90 giorni: rimane solo la sede di riferimento. L'attivazione resta comunque subordinata agli obblighi dell'art. 4 a carico del datore di lavoro (accordo sindacale aziendale o autorizzazione dell'Ispettorato Territoriale del Lavoro).",
+        "sonoQui è progettata nel rispetto dell'art. 4: rileva la posizione solo al momento della timbratura, mai in continuo, e non utilizza riconoscimento facciale né dati biometrici. Le coordinate GPS non vengono conservate: la posizione è letta solo nell'istante della timbratura per verificare se il dipendente è nell'area della sede, e subito scartata. Sulla timbratura restano sede, data e ora. L'attivazione resta comunque subordinata agli obblighi dell'art. 4 a carico del datore di lavoro (accordo sindacale aziendale o autorizzazione dell'Ispettorato Territoriale del Lavoro).",
     },
     {
       question: "Posso esportare i dati per il commercialista?",
@@ -85,7 +85,7 @@ export const homeFaq: Record<Lang, FaqItem[]> = {
     {
       question: "Quanto durano i miei dati?",
       answer:
-        "Le timbrature sono conservate per 5 anni di default (configurabili fino a 10). I dati GPS dettagliati vengono mascherati dopo 90 giorni: rimane solo l'identificativo della sede. Puoi richiedere la cancellazione anticipata in qualsiasi momento.",
+        "Le timbrature sono conservate per 5 anni di default (configurabili fino a 10). Le coordinate GPS non vengono conservate affatto: la posizione è letta solo nell'istante della timbratura, per verificare se il dipendente è nell'area della sede, e subito scartata. Sulla timbratura restano sede, data e ora, più i contrassegni «fuori area» (con la distanza dalla sede) e «posizione sospetta». Puoi richiedere la cancellazione anticipata in qualsiasi momento.",
     },
     {
       question: "Chi può approvare ferie, permessi e correzioni?",
@@ -105,12 +105,12 @@ export const homeFaq: Record<Lang, FaqItem[]> = {
     {
       question: "Quanto costa sonoQui?",
       answer:
-        "sonoQui parte da 24,99 €/mese per le aziende fino a 10 dipendenti (massimo 3 sedi) e 39,99 €/mese fino a 20 dipendenti (massimo 5 sedi). Il prezzo dipende dai tuoi dipendenti e tutta la rilevazione presenze è inclusa in entrambi i piani, senza costi nascosti. Con la fatturazione annuale hai 1 mese gratis. Oltre i limiti del piano aggiungi singoli dipendenti a 1,99 €/mese e sedi a 2,99 €/mese. I moduli aggiuntivi (come Cantieri) sono opzionali, si attivano a parte e si pagano a consumo mensile con prezzo su richiesta. Prezzi IVA esclusa; l'app è gratuita da scaricare e l'attivazione del servizio avviene su richiesta.",
+        "sonoQui parte da 24,99 €/mese per le aziende fino a 10 dipendenti (massimo 3 sedi) e 39,99 €/mese fino a 20 dipendenti (massimo 5 sedi). Il prezzo dipende dai tuoi dipendenti e tutta la rilevazione presenze è inclusa in entrambi i piani, senza costi nascosti. Con la fatturazione annuale hai 1 mese gratis. Oltre i limiti del piano aggiungi singoli dipendenti a 1,99 €/mese e sedi a 2,99 €/mese. I moduli aggiuntivi (Cantieri e API) sono opzionali, si attivano a parte e si pagano a consumo mensile con prezzo su richiesta. Prezzi IVA esclusa; l'app è gratuita da scaricare e l'attivazione del servizio avviene su richiesta.",
     },
     {
       question: "Cosa sono i moduli aggiuntivi?",
       answer:
-        "Oltre alla rilevazione presenze (inclusa in ogni piano), sonoQui offre moduli opzionali per esigenze specifiche di settore. Il primo disponibile è Cantieri: gli addetti registrano dal telefono le attività di cantiere (tempo di viaggio, ore di lavoro, mezzi e campi su misura) e l'azienda ottiene report mensili per cantiere in PDF o via email. I moduli si attivano su richiesta e si fatturano a consumo mensile in aggiunta all'abbonamento, con prezzo su richiesta. Possiamo anche sviluppare moduli su misura per il tuo settore.",
+        "Oltre alla rilevazione presenze (inclusa in ogni piano), sonoQui offre moduli opzionali per esigenze specifiche di settore. Oggi sono due. Cantieri: gli addetti registrano dal telefono le attività di cantiere (tempo di viaggio, ore di lavoro, mezzi e campi su misura) e l'azienda ottiene report mensili per cantiere in PDF o via email. API: l'azienda crea chiavi di accesso con cui i propri sistemi — gestionale del personale, tornelli e lettori badge, strumenti di analisi — leggono e scrivono i dati di sonoQui senza inserimenti manuali, con permessi separati per tipo di dato e ogni operazione tracciata nel registro attività. I moduli si attivano su richiesta e si fatturano a consumo mensile in aggiunta all'abbonamento, con prezzo su richiesta. Possiamo anche sviluppare moduli su misura per il tuo settore.",
     },
     {
       question: "Come iniziamo a usare sonoQui?",
@@ -145,7 +145,7 @@ export const partnerFaq: Record<Lang, FaqItem[]> = {
     {
       question: "Posso gestire i moduli aggiuntivi dei miei clienti?",
       answer:
-        "Sì. Dalla console attivi e disattivi i moduli aggiuntivi (come Cantieri) per ogni singola azienda cliente, in autonomia. I moduli si fatturano a consumo mensile in aggiunta all'abbonamento e li rivendi al cliente finale con il tuo margine.",
+        "Sì. Dalla console attivi e disattivi i moduli aggiuntivi (Cantieri e API) per ogni singola azienda cliente, in autonomia. I moduli si fatturano a consumo mensile in aggiunta all'abbonamento e li rivendi al cliente finale con il tuo margine.",
     },
     {
       question: "Come divento partner sonoQui?",
@@ -231,7 +231,7 @@ export function buildHomeSchema(lang: Lang) {
       highPrice: '39.99',
       offerCount: 2,
       url: `${SITE_URL}/it/#pricing`,
-      description: 'Due piani in abbonamento mensile con tutta la rilevazione presenze inclusa; prezzo in base ai dipendenti. Fatturazione annuale con 1 mese gratis. Dipendenti aggiuntivi 1,99 €/mese, sedi aggiuntive 2,99 €/mese. Moduli aggiuntivi opzionali (es. Cantieri) a consumo mensile, prezzo su richiesta. Prezzi IVA esclusa.',
+      description: 'Due piani in abbonamento mensile con tutta la rilevazione presenze inclusa; prezzo in base ai dipendenti. Fatturazione annuale con 1 mese gratis. Dipendenti aggiuntivi 1,99 €/mese, sedi aggiuntive 2,99 €/mese. Moduli aggiuntivi opzionali (Cantieri, API) a consumo mensile, prezzo su richiesta. Prezzi IVA esclusa.',
       offers: [
         {
           '@type': 'Offer',
@@ -373,7 +373,7 @@ export const contentPages: ContentPage[] = [
       {
         heading: "Timbratura GPS e art. 4 dello Statuto dei Lavoratori",
         body: [
-          "sonoQui è progettata nel rispetto dell'art. 4: rileva la posizione solo al momento della timbratura, mai in continuo, e non utilizza riconoscimento facciale né dati biometrici. I dati GPS di dettaglio vengono mascherati dopo 90 giorni, lasciando solo la sede di riferimento.",
+          "sonoQui è progettata nel rispetto dell'art. 4: rileva la posizione solo al momento della timbratura, mai in continuo, e non utilizza riconoscimento facciale né dati biometrici. Le coordinate GPS non vengono conservate: la posizione è letta solo nell'istante della timbratura per verificare se il dipendente è nell'area della sede, e subito scartata. Sulla timbratura restano sede, data e ora.",
           "L'attivazione resta comunque subordinata agli obblighi dell'art. 4 a carico del datore di lavoro: accordo sindacale aziendale oppure autorizzazione dell'Ispettorato Territoriale del Lavoro. È uno strumento pensato per aiutarti a rispettare la norma, non per aggirarla.",
         ],
       },
@@ -405,7 +405,7 @@ export const contentPages: ContentPage[] = [
       'Software di rilevazione presenze pensato per le PMI italiane: timbratura GPS, ferie, permessi, anomalie ed export per il commercialista. Da 24,99 €/mese, prezzo in base ai dipendenti.',
     h1: 'Il software di rilevazione presenze pensato per le PMI italiane',
     intro:
-      "sonoQui è il sistema di rilevazione presenze su misura per le piccole e medie imprese italiane: semplice per chi timbra, completo per chi amministra e già pronto per il commercialista. Tutta la rilevazione presenze è inclusa in ogni piano; i moduli aggiuntivi, come Cantieri, sono opzionali.",
+      "sonoQui è il sistema di rilevazione presenze su misura per le piccole e medie imprese italiane: semplice per chi timbra, completo per chi amministra e già pronto per il commercialista. Tutta la rilevazione presenze è inclusa in ogni piano; i moduli aggiuntivi — Cantieri e API — sono opzionali.",
     highlights: [
       'Timbratura, ferie, permessi e anomalie in un’unica app',
       'Export XLSX mensile pronto per le paghe italiane',
@@ -429,7 +429,7 @@ export const contentPages: ContentPage[] = [
       {
         heading: 'Prezzi trasparenti, pensati per le PMI',
         body: [
-          "sonoQui parte da 24,99 €/mese per le aziende fino a 10 dipendenti (massimo 3 sedi) e 39,99 €/mese fino a 20 dipendenti (massimo 5 sedi). Tutta la rilevazione presenze è inclusa in entrambi i piani, senza costi nascosti; i moduli aggiuntivi (come Cantieri) sono opzionali e si pagano a consumo mensile.",
+          "sonoQui parte da 24,99 €/mese per le aziende fino a 10 dipendenti (massimo 3 sedi) e 39,99 €/mese fino a 20 dipendenti (massimo 5 sedi). Tutta la rilevazione presenze è inclusa in entrambi i piani, senza costi nascosti; i moduli aggiuntivi (Cantieri e API) sono opzionali e si pagano a consumo mensile.",
           "Con la fatturazione annuale hai 1 mese gratis. Oltre i limiti del piano aggiungi singoli dipendenti a 1,99 €/mese e sedi a 2,99 €/mese. Prezzi IVA esclusa; l'app è gratuita da scaricare e l'attivazione avviene su richiesta.",
         ],
       },
@@ -479,7 +479,7 @@ export const contentPages: ContentPage[] = [
       {
         heading: 'sonoQui',
         body: [
-          "Pensata specificamente per le PMI italiane: timbratura GPS al tap, gestione di ferie, permessi e anomalie, ed export XLSX pronto per il commercialista. Il focus è la conformità all'art. 4 (posizione solo al tap, nessun dato biometrico, GPS mascherato dopo 90 giorni) e un prezzo per fascia di dipendenti — da 24,99 €/mese, rilevazione presenze inclusa, senza hardware.",
+          "Pensata specificamente per le PMI italiane: timbratura GPS al tap, gestione di ferie, permessi e anomalie, ed export XLSX pronto per il commercialista. Il focus è la conformità all'art. 4 (posizione solo al tap, nessun dato biometrico, coordinate GPS mai conservate) e un prezzo per fascia di dipendenti — da 24,99 €/mese, rilevazione presenze inclusa, senza hardware.",
         ],
       },
       {

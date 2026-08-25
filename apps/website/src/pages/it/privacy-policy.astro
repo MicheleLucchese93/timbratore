@@ -6,7 +6,7 @@ import { legalMeta } from "../../data/seo";
 <LegalLayout
   title="Informativa sulla Privacy"
   description={legalMeta["privacy-policy"].it}
-  lastUpdated="16 giugno 2026 · v1.1"
+  lastUpdated="25 agosto 2026 · v1.2"
   isoDate="2026-06-16"
   alternatePaths={{ it: "/it/privacy-policy/" }}
 >
@@ -41,8 +41,9 @@ import { legalMeta } from "../../data/seo";
   <ul>
     <li><strong>Orario di timbratura</strong> — ingresso, uscita e pause</li>
     <li><strong>Tipo timbratura</strong> — ingresso, uscita, inizio/fine pausa</li>
-    <li><strong>Coordinate GPS</strong> — latitudine e longitudine rilevate <strong>esclusivamente al momento del tap</strong> sul pulsante di timbratura, mai in background, mai in continuo</li>
-    <li><strong>Accuratezza GPS</strong> — raggio di precisione fornito dal sistema operativo</li>
+    <li><strong>Coordinate GPS</strong> — latitudine e longitudine rilevate <strong>esclusivamente al momento del tap</strong> sul pulsante di timbratura, mai in background, mai in continuo, e utilizzate solo per la verifica dell'area della sede: non vengono conservate (vedi § 9.1)</li>
+    <li><strong>Accuratezza GPS</strong> — raggio di precisione fornito dal sistema operativo, usato nella stessa verifica e non conservato</li>
+    <li><strong>Esito della verifica di posizione</strong> — sede riconosciuta, contrassegno «fuori area» con la distanza dalla sede, contrassegno «posizione sospetta» (mock location): questi sono i soli dati di posizione conservati</li>
     <li><strong>Identificativo del dispositivo</strong> — modello e versione OS per finalità diagnostiche</li>
   </ul>
 
@@ -101,7 +102,7 @@ import { legalMeta } from "../../data/seo";
   <h3>9.1 Dati di timbratura</h3>
   <ul>
     <li><strong>Periodo di conservazione di default: 5 anni</strong> — configurabile dall'azienda cliente fino a 10 anni in base agli obblighi fiscali, previdenziali e di contenzioso del lavoro</li>
-    <li><strong>Mascheramento GPS dopo 90 giorni:</strong> le coordinate GPS dettagliate vengono cancellate; viene conservato esclusivamente l'identificativo della sede a cui la timbratura era associata</li>
+    <li><strong>Coordinate GPS: nessuna conservazione</strong> — la posizione è letta solo nell'istante della timbratura, per verificare se il dipendente si trova nell'area della sede, e subito scartata: non viene mai memorizzata. Sulla timbratura restano esclusivamente l'identificativo della sede, la data e l'ora, più i contrassegni «fuori area» (con la distanza dalla sede) e «posizione sospetta»</li>
     <li>Allo scadere del periodo di conservazione, le timbrature vengono cancellate definitivamente</li>
   </ul>
 

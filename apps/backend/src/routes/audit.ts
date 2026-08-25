@@ -23,6 +23,7 @@ const CATEGORIES: Record<string, string[]> = {
   cantieri: ['cantiere.', 'mezzo.', 'cantieri_field.', 'cantiere_entry.'],
   exports: ['export.'],
   documents: ['document.'],
+  api: ['api_key.'],
   settings: ['tenant.'],
 };
 
@@ -82,8 +83,19 @@ auditRouter.get(
     const r = await client.query(
       `SELECT a.id, a.action, a.resource_type, a.resource_id, a.created_at,
               a.actor_user_id,
-              COALESCE(NULLIF(TRIM(CONCAT(act.first_name, ' ', act.last_name)), ''), act.display_name, act.email) AS actor_name,
+              -- Two kinds of actor can appear here. A person resolves through
+              -- auth_users; an API key does not, because withApiRLS sets
+              -- app.current_user_id to the KEY's id (migration 064) so that a
+              -- machine write is never attributed to a human. Without this
+              -- join every row an integration wrote would render as a blank
+              -- actor — the one question the Registro exists to answer.
+              COALESCE(
+                NULLIF(TRIM(CONCAT(act.first_name, ' ', act.last_name)), ''),
+                act.display_name, act.email,
+                CASE WHEN ak.id IS NOT NULL THEN 'API · ' || ak.name END
+              ) AS actor_name,
               act.email AS actor_email,
+              ak.id IS NOT NULL AS actor_is_api_key,
               a.target_user_id,
               COALESCE(a.target_label,
                        NULLIF(TRIM(CONCAT(tgt.first_name, ' ', tgt.last_name)), ''),
@@ -92,6 +104,7 @@ auditRouter.get(
               COUNT(*) OVER() AS total
        FROM audit_log a
        LEFT JOIN auth_users act ON act.id = a.actor_user_id
+       LEFT JOIN api_keys   ak  ON ak.id  = a.actor_user_id
        LEFT JOIN auth_users tgt ON tgt.id = a.target_user_id
        ${whereSql}
        ORDER BY a.created_at DESC, a.id DESC

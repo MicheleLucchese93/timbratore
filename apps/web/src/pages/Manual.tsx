@@ -57,6 +57,9 @@ const TOC_IT = `
       <a href="#cantieri">Gestione (web)</a>
       <a href="#cantieri-mobile" class="sub">Registrare attività (mobile)</a>
 
+      <h3>Modulo API</h3>
+      <a href="#api">Chiavi API</a>
+
       <h3>Riferimenti</h3>
       <a href="#geofence">Geolocalizzazione</a>
       <a href="#notifiche">Notifiche</a>
@@ -1751,6 +1754,63 @@ const MAIN_IT = `
           <li>Gli eventuali <strong>campi personalizzati</strong> previsti per quel cantiere.</li>
         </ul>
         <p>Puoi registrare <strong>più attività nello stesso giorno</strong>, anche su cantieri diversi.</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="api">
+      <h2><span class="chapter-num">29c</span>Modulo API <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
+      <p class="lead">Il modulo API permette a un tuo sistema — gestionale del personale, tornello o lettore badge, strumento di analisi — di leggere e scrivere i dati dell'azienda senza che nessuno debba accedere a mano. È un modulo opzionale: viene attivato per l'azienda dal partner/rivenditore.</p>
+
+      <div class="feature">
+        <h3>A cosa serve</h3>
+        <ul class="tidy">
+          <li><strong>Anagrafiche allineate</strong> — il gestionale che già conosce i dipendenti li crea e li aggiorna qui, senza reinserirli.</li>
+          <li><strong>Timbrature dal campo</strong> — un tornello o un lettore badge registra gli ingressi e le uscite direttamente.</li>
+          <li><strong>Dati verso la contabilità o la BI</strong> — ore lavorate, assenze, anomalie e file di export scaricati ogni notte da un tuo processo.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h3>Creare una chiave</h3>
+        <p>Le chiavi si gestiscono in <strong>Impostazioni → API</strong>, sezione visibile ai soli amministratori quando il modulo è attivo. Premi <strong>Nuova chiave</strong> e compila:</p>
+        <ul class="tidy">
+          <li><strong>Nome</strong> — a cosa serve la chiave ("Gestionale", "Tornello ingresso"). Comparirà nel <em>Registro attività</em> accanto a ogni operazione che la chiave esegue.</li>
+          <li><strong>Permessi</strong> — per ogni tipo di dato scegli <em>Lettura</em> o <em>Scrittura</em>. Attiva solo ciò che serve davvero: una chiave che serve alla BI vuole sola lettura. La scrittura include automaticamente la lettura.</li>
+          <li><strong>Richieste al minuto</strong> — tetto di traffico per quella chiave. 120 basta per un uso normale; alzalo se hai un'elaborazione notturna che scarica molti dati.</li>
+          <li><strong>Scadenza</strong> — facoltativa. Utile per una chiave temporanea (una migrazione una tantum); lasciala vuota per un'integrazione permanente.</li>
+        </ul>
+      </div>
+
+      <div class="callout callout-warn">
+        <strong>La chiave viene mostrata una volta sola.</strong> Al momento della creazione appare per intero: copiala subito e consegnala a chi realizza l'integrazione. Non è recuperabile in seguito — di essa conserviamo solo un'impronta cifrata, non il valore. Se la perdi o sospetti che sia finita nelle mani sbagliate, revocala e creane una nuova.
+      </div>
+
+      <div class="feature">
+        <h3>Revocare una chiave</h3>
+        <p>Il pulsante <strong>Revoca</strong> disattiva la chiave <em>immediatamente</em>: il sistema che la usava smette di funzionare al primo tentativo successivo. La revoca non si annulla; la riga resta nell'elenco con lo stato <em>Revocata</em>, così il Registro attività continua a poter indicare che cosa quella chiave aveva fatto.</p>
+        <p>L'elenco mostra anche l'<strong>ultimo utilizzo</strong> di ogni chiave: è il modo per capire se una vecchia chiave è ancora usata da qualcuno prima di revocarla.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Che cosa può fare una chiave</h3>
+        <p>Una chiave agisce <strong>per conto dell'azienda</strong>, non di una persona: non ha una casella email, non riceve notifiche e non compare tra gli utenti. Di conseguenza alcune operazioni restano deliberatamente escluse dall'API:</p>
+        <ul class="tidy">
+          <li><strong>Approvare ferie, permessi o rettifiche</strong> — è una decisione che porta il nome di chi la prende, e l'API non ha un nome da metterci. Le assenze si leggono, non si approvano.</li>
+          <li><strong>I documenti del personale</strong> — restano protetti dal codice di verifica inviato via email al Documentale. Una credenziale automatica sarebbe per costruzione un modo per aggirarlo, quindi l'API non li espone in nessun caso.</li>
+          <li><strong>Pubblicare in Bacheca</strong> — un avviso aziendale parte da qualcuno e invia email e notifiche a tutti. Si può però leggere <em>chi ha letto</em> ogni messaggio.</li>
+        </ul>
+        <p>Tutto il resto — dipendenti, sedi, timbrature, anomalie, orari, esportazioni — è leggibile e, dove ha senso, scrivibile.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Tracciabilità</h3>
+        <p>Ogni operazione eseguita tramite API finisce nel <strong>Registro attività</strong> come tutte le altre, con l'autore indicato come <em>API · nome della chiave</em>. Anche la creazione, la modifica e la revoca di una chiave sono registrate. Se una timbratura viene inserita o corretta da un sistema esterno, il dipendente la vede nella cronologia della giornata esattamente come una correzione fatta a mano.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Per chi sviluppa l'integrazione</h3>
+        <p>Sotto l'elenco delle chiavi trovi il link <strong>Documentazione tecnica</strong>: è il contratto dell'API in formato OpenAPI, con tutti gli endpoint, i parametri e i permessi richiesti. Puoi consegnarlo al fornitore <em>prima</em> di creare la chiave — non contiene dati della tua azienda.</p>
+        <p>In sintesi: la chiave si presenta come intestazione <code>Authorization: Bearer …</code> (oppure <code>X-Api-Key</code>), l'azienda viene ricavata dalla chiave stessa e ogni risposta ha la forma <code>{ "ok": true, "data": … }</code>.</p>
       </div>
     </section>
 

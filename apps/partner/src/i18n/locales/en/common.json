@@ -325,6 +325,10 @@
     "cantieri": {
       "name": "Cantieri",
       "desc": "Construction sites, vehicles and activity reports. Can also be enabled later via the modules icon."
+    },
+    "api": {
+      "name": "API",
+      "desc": "API keys so a management system, a turnstile or a BI tool can reach the company data. Can also be enabled later via the modules icon."
     }
   },
   "audit": {
@@ -350,6 +354,8 @@
       "tenant.update_note": "Company note changed",
       "tenant.cantieri_enable": "Cantieri module enabled",
       "tenant.cantieri_disable": "Cantieri module disabled",
+      "tenant.api_enable": "API module enabled",
+      "tenant.api_disable": "API module disabled",
       "tenant.delete": "Company deleted",
       "tenant.support_access": "Read-only access",
       "partner.create": "Partner created",

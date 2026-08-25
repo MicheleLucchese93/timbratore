@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { IconConstruct } from '../components/icons.tsx';
+import { IconConstruct, IconPlug } from '../components/icons.tsx';
 
 // Central registry of the billable add-on modules the partner console manages.
 // Everything in the UI iterates this list — the per-tenant activation dialog,
@@ -27,6 +27,13 @@ export const MODULES: ModuleDef[] = [
     tenantField: 'cantieri_enabled',
     capField: 'may_enable_cantieri',
     togglePath: (id) => `/api/v1/partnership/tenants/${id}/cantieri`,
+  },
+  {
+    key: 'api',
+    icon: IconPlug,
+    tenantField: 'api_enabled',
+    capField: 'may_enable_api',
+    togglePath: (id) => `/api/v1/partnership/tenants/${id}/api`,
   },
 ];
 

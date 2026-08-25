@@ -20,8 +20,14 @@ export const stampsRouter = Router();
 stampsRouter.use(authenticate);
 
 /** Best human label for an auth_users row, same precedence as the Registro. */
-const ACTOR_NAME_SQL = (alias: string): string =>
-  `COALESCE(NULLIF(TRIM(CONCAT(${alias}.first_name, ' ', ${alias}.last_name)), ''), ${alias}.display_name, ${alias}.email)`;
+// A punch can be edited or struck by a person OR by an API key (the API
+// module; migration 064 makes the key's own id the actor so machine writes are
+// never attributed to a human). `alias` is the auth_users join, `keyAlias` the
+// api_keys one — pass both wherever the actor may be either.
+const ACTOR_NAME_SQL = (alias: string, keyAlias?: string): string =>
+  `COALESCE(NULLIF(TRIM(CONCAT(${alias}.first_name, ' ', ${alias}.last_name)), ''), ${alias}.display_name, ${alias}.email${
+    keyAlias ? `, CASE WHEN ${keyAlias}.id IS NOT NULL THEN 'API · ' || ${keyAlias}.name END` : ''
+  })`;
 
 
 const StampBody = z.object({
@@ -132,11 +138,13 @@ stampsRouter.get(
       // midnight and 02:00 local was served the previous local day and could
       // not see the punch they had just made.
       `SELECT ${stampColumns('s')},
-              ${ACTOR_NAME_SQL('eu')} AS edited_by_name,
-              ${ACTOR_NAME_SQL('du')} AS deleted_by_name
+              ${ACTOR_NAME_SQL('eu', 'ek')} AS edited_by_name,
+              ${ACTOR_NAME_SQL('du', 'dk')} AS deleted_by_name
        FROM stamps s
        LEFT JOIN auth_users eu ON eu.id = s.edited_by_user_id
        LEFT JOIN auth_users du ON du.id = s.deleted_by_user_id
+       LEFT JOIN api_keys   ek ON ek.id = s.edited_by_user_id
+       LEFT JOIN api_keys   dk ON dk.id = s.deleted_by_user_id
        WHERE s.user_id = $1 AND (s.deleted_at IS NULL OR $4::boolean)
          AND ($2::date IS NULL OR s.occurred_at >= ($2::timestamp AT TIME ZONE ${TENANT_TZ_SQL}))
          AND ($3::date IS NULL OR s.occurred_at < (($3::date + 1)::timestamp AT TIME ZONE ${TENANT_TZ_SQL}))
@@ -187,12 +195,14 @@ stampsRouter.get(
     const limit = Math.min(Number(req.query.limit ?? 200), 1000);
     const r = await client.query(
       `SELECT ${stampColumns('s')}, COALESCE(au.email, s.user_id::text) AS user_email,
-              ${ACTOR_NAME_SQL('eu')} AS edited_by_name,
-              ${ACTOR_NAME_SQL('du')} AS deleted_by_name
+              ${ACTOR_NAME_SQL('eu', 'ek')} AS edited_by_name,
+              ${ACTOR_NAME_SQL('du', 'dk')} AS deleted_by_name
        FROM stamps s
        LEFT JOIN auth_users au ON au.id = s.user_id
        LEFT JOIN auth_users eu ON eu.id = s.edited_by_user_id
        LEFT JOIN auth_users du ON du.id = s.deleted_by_user_id
+       LEFT JOIN api_keys   ek ON ek.id = s.edited_by_user_id
+       LEFT JOIN api_keys   dk ON dk.id = s.deleted_by_user_id
        WHERE ${filters.join(' AND ')}
        ORDER BY occurred_at DESC
        LIMIT ${limit}`,

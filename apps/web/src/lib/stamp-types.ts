@@ -83,6 +83,10 @@ export const STAMP_SOURCES = [
   'employee_correction',
   'admin_manual',
   'system_auto',
+  // API module (migration 064): a punch filed by a badge reader, a turnstile or
+  // a gestionale. Its own value, not admin_manual — "an administrator entered
+  // this" and "a machine did" are different answers on a contested timesheet.
+  'api',
 ] as const;
 
 /** Localized label for a stamp source. Mirrors the list-page badge mapping. */
@@ -95,5 +99,7 @@ export function sourceLabel(s: string, t: (k: string) => string): string {
         ? t('common:origin.admin')
         : s === 'system_auto'
           ? t('origin.auto')
-          : s;
+          : s === 'api'
+            ? t('origin.api')
+            : s;
 }

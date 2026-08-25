@@ -1608,3 +1608,80 @@ export async function downloadTicketAttachment(
   if (!r.ok) throw new Error(`downloadTicketAttachment → ${r.status}`);
   return Buffer.from(await r.arrayBuffer());
 }
+
+/* ---------------- API module (migration 064) ---------------- */
+
+export interface ApiKeyRow {
+  id: string;
+  name: string;
+  key_id: string;
+  last_four: string;
+  scopes: string[];
+  rate_limit_per_min: number;
+  expires_at: string | null;
+  revoked_at: string | null;
+  last_used_at: string | null;
+}
+
+/** The create response, and the ONLY place a usable token ever appears. */
+export interface ApiKeyCreatedRow extends ApiKeyRow {
+  token: string;
+}
+
+export async function listApiKeys(adminToken: string): Promise<ApiKeyRow[]> {
+  const d = await apiGet<{ keys: ApiKeyRow[] }>(adminToken, '/api/v1/api-keys');
+  return d.keys;
+}
+
+export async function createApiKey(
+  adminToken: string,
+  body: { name: string; scopes: string[]; rate_limit_per_min?: number; expires_at?: string | null },
+): Promise<{ status: number; key: ApiKeyCreatedRow | null; code?: string }> {
+  const r = await apiPost<{ key: ApiKeyCreatedRow }>(adminToken, '/api/v1/api-keys', body);
+  return { status: r.status, key: r.data?.key ?? null, ...(r.code ? { code: r.code } : {}) };
+}
+
+export async function revokeApiKey(adminToken: string, id: string): Promise<number> {
+  const r = await apiPost(adminToken, `/api/v1/api-keys/${id}/revoke`, {});
+  return r.status;
+}
+
+/**
+ * A raw call on the PUBLIC surface, authenticated by a key rather than a JWT.
+ *
+ * Deliberately not routed through apiFetch: that helper attaches the bearer JWT
+ * and X-Tenant-Id, and the whole point of this surface is that it takes neither
+ * — the company comes from the key. A spec that accidentally sent both would
+ * pass while proving nothing.
+ */
+export async function publicApi(
+  keyToken: string | null,
+  path: string,
+  init: {
+    method?: string;
+    json?: unknown;
+    header?: 'bearer' | 'x-api-key';
+    idempotencyKey?: string;
+  } = {},
+): Promise<{ status: number; body: Record<string, unknown> }> {
+  const headers: Record<string, string> = {};
+  if (init.idempotencyKey) headers['Idempotency-Key'] = init.idempotencyKey;
+  if (keyToken) {
+    if (init.header === 'x-api-key') headers['X-Api-Key'] = keyToken;
+    else headers.Authorization = `Bearer ${keyToken}`;
+  }
+  if (init.json !== undefined) headers['Content-Type'] = 'application/json';
+  const r = await fetch(`${API_BASE}/api/public/v1${path}`, {
+    method: init.method ?? 'GET',
+    headers,
+    ...(init.json !== undefined ? { body: JSON.stringify(init.json) } : {}),
+  });
+  const text = await r.text();
+  let body: Record<string, unknown> = {};
+  try {
+    body = JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    body = { raw: text.slice(0, 200) };
+  }
+  return { status: r.status, body };
+}

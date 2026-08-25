@@ -325,6 +325,10 @@
     "cantieri": {
       "name": "Cantieri",
       "desc": "Gestione cantieri, mezzi e rapporti attività. Attivabile anche in seguito dall'icona moduli."
+    },
+    "api": {
+      "name": "API",
+      "desc": "Chiavi API per collegare gestionale, tornelli o strumenti di analisi ai dati dell'azienda. Attivabile anche in seguito dall'icona moduli."
     }
   },
   "audit": {
@@ -350,6 +354,8 @@
       "tenant.update_note": "Note azienda modificate",
       "tenant.cantieri_enable": "Modulo Cantieri attivato",
       "tenant.cantieri_disable": "Modulo Cantieri disattivato",
+      "tenant.api_enable": "Modulo API attivato",
+      "tenant.api_disable": "Modulo API disattivato",
       "tenant.delete": "Azienda eliminata",
       "tenant.support_access": "Accesso in sola lettura",
       "partner.create": "Partner creato",

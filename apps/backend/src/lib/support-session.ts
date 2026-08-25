@@ -136,6 +136,7 @@ export async function signSupportToken(opts: {
 export interface ResolvedSupportSession extends SupportSession {
   tenantName: string;
   cantieriEnabled: boolean;
+  apiEnabled: boolean;
   suspended: boolean;
 }
 
@@ -150,7 +151,7 @@ export async function resolveSupportSession(
 ): Promise<ResolvedSupportSession | null> {
   const r = await adminPool.query(
     `SELECT s.id, s.partner_user_id, s.tenant_id, s.expires_at,
-            t.ragione_sociale, t.cantieri_enabled, t.suspended_at
+            t.ragione_sociale, t.cantieri_enabled, t.api_enabled, t.suspended_at
        FROM support_sessions s
        JOIN tenants t ON t.id = s.tenant_id
       WHERE s.id = $1
@@ -171,6 +172,7 @@ export async function resolveSupportSession(
     expiresAt: row.expires_at,
     tenantName: row.ragione_sociale,
     cantieriEnabled: row.cantieri_enabled === true,
+    apiEnabled: row.api_enabled === true,
     // A suspended tenant stays inspectable on purpose: "why can nobody log in?"
     // is exactly the question support access exists to answer.
     suspended: row.suspended_at !== null,

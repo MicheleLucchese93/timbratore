@@ -1,0 +1,88 @@
+{
+  "section": "API",
+  "sectionDesc": "Chiavi per collegare i tuoi sistemi ai dati dell'azienda",
+  "intro": "Una chiave API permette a un tuo sistema — gestionale, tornello, strumento di analisi — di leggere e scrivere i dati dell'azienda senza che nessuno debba accedere a mano. Ogni chiave vale solo per questa azienda e agisce con i permessi che le assegni.",
+  "new": {
+    "title": "Nuova chiave",
+    "create": "Crea chiave"
+  },
+  "edit": {
+    "title": "Modifica chiave",
+    "save": "Salva",
+    "done": "Chiave aggiornata."
+  },
+  "created": {
+    "title": "Chiave creata",
+    "warning": "Questa è l'unica volta in cui la chiave viene mostrata: non è recuperabile in seguito. Copiala ora e conservala dove serve. Se la perdi, revocala e creane un'altra.",
+    "copy": "Copia",
+    "copied": "Copiata",
+    "done": "Ho copiato la chiave"
+  },
+  "field": {
+    "name": "Nome",
+    "namePlaceholder": "Gestionale, tornello ingresso…",
+    "nameHint": "A cosa serve questa chiave. Comparirà nel Registro attività accanto a ogni operazione che esegue.",
+    "scopes": "Permessi",
+    "scopesHint": "Attiva solo ciò che serve. «Scrittura» include automaticamente la lettura.",
+    "rateLimit": "Richieste al minuto",
+    "rateLimitHint": "Tetto per questa chiave. 120 basta per un uso normale; alzalo per un'elaborazione notturna.",
+    "expiresAt": "Scadenza",
+    "expiresAtHint": "Facoltativa. Vuota = valida fino alla revoca."
+  },
+  "access": {
+    "read": "Lettura",
+    "write": "Scrittura",
+    "readOnly": "solo lettura"
+  },
+  "resource": {
+    "users": "Dipendenti",
+    "branches": "Sedi",
+    "stamps": "Timbrature",
+    "anomalies": "Anomalie",
+    "corrections": "Rettifiche",
+    "leaves": "Assenze",
+    "quotas": "Quote e residui",
+    "shifts": "Orari",
+    "bulletins": "Bacheca",
+    "cantieri": "Cantieri",
+    "exports": "Esportazioni",
+    "reports": "Report",
+    "audit": "Registro attività"
+  },
+  "col": {
+    "name": "Nome",
+    "key": "Chiave",
+    "scopes": "Permessi",
+    "lastUsed": "Ultimo utilizzo",
+    "state": "Stato",
+    "createdBy": "creata da {{who}}",
+    "neverUsed": "mai usata"
+  },
+  "state": {
+    "active": "Attiva",
+    "revoked": "Revocata",
+    "expired": "Scaduta"
+  },
+  "revoke": {
+    "action": "Revoca",
+    "title": "Revocare «{{name}}»?",
+    "message": "Il sistema che usa questa chiave smetterà di funzionare subito. La revoca non si annulla: per riattivare l'integrazione dovrai creare una nuova chiave.",
+    "confirm": "Revoca",
+    "done": "Chiave revocata."
+  },
+  "empty": {
+    "title": "Nessuna chiave",
+    "hint": "Crea la prima chiave quando devi collegare un tuo sistema a sonoQui."
+  },
+  "atLimit": "Hai raggiunto il massimo di {{max}} chiavi attive. Revoca una chiave che non usi per crearne un'altra.",
+  "docs": {
+    "label": "Documentazione tecnica",
+    "hint": "L'elenco completo degli endpoint, in formato OpenAPI, da passare a chi sviluppa l'integrazione."
+  },
+  "err": {
+    "load": "Impossibile caricare le chiavi.",
+    "generic": "Operazione non riuscita. Riprova.",
+    "limit": "Hai raggiunto il massimo di chiavi attive.",
+    "readOnly": "Sessione di sola lettura: non è possibile creare o revocare chiavi."
+  }
+}

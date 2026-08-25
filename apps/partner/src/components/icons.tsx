@@ -134,3 +134,14 @@ export const IconEye = () => (
     <circle cx="12" cy="12" r="3" />
   </Svg>
 );
+
+// Ionicons-style plug/link glyph — the API module. A connector, not a cog: the
+// module is about something else plugging into sonoQui, not about settings.
+export const IconPlug = () => (
+  <Svg viewBox="0 0 24 24">
+    <path d="M9 3v6" />
+    <path d="M15 3v6" />
+    <path d="M7 9h10v3a5 5 0 0 1-5 5 5 5 0 0 1-5-5V9z" />
+    <path d="M12 17v4" />
+  </Svg>
+);

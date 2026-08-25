@@ -13,6 +13,7 @@ import {
 } from '../middleware/partnership-auth.js';
 import type { PartnerContext } from '../middleware/partnership-auth.js';
 import { invalidateMembershipCache } from '../middleware/auth.js';
+import { invalidateTenantApiKeys } from '../lib/api-keys.js';
 import { env } from '../env.js';
 import { provisionTenant } from '../lib/provision-tenant.js';
 import { ensureAuthUser } from '../lib/auth-users.js';
@@ -101,6 +102,7 @@ partnershipRouter.get(
         cap_documentali_per_tenant: p.capDocumentaliPerTenant,
         cap_branches_per_tenant: p.capBranchesPerTenant,
         may_enable_cantieri: p.mayEnableCantieri,
+        may_enable_api: p.mayEnableApi,
         // Platform admins are unlimited by definition; the column only gates
         // role='partner'. Reporting it as true keeps the console logic uniform.
         may_support_access: p.role === 'admin' ? true : p.maySupportAccess,
@@ -181,7 +183,7 @@ partnershipRouter.get(
     const r = await adminPool.query(
       `SELECT t.id, t.ragione_sociale, t.language,
               t.max_admins, t.max_users, t.max_documentali, t.max_branches,
-              t.cantieri_enabled,
+              t.cantieri_enabled, t.api_enabled,
               t.suspended_at, t.created_at, t.created_by_partner, t.partner_note AS note,
               pu.email AS owner_email, opm.partner_name AS owner_name,
               (SELECT au.email FROM memberships am JOIN auth_users au ON au.id = am.user_id
@@ -223,6 +225,11 @@ const CreateTenant = z.object({
   max_branches: Limits.max_branches.optional(),
   // Enable the Cantieri module at creation. Partners need may_enable_cantieri.
   cantieri_enabled: z.boolean().default(false),
+  // Enable the API module at creation. Partners need may_enable_api. The key
+  // name must stay exactly `api_enabled`: apps/partner/src/lib/modules.ts uses
+  // ModuleDef.tenantField as BOTH the TenantRow field and this request field,
+  // so a mismatch would make activation-at-create silently no-op.
+  api_enabled: z.boolean().default(false),
   // Auto-send the admin's access email on create (default on). Off → the admin
   // is created silently and the partner sends access later via the mail icon.
   send_invite: z.boolean().default(true),
@@ -261,6 +268,9 @@ partnershipRouter.post(
       if (b.cantieri_enabled && !p.mayEnableCantieri) {
         throw new ForbiddenError('not allowed to enable the Cantieri module', 'CANTIERI_NOT_ALLOWED');
       }
+      if (b.api_enabled && !p.mayEnableApi) {
+        throw new ForbiddenError('not allowed to enable the API module', 'API_NOT_ALLOWED');
+      }
     }
 
     const result = await provisionTenant({
@@ -274,6 +284,7 @@ partnershipRouter.post(
       maxDocumentali: b.max_documentali ?? null,
       maxBranches: b.max_branches ?? null,
       cantieriEnabled: b.cantieri_enabled,
+      apiEnabled: b.api_enabled,
       // Admin-created tenants are platform-owned (NULL); partner-created tenants
       // are owned by the partner so only they (and admins) see them.
       createdByPartner: p.role === 'partner' ? p.userId : null,
@@ -306,6 +317,7 @@ partnershipRouter.post(
         email_type: emailType,
         limits: result.limits,
         cantieri_enabled: b.cantieri_enabled,
+        api_enabled: b.api_enabled,
       },
       ...auditCtx(req),
     });
@@ -325,6 +337,7 @@ partnershipRouter.post(
         email_type: emailType,
         admin_created: result.adminCreated,
         cantieri_enabled: b.cantieri_enabled,
+        api_enabled: b.api_enabled,
         limits: {
           max_admins: result.limits.maxAdmins,
           max_users: result.limits.maxUsers,
@@ -342,7 +355,7 @@ async function loadOwnedTenant(p: PartnerContext, tenantId: string) {
   if (!UUID_RE.test(tenantId)) throw new ValidationError('invalid tenant id');
   const r = await adminPool.query(
     `SELECT t.id, t.ragione_sociale, t.created_by_partner, t.suspended_at, t.partner_note,
-            t.language, t.cantieri_enabled,
+            t.language, t.cantieri_enabled, t.api_enabled,
             t.max_admins, t.max_users, t.max_documentali, t.max_branches,
             (SELECT am.user_id FROM memberships am
                WHERE am.tenant_id = t.id AND am.role = 'admin'
@@ -500,6 +513,10 @@ partnershipRouter.patch(
       [t.id]
     );
     for (const m of members.rows) invalidateMembershipCache(m.user_id as string);
+    // The API module carries cantieri_enabled in its own cached key resolution
+    // (lib/api-keys.ts), so a key holding cantieri:read would keep reading site
+    // activity for up to a minute after the module was switched off.
+    await invalidateTenantApiKeys(t.id);
     await logPartnershipAudit({
       actorUserId: p.userId,
       actorRole: p.role,
@@ -512,6 +529,52 @@ partnershipRouter.patch(
       ...auditCtx(req),
     });
     ok(res, { tenant_id: t.id, cantieri_enabled: enabled });
+  })
+);
+
+// ---- PATCH /tenants/:id/api — toggle the API module ------------------------
+const ToggleApi = z.object({ enabled: z.boolean() });
+partnershipRouter.patch(
+  '/tenants/:id/api',
+  asyncHandler(async (req, res) => {
+    const p = partner(req);
+    const parse = ToggleApi.safeParse(req.body);
+    if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
+    const enabled = parse.data.enabled;
+    // Two-level flag, same as Cantieri: role='partner' needs may_enable_api;
+    // platform admins are always allowed.
+    if (p.role === 'partner' && !p.mayEnableApi) {
+      throw new ForbiddenError('not allowed to manage the API module', 'API_NOT_ALLOWED');
+    }
+    const t = await loadOwnedTenant(p, String(req.params.id));
+    if (t.api_enabled === enabled) {
+      return ok(res, { tenant_id: t.id, api_enabled: enabled });
+    }
+    await adminPool.query(`UPDATE tenants SET api_enabled = $2 WHERE id = $1`, [t.id, enabled]);
+    // Two caches to evict, and BOTH matter more here than for Cantieri.
+    //  - The membership cache decides whether the Settings section appears.
+    //  - The API-key cache decides whether live integrations keep working.
+    // Switching the module off is the way to stop a leaked or misbehaving
+    // integration NOW; leaving it serving for up to another minute would make
+    // that the wrong tool for the job.
+    const members = await adminPool.query(
+      `SELECT DISTINCT user_id FROM memberships WHERE tenant_id = $1 AND deleted_at IS NULL`,
+      [t.id]
+    );
+    for (const m of members.rows) invalidateMembershipCache(m.user_id as string);
+    await invalidateTenantApiKeys(t.id);
+    await logPartnershipAudit({
+      actorUserId: p.userId,
+      actorRole: p.role,
+      action: enabled ? 'tenant.api_enable' : 'tenant.api_disable',
+      targetType: 'tenant',
+      targetId: t.id,
+      targetLabel: t.ragione_sociale,
+      before: { api_enabled: t.api_enabled },
+      after: { api_enabled: enabled },
+      ...auditCtx(req),
+    });
+    ok(res, { tenant_id: t.id, api_enabled: enabled });
   })
 );
 
@@ -619,6 +682,9 @@ partnershipRouter.post(
       [t.id]
     );
     for (const m of members.rows) invalidateMembershipCache(m.user_id as string);
+    // Machines too: a suspension that still let the customer's integration read
+    // and write for another minute would not be a suspension.
+    await invalidateTenantApiKeys(t.id);
     await logPartnershipAudit({
       actorUserId: p.userId,
       actorRole: p.role,
@@ -644,6 +710,10 @@ partnershipRouter.post(
       `UPDATE tenants SET suspended_at = NULL, suspended_by = NULL WHERE id = $1`,
       [t.id]
     );
+    // Symmetric to suspend: the cached key resolution carries suspended_at, so
+    // without this the customer's integration keeps getting 403 for a minute
+    // after the company was let back in.
+    await invalidateTenantApiKeys(t.id);
     await logPartnershipAudit({
       actorUserId: p.userId,
       actorRole: p.role,
@@ -740,6 +810,10 @@ partnershipRouter.delete(
 
     // Force every member's next request to re-resolve membership → 403 → logout.
     for (const userId of allMembers) invalidateMembershipCache(userId);
+    // The api_keys rows went with the tenant (ON DELETE CASCADE / soft delete),
+    // but the in-process cache did not: a key resolved in the last minute would
+    // keep authenticating against a company that no longer exists.
+    await invalidateTenantApiKeys(t.id);
 
     // Delete the orphans' GoTrue login accounts. Outside the PG transaction (the
     // admin API can't enlist in it). Best-effort: a failure here leaves a GoTrue
@@ -1107,6 +1181,10 @@ const CapsSchema = {
   // Boolean capability, not a ceiling: lets the partner toggle the Cantieri
   // module on their tenants. Absent = unchanged (create defaults to false).
   may_enable_cantieri: z.boolean().optional(),
+  // Boolean capability: lets the partner toggle the API module (machine
+  // credentials over the company's whole dataset) on their tenants. Absent =
+  // unchanged; create defaults to false, like Cantieri — it is a paid module.
+  may_enable_api: z.boolean().optional(),
   // Boolean capability: lets the partner open one of their tenants read-only in
   // the web app. Absent = unchanged (create defaults to TRUE — inspecting one's
   // own customers is part of the job, unlike the paid Cantieri module).
@@ -1122,7 +1200,7 @@ partnershipRouter.get(
       `SELECT pm.user_id, au.email, pm.active, pm.partner_name, pm.note,
               pm.cap_tenants, pm.cap_users_per_tenant, pm.cap_admins_per_tenant,
               pm.cap_documentali_per_tenant, pm.cap_branches_per_tenant,
-              pm.may_enable_cantieri, pm.may_support_access, pm.created_at,
+              pm.may_enable_cantieri, pm.may_enable_api, pm.may_support_access, pm.created_at,
               (SELECT count(*)::int FROM tenants t
                  WHERE t.created_by_partner = pm.user_id AND t.deleted_at IS NULL) AS tenant_count
          FROM partnership_members pm
@@ -1182,13 +1260,17 @@ partnershipRouter.post(
         b.cap_branches_per_tenant ?? null,
         b.may_enable_cantieri ?? false,
         b.may_support_access ?? true,
+        // APPENDED, not inserted: the audit payload below indexes this array
+        // positionally, so inserting in the middle would silently relabel every
+        // cap after it.
+        b.may_enable_api ?? false,
       ];
       await client.query(
         `INSERT INTO partnership_members
            (user_id, role, active, cap_tenants, cap_users_per_tenant, cap_admins_per_tenant,
             cap_documentali_per_tenant, cap_branches_per_tenant, may_enable_cantieri,
-            may_support_access, partner_name, note, created_by, updated_at)
-         VALUES ($1, 'partner', TRUE, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now())
+            may_support_access, may_enable_api, partner_name, note, created_by, updated_at)
+         VALUES ($1, 'partner', TRUE, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now())
          ON CONFLICT (user_id) DO UPDATE
            SET role = 'partner', active = TRUE,
                cap_tenants = EXCLUDED.cap_tenants,
@@ -1198,6 +1280,7 @@ partnershipRouter.post(
                cap_branches_per_tenant = EXCLUDED.cap_branches_per_tenant,
                may_enable_cantieri = EXCLUDED.may_enable_cantieri,
                may_support_access = EXCLUDED.may_support_access,
+               may_enable_api = EXCLUDED.may_enable_api,
                partner_name = EXCLUDED.partner_name,
                note = EXCLUDED.note,
                updated_at = now()`,
@@ -1223,6 +1306,7 @@ partnershipRouter.post(
               cap_branches_per_tenant: caps[4],
               may_enable_cantieri: caps[5],
               may_support_access: caps[6],
+              may_enable_api: caps[7],
             },
           },
           ...auditCtx(req),
@@ -1268,7 +1352,7 @@ partnershipRouter.patch(
     const cur = await adminPool.query(
       `SELECT au.email, pm.role, pm.cap_tenants, pm.cap_users_per_tenant, pm.cap_admins_per_tenant,
               pm.cap_documentali_per_tenant, pm.cap_branches_per_tenant, pm.may_enable_cantieri,
-              pm.may_support_access
+              pm.may_support_access, pm.may_enable_api
          FROM partnership_members pm JOIN auth_users au ON au.id = pm.user_id
         WHERE pm.user_id = $1`,
       [userId]
@@ -1283,9 +1367,16 @@ partnershipRouter.patch(
       cap_branches_per_tenant: cur.rows[0].cap_branches_per_tenant,
       may_enable_cantieri: cur.rows[0].may_enable_cantieri as boolean,
       may_support_access: cur.rows[0].may_support_access as boolean,
+      may_enable_api: cur.rows[0].may_enable_api as boolean,
     };
+    // `pick` handles the NUMERIC ceilings only; every boolean capability must be
+    // excluded here and defaulted explicitly below, or it would be coerced to a
+    // number. Adding a boolean cap means adding it to BOTH lists.
     const pick = <
-      K extends Exclude<keyof typeof before, 'may_enable_cantieri' | 'may_support_access'>,
+      K extends Exclude<
+        keyof typeof before,
+        'may_enable_cantieri' | 'may_support_access' | 'may_enable_api'
+      >,
     >(
       k: K
     ): number | null =>
@@ -1298,12 +1389,14 @@ partnershipRouter.patch(
       cap_branches_per_tenant: pick('cap_branches_per_tenant'),
       may_enable_cantieri: b.may_enable_cantieri ?? before.may_enable_cantieri,
       may_support_access: b.may_support_access ?? before.may_support_access,
+      may_enable_api: b.may_enable_api ?? before.may_enable_api,
     };
     await adminPool.query(
       `UPDATE partnership_members
           SET cap_tenants = $2, cap_users_per_tenant = $3, cap_admins_per_tenant = $4,
               cap_documentali_per_tenant = $5, cap_branches_per_tenant = $6,
-              may_enable_cantieri = $7, may_support_access = $8, updated_at = now()
+              may_enable_cantieri = $7, may_support_access = $8,
+              may_enable_api = $9, updated_at = now()
         WHERE user_id = $1`,
       [
         userId,
@@ -1314,6 +1407,7 @@ partnershipRouter.patch(
         next.cap_branches_per_tenant,
         next.may_enable_cantieri,
         next.may_support_access,
+        next.may_enable_api,
       ]
     );
     await logPartnershipAudit({

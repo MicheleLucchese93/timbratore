@@ -125,6 +125,9 @@ const KIND_LABEL: Record<Lang, Record<StampChangeKind, string>> = {
     anomaly_fix: 'Correzione anomalia (orario standard)',
     bulk_apply: 'Applicazione massiva orario standard',
     auto_clockout: 'Uscita automatica dopo 15 ore',
+    api_create: 'Inserita da un sistema esterno (API)',
+    api_edit: 'Modificata da un sistema esterno (API)',
+    api_delete: 'Eliminata da un sistema esterno (API)',
     unknown: 'Modifica',
   },
   en: {
@@ -137,6 +140,9 @@ const KIND_LABEL: Record<Lang, Record<StampChangeKind, string>> = {
     anomaly_fix: 'Anomaly fix (standard schedule)',
     bulk_apply: 'Bulk standard-schedule apply',
     auto_clockout: 'Automatic clock-out after 15 hours',
+    api_create: 'Added by an external system (API)',
+    api_edit: 'Modified by an external system (API)',
+    api_delete: 'Deleted by an external system (API)',
     unknown: 'Change',
   },
 };

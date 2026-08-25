@@ -4,7 +4,8 @@
   "editStamp": "Edit stamp",
   "deletePrompt": "Reason for deletion (required):",
   "origin": {
-    "auto": "auto"
+    "auto": "auto",
+    "api": "API"
   },
   "form": {
     "user": "Employee",
@@ -76,6 +77,9 @@
       "anomaly_fix": "Anomaly fix (standard schedule)",
       "bulk_apply": "Bulk standard-schedule apply",
       "auto_clockout": "Automatic clock-out after 15 hours",
+      "api_create": "Added by an external system (API)",
+      "api_edit": "Modified by an external system (API)",
+      "api_delete": "Deleted by an external system (API)",
       "unknown": "Change"
     },
     "field": {

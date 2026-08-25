@@ -68,8 +68,16 @@ export interface DayDossier {
   generated_by: string | null;
 }
 
-const NAME_SQL = (alias: string): string =>
-  `COALESCE(NULLIF(TRIM(CONCAT(${alias}.first_name, ' ', ${alias}.last_name)), ''), ${alias}.display_name, ${alias}.email)`;
+// Who did it. Two kinds of actor can appear in a dossier: a person, who
+// resolves through auth_users, and an API key, which does not — withApiRLS sets
+// app.current_user_id to the KEY's id (migration 064) so a machine write is
+// never attributed to a human. Pass `keyAlias` wherever the column may hold
+// either, or the contestation record shows a blank author for exactly the
+// punches an employee is most likely to be disputing.
+const NAME_SQL = (alias: string, keyAlias?: string): string =>
+  `COALESCE(NULLIF(TRIM(CONCAT(${alias}.first_name, ' ', ${alias}.last_name)), ''), ${alias}.display_name, ${alias}.email${
+    keyAlias ? `, CASE WHEN ${keyAlias}.id IS NOT NULL THEN 'API · ' || ${keyAlias}.name END` : ''
+  })`;
 
 function iso(v: Date | string | null): string | null {
   if (v === null || v === undefined) return null;
@@ -99,12 +107,14 @@ export async function loadDayDossier(
             s.notes, s.created_at, s.device_platform, s.device_app_version,
             s.suspicious_mock_location, s.out_of_geofence,
             s.original_occurred_at, s.original_event_type, s.edited_at, s.edit_count,
-            ${NAME_SQL('eu')} AS edited_by_name,
-            s.deleted_at, s.deletion_reason, ${NAME_SQL('du')} AS deleted_by_name
+            ${NAME_SQL('eu', 'ek')} AS edited_by_name,
+            s.deleted_at, s.deletion_reason, ${NAME_SQL('du', 'dk')} AS deleted_by_name
        FROM stamps s
        LEFT JOIN branches b   ON b.id = s.branch_id
        LEFT JOIN auth_users eu ON eu.id = s.edited_by_user_id
        LEFT JOIN auth_users du ON du.id = s.deleted_by_user_id
+       LEFT JOIN api_keys   ek ON ek.id = s.edited_by_user_id
+       LEFT JOIN api_keys   dk ON dk.id = s.deleted_by_user_id
       WHERE s.user_id = $1
         AND (
           (s.occurred_at >= ($2::timestamp AT TIME ZONE ${TENANT_TZ_SQL})
@@ -131,9 +141,10 @@ export async function loadDayDossier(
   );
 
   const justificationsR = await client.query(
-    `SELECT j.anomaly_kind, j.note, j.created_at, ${NAME_SQL('au')} AS created_by_name
+    `SELECT j.anomaly_kind, j.note, j.created_at, ${NAME_SQL('au', 'ak')} AS created_by_name
        FROM anomaly_justifications j
        LEFT JOIN auth_users au ON au.id = j.created_by
+       LEFT JOIN api_keys   ak ON ak.id = j.created_by
       WHERE j.user_id = $1 AND j.anomaly_date = $2::date
       ORDER BY j.anomaly_kind`,
     [userId, date]

@@ -1,10 +1,11 @@
-import express, { type Express, type Response } from 'express';
+import express, { type Express, type NextFunction, type Request, type Response } from 'express';
 import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'node:path';
 import { env } from './env.js';
+import { AppError, ValidationError } from './errors/index.js';
 import { requestId } from './middleware/request-id.js';
 import { isAllowedOrigin } from './lib/cors-origins.js';
 import { requestLogger } from './middleware/request-logger.js';
@@ -37,6 +38,8 @@ import { internalProvisionRouter } from './routes/internal-provision.js';
 import { partnershipRouter } from './routes/partnership.js';
 import { ticketsRouter } from './routes/tickets.js';
 import { partnershipTicketsRouter } from './routes/partnership-tickets.js';
+import { apiKeysRouter } from './routes/api-keys.js';
+import { publicApiRouter } from './routes/public/index.js';
 
 export function createApp(): Express {
   const app = express();
@@ -79,10 +82,41 @@ export function createApp(): Express {
   // containing < or >) and is the wrong layer for XSS defense.
   app.use(express.json({ limit: '1mb' }));
 
+  // Body-parser failures are the one error a third-party client can trigger
+  // before any of our code runs, and express.json's own error carries a parser
+  // message ("Unexpected token } in JSON at position 42") that the shared
+  // handler would pass straight through as a 500 INTERNAL. Two things are wrong
+  // with that: the status (the request is malformed, not the server), and
+  // leaking our internals to a caller who is not us. Translated here, at the
+  // only layer that sees it.
+  app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
+    const e = err as { type?: string; status?: number } | null;
+    if (!e || typeof e !== 'object' || !('type' in e)) return next(err);
+    if (e.type === 'entity.too.large') {
+      return next(
+        new AppError({
+          status: 413,
+          code: 'BODY_TOO_LARGE',
+          message: 'Request body exceeds the 1MB limit',
+        })
+      );
+    }
+    if (e.type === 'entity.parse.failed') {
+      return next(new ValidationError('Malformed JSON body'));
+    }
+    return next(err);
+  });
+
   const limiter = rateLimit({
     windowMs: env.RATE_LIMIT_WINDOW_MS,
     limit: env.NODE_ENV === 'development' ? env.RATE_LIMIT_MAX * 10 : env.RATE_LIMIT_MAX,
-    skip: (req) => req.path.startsWith('/health'),
+    // The public API is exempt because it has a BETTER limiter: per API key,
+    // from a ceiling on the key's own row (middleware/api-key.ts), plus its own
+    // IP-keyed guard for the unauthenticated half. This one keys on client IP
+    // with an in-memory store, so a customer's integration server behind one NAT
+    // would otherwise be indistinguishable from an attack — and two integrations
+    // on one host would share a budget neither of them was sold.
+    skip: (req) => req.path.startsWith('/health') || req.path.startsWith('/api/public/'),
     standardHeaders: 'draft-7',
     legacyHeaders: false,
   });
@@ -129,6 +163,15 @@ export function createApp(): Express {
   app.use('/api/v1/cantieri', cantieriRouter);
   app.use('/api/v1/helpdesk', helpdeskRouter);
   app.use('/api/v1/tickets', ticketsRouter);
+  // Management of the company's own API keys (Impostazioni → API). Gated on the
+  // tenant module flag AND the admin role; runs on the RLS pool so the column
+  // grants in migration 064 keep secret_hash unreadable.
+  app.use('/api/v1/api-keys', apiKeysRouter);
+  // The API module's public surface. Its own auth (a key, not a JWT), its own
+  // per-key rate limiting and its own terminal error handler — see
+  // routes/public/index.ts. Deliberately a separate version prefix from
+  // /api/v1: an integration's contract must survive our internal refactors.
+  app.use('/api/public/v1', publicApiRouter);
   // Reseller / tenant-management surface (partners.sonoqui.pro). Each route is
   // gated by its own partnership-member auth (see middleware/partnership-auth.ts);
   // wholly isolated from the per-tenant routes above. Always mounted — access is

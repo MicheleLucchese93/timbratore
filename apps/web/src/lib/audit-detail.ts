@@ -48,6 +48,10 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
 // Internal plumbing: never shown, in the grid or in the dialog. Foreign keys are
 // dropped by the generic `_id` rule below; these are the named exceptions.
 const HIDDEN = new Set([
+  // Bookkeeping the backend stamps on API-written payloads. The Registro's
+  // Autore column already reads "API · <key name>", so rendering it again as a
+  // field produced a phantom change ("Origine: — → api") on every row.
+  'via',
   'id',
   'tenant_id',
   'user_id',
@@ -128,6 +132,7 @@ const PRIORITY: Record<string, string[]> = {
   ],
   'export.': ['format', 'period_from', 'period_to', 'filename'],
   'document.': ['title', 'filename', 'category'],
+  'api_key.': ['name', 'key_id', 'scopes', 'rate_limit_per_min', 'expires_at', 'revoked_at'],
   'user.': [
     'email',
     'role',
@@ -180,10 +185,17 @@ const HIDDEN_BY_FAMILY: Record<string, Set<string>> = {
   'correction.': new Set(['latitude', 'longitude', 'gps_accuracy_m']),
 };
 
+// Keys the generic `_id` rule would hide but that are not opaque foreign keys.
+// `api_keys.key_id` is the PUBLIC half of a credential and the only thing that
+// identifies which key an entry is about — hiding it left the Registro saying a
+// key was revoked without saying which.
+const SHOWN_DESPITE_ID_SUFFIX = new Set(['key_id']);
+
 function isHidden(key: string, action: string): boolean {
   if (HIDDEN.has(key)) return true;
   const family = Object.keys(HIDDEN_BY_FAMILY).find((p) => action.startsWith(p));
   if (family && HIDDEN_BY_FAMILY[family]!.has(key)) return true;
+  if (SHOWN_DESPITE_ID_SUFFIX.has(key)) return false;
   // Foreign keys are opaque uuids; the label they point at is either the
   // Destinatario column or a name field already in the payload.
   return key.endsWith('_id') || key.endsWith('_by_user_id');

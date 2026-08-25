@@ -7,6 +7,7 @@ import {
 } from '@sonoqui/shared';
 import { api } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
+import { ApiKeysSection } from '../components/ApiKeysSection.tsx';
 import { LanguageSelect } from '../components/LanguageSwitcher.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
 import { ChangePasswordModal } from '../components/ChangePasswordModal.tsx';
@@ -68,11 +69,15 @@ interface MeResponse {
 
 export function Settings() {
   const { t } = useTranslation(['settings', 'common']);
+  // Own namespace: the API section carries a scope label per resource, which
+  // would double the size of `settings` for a block most tenants never see.
+  const { t: tApi } = useTranslation('apiKeys');
   const [s, setS] = useState<TenantSettings | null>(null);
   const [piva, setPiva] = useState('');
   const [prefs, setPrefs] = useState<MePrefs | null>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<Toast>(null);
+  const me = useSession((st) => st.me);
   const tenants = useSession((st) => st.tenants);
   const activeTenantId = useSession((st) => st.activeTenantId);
   const chooseTenant = useSession((st) => st.chooseTenant);
@@ -257,6 +262,19 @@ export function Settings() {
 
       {isAdmin && (
         <CentroPagheSection s={s} onPatch={patchSettings} />
+      )}
+
+      {/* API module. Both conditions, matching the backend gate exactly: the
+          tenant flag the partner switched on, and the admin role. There is no
+          per-user module role here — a key is company infrastructure. */}
+      {isAdmin && me?.tenant.api_enabled === true && (
+        <SettingsRow
+          icon={<IconPlug />}
+          title={tApi('section')}
+          description={tApi('sectionDesc')}
+        >
+          <ApiKeysSection onToast={(text) => setToast({ kind: 'ok', text })} />
+        </SettingsRow>
       )}
 
       {tenants.length > 1 && (
@@ -528,6 +546,19 @@ function IconAlert() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-error)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="10" />
       <path d="M12 8v4M12 16h.01" />
+    </svg>
+  );
+}
+
+/** Plug glyph for the API section head. Same shape as the one on the empty
+ *  state and in the partner console, so the module reads as one thing. */
+function IconPlug() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 3v6" />
+      <path d="M15 3v6" />
+      <path d="M7 9h10v3a5 5 0 0 1-5 5 5 5 0 0 1-5-5V9z" />
+      <path d="M12 17v4" />
     </svg>
   );
 }

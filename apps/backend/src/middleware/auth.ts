@@ -23,6 +23,10 @@ declare module 'express-serve-static-core' {
       // Only meaningful while the tenant flag cantieriEnabled is true.
       cantieriRole: 'admin' | 'user' | null;
       cantieriEnabled: boolean;
+      // API module tenant flag (partner-console controlled). There is no
+      // per-user module role here: keys are company infrastructure, so the
+      // tenant admins manage them (see migration 064).
+      apiEnabled: boolean;
       // null ONLY for a read-only support session, which has no membership row.
       membershipId: string | null;
     };
@@ -44,6 +48,7 @@ export interface ResolvedMembership {
   isDocumentale: boolean;
   cantieriRole: 'admin' | 'user' | null;
   cantieriEnabled: boolean;
+  apiEnabled: boolean;
   membershipId: string;
 }
 
@@ -71,7 +76,7 @@ export async function fetchMembership(
   }
   const r = await adminPool.query(
     `SELECT m.id, m.tenant_id, m.role, m.is_documentale, m.cantieri_role,
-            t.cantieri_enabled
+            t.cantieri_enabled, t.api_enabled
      FROM memberships m
      JOIN tenants t ON t.id = m.tenant_id
      WHERE m.user_id = $1
@@ -96,6 +101,7 @@ export async function fetchMembership(
     isDocumentale: row.is_documentale === true,
     cantieriRole: row.cantieri_role ?? null,
     cantieriEnabled: row.cantieri_enabled === true,
+    apiEnabled: row.api_enabled === true,
   };
 }
 
@@ -190,6 +196,7 @@ export async function authenticate(
       isDocumentale: membership.isDocumentale,
       cantieriRole: membership.cantieriRole,
       cantieriEnabled: membership.cantieriEnabled,
+      apiEnabled: membership.apiEnabled,
       membershipId: membership.membershipId,
     };
     next();
@@ -237,6 +244,9 @@ async function applySupportSession(
     isDocumentale: false,
     cantieriRole: session.cantieriEnabled ? 'admin' : null,
     cantieriEnabled: session.cantieriEnabled,
+    // The API-keys surface follows the tenant flag alone; the session's
+    // read-only HTTP gate is what stops an operator minting a credential.
+    apiEnabled: session.apiEnabled,
     membershipId: null,
   };
   req.support = {
@@ -277,6 +287,21 @@ export function requireCantieriAdmin(req: Request, _res: Response, next: NextFun
   if (!req.user) return next(new UnauthorizedError());
   if (!req.user.cantieriEnabled || req.user.cantieriRole !== 'admin') {
     return next(new ForbiddenError('Cantieri admin role required', 'CANTIERI_ADMIN_REQUIRED'));
+  }
+  next();
+}
+
+// Gate for the API-module management surface (routes/api-keys.ts). Both halves
+// are required: the tenant flag the partner switched on, and the tenant admin
+// role. Unlike Cantieri there is no additive per-user module role — a key is
+// company infrastructure, and whoever configures the company configures it.
+export function requireApiModule(req: Request, _res: Response, next: NextFunction): void {
+  if (!req.user) return next(new UnauthorizedError());
+  if (!req.user.apiEnabled) {
+    return next(new ForbiddenError('API module required', 'API_MODULE_DISABLED'));
+  }
+  if (req.user.role !== 'admin') {
+    return next(new ForbiddenError('Admin role required', 'FORBIDDEN'));
   }
   next();
 }

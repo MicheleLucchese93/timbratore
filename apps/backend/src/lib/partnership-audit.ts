@@ -14,6 +14,11 @@ export type PartnershipAction =
   | 'tenant.update_note'
   | 'tenant.cantieri_enable'
   | 'tenant.cantieri_disable'
+  // API module (migration 064). Worth its own pair for the same reason suspend
+  // is: switching it on gives a company the ability to mint credentials that
+  // read its whole dataset, and switching it off is how a leaked one is stopped.
+  | 'tenant.api_enable'
+  | 'tenant.api_disable'
   | 'tenant.delete'
   | 'tenant.support_access'
   | 'partner.create'

@@ -4,7 +4,8 @@
   "editStamp": "Modifica timbratura",
   "deletePrompt": "Motivo eliminazione (obbligatorio):",
   "origin": {
-    "auto": "auto"
+    "auto": "auto",
+    "api": "API"
   },
   "form": {
     "user": "Utente",
@@ -76,6 +77,9 @@
       "anomaly_fix": "Correzione anomalia (orario standard)",
       "bulk_apply": "Applicazione massiva orario standard",
       "auto_clockout": "Uscita automatica dopo 15 ore",
+      "api_create": "Inserita da un sistema esterno (API)",
+      "api_edit": "Modificata da un sistema esterno (API)",
+      "api_delete": "Eliminata da un sistema esterno (API)",
       "unknown": "Modifica"
     },
     "field": {

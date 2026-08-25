@@ -468,7 +468,15 @@ adminStampsRouter.post(
   })
 );
 
-async function emitAuditAndOutbox(
+/**
+ * One audit row plus one realtime nudge for an admin-side punch write.
+ *
+ * Exported because the API module performs the SAME three writes from
+ * routes/public/stamps.ts — a punch filed by a badge reader has to reach the
+ * Registro and the live dashboard exactly like one an admin typed, and two
+ * copies of that would diverge the first time either changes.
+ */
+export async function emitAuditAndOutbox(
   client: import('pg').PoolClient,
   tenantId: string,
   action: 'stamp.admin_create' | 'stamp.admin_update' | 'stamp.admin_delete',

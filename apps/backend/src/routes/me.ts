@@ -101,7 +101,7 @@ meRouter.get(
       `SELECT id, ragione_sociale, country, timezone, language,
               mock_location_action,
               max_admins, max_users, max_branches, max_documentali,
-              cantieri_enabled
+              cantieri_enabled, api_enabled
        FROM tenants
        WHERE id = $1`,
       [req.user!.tenantId]

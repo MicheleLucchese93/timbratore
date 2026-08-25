@@ -45,6 +45,28 @@ const cantieriPoints = [
   "Report in PDF scaricabile o inviato via email, con nota e destinatari a scelta",
 ];
 
+// Modulo API — no screenshots on purpose: what an integrator recognises is a
+// request and a response, not a settings screen. The sample is the shape the
+// API actually returns (envelope + page), trimmed to what fits.
+const apiPoints = [
+  "Il tuo gestionale crea e aggiorna i dipendenti in sonoQui, senza reinserirli a mano",
+  "Tornelli e lettori badge registrano le timbrature direttamente, senza app",
+  "Ore lavorate, assenze e anomalie verso la contabilità o la tua BI, ogni notte",
+  "Chiavi con permessi separati per tipo di dato: sola lettura dove basta leggere",
+];
+
+const apiSample = `GET /api/public/v1/reports/worked-minutes?from=2026-03-01&to=2026-03-31
+Authorization: Bearer sq_live_…
+
+{
+  "ok": true,
+  "data": [
+    { "user_id": "…", "day": "2026-03-02", "worked_minutes": 486 },
+    { "user_id": "…", "day": "2026-03-03", "worked_minutes": 471 }
+  ],
+  "page": { "limit": 100, "offset": 0, "total": 217 }
+}`;
+
 const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`;
 const zoomIcon = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 8v6M8 11h6M19 11a8 8 0 11-16 0 8 8 0 0116 0z"/></svg>`;
 
@@ -240,6 +262,66 @@ const mwebp = (file: string) => `/screenshots/${file}.webp`;
           </div>
         ))}
       </div>
+    </div>
+
+    <!-- Second module: API -->
+    <div class="mt-8 rounded-3xl border border-gray-200 bg-surface p-5 sm:p-7" data-reveal>
+      <div class="flex items-center gap-3">
+        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 3v6" />
+            <path d="M15 3v6" />
+            <path d="M7 9h10v3a5 5 0 0 1-5 5 5 5 0 0 1-5-5V9z" />
+            <path d="M12 17v4" />
+          </svg>
+        </span>
+        <h3 class="text-2xl font-bold leading-tight tracking-tight text-on-surface sm:text-3xl">Modulo API</h3>
+      </div>
+      <p class="mt-4 max-w-3xl text-base leading-relaxed text-on-surface-variant">
+        Per chi ha già un gestionale, un tornello o uno strumento di analisi. Il modulo API genera
+        <strong class="font-semibold text-on-surface">chiavi di accesso</strong> con cui i tuoi sistemi leggono
+        e scrivono i dati di sonoQui da soli: niente doppio inserimento, niente export scaricati a mano.
+      </p>
+
+      <div class="mt-6 grid gap-6 lg:grid-cols-2 lg:gap-10">
+        <ul class="space-y-3">
+          {apiPoints.map((p) => (
+            <li class="flex items-start gap-2.5 text-sm leading-relaxed text-on-surface">
+              <Fragment set:html={check} />
+              <span>{p}</span>
+            </li>
+          ))}
+        </ul>
+
+        <div class="overflow-hidden rounded-2xl border border-gray-200 bg-on-surface shadow-xl">
+          <div class="flex items-center gap-1.5 border-b border-white/10 px-4 py-2.5">
+            <span class="h-2.5 w-2.5 rounded-full bg-red-400"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-yellow-400"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-green-400"></span>
+            <span class="ml-2 text-xs font-medium text-white/60">Le ore di marzo, in una chiamata</span>
+          </div>
+          <pre class="overflow-x-auto px-4 py-4 text-left text-xs leading-relaxed text-white/90"><code>{apiSample}</code></pre>
+        </div>
+      </div>
+
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        <a
+          href="#contact"
+          data-module-cta
+          data-module="API"
+          class="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-container"
+        >
+          Richiedi il modulo API
+        </a>
+        <span class="inline-flex items-center gap-1.5 text-xs font-medium text-on-surface-variant">
+          <svg class="h-4 w-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+          A consumo mensile, in aggiunta all'abbonamento
+        </span>
+      </div>
+      <p class="mt-3 text-xs leading-relaxed text-on-surface-variant">
+        Le chiavi le crei e le revochi tu, dalle impostazioni: scegli quali dati ogni chiave può leggere o scrivere,
+        e ogni operazione resta tracciata nel registro attività dell'azienda.
+      </p>
     </div>
 
     <!-- Custom modules -->

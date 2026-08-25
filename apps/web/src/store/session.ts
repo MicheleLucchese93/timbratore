@@ -47,6 +47,9 @@ export interface MeResponse {
     max_documentali: number;
     // Cantieri module toggled per tenant by the partner/reseller.
     cantieri_enabled: boolean;
+    // API module, same mechanism. Gates the Impostazioni → API section; there
+    // is no per-user module role, so the tenant admins are the ones who see it.
+    api_enabled: boolean;
   };
   branches: Array<{
     id: string;

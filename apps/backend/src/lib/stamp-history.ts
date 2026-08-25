@@ -31,6 +31,16 @@ export type StampChangeKind =
   | 'anomaly_fix'
   | 'bulk_apply'
   | 'auto_clockout'
+  // API module: a punch filed or changed by a machine credential. Its own three
+  // kinds rather than reusing admin_*, because "an administrator changed your
+  // punch" and "the badge reader changed your punch" are different sentences to
+  // read on a contested timesheet. Adding a kind means adding a label in FOUR
+  // places: this union, the Rettifiche map in services/export-service.ts, the
+  // dossier PDF in lib/stamp-dossier-pdf.ts, and the web trail
+  // (components/StampTrail.tsx + locales/*/stamps.json).
+  | 'api_create'
+  | 'api_edit'
+  | 'api_delete'
   | 'unknown';
 
 export interface StampFieldChange {
@@ -79,6 +89,12 @@ const PREFIXED: Array<[string, StampChangeKind]> = [
   ['admin_edit:', 'admin_edit'],
   ['admin_delete:', 'admin_delete'],
   ['anomaly_standard:', 'anomaly_fix'],
+  // routes/public/stamps.ts. The suffix carries the caller's own `reason`, which
+  // for a badge reader is the thing that identifies the read ("badge 0042,
+  // gate 2") — the employee's only way to check a punch they did not make.
+  ['api_edit:', 'api_edit'],
+  ['api_delete:', 'api_delete'],
+  ['api:', 'api_create'],
 ];
 
 const EXACT: Record<string, StampChangeKind> = {
@@ -162,10 +178,18 @@ export function describeHistoryRow(row: StampHistoryRow): StampHistoryEvent {
 const HISTORY_SELECT = `
   SELECT h.id, h.stamp_id, h.user_id, h.operation, h.recorded_at, h.changed_by,
          h.change_reason, h.before, h.after,
+         -- Two kinds of actor can move a punch. A person resolves through
+         -- auth_users; an API key does not, because withApiRLS sets
+         -- app.current_user_id to the KEY's id (migration 064) so a machine
+         -- write is never attributed to a human. Without the second join every
+         -- punch an integration touched would show a blank author in the
+         -- contestation dossier — the one document where that matters most.
          COALESCE(NULLIF(TRIM(CONCAT(au.first_name, ' ', au.last_name)), ''),
-                  au.display_name, au.email) AS actor_name
+                  au.display_name, au.email,
+                  CASE WHEN ak.id IS NOT NULL THEN 'API · ' || ak.name END) AS actor_name
     FROM stamps_history h
-    LEFT JOIN auth_users au ON au.id = h.changed_by`;
+    LEFT JOIN auth_users au ON au.id = h.changed_by
+    LEFT JOIN api_keys   ak ON ak.id = h.changed_by`;
 
 /** Full trail of one stamp, oldest first. RLS scopes it to admin-or-owner. */
 export async function loadStampHistory(

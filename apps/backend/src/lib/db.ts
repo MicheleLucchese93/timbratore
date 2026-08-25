@@ -86,6 +86,54 @@ export async function withSupportRLS<T>(
   }
 }
 
+/**
+ * Tenant context for a request authenticated by an API KEY (the API module).
+ *
+ * Deliberately the ordinary RLS pool and the ordinary `app` role, not the
+ * service role: a machine surface written against adminPool is one forgotten
+ * `WHERE tenant_id = $1` away from serving another company's data, and there is
+ * nothing behind it. Here RLS is the boundary, exactly as it is for a web
+ * request, and a missing predicate returns too little instead of too much.
+ *
+ * Two GUCs make that work, and both are deliberate:
+ *  - `app.api_tenant` — makes auth.is_admin() true for THIS tenant only
+ *    (migration 064), because a key has no membership row and every
+ *    admin-scoped policy resolves through that function. It is set to the same
+ *    value as app.current_tenant_id, so it cannot widen the tenant scope.
+ *  - `app.current_user_id` — the KEY's id, not a person's. auth.uid() then
+ *    matches no membership, so own-scoped policies ("my own requests") return
+ *    nothing for a key, and every audit row it writes carries the key id as its
+ *    actor — which is what the Registro renders as "API · <key name>".
+ *
+ * NOT read-only, unlike withSupportRLS: a key with a `:write` scope is meant to
+ * write. The scope check happens one layer up, in middleware/api-key.ts.
+ */
+export async function withApiRLS<T>(
+  apiKeyId: string,
+  tenantId: string,
+  fn: (client: PoolClient) => Promise<T>
+): Promise<T> {
+  const client = await pool.connect();
+  const untime = instrumentClient(client);
+  try {
+    await client.query('BEGIN');
+    await client.query("SELECT set_config('app.current_user_id', $1, true)", [apiKeyId]);
+    await client.query("SELECT set_config('app.current_tenant_id', $1, true)", [tenantId]);
+    await client.query("SELECT set_config('app.api_tenant', $1, true)", [tenantId]);
+    const result = await fn(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    // Undo BEFORE release: pg hands the same client object back on the next
+    // connect(), so a patch left in place would leak into the next request.
+    untime();
+    client.release();
+  }
+}
+
 export async function withRLS<T>(
   userId: string,
   fn: (client: PoolClient) => Promise<T>

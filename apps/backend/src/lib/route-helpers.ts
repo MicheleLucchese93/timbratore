@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import type { PoolClient } from 'pg';
-import { withSupportRLS, withTenantRLS } from './db.js';
+import { withApiRLS, withSupportRLS, withTenantRLS } from './db.js';
 import { createLogger } from './logger.js';
 import { UnauthorizedError } from '../errors/index.js';
 
@@ -77,6 +77,38 @@ export async function runAfterCommit(
       logger.error({ err, path }, 'after-commit task failed');
     }
   }
+}
+
+/**
+ * The API-module counterpart of tenantHandler.
+ *
+ * Same contract — a transaction, a tenant-scoped client, deferred after-commit
+ * work — but the context comes from `req.apiKey` instead of `req.user`, and the
+ * client runs under withApiRLS (see lib/db.ts): ordinary RLS pool, ordinary
+ * `app` role, tenant fixed by the key that authenticated. Handlers written
+ * against it are indistinguishable from the tenant ones except that there is no
+ * `req.user` to read an actor out of — because there is no person.
+ */
+export type ApiKeyHandler = (
+  req: Request,
+  res: Response,
+  client: PoolClient,
+  afterCommit: AfterCommit
+) => Promise<unknown>;
+
+export function apiHandler(fn: ApiKeyHandler) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const key = req.apiKey;
+    if (!key) return next(new UnauthorizedError('Missing API key', 'API_KEY_MISSING'));
+    const pending: Array<() => Promise<void>> = [];
+    withApiRLS(key.id, key.tenantId, (client) =>
+      fn(req, res, client, (task) => {
+        pending.push(task);
+      })
+    )
+      .then(() => runAfterCommit(pending, req.originalUrl))
+      .catch(next);
+  };
 }
 
 export type AsyncHandler = (

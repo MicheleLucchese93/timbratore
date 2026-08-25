@@ -25,6 +25,9 @@ export type StampChangeKind =
   | 'anomaly_fix'
   | 'bulk_apply'
   | 'auto_clockout'
+  | 'api_create'
+  | 'api_edit'
+  | 'api_delete'
   | 'unknown';
 
 type TrackedField = 'event_type' | 'occurred_at' | 'branch_id' | 'notes' | 'source' | 'deleted_at';

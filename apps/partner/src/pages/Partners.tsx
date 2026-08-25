@@ -25,6 +25,7 @@ interface PartnerRow {
   cap_documentali_per_tenant: number | null;
   cap_branches_per_tenant: number | null;
   may_enable_cantieri: boolean;
+  may_enable_api: boolean;
   may_support_access: boolean;
   created_at: string;
   tenant_count: number;
@@ -38,11 +39,15 @@ type Caps = Pick<
   | 'cap_documentali_per_tenant'
   | 'cap_branches_per_tenant'
   | 'may_enable_cantieri'
+  | 'may_enable_api'
   | 'may_support_access'
 >;
 
 // Numeric ceilings only — the boolean capabilities get their own checkboxes.
-const CAP_KEYS: Exclude<keyof Caps, 'may_enable_cantieri' | 'may_support_access'>[] = [
+const CAP_KEYS: Exclude<
+  keyof Caps,
+  'may_enable_cantieri' | 'may_enable_api' | 'may_support_access'
+>[] = [
   'cap_tenants',
   'cap_users_per_tenant',
   'cap_admins_per_tenant',
@@ -393,6 +398,7 @@ function CreatePartner({ onClose, onDone }: { onClose: () => void; onDone: () =>
     cap_documentali_per_tenant: null,
     cap_branches_per_tenant: null,
     may_enable_cantieri: false,
+    may_enable_api: false,
     // Inspecting one's own customers read-only is part of the job — on by
     // default, unlike the paid module flags.
     may_support_access: true,
@@ -512,6 +518,7 @@ function EditCaps({
     cap_documentali_per_tenant: partner.cap_documentali_per_tenant,
     cap_branches_per_tenant: partner.cap_branches_per_tenant,
     may_enable_cantieri: partner.may_enable_cantieri,
+    may_enable_api: partner.may_enable_api,
     may_support_access: partner.may_support_access,
   });
   const [busy, setBusy] = useState(false);

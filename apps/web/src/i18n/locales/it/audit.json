@@ -29,7 +29,8 @@
     "cantieri": "Cantieri",
     "exports": "Esportazioni",
     "documents": "Documenti",
-    "settings": "Impostazioni"
+    "settings": "Impostazioni",
+    "api": "API"
   },
   "action": {
     "user": {
@@ -140,6 +141,11 @@
       "create": "Attività di cantiere registrata",
       "update": "Attività di cantiere modificata",
       "delete": "Attività di cantiere eliminata"
+    },
+    "api_key": {
+      "create": "Chiave API creata",
+      "update": "Chiave API modificata",
+      "revoke": "Chiave API revocata"
     }
   },
   "detail": {
@@ -272,14 +278,21 @@
     "required": "Obbligatorio",
     "scope": "Ambito",
     "position": "Posizione",
-    "key": "Chiave"
+    "key": "Chiave",
+    "key_id": "ID chiave",
+    "scopes": "Permessi",
+    "rate_limit_per_min": "Limite richieste/minuto",
+    "expires_at": "Scadenza",
+    "revoked_at": "Revocata il",
+    "via": "Origine"
   },
   "value": {
     "source": {
       "employee_app": "App dipendente",
       "employee_correction": "Correzione dipendente",
       "admin_manual": "Inserimento amministratore",
-      "system_auto": "Automatico"
+      "system_auto": "Automatico",
+      "api": "API"
     },
     "status": {
       "open": "Aperto",
@@ -325,7 +338,8 @@
     "is_edit": {
       "true": "Modifica di una timbratura esistente",
       "false": "Timbratura mancante"
-    }
+    },
+    "api": "API"
   },
   "emptyHint": "Ogni operazione amministrativa fatta nell’azienda viene registrata qui."
 }
