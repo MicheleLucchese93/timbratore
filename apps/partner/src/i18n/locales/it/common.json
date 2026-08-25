@@ -6,7 +6,11 @@
   },
   "lists": {
     "badge_documentale": "Documentale",
-    "badge_inactive": "Disattivato"
+    "badge_inactive": "Disattivato",
+    "membersEmpty": "Nessun utente",
+    "membersEmptyHint": "Gli utenti compaiono qui appena l'azienda li invita.",
+    "branchesEmpty": "Nessuna sede",
+    "branchesEmptyHint": "Le sedi compaiono qui appena l'azienda le crea."
   },
   "nav": {
     "tenants": "Aziende",
@@ -216,7 +220,9 @@
       "confirm_prompt": "Per confermare, digita la ragione sociale esatta: {{name}}",
       "submit": "Elimina definitivamente",
       "done": "Azienda eliminata. Utenti cancellati: {{deleted}}, scollegati: {{unlinked}}."
-    }
+    },
+    "empty": "Nessuna azienda",
+    "emptyHint": "Crea la prima azienda: da qui gestisci utenti, limiti e moduli dei tuoi clienti."
   },
   "partners": {
     "title": "Partner",
@@ -276,7 +282,9 @@
       "done_invite": "Invito inviato a {{email}}.",
       "done_recovery": "Email di reset password inviata a {{email}}.",
       "done_none": "Nessuna email inviata."
-    }
+    },
+    "empty": "Nessun partner",
+    "emptyHint": "Un partner rivende sonoQui e gestisce le proprie aziende con i limiti che gli assegni."
   },
   "caps": {
     "cap_tenants": "Max aziende creabili",
@@ -354,7 +362,9 @@
       "ticket.assign": "Richiesta assegnata",
       "ticket.reply": "Risposta inviata al cliente",
       "ticket.note": "Nota interna modificata"
-    }
+    },
+    "empty": "Nessuna attività registrata",
+    "emptyHint": "Ogni operazione effettuata nella console viene registrata qui."
   },
   "errors": {
     "CAP_TENANTS_REACHED": "Hai raggiunto il numero massimo di aziende create.",
@@ -455,6 +465,10 @@
       "tooBig": "\"{{name}}\" supera {{mb}} MB.",
       "uploadFailed": "Caricamento di \"{{name}}\" non riuscito.",
       "downloadFailed": "Download dell'allegato non riuscito."
-    }
+    },
+    "empty": "Nessuna richiesta",
+    "emptyHint": "Le richieste di assistenza aperte dai clienti arrivano qui.",
+    "emptyFiltered": "Nessuna richiesta con questi filtri",
+    "emptyFilteredHint": "Cambia stato, assegnazione o testo cercato per vedere le altre."
   }
 }

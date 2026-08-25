@@ -5,6 +5,7 @@ import { api, type ApiError } from '../lib/api.ts';
 import { isoLocalDate, isoLocalDaysAgo } from '../lib/dates.ts';
 import { fmtDate as fmtDateI18n, fmtTime as fmtTimeI18n } from '../i18n/format.ts';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { EmptyState } from '../components/EmptyState.tsx';
 import { DayDossierModal } from '../components/StampTrail.tsx';
 
 interface Anomaly {
@@ -337,17 +338,18 @@ export function Anomalies() {
       )}
 
       {!loading && rows.length === 0 && (
-        <div className="card text-sm muted">
-          {t('empty')}
-        </div>
+        <EmptyState fill art="clear" title={t('empty')} hint={t('emptyHint')} />
       )}
 
       {/* Everything in range is justified: say so, rather than let the generic
           "no anomalies" message imply the days were clean. */}
       {!loading && rows.length > 0 && visible.length === 0 && (
-        <div className="card text-sm muted">
-          {t('emptyAllJustified', { n: hiddenCount })}
-        </div>
+        <EmptyState
+          fill
+          art="clear"
+          title={t('emptyAllJustified')}
+          hint={t('emptyAllJustifiedHint', { n: hiddenCount })}
+        />
       )}
 
       {visible.length > 0 && (

@@ -24,5 +24,7 @@
     "preview": "Preview",
     "tolerance": "tolerance {{radius}}m",
     "previewEmpty": "Select an address or click the map to set the branch location."
-  }
+  },
+  "empty": "No sites yet",
+  "emptyHint": "Create the first one: it is the place a GPS stamp is checked against."
 }

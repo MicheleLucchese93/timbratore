@@ -13,7 +13,9 @@
       "pending": "In attesa",
       "residual": "Residuo",
       "residualWithPending": "Residuo con pending"
-    }
+    },
+    "empty": "Nessuna quota assegnata",
+    "emptyHint": "Assegna una quota di ferie o permessi ai dipendenti per vedere i residui."
   },
   "mine": {
     "title": "I miei residui",

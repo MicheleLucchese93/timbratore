@@ -6,6 +6,7 @@ import { NewLeaveModal } from '../components/NewLeaveModal.tsx';
 import { MyResidui } from './Residui.tsx';
 import { localeTag } from '../i18n/format.ts';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { EmptyState } from '../components/EmptyState.tsx';
 import { IconButton } from '../components/IconButton.tsx';
 import { useSession } from '../store/session.ts';
 
@@ -205,7 +206,7 @@ export function MyLeaves() {
                 <button type="button" className="btn btn-primary" onClick={() => setShowNew(true)}>{t('newRequest')}</button>
               </div>
               {mine.length === 0 ? (
-                <p className="muted text-sm">{t('empty.mine')}</p>
+                <EmptyState size="md" art="calendar" title={t('empty.mine')} />
               ) : (
                 <div className="space-y-2">
                   {mine.map((r) => (
@@ -250,7 +251,7 @@ export function MyLeaves() {
           {tab === 'inbox' && (
             <div className="space-y-2">
               {pendingInbox.length === 0 ? (
-                <p className="muted text-sm">{t('empty.inbox')}</p>
+                <EmptyState size="md" art="clear" title={t('empty.inbox')} />
               ) : (
                 pendingInbox.map((r) => (
                   <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded border p-2.5" style={{ borderColor: 'var(--color-border, #e5e7eb)' }}>

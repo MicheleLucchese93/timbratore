@@ -3,7 +3,7 @@
   "subtitle": "Company messages and announcements",
   "sectionTitle": "Notice board",
   "empty": "No messages on the notice board.",
-  "emptyAdmin": "No messages published yet. Create the first one.",
+  "emptyAdmin": "No messages published yet",
   "unread": "Unread",
   "unreadCount_one": "{{count}} unread",
   "unreadCount_other": "{{count}} unread",
@@ -88,5 +88,6 @@
     "published": "Published",
     "status": "Status",
     "actions": "Actions"
-  }
+  },
+  "emptyAdminHint": "Create the first one: recipients get it in the app and by email."
 }

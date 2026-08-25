@@ -4,6 +4,7 @@ import type { StampEventType } from '@sonoqui/shared';
 import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { api } from '../lib/api.ts';
 import { fmtDate, fmtTime } from '../i18n/format.ts';
+import { EmptyState } from './EmptyState.tsx';
 
 /**
  * Self-service correction-request form, at parity with the mobile
@@ -220,7 +221,7 @@ export function NewCorrectionModal({
               {t('pickStamp.intro')}
             </p>
             {dayStamps && dayStamps.length === 0 && (
-              <div className="card text-sm text-neutral-600">{t('pickStamp.empty')}</div>
+              <EmptyState size="md" art="clock" title={t('pickStamp.empty')} />
             )}
             <ul className="space-y-2">
               {dayStamps?.map((s) => (

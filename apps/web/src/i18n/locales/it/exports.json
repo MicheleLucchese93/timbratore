@@ -31,5 +31,7 @@
     "ready": "pronta",
     "failed": "errore"
   },
-  "lastRefresh": "Aggiornato alle {{time}}"
+  "lastRefresh": "Aggiornato alle {{time}}",
+  "empty": "Nessuna esportazione",
+  "emptyHint": "Genera un’esportazione: la trovi qui, pronta da scaricare."
 }

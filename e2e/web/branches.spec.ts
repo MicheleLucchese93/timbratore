@@ -20,8 +20,10 @@ test.describe('web — Sedi (Branches) page', () => {
     await expect(counter).toContainText('/ 3');
   });
 
+  // Scoped to the banner: an empty Sedi page shows the same CTA in its empty
+  // state, so the bare role+name match is ambiguous.
   test('"Nuova sede" opens the branch form with the geofence controls', async ({ page }) => {
-    await page.getByRole('button', { name: /Nuova sede/i }).click();
+    await page.getByRole('banner').getByRole('button', { name: /Nuova sede/i }).click();
     // Modal heading — Nuova sede.
     await expect(page.getByRole('heading', { name: 'Nuova sede' })).toBeVisible({ timeout: 10_000 });
     // The <label htmlFor="sw"> is the canonical "Fuori sede" toggle label
@@ -44,7 +46,7 @@ test.describe('web — Sedi (Branches) page', () => {
   });
 
   test('disabling "Limita timbratura entro un raggio" hides the radius controls', async ({ page }) => {
-    await page.getByRole('button', { name: /Nuova sede/i }).click();
+    await page.getByRole('banner').getByRole('button', { name: /Nuova sede/i }).click();
     await expect(page.getByRole('heading', { name: 'Nuova sede' })).toBeVisible({ timeout: 10_000 });
     const enforceToggle = page.locator('input#er');
     await expect(enforceToggle).toBeChecked();

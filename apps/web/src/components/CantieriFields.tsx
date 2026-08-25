@@ -17,6 +17,7 @@ import {
 import { api } from '../lib/api.ts';
 import { useConfirm } from './ConfirmDialog.tsx';
 import { useEscapeKey } from '../hooks/useEscapeKey.ts';
+import { EmptyState } from './EmptyState.tsx';
 
 /* Shared building blocks of the Cantieri module: the tenant-wide custom-field
    definitions manager (used by both the Cantieri page, scope 'entry', and the
@@ -189,7 +190,7 @@ export function CantieriFieldDefsSection({
       {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
 
       {defs.length === 0 ? (
-        <div className="text-sm muted">{t('fields.empty')}</div>
+        <EmptyState size="sm" title={t('fields.empty')} />
       ) : (
         <ul className="space-y-1">
           {defs.map((d) => (

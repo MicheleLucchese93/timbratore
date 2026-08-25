@@ -2574,6 +2574,9 @@ function UsersDataGrid({
       onRowSelectionModelChange={onRowSelectionChange}
       sx={dataGridSx}
       {...dataGridDefaults}
+      slotProps={{
+        noRowsOverlay: { art: 'people', title: t('grid.empty'), hint: t('grid.emptyHint') },
+      }}
     />
   );
 }

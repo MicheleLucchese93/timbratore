@@ -75,5 +75,13 @@
     "statusUploading": "Caricamento…",
     "statusDone": "Caricato",
     "statusError": "Errore"
+  },
+  "grid": {
+    "empty": "Nessun documento caricato",
+    "emptyHint": "Carica il primo PDF e assegnalo a un dipendente."
+  },
+  "mine": {
+    "empty": "Nessun documento disponibile",
+    "emptyHint": "Quando l’azienda pubblica un documento per te, lo trovi qui."
   }
 }

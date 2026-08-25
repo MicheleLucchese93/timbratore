@@ -95,7 +95,9 @@ test.describe('web — Assistenza: raise, reply, resolve', () => {
     await page.goto('/tickets');
     await expect(page.getByRole('heading', { name: 'Assistenza' })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Nuova richiesta' }).click();
+    // Scoped to the header: with no open requests the empty state offers the
+    // same action, and the bare role+name match resolves to two buttons.
+    await page.getByRole('banner').getByRole('button', { name: 'Nuova richiesta' }).click();
     await page.getByTestId('ticket-subject').fill(marker);
     await page
       .getByTestId('ticket-body')

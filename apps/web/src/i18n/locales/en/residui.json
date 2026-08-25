@@ -13,7 +13,9 @@
       "pending": "Pending",
       "residual": "Remaining",
       "residualWithPending": "Remaining with pending"
-    }
+    },
+    "empty": "No quotas assigned",
+    "emptyHint": "Assign a holiday or leave quota to your employees to see the balances."
   },
   "mine": {
     "title": "My balances",

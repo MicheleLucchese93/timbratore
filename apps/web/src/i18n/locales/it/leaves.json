@@ -93,7 +93,9 @@
     "bulkTitle_one": "Assegna quota a {{count}} utente",
     "bulkTitle_other": "Assegna quota a {{count}} utenti",
     "bulkNoTemplates": "Nessun modello attivo per questo tipo.",
-    "bulkOverwrite": "Gli utenti che hanno già una quota dello stesso tipo verranno sovrascritti: la precedente viene chiusa e ne parte una nuova."
+    "bulkOverwrite": "Gli utenti che hanno già una quota dello stesso tipo verranno sovrascritti: la precedente viene chiusa e ne parte una nuova.",
+    "gridEmpty": "Nessuna quota assegnata",
+    "gridEmptyHint": "Assegna una quota a uno o più utenti per gestirne il residuo."
   },
   "accrual": {
     "none": "Nessun accredito",
@@ -155,7 +157,9 @@
     "active": "Attivo",
     "inactive": "Disattivato",
     "editTemplate": "Modifica modello",
-    "deleteTemplate": "Elimina modello"
+    "deleteTemplate": "Elimina modello",
+    "gridEmpty": "Nessun modello di quota",
+    "gridEmptyHint": "Un modello ti fa assegnare la stessa quota a più utenti in un colpo solo."
   },
   "templateForm": {
     "editTitle": "Modifica modello quota",
@@ -179,5 +183,9 @@
     "summaryMonthly": "Ogni mese il giorno {{day}} verranno aggiunti {{hours}}h.",
     "summaryYearly": "Ogni anno il {{day}} {{month}} verranno aggiunti {{hours}}h.",
     "active": "Attivo"
+  },
+  "grid": {
+    "empty": "Nessuna richiesta nel periodo",
+    "emptyHint": "Le richieste di ferie, permessi e malattia compaiono qui."
   }
 }

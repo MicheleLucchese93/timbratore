@@ -267,6 +267,9 @@ function ExportsDataGrid({
       getRowId={(r) => r.id}
       sx={dataGridSx}
       {...dataGridDefaults}
+      slotProps={{
+        noRowsOverlay: { art: 'export', title: t('empty'), hint: t('emptyHint') },
+      }}
     />
   );
 }

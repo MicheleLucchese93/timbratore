@@ -114,6 +114,8 @@
     "reasonDefault": "Modifica da griglia presenze",
     "noStamps": "Nessuna timbratura per questo giorno.",
     "addEvent": "Aggiungi",
-    "idPrefix": "ID:"
+    "idPrefix": "ID:",
+    "empty": "Nessuna timbratura nel periodo",
+    "emptyHint": "Cambia l’intervallo di date o i filtri per vedere altre timbrature."
   }
 }

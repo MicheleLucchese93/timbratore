@@ -430,6 +430,9 @@ function DocumentsDataGrid({
       getRowId={(r) => r.id}
       sx={dataGridSx}
       {...dataGridDefaults}
+      slotProps={{
+        noRowsOverlay: { art: 'documents', title: t('grid.empty'), hint: t('grid.emptyHint') },
+      }}
     />
   );
 }

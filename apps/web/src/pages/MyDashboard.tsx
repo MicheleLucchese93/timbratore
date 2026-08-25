@@ -5,6 +5,7 @@ import { api } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
 import { fmtDateTime } from '../i18n/format.ts';
 import { StampPanel } from '../components/StampPanel.tsx';
+import { EmptyState } from '../components/EmptyState.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
 import { BachecaSection } from '../components/BachecaSection.tsx';
 
@@ -43,7 +44,7 @@ export function MyDashboard() {
           <Link to="/me/stamps" className="btn btn-secondary btn-sm">{t('viewAll')}</Link>
         </header>
         {recent.length === 0 ? (
-          <div className="p-6 text-sm muted text-center">{t('empty')}</div>
+          <EmptyState size="md" art="clock" still title={t('empty')} />
         ) : (
           <ul className="divide-y divide-neutral-100">
             {recent.map((s) => (

@@ -225,7 +225,9 @@
     "modeRemote": "Remoto",
     "approversDefault": "Tutti gli admin",
     "leaveApproversTitle": "Configura chi può approvare ferie/permessi di questo utente",
-    "correctionApproversTitle": "Configura chi può approvare le richieste di correzione di questo utente"
+    "correctionApproversTitle": "Configura chi può approvare le richieste di correzione di questo utente",
+    "empty": "Nessun utente",
+    "emptyHint": "Invita il primo collaboratore per iniziare a raccogliere le timbrature."
   },
   "actions": {
     "editName": "Modifica nome / cognome",

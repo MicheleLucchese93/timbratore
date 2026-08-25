@@ -225,7 +225,9 @@
     "modeRemote": "Remote",
     "approversDefault": "All admins",
     "leaveApproversTitle": "Configure who can approve this user's holiday/leave",
-    "correctionApproversTitle": "Configure who can approve this user's correction requests"
+    "correctionApproversTitle": "Configure who can approve this user's correction requests",
+    "empty": "No users yet",
+    "emptyHint": "Invite your first colleague to start collecting stamps."
   },
   "actions": {
     "editName": "Edit first / last name",

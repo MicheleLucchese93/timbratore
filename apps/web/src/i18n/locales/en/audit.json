@@ -326,5 +326,6 @@
       "true": "Edit of an existing stamp",
       "false": "Missing stamp"
     }
-  }
+  },
+  "emptyHint": "Every administrative action taken in your company is recorded here."
 }

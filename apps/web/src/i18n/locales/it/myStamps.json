@@ -7,5 +7,7 @@
     "event": "Evento",
     "origin": "Origine",
     "notes": "Note"
-  }
+  },
+  "empty": "Nessuna timbratura nel periodo",
+  "emptyHint": "Le tue timbrature compaiono qui appena registrate."
 }

@@ -8,7 +8,7 @@
   "weeklyTotal": "Totale settimanale: {{total}}",
   "duplicate": "Duplica",
   "edit": "Modifica",
-  "empty": "Nessun orario configurato. Crea il primo per iniziare ad assegnarlo agli utenti.",
+  "empty": "Nessun orario configurato",
   "copyPrefix": "Copia di ",
   "form": {
     "editTitle": "Modifica orario",
@@ -53,5 +53,6 @@
     "removeSlot": "Rimuovi fascia",
     "addSlot": "+ fascia",
     "weeklyTotalLabel": "Totale settimanale"
-  }
+  },
+  "emptyHint": "Crea il primo orario per iniziare ad assegnarlo agli utenti."
 }

@@ -123,6 +123,9 @@ export function MyDocuments() {
           getRowId={(r) => r.id}
           sx={dataGridSx}
           {...dataGridDefaults}
+          slotProps={{
+            noRowsOverlay: { art: 'documents', title: t('mine.empty'), hint: t('mine.emptyHint') },
+          }}
         />
       </div>
     </div>

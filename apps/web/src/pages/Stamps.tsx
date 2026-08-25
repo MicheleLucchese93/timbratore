@@ -615,6 +615,9 @@ function StampsDataGrid({
       getRowId={(r) => r.id}
       sx={dataGridSx}
       {...dataGridDefaults}
+      slotProps={{
+        noRowsOverlay: { art: 'clock', title: t('grid.empty'), hint: t('grid.emptyHint') },
+      }}
     />
   );
 }

@@ -5,13 +5,16 @@ test.describe('web — Orari (Shifts) page', () => {
     await page.goto('/shifts');
   });
 
+  // The header CTA is scoped to the banner throughout: an Orari page with no
+  // templates now shows the same action inside its empty state, so a bare
+  // role+name match resolves to two buttons.
   test('renders the page heading and "Nuovo orario" CTA', async ({ page }) => {
     await expect(page.getByRole('heading', { name: /Orari|Turni/i }).first()).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByRole('button', { name: /Nuovo orario/i })).toBeVisible();
+    await expect(page.getByRole('banner').getByRole('button', { name: /Nuovo orario/i })).toBeVisible();
   });
 
   test('opens the template creation modal with name + description inputs', async ({ page }) => {
-    await page.getByRole('button', { name: /Nuovo orario/i }).click();
+    await page.getByRole('banner').getByRole('button', { name: /Nuovo orario/i }).click();
     // Inputs are wrapped in <label><span>Nome</span><input/></label> — no id.
     // Locate by the visible label text.
     await expect(page.getByRole('heading', { name: 'Nuovo orario' })).toBeVisible({ timeout: 10_000 });
@@ -24,7 +27,7 @@ test.describe('web — Orari (Shifts) page', () => {
   });
 
   test('modal exposes both pausa and pausa pranzo min/max thresholds', async ({ page }) => {
-    await page.getByRole('button', { name: /Nuovo orario/i }).click();
+    await page.getByRole('banner').getByRole('button', { name: /Nuovo orario/i }).click();
     await expect(page.getByRole('heading', { name: 'Nuovo orario' })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('Pausa min', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('Pausa max', { exact: true }).first()).toBeVisible();
@@ -36,7 +39,7 @@ test.describe('web — Orari (Shifts) page', () => {
   });
 
   test('Orario flessibile section reveals the prima/dopo flex windows', async ({ page }) => {
-    await page.getByRole('button', { name: /Nuovo orario/i }).click();
+    await page.getByRole('banner').getByRole('button', { name: /Nuovo orario/i }).click();
     await expect(page.getByRole('heading', { name: 'Nuovo orario' })).toBeVisible({ timeout: 10_000 });
     // Flex inputs appear only after enabling the flexible-schedule toggle.
     await page.getByRole('checkbox', { name: /Abilita orario flessibile/i }).check();
@@ -49,7 +52,7 @@ test.describe('web — Orari (Shifts) page', () => {
   });
 
   test('overtime block selector offers 15/30/60-minute blocks', async ({ page }) => {
-    await page.getByRole('button', { name: /Nuovo orario/i }).click();
+    await page.getByRole('banner').getByRole('button', { name: /Nuovo orario/i }).click();
     await expect(page.getByRole('heading', { name: 'Nuovo orario' })).toBeVisible({ timeout: 10_000 });
     // The block selector is revealed only once overtime counting is enabled.
     await page.getByRole('checkbox', { name: /Considera le ore straordinarie/i }).check();

@@ -31,5 +31,7 @@
     "ready": "ready",
     "failed": "failed"
   },
-  "lastRefresh": "Refreshed at {{time}}"
+  "lastRefresh": "Refreshed at {{time}}",
+  "empty": "No exports yet",
+  "emptyHint": "Generate one and it shows up here, ready to download."
 }

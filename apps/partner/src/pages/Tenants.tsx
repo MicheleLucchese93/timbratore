@@ -7,6 +7,8 @@ import { useSession, type PartnerCaps } from '../store/session.ts';
 import { useToast } from '../components/Toast.tsx';
 import { useConfirm } from '../components/ConfirmProvider.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { GridEmptyOverlay } from '../components/GridEmptyOverlay.tsx';
+import { EmptyState } from '../components/EmptyState.tsx';
 import { MCard, MCardList } from '../components/MobileCards.tsx';
 import { Modal } from '../components/Modal.tsx';
 import { IconButton } from '../components/IconButton.tsx';
@@ -350,7 +352,13 @@ export function Tenants() {
         }
       />
       {isMobile ? (
-        <MCardList loading={loading} empty={!loading && rows.length === 0}>
+        <MCardList
+          loading={loading}
+          empty={!loading && rows.length === 0}
+          art="company"
+          emptyTitle={t('tenants.empty')}
+          emptyHint={t('tenants.emptyHint')}
+        >
           {rows.map((r) => (
             <MCard
               key={r.id}
@@ -425,7 +433,15 @@ export function Tenants() {
             {...(isAdmin ? { rowHeight: 48 } : {})}
             initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
             pageSizeOptions={[25, 50, 100]}
-            sx={{ border: 0 }}
+            sx={{ border: 0, '--DataGrid-overlayHeight': '17rem' }}
+            slots={{ noRowsOverlay: GridEmptyOverlay }}
+            slotProps={{
+              noRowsOverlay: {
+                art: 'company',
+                title: t('tenants.empty'),
+                hint: t('tenants.emptyHint'),
+              },
+            }}
           />
         </div>
       )}
@@ -611,7 +627,12 @@ function MembersList({
         {loading ? (
           <div className="muted">{t('common.loading')}</div>
         ) : rows.length === 0 ? (
-          <div className="muted">{t('common.empty')}</div>
+          <EmptyState
+            size="md"
+            art="people"
+            title={t('lists.membersEmpty')}
+            hint={t('lists.membersEmptyHint')}
+          />
         ) : (
           <div className="admin-list" data-testid="members-list">
             {rows.map((m) => (
@@ -678,7 +699,12 @@ function BranchesList({ tenant, onClose }: { tenant: TenantRow; onClose: () => v
         {loading ? (
           <div className="muted">{t('common.loading')}</div>
         ) : branches.length === 0 ? (
-          <div className="muted">{t('common.empty')}</div>
+          <EmptyState
+            size="md"
+            art="place"
+            title={t('lists.branchesEmpty')}
+            hint={t('lists.branchesEmptyHint')}
+          />
         ) : (
           <div className="admin-list" data-testid="branches-list">
             {branches.map((b) => (

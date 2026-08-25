@@ -196,6 +196,9 @@ export function MyStamps() {
           getRowId={(r) => r.id}
           sx={dataGridSx}
           {...dataGridDefaults}
+          slotProps={{
+            noRowsOverlay: { art: 'clock', title: t('empty'), hint: t('emptyHint') },
+          }}
         />
       </div>
 

@@ -326,5 +326,6 @@
       "true": "Modifica di una timbratura esistente",
       "false": "Timbratura mancante"
     }
-  }
+  },
+  "emptyHint": "Ogni operazione amministrativa fatta nell’azienda viene registrata qui."
 }

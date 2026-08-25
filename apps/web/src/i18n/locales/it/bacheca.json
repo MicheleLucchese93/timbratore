@@ -3,7 +3,7 @@
   "subtitle": "Messaggi e comunicazioni aziendali",
   "sectionTitle": "Bacheca",
   "empty": "Nessun messaggio in bacheca.",
-  "emptyAdmin": "Nessun messaggio pubblicato. Crea il primo messaggio.",
+  "emptyAdmin": "Nessun messaggio pubblicato",
   "unread": "Da leggere",
   "unreadCount_one": "{{count}} da leggere",
   "unreadCount_other": "{{count}} da leggere",
@@ -88,5 +88,6 @@
     "published": "Pubblicato",
     "status": "Stato",
     "actions": "Azioni"
-  }
+  },
+  "emptyAdminHint": "Crea il primo messaggio: i destinatari lo ricevono nell’app e via email."
 }

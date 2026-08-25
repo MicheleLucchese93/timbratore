@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { BulletinFeedItem } from '@sonoqui/shared';
 import { api } from '../lib/api.ts';
 import { fmtDate } from '../i18n/format.ts';
+import { EmptyState } from './EmptyState.tsx';
 
 /**
  * Member-facing Bacheca feed, shown on the admin Dashboard (above "Da
@@ -78,9 +79,7 @@ export function BachecaSection({ manageHref }: { manageHref?: string }) {
       </div>
 
       {visible.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-title">{t('empty')}</div>
-        </div>
+        <EmptyState size="md" art="board" still title={t('empty')} />
       ) : (
         <ul className="space-y-3">
           {visible.map((b) => (

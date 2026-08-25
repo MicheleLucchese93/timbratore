@@ -6,7 +6,11 @@
   },
   "lists": {
     "badge_documentale": "Documentale",
-    "badge_inactive": "Inactive"
+    "badge_inactive": "Inactive",
+    "membersEmpty": "No users",
+    "membersEmptyHint": "Users show up here as soon as the company invites them.",
+    "branchesEmpty": "No sites",
+    "branchesEmptyHint": "Sites show up here as soon as the company creates them."
   },
   "nav": {
     "tenants": "Companies",
@@ -216,7 +220,9 @@
       "confirm_prompt": "To confirm, type the exact company name: {{name}}",
       "submit": "Delete permanently",
       "done": "Company deleted. Users removed: {{deleted}}, unlinked: {{unlinked}}."
-    }
+    },
+    "empty": "No companies yet",
+    "emptyHint": "Create the first one: this is where you manage your customers’ users, limits and modules."
   },
   "partners": {
     "title": "Partners",
@@ -276,7 +282,9 @@
       "done_invite": "Invite sent to {{email}}.",
       "done_recovery": "Password reset email sent to {{email}}.",
       "done_none": "No email sent."
-    }
+    },
+    "empty": "No partners yet",
+    "emptyHint": "A partner resells sonoQui and manages their own companies within the limits you set."
   },
   "caps": {
     "cap_tenants": "Max companies they can create",
@@ -354,7 +362,9 @@
       "ticket.assign": "Request assigned",
       "ticket.reply": "Reply sent to the customer",
       "ticket.note": "Internal note changed"
-    }
+    },
+    "empty": "No activity recorded",
+    "emptyHint": "Every action taken in this console is recorded here."
   },
   "errors": {
     "CAP_TENANTS_REACHED": "You have reached your maximum number of created companies.",
@@ -455,6 +465,10 @@
       "tooBig": "\"{{name}}\" is over {{mb}} MB.",
       "uploadFailed": "Upload of \"{{name}}\" failed.",
       "downloadFailed": "Attachment download failed."
-    }
+    },
+    "empty": "No requests",
+    "emptyHint": "Support requests raised by customers land here.",
+    "emptyFiltered": "No requests match these filters",
+    "emptyFilteredHint": "Change the status, the assignment or the search text to see the others."
   }
 }

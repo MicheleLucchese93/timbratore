@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { api, apiUrl, getTenantId, getToken } from '../lib/api.ts';
 import { fmtDate, fmtDateTime } from '../i18n/format.ts';
 import { useEscapeKey } from '../hooks/useEscapeKey.ts';
+import { EmptyState } from './EmptyState.tsx';
 import { isEdited, sourceLabel, type StampProvenance } from '../lib/stamp-types.ts';
 
 /* ---------------- API shapes ---------------- */
@@ -157,7 +158,7 @@ export function DeletedBadge({ stamp }: { stamp: StampProvenance }) {
 function Timeline({ events }: { events: StampHistoryEvent[] }) {
   const { t } = useTranslation(['stamps', 'common']);
   if (events.length === 0) {
-    return <p className="text-sm muted">{t('trail.emptyTrail')}</p>;
+    return <EmptyState size="sm" title={t('trail.emptyTrail')} />;
   }
   return (
     <ol className="space-y-2" data-testid="stamp-trail">

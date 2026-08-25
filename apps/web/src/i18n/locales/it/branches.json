@@ -24,5 +24,7 @@
     "preview": "Anteprima",
     "tolerance": "tolleranza {{radius}}m",
     "previewEmpty": "Seleziona un indirizzo o clicca sulla mappa per impostare la sede."
-  }
+  },
+  "empty": "Nessuna sede",
+  "emptyHint": "Crea la prima sede: è il luogo su cui il timbro GPS viene verificato."
 }

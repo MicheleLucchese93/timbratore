@@ -114,6 +114,8 @@
     "reasonDefault": "Edited from attendance grid",
     "noStamps": "No stamps for this day.",
     "addEvent": "Add",
-    "idPrefix": "ID:"
+    "idPrefix": "ID:",
+    "empty": "No stamps in this period",
+    "emptyHint": "Change the date range or the filters to see other stamps."
   }
 }

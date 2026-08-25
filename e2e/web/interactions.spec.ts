@@ -80,7 +80,7 @@ test.describe('web — Anomalie date range filter', () => {
 test.describe('web — modal Escape-to-close', () => {
   test('pressing Escape closes an open modal', async ({ page }) => {
     await page.goto('/branches');
-    await page.getByRole('button', { name: /Nuova sede/i }).click();
+    await page.getByRole('banner').getByRole('button', { name: /Nuova sede/i }).click();
     const heading = page.getByRole('heading', { name: 'Nuova sede' });
     await expect(heading).toBeVisible({ timeout: 10_000 });
     await page.keyboard.press('Escape');
@@ -91,7 +91,7 @@ test.describe('web — modal Escape-to-close', () => {
 test.describe('web — Branches form field interactions', () => {
   test('toggling "Fuori sede" hides the radius block', async ({ page }) => {
     await page.goto('/branches');
-    await page.getByRole('button', { name: /Nuova sede/i }).click();
+    await page.getByRole('banner').getByRole('button', { name: /Nuova sede/i }).click();
     await expect(page.getByRole('heading', { name: 'Nuova sede' })).toBeVisible({ timeout: 10_000 });
     // Fuori sede switch (input#sw). Read initial state, toggle, verify
     // the radius slider visibility changes.

@@ -4,6 +4,7 @@ import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-dat
 import { api } from '../lib/api.ts';
 import { dataGridDefaults, dataGridSx } from '../lib/data-grid-style.ts';
 import { fmtNumber } from '../i18n/format.ts';
+import { EmptyState } from '../components/EmptyState.tsx';
 import i18n from '../i18n/index.ts';
 
 /**
@@ -147,6 +148,9 @@ export function AdminResidui({ embedded = false }: { embedded?: boolean } = {}) 
         getRowId={(r: AssignmentRow) => r.id}
         sx={dataGridSx}
         {...dataGridDefaults}
+        slotProps={{
+          noRowsOverlay: { art: 'calendar', title: t('admin.empty'), hint: t('admin.emptyHint') },
+        }}
       />
       <div className="callout callout-info text-sm">
         <Trans
@@ -182,11 +186,7 @@ export function MyResidui() {
       </div>
       {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
       {loaded && rows.length === 0 && !err && (
-        <div className="card">
-          <p className="muted text-sm">
-            {t('mine.empty')}
-          </p>
-        </div>
+        <EmptyState size="md" art="calendar" title={t('mine.empty')} />
       )}
       <div className="grid gap-4 sm:grid-cols-2">
         {rows.map((q) => (

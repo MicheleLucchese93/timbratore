@@ -74,7 +74,7 @@ test.describe('partner admin · tenants', () => {
     await page.getByRole('button', { name: /Chiudi|Close/ }).click();
     // Branches → fresh tenant has none, so the empty state shows.
     await row(page, tenantName).getByTestId('count-branches').click();
-    await expect(page.getByText(/Nessun risultato|No results/)).toBeVisible();
+    await expect(page.getByText(/Nessuna sede|No sites/)).toBeVisible();
     await page.getByRole('button', { name: /Chiudi|Close/ }).click();
   });
 

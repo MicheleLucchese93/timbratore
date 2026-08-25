@@ -8,7 +8,7 @@
   "weeklyTotal": "Weekly total: {{total}}",
   "duplicate": "Duplicate",
   "edit": "Edit",
-  "empty": "No schedules configured yet. Create the first one to start assigning it to employees.",
+  "empty": "No schedules configured yet",
   "copyPrefix": "Copy of ",
   "form": {
     "editTitle": "Edit schedule",
@@ -53,5 +53,6 @@
     "removeSlot": "Remove slot",
     "addSlot": "+ slot",
     "weeklyTotalLabel": "Weekly total"
-  }
+  },
+  "emptyHint": "Create the first one to start assigning it to employees."
 }

@@ -21,6 +21,7 @@ import { api, apiUrl, getToken, type ApiError } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
 import { useToast } from '../components/Toast.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { GridEmptyOverlay } from '../components/GridEmptyOverlay.tsx';
 import { MCard, MCardList } from '../components/MobileCards.tsx';
 import { Modal } from '../components/Modal.tsx';
 import { IconButton } from '../components/IconButton.tsx';
@@ -131,6 +132,14 @@ export function Tickets() {
   const [assignment, setAssignment] = useState<TicketAssignmentFilter>('tutte');
   const [q, setQ] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
+
+  // The list always arrives filtered (handling defaults to "aperti"), so an
+  // empty result usually means "nothing matches", not "nothing exists". Only
+  // the untouched default view gets the "nothing has come in yet" wording.
+  const isDefaultView = handling === 'aperti' && assignment === 'tutte' && q.trim() === '';
+  const emptyArt = isDefaultView ? 'inbox' : 'search';
+  const emptyTitle = t(isDefaultView ? 'tickets.empty' : 'tickets.emptyFiltered');
+  const emptyHint = t(isDefaultView ? 'tickets.emptyHint' : 'tickets.emptyFilteredHint');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -247,7 +256,13 @@ export function Tickets() {
       </div>
 
       {isMobile ? (
-        <MCardList loading={loading} empty={!loading && rows.length === 0}>
+        <MCardList
+          loading={loading}
+          empty={!loading && rows.length === 0}
+          art={emptyArt}
+          emptyTitle={emptyTitle}
+          emptyHint={emptyHint}
+        >
           {rows.map((r) => (
             <MCard
               key={r.id}
@@ -282,7 +297,15 @@ export function Tickets() {
             onRowClick={(p) => setOpenId(String(p.id))}
             initialState={{ pagination: { paginationModel: { pageSize: 50 } } }}
             pageSizeOptions={[50, 100]}
-            sx={{ border: 0, '& .MuiDataGrid-row': { cursor: 'pointer' } }}
+            sx={{
+              border: 0,
+              '--DataGrid-overlayHeight': '17rem',
+              '& .MuiDataGrid-row': { cursor: 'pointer' },
+            }}
+            slots={{ noRowsOverlay: GridEmptyOverlay }}
+            slotProps={{
+              noRowsOverlay: { art: emptyArt, title: emptyTitle, hint: emptyHint },
+            }}
           />
         </div>
       )}

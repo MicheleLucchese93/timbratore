@@ -14,6 +14,7 @@ import {
 } from '@sonoqui/shared';
 import { api, apiUrl, getToken, getTenantId } from '../lib/api.ts';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { EmptyState } from '../components/EmptyState.tsx';
 import { CantieriTabs } from '../components/CantieriTabs.tsx';
 import { RichTextEditor } from '../components/RichTextEditor.tsx';
 import { useEscapeKey } from '../hooks/useEscapeKey.ts';
@@ -375,40 +376,42 @@ export function CantieriDashboard() {
       {info && <div className="text-sm" style={{ color: 'var(--color-success)' }}>{info}</div>}
 
       {sites.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">
-            <IconHardHat />
-          </div>
-          <div className="empty-state-title">{t('dashboard.empty')}</div>
-          <div className="empty-state-hint">{t('dashboard.emptyHint')}</div>
-          <button
-            type="button"
-            className="btn btn-primary btn-sm mt-2"
-            onClick={() => navigate('/cantieri/sites')}
-          >
-            {t('dashboard.emptyCta')}
-          </button>
-        </div>
+        <EmptyState
+          fill
+          art="site"
+          title={t('dashboard.empty')}
+          hint={t('dashboard.emptyHint')}
+          action={
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => navigate('/cantieri/sites')}
+            >
+              {t('dashboard.emptyCta')}
+            </button>
+          }
+        />
       ) : shownSites.length === 0 ? (
         // Sites exist, the filters just hid them all — say so instead of
         // showing a bare grid (and offer the way out).
-        <div className="empty-state">
-          <div className="empty-state-icon">
-            <IconHardHat />
-          </div>
-          <div className="empty-state-title">{t('dashboard.noMatch')}</div>
-          <div className="empty-state-hint">{t('dashboard.noMatchHint')}</div>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm mt-2"
-            onClick={() => {
-              setOnlyWithEntries(false);
-              setCantiereFilter('');
-            }}
-          >
-            {t('dashboard.clearFilters')}
-          </button>
-        </div>
+        <EmptyState
+          fill
+          art="search"
+          title={t('dashboard.noMatch')}
+          hint={t('dashboard.noMatchHint')}
+          action={
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                setOnlyWithEntries(false);
+                setCantiereFilter('');
+              }}
+            >
+              {t('dashboard.clearFilters')}
+            </button>
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {shownSites.map((s) => (
@@ -501,27 +504,6 @@ export function CantieriDashboard() {
   );
 }
 
-function IconHardHat() {
-  return (
-    <svg
-      width={20}
-      height={20}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z" />
-      <path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5" />
-      <path d="M4 15v-3a6 6 0 0 1 6-6" />
-      <path d="M14 6a6 6 0 0 1 6 6v3" />
-    </svg>
-  );
-}
-
 function IconDownload() {
   return (
     <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -572,7 +554,7 @@ function EntriesDetail({
         </button>
       </div>
       {detail.entries.length === 0 ? (
-        <div className="text-sm muted">{t('dashboard.detail.empty')}</div>
+        <EmptyState size="md" art="clear" still title={t('dashboard.detail.empty')} />
       ) : (
         <div className="table-wrap">
           <table className="table">

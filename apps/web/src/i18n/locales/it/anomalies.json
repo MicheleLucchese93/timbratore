@@ -9,8 +9,8 @@
     "hiddenCount": "{{n}} nascoste"
   },
   "notDeployed": "La funzione \"Anomalie orario\" è disponibile dopo l'aggiornamento del backend. Riprova quando il deploy sarà completato.",
-  "empty": "Nessuna anomalia nel periodo selezionato.",
-  "emptyAllJustified": "Nessuna anomalia da gestire: tutte quelle del periodo ({{n}}) sono già giustificate. Togli il segno di spunta a \"Nascondi giustificate\" per rivederle.",
+  "empty": "Nessuna anomalia nel periodo selezionato",
+  "emptyAllJustified": "Nessuna anomalia da gestire",
   "row": {
     "scheduleLabel": "Orario:",
     "expected": "Atteso",
@@ -82,5 +82,7 @@
     "invalidPermWindow": "Finestra del permesso non valida.",
     "permMinDuration": "Durata minima del permesso: 15 minuti.",
     "noteRequired": "Inserisci una nota di giustificazione."
-  }
+  },
+  "emptyHint": "Ogni giornata del periodo è in linea con l’orario previsto.",
+  "emptyAllJustifiedHint": "Tutte quelle del periodo ({{n}}) sono già giustificate. Togli il segno di spunta a «Nascondi giustificate» per rivederle."
 }

@@ -8,6 +8,7 @@ import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { IconButton } from '../components/IconButton.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
 import { BachecaSection } from '../components/BachecaSection.tsx';
+import { EmptyState } from '../components/EmptyState.tsx';
 import { fmtDate, fmtDateTime, fmtTime, fmtNumber, localeTag } from '../i18n/format.ts';
 
 interface Usage {
@@ -335,7 +336,7 @@ export function Dashboard() {
               ))}
             </ul>
           ) : (
-            <EmptyState icon={<IconCalendar />} title={t('absences.noneNow')} />
+            <EmptyState size="md" art="calendar" still title={t('absences.noneNow')} />
           )}
         </div>
         <div>
@@ -347,7 +348,7 @@ export function Dashboard() {
               ))}
             </ul>
           ) : (
-            <EmptyState icon={<IconCalendar />} title={t('absences.noneUpcoming')} />
+            <EmptyState size="md" art="calendar" still title={t('absences.noneUpcoming')} />
           )}
         </div>
       </section>
@@ -359,7 +360,9 @@ export function Dashboard() {
         </div>
         {cards.length === 0 ? (
           <EmptyState
-            icon={<IconUsers />}
+            size="md"
+            art="people"
+            still
             title={t('status.noEmployees')}
             hint={t('status.noEmployeesHint')}
           />
@@ -409,7 +412,7 @@ export function Dashboard() {
             </div>
           </div>
         ) : (
-          <EmptyState icon={<IconAlert />} title={t('anomalies.none')} />
+          <EmptyState size="md" art="clear" still title={t('anomalies.none')} />
         )}
       </section>
 
@@ -457,7 +460,7 @@ function CorrectionsInbox({
 }) {
   const { t } = useTranslation(['dashboard', 'common']);
   if (rows.length === 0) {
-    return <EmptyState icon={<IconInbox />} title={t('inbox.emptyCorrections')} />;
+    return <EmptyState size="md" art="clear" still title={t('inbox.emptyCorrections')} />;
   }
   return (
     <ul className="space-y-1">
@@ -499,7 +502,7 @@ function LeavesInbox({
 }) {
   const { t } = useTranslation(['dashboard', 'common']);
   if (rows.length === 0) {
-    return <EmptyState icon={<IconInbox />} title={t('inbox.emptyLeaves')} />;
+    return <EmptyState size="md" art="clear" still title={t('inbox.emptyLeaves')} />;
   }
   return (
     <ul className="space-y-1">
@@ -546,7 +549,7 @@ function RevocationsInbox({
 }) {
   const { t } = useTranslation(['dashboard', 'common']);
   if (rows.length === 0) {
-    return <EmptyState icon={<IconInbox />} title={t('inbox.emptyRevocations')} />;
+    return <EmptyState size="md" art="clear" still title={t('inbox.emptyRevocations')} />;
   }
   return (
     <ul className="space-y-1">
@@ -831,7 +834,9 @@ function BranchGroups({ cards }: { cards: UserCard[] }) {
     <div className="space-y-5">
       {branchKeys.length === 0 && (
         <EmptyState
-          icon={<IconMapPin />}
+          size="md"
+          art="clock"
+          still
           title={t('status.nobodyPresent')}
           hint={t('status.nobodyPresentHint')}
         />
@@ -914,24 +919,6 @@ function StateBadge({ state }: { state: UserCard['state'] }) {
   if (state === 'on_break') return <span className="badge badge-warn">{t('common:workState.on_break')}</span>;
   if (state === 'on_lunch') return <span className="badge badge-warn">{t('common:workState.on_lunch')}</span>;
   return <span className="badge badge-muted">{t('common:workState.off')}</span>;
-}
-
-function EmptyState({
-  icon,
-  title,
-  hint,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  hint?: string;
-}) {
-  return (
-    <div className="empty-state">
-      <div className="empty-state-icon">{icon}</div>
-      <div className="empty-state-title">{title}</div>
-      {hint && <div className="empty-state-hint">{hint}</div>}
-    </div>
-  );
 }
 
 function initialsFor(email: string): string {

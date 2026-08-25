@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   TICKET_ATTACHMENT_MAX_BYTES,
@@ -18,6 +18,7 @@ import {
 import { api, apiUrl, getTenantId, getToken } from '../lib/api.ts';
 import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { EmptyState } from '../components/EmptyState.tsx';
 import { fmtDateTime } from '../i18n/format.ts';
 
 /**
@@ -126,28 +127,6 @@ function eventKey(e: TicketEvent): string {
   return `handling_${e.to_status}`;
 }
 
-/** Same shape the Dashboard uses, plus an optional call to action. */
-function EmptyState({
-  icon,
-  title,
-  hint,
-  action,
-}: {
-  icon: ReactNode;
-  title: string;
-  hint?: string;
-  action?: ReactNode;
-}) {
-  return (
-    <div className="empty-state" data-testid="ticket-empty">
-      <div className="empty-state-icon">{icon}</div>
-      <div className="empty-state-title">{title}</div>
-      {hint && <div className="empty-state-hint">{hint}</div>}
-      {action}
-    </div>
-  );
-}
-
 // Page-local icon set, matching the stroke/size conventions the other pages use.
 const I = {
   width: 14,
@@ -161,24 +140,6 @@ const I = {
   'aria-hidden': true,
 };
 
-function IconLifebuoy() {
-  return (
-    <svg {...I} width={18} height={18}>
-      <circle cx="12" cy="12" r="9" />
-      <circle cx="12" cy="12" r="4" />
-      <path d="M5.6 5.6l3.6 3.6M14.8 14.8l3.6 3.6M18.4 5.6l-3.6 3.6M9.2 14.8l-3.6 3.6" />
-    </svg>
-  );
-}
-function IconArchive() {
-  return (
-    <svg {...I} width={18} height={18}>
-      <rect x="3" y="4" width="18" height="5" rx="1" />
-      <path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9" />
-      <path d="M10 13h4" />
-    </svg>
-  );
-}
 function IconClock() {
   return (
     <svg {...I}>
@@ -393,7 +354,13 @@ export function Tickets() {
         // One empty state per view, because "nothing here" means three different
         // things: nothing yet, nothing outstanding, nothing finished.
         <EmptyState
-          icon={filter === 'chiuse' ? <IconArchive /> : <IconLifebuoy />}
+          data-testid="ticket-empty"
+          fill
+          // Three different nothings, three different scenes: nothing has ever
+          // been asked (the tray, and the only one that is an invitation —
+          // hence the only one with a button), nothing outstanding (the shield:
+          // this one is good news), nothing closed yet (a file of past work).
+          art={filter === 'chiuse' ? 'documents' : items.length === 0 ? 'inbox' : 'clear'}
           title={t(`empty.${items.length === 0 ? 'none' : filter}`)}
           hint={items.length === 0 ? t('empty.noneHint') : undefined}
           action={

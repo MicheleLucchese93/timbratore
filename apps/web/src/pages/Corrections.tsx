@@ -4,6 +4,7 @@ import { api } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
 import { NewCorrectionModal } from '../components/NewCorrectionModal.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { EmptyState } from '../components/EmptyState.tsx';
 import { IconButton } from '../components/IconButton.tsx';
 import { fmtDateTime } from '../i18n/format.ts';
 
@@ -92,7 +93,7 @@ export function Corrections() {
       </select>
       {err && <div className="card text-sm text-[color:var(--color-error)]">{err}</div>}
       {list.length === 0 ? (
-        <div className="card text-sm muted">{t('empty')}</div>
+        <EmptyState fill art="clear" title={t('empty')} />
       ) : (
         <ul className="space-y-3">
           {list.map((cr) => (

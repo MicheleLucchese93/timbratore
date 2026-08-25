@@ -164,7 +164,8 @@ test.describe('web — Cantieri: seed, UI, dashboard, PDF', () => {
 
     // Create a second site through the modal.
     uiSiteName = `e2e-cantiere-ui-${Date.now()}`;
-    await page.getByRole('button', { name: 'Nuovo cantiere' }).click();
+    // Scoped to the header: an empty Cantieri page offers the same action.
+    await page.getByRole('banner').getByRole('button', { name: 'Nuovo cantiere' }).click();
     await page.locator('form .input').first().fill(uiSiteName);
     await page.getByRole('button', { name: 'Salva' }).click();
     await expect(page.getByText(uiSiteName)).toBeVisible({ timeout: 10_000 });

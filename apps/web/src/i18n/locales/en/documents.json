@@ -75,5 +75,13 @@
     "statusUploading": "Uploading…",
     "statusDone": "Uploaded",
     "statusError": "Error"
+  },
+  "grid": {
+    "empty": "No documents uploaded",
+    "emptyHint": "Upload the first PDF and assign it to an employee."
+  },
+  "mine": {
+    "empty": "No documents available",
+    "emptyHint": "When your company publishes a document for you, it shows up here."
   }
 }

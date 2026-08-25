@@ -240,7 +240,9 @@ export function Audit() {
           pageSizeOptions={[50, 100, 200]}
           loading={loading}
           onRowClick={(p) => setSelected(p.row)}
-          localeText={{ noRowsLabel: t('empty') }}
+          slotProps={{
+            noRowsOverlay: { art: 'history', title: t('empty'), hint: t('emptyHint') },
+          }}
         />
       </div>
 

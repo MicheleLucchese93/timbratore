@@ -5,6 +5,7 @@ import { useMediaQuery } from '@mui/material';
 import { api, type ApiError } from '../lib/api.ts';
 import { useToast } from '../components/Toast.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { GridEmptyOverlay } from '../components/GridEmptyOverlay.tsx';
 import { MCard, MCardList } from '../components/MobileCards.tsx';
 import { IconButton } from '../components/IconButton.tsx';
 import { IconRefresh } from '../components/icons.tsx';
@@ -77,7 +78,13 @@ export function Audit() {
         }
       />
       {isMobile ? (
-        <MCardList loading={loading} empty={!loading && rows.length === 0}>
+        <MCardList
+          loading={loading}
+          empty={!loading && rows.length === 0}
+          art="history"
+          emptyTitle={t('audit.empty')}
+          emptyHint={t('audit.emptyHint')}
+        >
           {rows.map((r) => (
             <MCard
               key={r.id}
@@ -101,7 +108,15 @@ export function Audit() {
             density="compact"
             initialState={{ pagination: { paginationModel: { pageSize: 50 } } }}
             pageSizeOptions={[50, 100]}
-            sx={{ border: 0 }}
+            sx={{ border: 0, '--DataGrid-overlayHeight': '17rem' }}
+            slots={{ noRowsOverlay: GridEmptyOverlay }}
+            slotProps={{
+              noRowsOverlay: {
+                art: 'history',
+                title: t('audit.empty'),
+                hint: t('audit.emptyHint'),
+              },
+            }}
           />
         </div>
       )}

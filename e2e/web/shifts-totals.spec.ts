@@ -17,7 +17,7 @@ test.describe('web — Orari Settimana day & week totals', () => {
   });
 
   test('renders per-day total and weekly total in the editor', async ({ page }) => {
-    await page.getByRole('button', { name: /Nuovo orario/i }).click();
+    await page.getByRole('banner').getByRole('button', { name: /Nuovo orario/i }).click();
     await expect(page.getByRole('heading', { name: 'Nuovo orario' })).toBeVisible({ timeout: 10_000 });
 
     const lun = dayRow(page, 'Lunedì');
@@ -42,7 +42,7 @@ test.describe('web — Orari Settimana day & week totals', () => {
   });
 
   test('weekly total updates as more days get fasce', async ({ page }) => {
-    await page.getByRole('button', { name: /Nuovo orario/i }).click();
+    await page.getByRole('banner').getByRole('button', { name: /Nuovo orario/i }).click();
     await expect(page.getByRole('heading', { name: 'Nuovo orario' })).toBeVisible({ timeout: 10_000 });
 
     for (const label of ['Lunedì', 'Martedì']) {
@@ -59,7 +59,7 @@ test.describe('web — Orari Settimana day & week totals', () => {
   });
 
   test('adding a second fascia copies the previous one of that day', async ({ page }) => {
-    await page.getByRole('button', { name: /Nuovo orario/i }).click();
+    await page.getByRole('banner').getByRole('button', { name: /Nuovo orario/i }).click();
     await expect(page.getByRole('heading', { name: 'Nuovo orario' })).toBeVisible({ timeout: 10_000 });
 
     const lun = dayRow(page, 'Lunedì');

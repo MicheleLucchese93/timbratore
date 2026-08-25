@@ -93,7 +93,9 @@
     "bulkTitle_one": "Assign quota to {{count}} user",
     "bulkTitle_other": "Assign quota to {{count}} users",
     "bulkNoTemplates": "No active template for this type.",
-    "bulkOverwrite": "Users who already have a quota of the same type will be overwritten: the previous one is closed and a new one starts."
+    "bulkOverwrite": "Users who already have a quota of the same type will be overwritten: the previous one is closed and a new one starts.",
+    "gridEmpty": "No quotas assigned",
+    "gridEmptyHint": "Assign a quota to one or more users to track their balance."
   },
   "accrual": {
     "none": "No accrual",
@@ -155,7 +157,9 @@
     "active": "Active",
     "inactive": "Disabled",
     "editTemplate": "Edit template",
-    "deleteTemplate": "Delete template"
+    "deleteTemplate": "Delete template",
+    "gridEmpty": "No quota templates",
+    "gridEmptyHint": "A template lets you assign the same quota to several users at once."
   },
   "templateForm": {
     "editTitle": "Edit quota template",
@@ -179,5 +183,9 @@
     "summaryMonthly": "Every month on day {{day}}, {{hours}}h will be added.",
     "summaryYearly": "Every year on {{day}} {{month}}, {{hours}}h will be added.",
     "active": "Active"
+  },
+  "grid": {
+    "empty": "No requests in this period",
+    "emptyHint": "Holiday, leave and sickness requests show up here."
   }
 }

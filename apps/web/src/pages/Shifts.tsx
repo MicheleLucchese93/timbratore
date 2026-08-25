@@ -5,6 +5,7 @@ import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
 import { IconButton } from '../components/IconButton.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { EmptyState } from '../components/EmptyState.tsx';
 import { localeTag } from '../i18n/format.ts';
 
 interface Slot {
@@ -171,46 +172,57 @@ export function Shifts() {
         </div>
       )}
 
-      <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {list.map((tpl) => (
-          <li key={tpl.id} className="card flex flex-col gap-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="font-medium">{tpl.name}</div>
-                {tpl.description && (
-                  <div className="text-xs muted">{tpl.description}</div>
-                )}
-                <div className="text-xs muted mt-1">
-                  {/* With pausa switched off the min/max window is meaningless —
-                      say so instead of printing a range nobody can hit. */}
-                  {t(tpl.break_enabled === false ? 'summaryNoBreak' : 'summary', {
-                    toleranceIn: tpl.tolerance_in_min,
-                    toleranceOut: tpl.tolerance_out_min,
-                    breakMin: tpl.expected_break_min_min,
-                    breakMax: tpl.expected_break_max_min,
-                    lunchMin: tpl.expected_lunch_min_min,
-                    lunchMax: tpl.expected_lunch_max_min,
-                  })}
+      {/* Outside the grid, not a cell inside it: a `<li>` in a two-column grid
+          pins the empty block to the left half of the page. */}
+      {list.length === 0 ? (
+        <EmptyState
+          fill
+          art="schedule"
+          title={t('empty')}
+          hint={t('emptyHint')}
+          action={
+            <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
+              {t('new')}
+            </button>
+          }
+        />
+      ) : (
+        <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {list.map((tpl) => (
+            <li key={tpl.id} className="card flex flex-col gap-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium">{tpl.name}</div>
+                  {tpl.description && (
+                    <div className="text-xs muted">{tpl.description}</div>
+                  )}
+                  <div className="text-xs muted mt-1">
+                    {/* With pausa switched off the min/max window is meaningless —
+                        say so instead of printing a range nobody can hit. */}
+                    {t(tpl.break_enabled === false ? 'summaryNoBreak' : 'summary', {
+                      toleranceIn: tpl.tolerance_in_min,
+                      toleranceOut: tpl.tolerance_out_min,
+                      breakMin: tpl.expected_break_min_min,
+                      breakMax: tpl.expected_break_max_min,
+                      lunchMin: tpl.expected_lunch_min_min,
+                      lunchMax: tpl.expected_lunch_max_min,
+                    })}
+                  </div>
+                  <div className="text-xs muted mt-0.5">
+                    {t('weeklyTotal', { total: formatWeeklyTotal(tpl.slots) })}
+                  </div>
                 </div>
-                <div className="text-xs muted mt-0.5">
-                  {t('weeklyTotal', { total: formatWeeklyTotal(tpl.slots) })}
+                <div className="flex gap-2 shrink-0 items-center">
+                  <IconButton kind="duplicate" title={t('duplicate')} onClick={() => duplicate(tpl)} />
+                  <IconButton kind="edit" title={t('edit')} onClick={() => setEditing(tpl)} />
+                  <IconButton kind="delete" title={t('common:btn.delete')} onClick={() => remove(tpl)} />
                 </div>
               </div>
-              <div className="flex gap-2 shrink-0 items-center">
-                <IconButton kind="duplicate" title={t('duplicate')} onClick={() => duplicate(tpl)} />
-                <IconButton kind="edit" title={t('edit')} onClick={() => setEditing(tpl)} />
-                <IconButton kind="delete" title={t('common:btn.delete')} onClick={() => remove(tpl)} />
-              </div>
-            </div>
-            <WeeklyPreview slots={tpl.slots} />
-          </li>
-        ))}
-        {list.length === 0 && (
-          <li className="card text-sm muted">
-            {t('empty')}
-          </li>
-        )}
-      </ul>
+              <WeeklyPreview slots={tpl.slots} />
+            </li>
+          ))}
+        </ul>
+      )}
 
       {(showCreate || editing) && (
         <ShiftForm

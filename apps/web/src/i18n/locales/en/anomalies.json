@@ -9,8 +9,8 @@
     "hiddenCount": "{{n}} hidden"
   },
   "notDeployed": "The \"Time anomalies\" feature becomes available after the backend update. Try again once the deployment is complete.",
-  "empty": "No anomalies in the selected period.",
-  "emptyAllJustified": "Nothing left to handle: every anomaly in the period ({{n}}) is already justified. Uncheck \"Hide justified\" to see them again.",
+  "empty": "No anomalies in the selected period",
+  "emptyAllJustified": "Nothing left to handle",
   "row": {
     "scheduleLabel": "Schedule:",
     "expected": "Expected",
@@ -82,5 +82,7 @@
     "invalidPermWindow": "Invalid leave window.",
     "permMinDuration": "Minimum leave duration: 15 minutes.",
     "noteRequired": "Enter a justification note."
-  }
+  },
+  "emptyHint": "Every day in the period matches its expected schedule.",
+  "emptyAllJustifiedHint": "Every anomaly in the period ({{n}}) is already justified. Uncheck “Hide justified” to see them again."
 }

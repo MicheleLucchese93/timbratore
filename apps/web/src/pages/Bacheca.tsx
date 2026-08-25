@@ -10,6 +10,7 @@ import { api } from '../lib/api.ts';
 import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { EmptyState } from '../components/EmptyState.tsx';
 import { RichTextEditor } from '../components/RichTextEditor.tsx';
 import { fmtDate, fmtDateTime } from '../i18n/format.ts';
 
@@ -75,9 +76,17 @@ export function Bacheca() {
       {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
 
       {items.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-title">{t('emptyAdmin')}</div>
-        </div>
+        <EmptyState
+          fill
+          art="board"
+          title={t('emptyAdmin')}
+          hint={t('emptyAdminHint')}
+          action={
+            <button className="btn btn-primary" onClick={() => setComposing(true)}>
+              {t('new')}
+            </button>
+          }
+        />
       ) : (
         <ul className="space-y-2">
           {items.map((b) => {
@@ -354,7 +363,7 @@ function ReadsModal({ bulletin, onClose }: { bulletin: BulletinAdminItem; onClos
         </div>
         <div className="text-sm muted">{t('reads.summary', { read: readCount, total: rows.length })}</div>
         {loaded && rows.length === 0 ? (
-          <div className="text-sm muted">{t('reads.empty')}</div>
+          <EmptyState size="sm" title={t('reads.empty')} />
         ) : (
           <ul className="space-y-1 max-h-80 overflow-y-auto">
             {rows.map((r) => (

@@ -14,6 +14,7 @@ import { IconButton } from '../components/IconButton.tsx';
 import { LeaveCalendar, type CalendarEvent } from '../components/LeaveCalendar.tsx';
 import { NewLeaveModal } from '../components/NewLeaveModal.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
+import { EmptyState } from '../components/EmptyState.tsx';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
 import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { AdminResidui } from './Residui.tsx';
@@ -1404,7 +1405,7 @@ function AuditLogModal({ user, onClose }: { user: UserRow; onClose: () => void }
         </h2>
         {err && <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
         {rows && rows.length === 0 && (
-          <p className="text-sm muted">{t('audit.empty')}</p>
+          <EmptyState size="sm" title={t('audit.empty')} />
         )}
         {rows && rows.length > 0 && (
           <div className="max-h-[60vh] overflow-auto">
@@ -1946,6 +1947,9 @@ function RequestsDataGrid({
       getRowId={(r: LeaveRequest) => r.id}
       sx={dataGridSx}
       {...dataGridDefaults}
+      slotProps={{
+        noRowsOverlay: { art: 'calendar', title: t('grid.empty'), hint: t('grid.emptyHint') },
+      }}
     />
   );
 }
@@ -2074,6 +2078,13 @@ function QuotasDataGrid({
       onRowSelectionModelChange={onRowSelectionChange}
       sx={dataGridSx}
       {...dataGridDefaults}
+      slotProps={{
+        noRowsOverlay: {
+          art: 'calendar',
+          title: t('quotas.gridEmpty'),
+          hint: t('quotas.gridEmptyHint'),
+        },
+      }}
     />
   );
 }
@@ -2162,6 +2173,13 @@ function TemplatesDataGrid({
       getRowId={(r: Template) => r.id}
       sx={dataGridSx}
       {...dataGridDefaults}
+      slotProps={{
+        noRowsOverlay: {
+          art: 'documents',
+          title: t('templates.gridEmpty'),
+          hint: t('templates.gridEmptyHint'),
+        },
+      }}
     />
   );
 }

@@ -11,6 +11,7 @@ import { BranchMapPreview } from '../components/BranchMapPreview.tsx';
 import { useConfirm } from '../components/ConfirmDialog.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
 import { IconButton } from '../components/IconButton.tsx';
+import { EmptyState } from '../components/EmptyState.tsx';
 
 interface Branch {
   id: string;
@@ -83,42 +84,62 @@ export function Branches() {
         }
       />
       {err && <div className="card text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>}
-      <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {list.map((b) => (
-          <li key={b.id} className="card flex flex-col gap-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="font-medium truncate">{b.name}</div>
-                <div className="text-xs muted truncate">{b.address ?? '—'}</div>
-                <div className="text-xs muted mt-1">
-                  {b.smart_working ? (
-                    <span className="badge badge-muted">{t('offSite')}</span>
-                  ) : (
-                    <>
-                      {b.latitude?.toFixed(4)}, {b.longitude?.toFixed(4)}
-                      {b.enforce_radius ? ` · ${t('radius', { count: b.radius_m })}` : ` · ${t('noRadius')}`}
-                    </>
-                  )}
+      {/* Outside the grid, not a cell inside it: a `<li>` in a two-column grid
+          pins the empty block to the left half of the page. */}
+      {list.length === 0 ? (
+        <EmptyState
+          fill
+          art="place"
+          title={t('empty')}
+          hint={t('emptyHint')}
+          action={
+            <button
+              className="btn btn-primary"
+              disabled={atLimit}
+              onClick={() => setShowCreate(true)}
+            >
+              {t('new')}
+            </button>
+          }
+        />
+      ) : (
+        <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {list.map((b) => (
+            <li key={b.id} className="card flex flex-col gap-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{b.name}</div>
+                  <div className="text-xs muted truncate">{b.address ?? '—'}</div>
+                  <div className="text-xs muted mt-1">
+                    {b.smart_working ? (
+                      <span className="badge badge-muted">{t('offSite')}</span>
+                    ) : (
+                      <>
+                        {b.latitude?.toFixed(4)}, {b.longitude?.toFixed(4)}
+                        {b.enforce_radius ? ` · ${t('radius', { count: b.radius_m })}` : ` · ${t('noRadius')}`}
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-1 items-center shrink-0">
+                  <IconButton kind="edit" onClick={() => setEditing(b)} title={t('common:btn.edit')} />
+                  <IconButton kind="delete" onClick={() => remove(b.id)} title={t('common:btn.delete')} />
                 </div>
               </div>
-              <div className="flex gap-1 items-center shrink-0">
-                <IconButton kind="edit" onClick={() => setEditing(b)} title={t('common:btn.edit')} />
-                <IconButton kind="delete" onClick={() => remove(b.id)} title={t('common:btn.delete')} />
-              </div>
-            </div>
-            {!b.smart_working && b.latitude !== null && b.longitude !== null && (
-              <BranchMapPreview
-                lat={b.latitude}
-                lng={b.longitude}
-                radiusM={b.radius_m}
-                showRadius={b.enforce_radius}
-                height={280}
-                interactive
-              />
-            )}
-          </li>
-        ))}
-      </ul>
+              {!b.smart_working && b.latitude !== null && b.longitude !== null && (
+                <BranchMapPreview
+                  lat={b.latitude}
+                  lng={b.longitude}
+                  radiusM={b.radius_m}
+                  showRadius={b.enforce_radius}
+                  height={280}
+                  interactive
+                />
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
       {(showCreate || editing) && (
         <BranchForm
           initial={editing ?? undefined}
