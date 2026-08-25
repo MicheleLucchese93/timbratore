@@ -77,5 +77,22 @@
     "aperte": "Nessuna richiesta aperta",
     "chiuse": "Nessuna richiesta chiusa",
     "tutte": "Nessuna richiesta di assistenza"
+  },
+  "history": {
+    "button": "Storico",
+    "empty": "Nessun cambio di stato registrato.",
+    "created": "Richiesta aperta",
+    "taken": "Presa in carico dall'assistenza",
+    "resumed": "Ripresa in carico dall'assistenza",
+    "handling_in_attesa_cliente": "In attesa di una tua risposta",
+    "handling_risolto": "Risolta dall'assistenza",
+    "handling_chiuso": "Chiusa dall'assistenza",
+    "handling_nuovo": "Rimessa fra le nuove",
+    "userResolved": "Segnata come risolta da te",
+    "userReopened": "Riaperta da te"
+  },
+  "closedHint": {
+    "mine": "Hai segnato questa richiesta come risolta. Se ti serve ancora, riaprila o rispondi qui.",
+    "team": "L'assistenza ha chiuso questa richiesta. Puoi comunque rispondere: la riapriamo e la riprendiamo in carico."
   }
 }

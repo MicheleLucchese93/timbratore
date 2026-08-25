@@ -11,6 +11,7 @@ import {
   isTicketAttachmentMime,
   replyReopens,
   type TicketDetail,
+  type TicketEvent,
   type TicketFeedItem,
   type TicketHandlingStatus,
 } from '@sonoqui/shared';
@@ -81,6 +82,48 @@ function dotOf(t: TicketFeedItem): string {
   if (!isOpen(t)) return 'ticket-dot--done';
   if (t.handling_status === 'in_attesa_cliente') return 'ticket-dot--you';
   return 'ticket-dot--open';
+}
+
+/**
+ * The one badge a row or panel shows.
+ *
+ * While the request is in play it is the TEAM's state, which is the thing worth
+ * knowing. Once it is out of play that state is frozen and misleading — a
+ * request closed while it happened to be «in attesa di una tua risposta» would
+ * keep telling its owner to reply — so what shows instead is the outcome, and
+ * which side reached it: the customer's own «Risolta da te», or ours.
+ */
+function ClosedOrHandlingBadge({ ticket }: { ticket: TicketFeedItem }) {
+  const { t } = useTranslation(['tickets']);
+  if (isOpen(ticket)) {
+    return (
+      <span className={`badge ${toneOf(ticket.handling_status)}`}>
+        {t(`handling.${ticket.handling_status}`)}
+      </span>
+    );
+  }
+  return ticket.status === 'resolved' ? (
+    <span className="badge badge-ok">{t('mine.resolved')}</span>
+  ) : (
+    <span className="badge badge-muted">{t('handling.chiuso')}</span>
+  );
+}
+
+/**
+ * How one history step reads.
+ *
+ * Derived from the transition rather than stored, because the row deliberately
+ * carries no actor (migration 063) — `nuovo → in_lavorazione` is "presa in
+ * carico" whoever clicked it, and `→ in_lavorazione` from anywhere else is the
+ * team picking it back up.
+ */
+function eventKey(e: TicketEvent): string {
+  if (e.kind === 'created') return 'created';
+  if (e.kind === 'user_status') return e.to_status === 'resolved' ? 'userResolved' : 'userReopened';
+  if (e.to_status === 'in_lavorazione') {
+    return e.from_status === 'nuovo' ? 'taken' : 'resumed';
+  }
+  return `handling_${e.to_status}`;
 }
 
 /** Same shape the Dashboard uses, plus an optional call to action. */
@@ -164,6 +207,15 @@ function IconChevronRight() {
   return (
     <svg {...I} width={16} height={16} className="ticket-row-chevron">
       <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
+function IconHistory() {
+  return (
+    <svg {...I}>
+      <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+      <path d="M3 3v5h5" />
+      <path d="M12 7v5l3 3" />
     </svg>
   );
 }
@@ -371,12 +423,7 @@ export function Tickets() {
                     <span className="font-semibold text-sm truncate" title={it.subject}>
                       {it.subject}
                     </span>
-                    <span className={`badge ${toneOf(it.handling_status)}`}>
-                      {t(`handling.${it.handling_status}`)}
-                    </span>
-                    {it.status === 'resolved' && (
-                      <span className="badge badge-muted">{t('mine.resolved')}</span>
-                    )}
+                    <ClosedOrHandlingBadge ticket={it} />
                     {it.unread_count > 0 && (
                       <span className="badge badge-ok">
                         {t('unread', { count: it.unread_count })}
@@ -629,6 +676,7 @@ function TicketModal({ ticketId, onClose }: { ticketId: string; onClose: () => v
   const { t } = useTranslation(['tickets', 'common']);
   useEscapeKey(onClose);
   const [detail, setDetail] = useState<TicketDetail | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const [reply, setReply] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
@@ -709,8 +757,23 @@ function TicketModal({ ticketId, onClose }: { ticketId: string; onClose: () => v
   const ticket = detail?.ticket;
 
   return (
-    <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50 overflow-y-auto">
-      <div className="card w-full max-w-3xl space-y-4 my-4" data-testid="ticket-detail">
+    // Clicking the backdrop dismisses the panel, like every other dialog in the
+    // app — `onMouseDown` and an explicit target check so a text selection that
+    // happens to END outside the card does not count as a click outside it.
+    <div
+      className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50 overflow-y-auto"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      data-testid="ticket-backdrop"
+    >
+      {/* Wider and taller than the default card: the thread, its attachments and
+          the composer all live here, and a 3xl column left two thirds of a
+          desktop screen empty while the conversation scrolled in a slot. */}
+      <div
+        className="card w-full max-w-5xl space-y-4 my-4 ticket-panel"
+        data-testid="ticket-detail"
+      >
         {!ticket ? (
           <div className="muted text-sm">{err ?? t('common:state.loading')}</div>
         ) : (
@@ -719,12 +782,7 @@ function TicketModal({ ticketId, onClose }: { ticketId: string; onClose: () => v
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="num text-xs muted">{ticket.ref}</span>
-                  <span className={`badge ${toneOf(ticket.handling_status)}`}>
-                    {t(`handling.${ticket.handling_status}`)}
-                  </span>
-                  {ticket.status === 'resolved' && (
-                    <span className="badge badge-muted">{t('mine.resolved')}</span>
-                  )}
+                  <ClosedOrHandlingBadge ticket={ticket} />
                 </div>
                 <h2 className="section-title mt-1">{ticket.subject}</h2>
                 <div className="text-xs muted num">{fmtDateTime(ticket.created_at)}</div>
@@ -747,6 +805,16 @@ function TicketModal({ ticketId, onClose }: { ticketId: string; onClose: () => v
                 </button>
                 <button
                   type="button"
+                  className="btn btn-secondary btn-sm inline-flex items-center gap-1"
+                  onClick={() => setShowHistory((v) => !v)}
+                  aria-expanded={showHistory}
+                  data-testid="ticket-history-toggle"
+                >
+                  <IconHistory />
+                  {t('history.button')}
+                </button>
+                <button
+                  type="button"
                   className="btn btn-ghost btn-sm"
                   onClick={onClose}
                   title={t('common:btn.close')}
@@ -758,10 +826,31 @@ function TicketModal({ ticketId, onClose }: { ticketId: string; onClose: () => v
               </div>
             </div>
 
-            {/* The team's state explained in one line, because a status word on
-                its own reads as a decision taken about you rather than something
-                you can act on. */}
-            <p className="muted text-sm">{t(`handlingHint.${ticket.handling_status}`)}</p>
+            {/* The state explained in one line, because a status word on its own
+                reads as a decision taken about you rather than something you can
+                act on. A closed request explains its CLOSURE — quoting "in attesa
+                di una tua risposta" at somebody who has already finished with it
+                is the app arguing with itself. */}
+            <p className="muted text-sm">
+              {isOpen(ticket)
+                ? t(`handlingHint.${ticket.handling_status}`)
+                : t(ticket.status === 'resolved' ? 'closedHint.mine' : 'closedHint.team')}
+            </p>
+
+            {showHistory && (
+              <ol className="ticket-history" data-testid="ticket-history">
+                {detail!.events.map((e) => (
+                  <li key={e.id}>
+                    <span className="ticket-history-dot" aria-hidden="true" />
+                    <span className="ticket-history-label">{t(`history.${eventKey(e)}`)}</span>
+                    <span className="ticket-history-at num">{fmtDateTime(e.at)}</span>
+                  </li>
+                ))}
+                {detail!.events.length === 0 && (
+                  <li className="muted text-sm">{t('history.empty')}</li>
+                )}
+              </ol>
+            )}
 
             <ul className="space-y-3">
               {detail!.messages.map((m) => (

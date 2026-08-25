@@ -1534,3 +1534,44 @@ select.input { background-color: white; }
   .ticket-row-skeleton { animation: none; }
   .ticket-row, .ticket-row-chevron { transition: none; }
 }
+
+/* Ticket panel + state history ------------------------------------------ */
+/* The panel is tall as well as wide: on a laptop the thread is the part that
+   needs the room, so the card is capped to the viewport and the content — not
+   the page behind it — is what scrolls. */
+.ticket-panel {
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+}
+
+/* A timeline, not a table: one rail, a dot per step, the timestamp right-aligned
+   so the dates line up and the eye can run down them. */
+.ticket-history {
+  list-style: none;
+  margin: 0;
+  padding: 0.75rem 0 0.75rem 0.5rem;
+  border-left: 2px solid var(--color-surface-variant);
+  display: grid;
+  gap: 0.5rem;
+}
+.ticket-history li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+.ticket-history-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  flex: none;
+  margin-left: -0.9375rem;
+  transform: translateY(-1px);
+}
+.ticket-history-label { color: var(--color-on-surface); }
+.ticket-history-at {
+  margin-left: auto;
+  color: var(--color-on-surface-variant);
+  white-space: nowrap;
+}

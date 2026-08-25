@@ -255,7 +255,7 @@ ticketsRouter.get(
     // or another tenant's — 404 for both, never 403, which would confirm the id.
     if (t.rowCount === 0) throw new NotFoundError('ticket');
 
-    const [messages, attachments] = await Promise.all([
+    const [messages, attachments, events] = await Promise.all([
       client.query(
         `SELECT id, author_role, body, created_at FROM support_ticket_messages
           WHERE ticket_id = $1 ORDER BY created_at, id`,
@@ -265,6 +265,13 @@ ticketsRouter.get(
         `SELECT id, message_id, filename, mime, size_bytes, uploaded_by
            FROM support_ticket_attachments
           WHERE ticket_id = $1 ORDER BY created_at, id`,
+        [id.data]
+      ),
+      // The state history (migration 063). Safe to send as-is: the rows carry no
+      // actor, so nothing here names an operator.
+      client.query(
+        `SELECT id, kind, from_status, to_status, at FROM support_ticket_events
+          WHERE ticket_id = $1 ORDER BY at, id`,
         [id.data]
       ),
     ]);
@@ -288,6 +295,7 @@ ticketsRouter.get(
       // reader is about to see rather than the zero just written.
       ticket: t.rows[0],
       messages: toThread(messages.rows, attachments.rows),
+      events: events.rows,
     });
   })
 );

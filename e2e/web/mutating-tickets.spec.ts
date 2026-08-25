@@ -171,6 +171,10 @@ test.describe('web — Assistenza: raise, reply, resolve', () => {
     await expect(page.getByTestId('ticket-row').filter({ hasText: marker })).toHaveCount(1);
     await page.getByTestId('ticket-filter-tutte').click();
 
+    // A closed request shows ONE badge — the outcome — and not the team state it
+    // happened to be frozen in.
+    await expect(row).not.toContainText('In attesa di una tua risposta');
+
     // Reopening is the opposite click, so it keeps the panel open.
     await row.click();
     const reopened = page.waitForResponse(
@@ -180,5 +184,35 @@ test.describe('web — Assistenza: raise, reply, resolve', () => {
     await reopened;
     await expect(page.getByTestId('ticket-detail')).toBeVisible();
     await expect(page.getByTestId('ticket-detail').getByText('Risolta da te')).toHaveCount(0);
+  });
+
+  test('UI: the history lists every state change, and the backdrop dismisses', async ({ page }) => {
+    const marker = `e2e-ticket-hist-${Date.now()}`;
+    const created = await createTicket(admin.token, {
+      subject: marker,
+      body: 'Richiesta creata per verificare lo storico degli stati.',
+    });
+    // A second transition to have something beyond "aperta": the customer's own
+    // flag is the only one this side can drive.
+    await setTicketStatus(admin.token, created.id, 'resolved');
+    await setTicketStatus(admin.token, created.id, 'open');
+
+    await page.goto('/tickets');
+    await page.getByTestId('ticket-row').filter({ hasText: marker }).click();
+    const detail = page.getByTestId('ticket-detail');
+    await expect(detail).toBeVisible();
+
+    await page.getByTestId('ticket-history-toggle').click();
+    const history = page.getByTestId('ticket-history');
+    await expect(history).toBeVisible();
+    // Written by the migration-063 trigger, not by any call site — so it is
+    // there whichever path moved the state.
+    await expect(history).toContainText('Richiesta aperta');
+    await expect(history).toContainText('Segnata come risolta da te');
+    await expect(history).toContainText('Riaperta da te');
+
+    // Clicking outside the panel closes it, like every other dialog in the app.
+    await page.getByTestId('ticket-backdrop').click({ position: { x: 5, y: 5 } });
+    await expect(detail).toHaveCount(0);
   });
 });

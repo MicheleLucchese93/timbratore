@@ -172,6 +172,8 @@ internalE2eRouter.post(
                 )`,
         argsT
       );
+      // Messages, attachments AND the state history (migration 063) all cascade
+      // from the ticket, so this one statement is the whole sweep.
       const tkt = await client.query(
         `DELETE FROM support_tickets WHERE tenant_id = $2 OR user_id ${inE2eUsers}`,
         argsT

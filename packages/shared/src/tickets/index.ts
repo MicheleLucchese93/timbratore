@@ -193,9 +193,26 @@ export interface TicketFeedItem {
   first_message_id?: string;
 }
 
+/**
+ * One step of a request's history (migration 063).
+ *
+ * Carries no actor on purpose: the transition itself is what both surfaces
+ * render, and an actor column would put an operator's identity in front of the
+ * customer. `kind` says WHOSE state moved — the team's or the customer's own
+ * flag — which is all the label needs.
+ */
+export interface TicketEvent {
+  id: string;
+  kind: 'created' | 'handling' | 'user_status';
+  from_status: string | null;
+  to_status: string;
+  at: string;
+}
+
 export interface TicketDetail {
   ticket: TicketFeedItem;
   messages: TicketMessage[];
+  events: TicketEvent[];
 }
 
 /** A ticket as the console sees it: adds the customer's identity and team-only fields. */
@@ -216,6 +233,7 @@ export interface ConsoleTicket extends TicketFeedItem {
 export interface ConsoleTicketDetail {
   ticket: ConsoleTicket;
   messages: TicketMessage[];
+  events: TicketEvent[];
 }
 
 /** An operator a ticket may be assigned to (platform-admin picker). */

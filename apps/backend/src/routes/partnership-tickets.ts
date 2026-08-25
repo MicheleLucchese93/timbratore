@@ -268,7 +268,7 @@ partnershipTicketsRouter.get(
     // to discover which tickets exist.
     if (!ticket) throw new NotFoundError('ticket');
 
-    const [messages, attachments] = await Promise.all([
+    const [messages, attachments, events] = await Promise.all([
       adminPool.query(
         `SELECT id, author_role, author_label, body, created_at
            FROM support_ticket_messages WHERE ticket_id = $1 ORDER BY created_at, id`,
@@ -277,6 +277,11 @@ partnershipTicketsRouter.get(
       adminPool.query(
         `SELECT id, message_id, filename, mime, size_bytes, uploaded_by
            FROM support_ticket_attachments WHERE ticket_id = $1 ORDER BY created_at, id`,
+        [id.data]
+      ),
+      adminPool.query(
+        `SELECT id, kind, from_status, to_status, at FROM support_ticket_events
+          WHERE ticket_id = $1 ORDER BY at, id`,
         [id.data]
       ),
     ]);
@@ -316,6 +321,7 @@ partnershipTicketsRouter.get(
         created_at: m.created_at,
         attachments: byMessage.get(m.id) ?? [],
       })),
+      events: events.rows,
     });
   })
 );

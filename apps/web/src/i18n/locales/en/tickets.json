@@ -77,5 +77,22 @@
     "aperte": "Nothing outstanding",
     "chiuse": "No closed requests",
     "tutte": "No support requests"
+  },
+  "history": {
+    "button": "History",
+    "empty": "No state changes recorded.",
+    "created": "Request opened",
+    "taken": "Taken in charge by support",
+    "resumed": "Picked back up by support",
+    "handling_in_attesa_cliente": "Waiting for your reply",
+    "handling_risolto": "Resolved by support",
+    "handling_chiuso": "Closed by support",
+    "handling_nuovo": "Put back among the new ones",
+    "userResolved": "Marked resolved by you",
+    "userReopened": "Reopened by you"
+  },
+  "closedHint": {
+    "mine": "You marked this request resolved. If you still need it, reopen it or reply here.",
+    "team": "Support closed this request. You can still reply: that reopens it and puts it back on us."
   }
 }
