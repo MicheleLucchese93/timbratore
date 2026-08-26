@@ -76,8 +76,9 @@
   },
   "atLimit": "Hai raggiunto il massimo di {{max}} chiavi attive. Revoca una chiave che non usi per crearne un'altra.",
   "docs": {
-    "label": "Documentazione tecnica",
-    "hint": "L'elenco completo degli endpoint, in formato OpenAPI, da passare a chi sviluppa l'integrazione."
+    "label": "Scarica la documentazione tecnica",
+    "hint": "Il file OpenAPI con tutti gli endpoint e i permessi richiesti, da passare a chi sviluppa l'integrazione.",
+    "downloading": "Download in corso…"
   },
   "err": {
     "load": "Impossibile caricare le chiavi.",

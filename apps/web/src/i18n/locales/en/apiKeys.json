@@ -76,8 +76,9 @@
   },
   "atLimit": "You have reached the maximum of {{max}} active keys. Revoke one you no longer use to create another.",
   "docs": {
-    "label": "Technical documentation",
-    "hint": "The full endpoint list in OpenAPI format, to hand to whoever builds the integration."
+    "label": "Download the technical documentation",
+    "hint": "The OpenAPI file with every endpoint and the permission each one needs, to hand to whoever builds the integration.",
+    "downloading": "Downloading…"
   },
   "err": {
     "load": "Could not load the keys.",

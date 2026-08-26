@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -23,12 +23,17 @@ import { EmptyState } from './EmptyState.tsx';
  * Buttons and a dialog rather than inline switches, deliberately: a credential
  * is not a preference, it wants a confirmation step and a name.
  */
+const OPENAPI_PATH = '/api/public/v1/openapi.json';
+/** What lands in the admin's Downloads folder, and what they forward on. */
+const OPENAPI_FILENAME = 'sonoqui-openapi.json';
+
 export function ApiKeysSection({ onToast }: { onToast: (text: string) => void }) {
   const { t, i18n } = useTranslation(['apiKeys', 'common']);
   const confirm = useConfirm();
   const [keys, setKeys] = useState<ApiKeySummary[] | null>(null);
   const [modal, setModal] = useState<{ existing?: ApiKeySummary } | null>(null);
   const [err, setErr] = useState(false);
+  const [docsBusy, setDocsBusy] = useState(false);
   // A read-only support session cannot mint or revoke anything (the server
   // refuses every non-GET). Saying so up front beats a confusing failure.
   const readOnly = isSupportMode();
@@ -47,6 +52,47 @@ export function ApiKeysSection({ onToast }: { onToast: (text: string) => void })
   useEffect(() => {
     void load();
   }, [load]);
+
+  /**
+   * Hand the OpenAPI document over as a FILE.
+   *
+   * The plain link opened it in a tab, which is the wrong outcome: this is a
+   * thing an admin forwards to whoever builds the integration, not something
+   * they read. `download` alone is not enough — the attribute is ignored on a
+   * cross-origin href, and in the xdevapp build the API lives on another host —
+   * so the bytes are fetched and saved from a blob.
+   *
+   * The `href` stays real on purpose. A developer wants the URL (Postman and
+   * Swagger Editor both import by link), so right-click-copy and
+   * cmd/middle-click still do the browser's thing; only a plain left click is
+   * intercepted. And the endpoint keeps serving inline JSON rather than
+   * Content-Disposition: attachment, so pasting that URL anywhere still works.
+   */
+  async function downloadDocs(e: MouseEvent<HTMLAnchorElement>): Promise<void> {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    setDocsBusy(true);
+    try {
+      const r = await fetch(apiUrl(OPENAPI_PATH), { headers: { Accept: 'application/json' } });
+      if (!r.ok) throw new Error(String(r.status));
+      const url = URL.createObjectURL(await r.blob());
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = OPENAPI_FILENAME;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      // Not revoked synchronously: Safari has not finished reading the blob when
+      // click() returns, and revoking there cancels the download.
+      window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    } catch {
+      // CORS refusal, offline, a 500 — fall back to what the link did before
+      // rather than leaving the click doing nothing at all.
+      window.open(apiUrl(OPENAPI_PATH), '_blank', 'noreferrer');
+    } finally {
+      setDocsBusy(false);
+    }
+  }
 
   async function revoke(k: ApiKeySummary): Promise<void> {
     const okToGo = await confirm({
@@ -186,11 +232,11 @@ export function ApiKeysSection({ onToast }: { onToast: (text: string) => void })
       <p className="field-hint mt-3">
         <a
           className="font-medium text-[color:var(--color-primary)] hover:underline"
-          href={apiUrl('/api/public/v1/openapi.json')}
-          target="_blank"
-          rel="noreferrer"
+          href={apiUrl(OPENAPI_PATH)}
+          download={OPENAPI_FILENAME}
+          onClick={(e) => void downloadDocs(e)}
         >
-          {t('docs.label')}
+          {docsBusy ? t('docs.downloading') : t('docs.label')}
         </a>{' '}
         — {t('docs.hint')}
       </p>

@@ -261,6 +261,16 @@ test.describe('web — modulo API: keys, scopes, revocation', () => {
     await expect(page.getByRole('heading', { name: /^API$/ })).toBeVisible();
     await expect(page.getByTestId('api-keys-table')).toBeVisible();
 
+    // The contract link hands over a FILE, not a tab. `download` is the half a
+    // regression would drop (re-adding target="_blank" is the obvious mistake),
+    // and the href must stay real so Postman/Swagger can still import by URL.
+    const docs = page.getByRole('link', {
+      name: /Scarica la documentazione tecnica|Download the technical documentation/,
+    });
+    await expect(docs).toHaveAttribute('download', 'sonoqui-openapi.json');
+    await expect(docs).toHaveAttribute('href', /\/api\/public\/v1\/openapi\.json$/);
+    expect(await docs.getAttribute('target')).toBeNull();
+
     // Gate on the POST, not the toast: the Settings toast clears itself after
     // 3.5s, so waiting on it turns a slow response into "element not found".
     const posted = page.waitForResponse(
