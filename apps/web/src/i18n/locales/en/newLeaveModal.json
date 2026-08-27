@@ -11,16 +11,14 @@
     "inpsProtocol": "INPS protocol",
     "assenzaSubtype": "Absence type",
     "isPaid": "Paid",
-    "note": "Notes",
-    "noteRequiredSuffix": " (required)"
+    "note": "Notes"
   },
   "estimatedTotal": "Total requested: {{hours}}",
   "noWorkingHours": "This request covers no working hours (check your assigned schedule).",
   "validation": {
     "datesRequired": "Please enter the dates.",
     "endBeforeStart": "The end is before the start.",
-    "inpsRequired": "INPS protocol is required for sick leave.",
-    "noteRequired": "A reason is required for absences."
+    "inpsRequired": "INPS protocol is required for sick leave."
   },
   "btn": {
     "submit": "Submit request",

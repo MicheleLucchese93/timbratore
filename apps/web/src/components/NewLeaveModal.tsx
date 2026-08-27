@@ -86,7 +86,6 @@ export function NewLeaveModal({ onClose, onDone }: { onClose: () => void; onDone
     const { fromTs, toTs } = r;
     if (new Date(toTs).getTime() <= new Date(fromTs).getTime()) return setErr(t('validation.endBeforeStart'));
     if (type === 'malattia' && !inps.trim()) return setErr(t('validation.inpsRequired'));
-    if (type === 'assenza' && !note.trim()) return setErr(t('validation.noteRequired'));
     // Block requests entirely outside the working schedule (e.g. ferie only on
     // a Sunday). The backend rejects these too — this is the friendly guard.
     if (estimateLeaveHours(type, fromTs, toTs, assignment) === 0) return setErr(t('noWorkingHours'));
@@ -182,7 +181,7 @@ export function NewLeaveModal({ onClose, onDone }: { onClose: () => void; onDone
           </>
         )}
         <div>
-          <label className="label">{t('field.note')}{type === 'assenza' ? t('field.noteRequiredSuffix') : ''}</label>
+          <label className="label">{t('field.note')}</label>
           <textarea className="input" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
         {estimatedHours !== null && estimatedHours > 0 && (

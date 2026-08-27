@@ -11,16 +11,14 @@
     "inpsProtocol": "Protocollo INPS",
     "assenzaSubtype": "Tipologia assenza",
     "isPaid": "Retribuita",
-    "note": "Note",
-    "noteRequiredSuffix": " (obbligatorie)"
+    "note": "Note"
   },
   "estimatedTotal": "Totale richiesto: {{hours}}",
   "noWorkingHours": "La richiesta non copre ore lavorative (controlla l’orario assegnato).",
   "validation": {
     "datesRequired": "Inserisci le date.",
     "endBeforeStart": "La fine precede l’inizio.",
-    "inpsRequired": "Protocollo INPS obbligatorio per malattia.",
-    "noteRequired": "La motivazione è obbligatoria per le assenze."
+    "inpsRequired": "Protocollo INPS obbligatorio per malattia."
   },
   "btn": {
     "submit": "Invia richiesta",

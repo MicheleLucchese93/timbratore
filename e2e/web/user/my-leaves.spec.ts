@@ -73,6 +73,24 @@ test.describe('web — Ferie & Permessi (employee)', () => {
         .click();
     });
 
+    // The Motivazione on an assenza is optional (commit 2625605, and migration
+    // 065 for the CHECK that had kept refusing it). The web form used to be the
+    // one client still demanding it, so this pins that it no longer does —
+    // mirroring the mobile assertion in e2e/mobile/user/richieste.spec.ts.
+    test('Assenza does not mark the note field required', async ({ page }) => {
+      await page.getByRole('button', { name: /Nuova richiesta/i }).click();
+      await expect(page.getByRole('heading', { name: 'Nuova richiesta' })).toBeVisible({ timeout: 10_000 });
+      const modal = page.locator('.card', { has: page.getByRole('heading', { name: 'Nuova richiesta' }) });
+
+      await modal.locator('select.input').first().selectOption('assenza');
+      // The subtype picker proves the assenza branch actually rendered, so the
+      // absent "(obbligatorie)" marker below is a real absence, not a race.
+      await expect(modal.getByText('Tipologia assenza')).toBeVisible();
+      await expect(modal.getByText(/\(obbligatorie\)/)).toHaveCount(0);
+
+      await modal.getByRole('button', { name: 'Annulla', exact: true }).click();
+    });
+
     test('Calendario tab renders the view switcher', async ({ page }) => {
       await page.getByRole('button', { name: 'Calendario', exact: true }).click();
       await expect(page.getByRole('button', { name: 'Mese', exact: true })).toBeVisible({ timeout: 10_000 });
