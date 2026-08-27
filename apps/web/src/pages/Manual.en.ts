@@ -779,6 +779,7 @@ export const MAIN_EN = `
           <li><strong>Specific time</strong> — untick <em>All day</em>: a <em>Day</em> field appears and, separately, the start time (<em>Start time</em>) and end time (<em>End time</em>). It applies both to Leave (in 15-minute steps) and to Holiday, handy for a half day.</li>
         </ul>
         <p>Below the fields the <strong>Total requested</strong> in hours updates in real time. With <em>Specific time</em> it counts <strong>only the selected window</strong> (e.g. 09:00–13:00 = 4h, not the whole day), still capped at the assigned work schedule (a request can never be worth more than the scheduled day).</p>
+        <p>Sick leave and Absence always cover the whole day, and each asks for its own fields: <strong>Sick leave</strong> needs the <strong>INPS protocol number</strong> (required); <strong>Absence</strong> needs the <strong>Category</strong> (Personal reasons, Bereavement, Medical appointment, etc.) and the <strong>Paid</strong> flag, both required. The <strong>Notes</strong> field stays <strong>optional for every type</strong>, Absence included: write the reason there if you want it on record, but no request is ever refused for leaving it empty.</p>
       </div>
 
       <div class="feature">

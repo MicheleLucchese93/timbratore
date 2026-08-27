@@ -786,6 +786,7 @@ const MAIN_IT = `
           <li><strong>Orario specifico</strong> — togli la spunta da <em>Tutto il giorno</em>: compaiono il campo <em>Giorno</em> e, separati, l'ora di inizio (<em>Dalle ore</em>) e di fine (<em>Alle ore</em>). Vale sia per i Permessi (a passi di 15 minuti) sia per le Ferie, utile per una mezza giornata.</li>
         </ul>
         <p>Sotto i campi compare in tempo reale il <strong>Totale richiesto</strong> in ore. Con <em>Orario specifico</em> conta <strong>solo la finestra selezionata</strong> (es. 09:00–13:00 = 4h, non l'intera giornata), comunque limitata all'orario di lavoro assegnato (una richiesta non può valere più della giornata prevista).</p>
+        <p>Malattia e Assenza coprono sempre la giornata intera, e ciascuna chiede i propri campi: per <strong>Malattia</strong> il <strong>numero protocollo INPS</strong> (obbligatorio); per <strong>Assenza</strong> la <strong>Tipologia</strong> (Motivi personali, Lutto, Visita medica, ecc.) e il flag <strong>Retribuita</strong>, entrambi obbligatori. Il campo <strong>Note</strong> resta <strong>facoltativo per tutti i tipi</strong>, Assenza compresa: se vuoi lasciare traccia del motivo scrivilo qui, ma nessuna richiesta viene rifiutata perché il campo è vuoto.</p>
       </div>
 
       <div class="feature">
