@@ -10,6 +10,10 @@ const cookiePolicyUrl = `/${lang}/cookie-policy/`;
 
 <script>
   import * as CookieConsent from "vanilla-cookieconsent";
+  // Static import on purpose: this module carries no posthog-js dependency, so
+  // it costs a few hundred bytes and is available even on page loads where the
+  // SDK itself is never fetched.
+  import { erasePosthogStorage } from "../lib/posthog-storage";
 
   const node = document.querySelector<HTMLElement>("[data-cookie-banner]");
   const lang = node?.dataset.lang ?? "it";
@@ -26,8 +30,15 @@ const cookiePolicyUrl = `/${lang}/cookie-policy/`;
     if (CookieConsent.acceptedCategory("analytics")) {
       analytics ??= await import("../lib/analytics");
       analytics.startAnalytics();
+    } else if (analytics) {
+      // SDK is running in this page: opt it out, then clear what it wrote.
+      analytics.stopAnalytics();
     } else {
-      analytics?.stopAnalytics();
+      // SDK was never loaded on this page load, so there is no instance to opt
+      // out — but ph_* entries from an earlier accepted session can still be
+      // sitting in storage. Without this sweep they would survive every future
+      // visit, because autoClear only fires on the rejection itself.
+      erasePosthogStorage();
     }
   }
 

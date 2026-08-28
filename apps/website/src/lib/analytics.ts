@@ -1,4 +1,5 @@
 import posthog from "posthog-js";
+import { erasePosthogStorage } from "./posthog-storage";
 
 // PostHog is never loaded until the visitor accepts the `analytics` cookie
 // category — CookieBanner.astro dynamic-imports this module from the consent
@@ -18,7 +19,10 @@ export function startAnalytics(): void {
   if (!projectKey) return;
 
   if (initialised) {
-    // Re-consent after a withdrawal — the SDK is already in memory.
+    // Re-consent after a withdrawal — the SDK is already in memory. Put back the
+    // persistence that stopAnalytics() dropped to 'memory', or the visitor stays
+    // unrecognisable across page loads for the rest of the session.
+    posthog.set_config({ persistence: "localStorage+cookie" });
     posthog.opt_in_capturing();
     return;
   }
@@ -40,6 +44,11 @@ export function startAnalytics(): void {
     // rather than the 'history_change' the pinned defaults would pick.
     capture_pageview: true,
     capture_pageleave: true,
+    // The pinned defaults would set this to 250ms. A queued write that lands a
+    // quarter-second late re-creates the ph_* entries that withdrawing consent
+    // just erased, so persistence has to be synchronous here. Write pressure is
+    // a non-issue at this site's event volume.
+    persistence_save_debounce_ms: 0,
     session_recording: {
       // posthog masks inputs by default; stated explicitly because the contact
       // form on this site takes a name and an email address.
@@ -55,24 +64,9 @@ export function stopAnalytics(): void {
   // are trying to erase. (Verified: withdrawing consent left both cookies in
   // place until this call was removed.) Opt out first, then clear.
   posthog.opt_out_capturing();
+  // Belt and braces against the same race: once persistence is memory-only the
+  // instance cannot write to cookies or localStorage again, whatever it still
+  // has queued.
+  posthog.set_config({ persistence: "memory" });
   erasePosthogStorage();
-}
-
-// The banner declares an autoClear rule for ph_* too, but that fires on
-// vanilla-cookieconsent's own schedule relative to this callback. Doing it here
-// as well makes withdrawal deterministic instead of order-dependent.
-function erasePosthogStorage(): void {
-  const host = window.location.hostname;
-  for (const entry of document.cookie.split("; ")) {
-    const name = entry.split("=")[0];
-    if (!name.startsWith("ph_")) continue;
-    // Cleared against each domain scope the cookie could have been set on.
-    for (const domain of ["", `; domain=${host}`, `; domain=.${host}`]) {
-      document.cookie = `${name}=; Max-Age=0; path=/${domain}`;
-    }
-  }
-  // persistence defaults to 'localStorage+cookie', so the cookie is only half of it.
-  for (const key of Object.keys(localStorage)) {
-    if (key.startsWith("ph_")) localStorage.removeItem(key);
-  }
 }
