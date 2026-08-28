@@ -250,6 +250,11 @@ services:
     build:
       context: .
       dockerfile: apps/website/Dockerfile
+      # Read from /opt/sonoqui/.env at build time. Empty key = no analytics,
+      # which is what a build without the secret should quietly produce.
+      args:
+        PUBLIC_POSTHOG_KEY: ${PUBLIC_POSTHOG_KEY:-}
+        PUBLIC_POSTHOG_HOST: ${PUBLIC_POSTHOG_HOST:-https://eu.i.posthog.com}
     container_name: sonoqui-website
     restart: unless-stopped
     logging: *default-logging

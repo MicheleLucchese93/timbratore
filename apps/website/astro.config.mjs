@@ -7,6 +7,9 @@ const site = 'https://sonoqui.pro';
 // of a frozen string; legal pages carry their own (rarely-changing) date.
 const buildDate = new Date();
 const legalLastmod = new Date('2026-06-16T00:00:00.000Z');
+// Split out because the cookie policy moved on its own when website
+// analytics landed; the other three legal pages did not.
+const cookiePolicyLastmod = new Date('2026-08-28T00:00:00.000Z');
 const isLegal = (url) =>
   url.includes('/privacy-policy/') ||
   url.includes('/cookie-policy/') ||
@@ -26,7 +29,8 @@ export default defineConfig({
           return { ...item, lastmod: buildDate, priority: 1 };
         }
         if (isLegal(item.url)) {
-          return { ...item, changefreq: 'yearly', lastmod: legalLastmod, priority: 0.2 };
+          const lastmod = item.url.includes('/cookie-policy/') ? cookiePolicyLastmod : legalLastmod;
+          return { ...item, changefreq: 'yearly', lastmod, priority: 0.2 };
         }
         return { ...item, lastmod: buildDate, priority: 0.8 };
       },

@@ -15,6 +15,22 @@ const cookiePolicyUrl = `/${lang}/cookie-policy/`;
   const lang = node?.dataset.lang ?? "it";
   const cookiePolicyUrl = node?.dataset.cookiePolicyUrl ?? "/it/cookie-policy/";
 
+  // PostHog is pulled in on demand, never on first paint: a visitor who refuses
+  // (or has not yet answered) downloads none of the SDK. Keeping the module
+  // handle lets a later withdrawal reach the instance that is already running.
+  let analytics: typeof import("../lib/analytics") | null = null;
+
+  // Fires on first consent, on every page load, and on every later change, so
+  // one function is the whole state machine.
+  async function syncAnalytics() {
+    if (CookieConsent.acceptedCategory("analytics")) {
+      analytics ??= await import("../lib/analytics");
+      analytics.startAnalytics();
+    } else {
+      analytics?.stopAnalytics();
+    }
+  }
+
   CookieConsent.run({
     guiOptions: {
       consentModal: { layout: "box inline", position: "bottom left" },
@@ -22,8 +38,16 @@ const cookiePolicyUrl = `/${lang}/cookie-policy/`;
     },
     categories: {
       necessary: { enabled: true, readOnly: true },
-      analytics: { enabled: false },
+      analytics: {
+        enabled: false,
+        // Withdrawing consent has to actually remove what was set, not just
+        // stop new events. `__ph_opt_in_out_*` is deliberately left alone —
+        // it is the record of the refusal itself.
+        autoClear: { cookies: [{ name: /^ph_/ }] },
+      },
     },
+    onConsent: syncAnalytics,
+    onChange: syncAnalytics,
     language: {
       default: lang,
       translations: {
@@ -31,8 +55,8 @@ const cookiePolicyUrl = `/${lang}/cookie-policy/`;
           consentModal: {
             title: "Questo sito utilizza i cookie",
             description:
-              'Utilizziamo cookie tecnici necessari al funzionamento del sito. <a href="' + cookiePolicyUrl + '">Cookie Policy</a>',
-            acceptAllBtn: "Accetta",
+              'Utilizziamo cookie tecnici necessari al funzionamento del sito e, solo previo tuo consenso, cookie analitici per capire come viene utilizzato. <a href="' + cookiePolicyUrl + '">Cookie Policy</a>',
+            acceptAllBtn: "Accetta tutto",
             acceptNecessaryBtn: "Solo necessari",
             showPreferencesBtn: "Personalizza",
           },
@@ -49,7 +73,8 @@ const cookiePolicyUrl = `/${lang}/cookie-policy/`;
               },
               {
                 title: "Cookie analitici",
-                description: "Cookie utilizzati per analizzare il traffico del sito e migliorare l'esperienza utente.",
+                description:
+                  "Ci permettono di capire quali pagine vengono visitate e su quali elementi si clicca, per migliorare il sito. Utilizziamo PostHog, con dati ospitati nell'Unione Europea (Francoforte). Non vengono creati profili utente e i campi dei moduli sono oscurati.",
                 linkedCategory: "analytics",
               },
             ],

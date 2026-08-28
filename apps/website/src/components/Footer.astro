@@ -80,6 +80,10 @@ const eulaPath = `/${lang}/eula/`;
           <li><a href={cookiePath} class="text-sm text-on-surface-variant hover:text-primary transition-colors">{t("footer.cookies")}</a></li>
           <li><a href={termsPath} class="text-sm text-on-surface-variant hover:text-primary transition-colors">{t("footer.terms")}</a></li>
           <li><a href={eulaPath} class="text-sm text-on-surface-variant hover:text-primary transition-colors">{t("footer.eula")}</a></li>
+          <!-- Withdrawing consent has to be as easy as giving it (art. 7(3) GDPR).
+               The banner is gone after the first answer, so this is the only way
+               back to the analytics toggle. data-cc is bound by vanilla-cookieconsent. -->
+          <li><button type="button" data-cc="show-preferencesModal" class="text-sm text-on-surface-variant hover:text-primary transition-colors cursor-pointer">{t("footer.cookiePrefs")}</button></li>
         </ul>
       </div>
     </div>

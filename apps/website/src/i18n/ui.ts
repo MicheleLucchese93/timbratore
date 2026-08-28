@@ -159,6 +159,7 @@ export const ui = {
     'footer.cookies': 'Cookie Policy',
     'footer.terms': 'Termini e Condizioni',
     'footer.eula': 'EULA',
+    'footer.cookiePrefs': 'Preferenze cookie',
     'footer.rights': 'Tutti i diritti riservati.',
 
     // CTA

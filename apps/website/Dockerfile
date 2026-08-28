@@ -25,6 +25,16 @@ COPY apps/website ./apps/website
 COPY packages/shared/src/design/tokens.css ./packages/shared/src/design/tokens.css
 
 RUN npm ci --workspace=sonoqui-website --include-workspace-root
+
+# Astro inlines PUBLIC_* at BUILD time, so the PostHog key has to exist in this
+# stage — docker-compose passes it through as a build arg. Declared after
+# `npm ci` on purpose: rotating the key then re-uses the cached install layer.
+# An empty key is a valid, deliberate state — the site ships with no analytics.
+ARG PUBLIC_POSTHOG_KEY=""
+ARG PUBLIC_POSTHOG_HOST="https://eu.i.posthog.com"
+ENV PUBLIC_POSTHOG_KEY=$PUBLIC_POSTHOG_KEY
+ENV PUBLIC_POSTHOG_HOST=$PUBLIC_POSTHOG_HOST
+
 RUN npm run build --workspace=sonoqui-website
 
 # nginx-unprivileged, not nginx: the plain image only runs its workers as the
