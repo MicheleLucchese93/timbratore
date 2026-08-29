@@ -6,10 +6,15 @@ const site = 'https://sonoqui.pro';
 // Build-time date for content pages so the sitemap reflects each deploy instead
 // of a frozen string; legal pages carry their own (rarely-changing) date.
 const buildDate = new Date();
+// Baseline for the legal pages untouched since the June review.
 const legalLastmod = new Date('2026-06-16T00:00:00.000Z');
-// Split out because the cookie policy moved on its own when website
-// analytics landed; the other three legal pages did not.
-const cookiePolicyLastmod = new Date('2026-08-29T00:00:00.000Z');
+// Pages that have since moved on their own. Keep each entry in step with the
+// `lastUpdated` / `isoDate` printed on the page itself — a sitemap date that
+// disagrees with the visible one is worse than no override at all.
+const legalLastmodOverrides = {
+  '/cookie-policy/': new Date('2026-08-29T00:00:00.000Z'),
+  '/privacy-policy/': new Date('2026-08-29T00:00:00.000Z'),
+};
 const isLegal = (url) =>
   url.includes('/privacy-policy/') ||
   url.includes('/cookie-policy/') ||
@@ -29,8 +34,8 @@ export default defineConfig({
           return { ...item, lastmod: buildDate, priority: 1 };
         }
         if (isLegal(item.url)) {
-          const lastmod = item.url.includes('/cookie-policy/') ? cookiePolicyLastmod : legalLastmod;
-          return { ...item, changefreq: 'yearly', lastmod, priority: 0.2 };
+          const override = Object.entries(legalLastmodOverrides).find(([path]) => item.url.includes(path));
+          return { ...item, changefreq: 'yearly', lastmod: override ? override[1] : legalLastmod, priority: 0.2 };
         }
         return { ...item, lastmod: buildDate, priority: 0.8 };
       },
