@@ -2,36 +2,46 @@
 import BaseLayout from "./BaseLayout.astro";
 import type { Lang } from "../i18n/ui";
 import { getLangFromUrl, useTranslations } from "../i18n/utils";
-import { SITE_URL } from "../data/seo";
+import { SITE_URL, legalMeta } from "../data/seo";
+import { legalLastUpdated, legalRevision } from "../data/legal.mjs";
 
 interface Props {
   title: string;
+  /**
+   * Key into src/data/legal.mjs and src/data/seo.ts — the page's URL segment.
+   * Supplies the visible revision line, the schema.org `dateModified` and (via
+   * astro.config.mjs reading the same registry) the sitemap `lastmod`, so the
+   * three cannot drift apart. Also supplies the meta description.
+   */
+  slug: string;
+  /** Overrides the description from `legalMeta[slug]`; rarely needed. */
   description?: string;
-  lastUpdated: string;
-  /** ISO 8601 date (e.g. "2026-06-16") for the WebPage dateModified signal. */
-  isoDate?: string;
   alternatePaths?: Partial<Record<Lang, string>>;
 }
 
-const { title, description, lastUpdated, isoDate, alternatePaths } = Astro.props;
+const { title, slug, description, alternatePaths } = Astro.props;
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 
+// Throws at build time if the slug is not registered, rather than rendering a
+// legal page with no date on it.
+const isoDate = legalRevision(slug).date;
+const lastUpdated = legalLastUpdated(slug);
+const metaDescription = description ?? legalMeta[slug]?.it;
+
 const pageUrl = alternatePaths?.[lang] ? `${SITE_URL}${alternatePaths[lang]}` : undefined;
-const schema = isoDate
-  ? {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      name: `${title} — sonoQui`,
-      ...(pageUrl ? { url: pageUrl } : {}),
-      inLanguage: "it-IT",
-      dateModified: isoDate,
-      publisher: { "@type": "Organization", name: "sonoQui", url: SITE_URL },
-    }
-  : undefined;
+const schema = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: `${title} — sonoQui`,
+  ...(pageUrl ? { url: pageUrl } : {}),
+  inLanguage: "it-IT",
+  dateModified: isoDate,
+  publisher: { "@type": "Organization", name: "sonoQui", url: SITE_URL },
+};
 ---
 
-<BaseLayout title={`${title} — sonoQui`} description={description} type="article" alternatePaths={alternatePaths} schema={schema}>
+<BaseLayout title={`${title} — sonoQui`} description={metaDescription} type="article" alternatePaths={alternatePaths} schema={schema}>
   <div class="pt-24 pb-16 bg-surface">
     <div class="mx-auto max-w-3xl px-4 sm:px-6">
       <h1 class="text-3xl font-bold text-primary sm:text-4xl">{title}</h1>

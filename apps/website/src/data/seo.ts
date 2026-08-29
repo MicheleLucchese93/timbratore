@@ -38,7 +38,7 @@ export const legalMeta: Record<string, { it: string }> = {
     it: 'Informativa privacy di sonoQui: titolare del trattamento, dati raccolti, GPS rilevato solo al momento della timbratura, base giuridica, conservazione e diritti GDPR.',
   },
   'cookie-policy': {
-    it: 'Cookie policy di sonoQui: quali cookie e tecnologie usiamo su sonoqui.pro, finalità, durata e come gestire il consenso. Usiamo solo cookie tecnici necessari.',
+    it: 'Cookie policy di sonoQui: quali cookie e tecnologie usiamo su sonoqui.pro, finalità, durata e come gestire il consenso. Cookie analitici solo previo consenso.',
   },
   'termini-e-condizioni': {
     it: 'Termini e condizioni del servizio sonoQui per le aziende clienti: attivazione, uso della piattaforma SaaS di rilevazione presenze, responsabilità e durata.',

@@ -1,25 +1,20 @@
 import { defineConfig } from 'astro/config';
 import tailwindcss from '@tailwindcss/vite';
 import sitemap from '@astrojs/sitemap';
+import { LEGAL_REVISIONS } from './src/data/legal.mjs';
 
 const site = 'https://sonoqui.pro';
 // Build-time date for content pages so the sitemap reflects each deploy instead
 // of a frozen string; legal pages carry their own (rarely-changing) date.
 const buildDate = new Date();
-// Baseline for the legal pages untouched since the June review.
-const legalLastmod = new Date('2026-06-16T00:00:00.000Z');
-// Pages that have since moved on their own. Keep each entry in step with the
-// `lastUpdated` / `isoDate` printed on the page itself — a sitemap date that
-// disagrees with the visible one is worse than no override at all.
-const legalLastmodOverrides = {
-  '/cookie-policy/': new Date('2026-08-29T00:00:00.000Z'),
-  '/privacy-policy/': new Date('2026-08-29T00:00:00.000Z'),
-};
-const isLegal = (url) =>
-  url.includes('/privacy-policy/') ||
-  url.includes('/cookie-policy/') ||
-  url.includes('/termini-e-condizioni/') ||
-  url.includes('/eula/');
+// Legal pages date themselves from src/data/legal.mjs, the same registry
+// LegalLayout renders from — so the sitemap `lastmod`, the schema.org
+// `dateModified` and the date printed on the page cannot disagree. Registering
+// a new legal page there also enrols it here automatically.
+const legalLastmod = Object.entries(LEGAL_REVISIONS).map(
+  ([slug, { date }]) => [`/${slug}/`, new Date(`${date}T00:00:00.000Z`)],
+);
+const legalEntry = (url) => legalLastmod.find(([path]) => url.includes(path));
 
 export default defineConfig({
   site,
@@ -33,9 +28,9 @@ export default defineConfig({
         if (item.url.endsWith('/it/')) {
           return { ...item, lastmod: buildDate, priority: 1 };
         }
-        if (isLegal(item.url)) {
-          const override = Object.entries(legalLastmodOverrides).find(([path]) => item.url.includes(path));
-          return { ...item, changefreq: 'yearly', lastmod: override ? override[1] : legalLastmod, priority: 0.2 };
+        const legal = legalEntry(item.url);
+        if (legal) {
+          return { ...item, changefreq: 'yearly', lastmod: legal[1], priority: 0.2 };
         }
         return { ...item, lastmod: buildDate, priority: 0.8 };
       },
