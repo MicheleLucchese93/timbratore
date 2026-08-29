@@ -9,7 +9,7 @@ const buildDate = new Date();
 const legalLastmod = new Date('2026-06-16T00:00:00.000Z');
 // Split out because the cookie policy moved on its own when website
 // analytics landed; the other three legal pages did not.
-const cookiePolicyLastmod = new Date('2026-08-28T00:00:00.000Z');
+const cookiePolicyLastmod = new Date('2026-08-29T00:00:00.000Z');
 const isLegal = (url) =>
   url.includes('/privacy-policy/') ||
   url.includes('/cookie-policy/') ||
