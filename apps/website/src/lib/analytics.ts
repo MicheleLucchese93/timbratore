@@ -23,7 +23,7 @@ export function startAnalytics(): void {
     // persistence that stopAnalytics() dropped to 'memory', or the visitor stays
     // unrecognisable across page loads for the rest of the session.
     posthog.set_config({ persistence: "localStorage+cookie" });
-    posthog.opt_in_capturing();
+    posthog.opt_in_capturing({ captureEventName: null });
     return;
   }
 
@@ -55,6 +55,23 @@ export function startAnalytics(): void {
       maskAllInputs: true,
     },
   });
+
+  // A visitor who withdrew consent earlier still carries PostHog's own
+  // `__ph_opt_in_out_<token>` = "0" in localStorage — erasePosthogStorage()
+  // keeps that key on purpose, since it records the refusal rather than
+  // tracking anything. init() honours it as a stored DENIED, so without this
+  // the SDK would load, write its cookies, fetch remote config and then stay
+  // permanently silent for anyone who ever refused and later re-accepted.
+  // (Verified on production: no `$sesid`, no session recorder, zero requests
+  // to eu.i.posthog.com, while the banner said analytics were accepted.)
+  //
+  // Guarded rather than unconditional: a first-time accepter is already
+  // capturing, and opt_in_capturing() re-fires $pageview, which would
+  // double-count every first visit. `captureEventName: null` skips the
+  // otherwise-automatic $opt_in event.
+  if (posthog.has_opted_out_capturing()) {
+    posthog.opt_in_capturing({ captureEventName: null });
+  }
 }
 
 export function stopAnalytics(): void {
