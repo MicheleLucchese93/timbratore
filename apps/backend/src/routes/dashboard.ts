@@ -2,8 +2,8 @@ import { Router } from 'express';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
-import { computeAnomalies, type AnomalyRow, type Anomaly } from './shifts.js';
-import { DEFAULT_TZ, TENANT_TZ_SQL } from '../lib/tz.js';
+import { loadAnomalies, type Anomaly } from './shifts.js';
+import { addIsoDays, tenantToday } from '../lib/tz.js';
 
 export const dashboardRouter = Router();
 dashboardRouter.use(authenticate);
@@ -54,12 +54,6 @@ dashboardRouter.get(
     // error in pg@9. Sequential awaits, same wall-clock, no warning. A second
     // pooled client is not an option here: it would miss this transaction's RLS
     // GUCs and, for support sessions, its READ ONLY mode.
-
-    // Tenant timezone for the anomaly badges: schedule slot times are wall-clock
-    // in this zone; mirrors GET /shifts/anomalies. Defaults to Europe/Rome.
-    const tz = await client.query<{ timezone: string }>(
-      `SELECT timezone FROM tenants WHERE id = current_setting('app.current_tenant_id')::uuid`
-    );
 
     const u = await client.query(
       `SELECT
@@ -133,88 +127,25 @@ dashboardRouter.get(
         LIMIT 20`
     );
 
-    // Anomalies last 7 full days (yesterday inclusive — today still in progress).
-    const anomalyRows = await client.query<AnomalyRow>(
-      `WITH today AS (SELECT (now() AT TIME ZONE ${TENANT_TZ_SQL})::date AS d),
-       range AS (
-         SELECT generate_series(
-           ((SELECT d FROM today) - INTERVAL '7 days')::date,
-           ((SELECT d FROM today) - INTERVAL '1 day')::date,
-           INTERVAL '1 day'
-         )::date AS d
-       ),
-       memb AS (
-         SELECT m.user_id, COALESCE(au.email, m.user_id::text) AS email,
-                au.display_name
-           FROM memberships m
-           LEFT JOIN auth_users au ON au.id = m.user_id
-          WHERE m.deleted_at IS NULL AND m.active = TRUE
-            AND cardinality(m.stamp_modes) > 0
-       )
-       SELECT r.d AS day,
-              m.user_id, m.email, m.display_name,
-              a.shift_template_id, st.name AS template_name,
-              st.tolerance_in_min, st.tolerance_out_min,
-              st.expected_break_min_min, st.expected_break_max_min,
-              st.expected_lunch_min_min, st.expected_lunch_max_min,
-              st.flexible_enabled, st.flex_in_before_min, st.flex_in_after_min,
-              st.flex_out_before_min, st.flex_out_after_min,
-              st.flex_lunch_before_min, st.flex_lunch_after_min,
-              COALESCE(
-                (SELECT json_agg(json_build_object(
-                  'day_of_week', sl.day_of_week,
-                  'start_time', to_char(sl.start_time, 'HH24:MI'),
-                  'end_time', to_char(sl.end_time, 'HH24:MI')
-                ) ORDER BY sl.day_of_week, sl.start_time)
-                 FROM shift_template_slots sl
-                WHERE sl.shift_template_id = a.shift_template_id),
-                '[]'::json
-              ) AS slots,
-              COALESCE(
-                (SELECT json_agg(json_build_object(
-                  'day_of_week', dl.day_of_week,
-                  'lunch_min', dl.lunch_min
-                ) ORDER BY dl.day_of_week)
-                 FROM shift_template_day_lunch dl
-                WHERE dl.shift_template_id = a.shift_template_id),
-                '[]'::json
-              ) AS day_lunch,
-              COALESCE(
-                (SELECT json_agg(json_build_object(
-                  'event_type', s.event_type,
-                  'occurred_at', s.occurred_at
-                ) ORDER BY s.occurred_at)
-                 FROM stamps s
-                WHERE s.user_id = m.user_id
-                  AND s.deleted_at IS NULL
-                  AND s.occurred_at >= r.d::timestamptz
-                  AND s.occurred_at <  (r.d + INTERVAL '1 day')::timestamptz),
-                '[]'::json
-              ) AS stamps,
-              COALESCE(
-                (SELECT json_agg(json_build_object(
-                  'type', lr.type,
-                  'from_ts', lr.from_ts,
-                  'to_ts', lr.to_ts
-                ))
-                 FROM leave_requests lr
-                WHERE lr.user_id = m.user_id
-                  AND lr.status = 'approved'
-                  AND lr.from_ts <  (r.d + INTERVAL '1 day')::timestamptz
-                  AND lr.to_ts   >   r.d::timestamptz),
-                '[]'::json
-              ) AS leaves
-         FROM range r
-         CROSS JOIN memb m
-         LEFT JOIN user_shift_assignments a
-           ON a.user_id = m.user_id
-          AND a.valid_from <= r.d
-          AND (a.valid_to IS NULL OR a.valid_to >= r.d)
-         LEFT JOIN shift_templates st ON st.id = a.shift_template_id
-        ORDER BY r.d, m.email`
-    );
-
-    const anomalies = computeAnomalies(anomalyRows.rows, tz.rows[0]?.timezone || DEFAULT_TZ);
+    // Anomalies last 7 full days (yesterday inclusive — today still in progress),
+    // via the same loader GET /shifts/anomalies and the public API use.
+    //
+    // This used to be a hand-copied second copy of that query, and it had
+    // drifted: it never selected `break_enabled` (so pausa-disabled templates
+    // still raised break_too_short/_too_long here but not on the Anomalie
+    // page), never selected `out_of_geofence` (so clock_out_out_of_area was
+    // permanently 0), and bucketed punches with a bare `::timestamptz`, which
+    // resolves against the server clock — the tenant-zone bug already fixed in
+    // the original. One copy is the only way that stops recurring.
+    //
+    // `stamping_only` keeps this card's long-standing scope: employees with
+    // stamping switched off would otherwise raise missing_clock_in every day.
+    const today = await tenantToday(client);
+    const anomalies = await loadAnomalies(client, {
+      from: addIsoDays(today, -7),
+      to: addIsoDays(today, -1),
+      stamping_only: true,
+    });
     const byKind: Record<Anomaly['kind'], number> = {
       missing_clock_in: 0,
       missing_clock_out: 0,
