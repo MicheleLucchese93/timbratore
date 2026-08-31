@@ -657,14 +657,32 @@ const AnomalyQuery = z.object({
  */
 export async function loadAnomalies(
   client: PoolClient,
-  params: { from: string; to: string; user_id?: string | undefined }
+  params: {
+    from: string;
+    to: string;
+    user_id?: string | undefined;
+    // Restrict to employees who can actually stamp (memberships.stamp_modes
+    // non-empty). The admin dashboard counts only those: stamping switched off
+    // would otherwise raise missing_clock_in for that employee every single
+    // day. The Anomalie page and the public API report the whole workforce.
+    stamping_only?: boolean | undefined;
+  }
 ): Promise<Anomaly[]> {
-  const { from, to, user_id } = params;
+  const { from, to, user_id, stamping_only } = params;
   if (from > to) throw new ValidationError('from > to');
 
     // Pull all stamps in range with assigned template and tolerances.
     // Then iterate in JS to flag deviations — clearer than a megaquery and fast
     // enough for tenant volumes (≤20 employees × ~62 days × ~10 stamps/day).
+    //
+    // Everything a day cell needs is pre-aggregated in a CTE and joined once.
+    // The previous shape put four correlated subqueries *inside* the
+    // range × memb cross join, so each ran once PER CELL: a 31-day month for 20
+    // employees executed ~2480 of them, and the two template subqueries re-read
+    // the same shift_template_slots / shift_template_day_lunch rows for every
+    // day of every employee even though template shape does not vary by day.
+    // Grouping first makes it one pass over stamps, one over leaves, and one
+    // row per template. Same output, and it was 82% of the route's latency.
     const r = await client.query(
       `WITH range AS (
          SELECT generate_series($1::date, $2::date, INTERVAL '1 day')::date AS d
@@ -675,7 +693,68 @@ export async function loadAnomalies(
            FROM memberships m
            LEFT JOIN auth_users au ON au.id = m.user_id
           WHERE m.deleted_at IS NULL AND m.active = TRUE
+            ${stamping_only ? 'AND cardinality(m.stamp_modes) > 0' : ''}
             ${user_id ? 'AND m.user_id = $3::uuid' : ''}
+       ),
+       tpl_slots AS (
+         SELECT sl.shift_template_id,
+                json_agg(json_build_object(
+                  'day_of_week', sl.day_of_week,
+                  'start_time', to_char(sl.start_time, 'HH24:MI'),
+                  'end_time', to_char(sl.end_time, 'HH24:MI')
+                ) ORDER BY sl.day_of_week, sl.start_time) AS slots
+           FROM shift_template_slots sl
+          GROUP BY sl.shift_template_id
+       ),
+       tpl_day_lunch AS (
+         SELECT dl.shift_template_id,
+                json_agg(json_build_object(
+                  'day_of_week', dl.day_of_week,
+                  'lunch_min', dl.lunch_min
+                ) ORDER BY dl.day_of_week) AS day_lunch
+           FROM shift_template_day_lunch dl
+          GROUP BY dl.shift_template_id
+       ),
+       -- One pass over the punches in range, bucketed by the tenant-local
+       -- calendar day each one falls on. r.d is a tenant-local day; occurred_at
+       -- is a UTC instant. Casting r.d straight to timestamptz resolved it
+       -- against the server clock (UTC in prod), so the bucket ran
+       -- 00:00Z..00:00Z instead of the local day it stands for. Bucketing by
+       -- Bucketing on occurred_at AT TIME ZONE (tenant zone) states that same
+       -- window as an equality, which is what lets it group in one pass
+       -- instead of re-scanning the table once per cell.
+       day_stamps AS (
+         SELECT s.user_id,
+                (s.occurred_at AT TIME ZONE ${TENANT_TZ_SQL})::date AS d,
+                json_agg(json_build_object(
+                  'event_type', s.event_type,
+                  'occurred_at', s.occurred_at,
+                  'out_of_geofence', s.out_of_geofence,
+                  'geofence_distance_m', s.geofence_distance_m
+                ) ORDER BY s.occurred_at) AS stamps
+           FROM stamps s
+          WHERE s.deleted_at IS NULL
+            AND s.occurred_at >= ($1::date::timestamp AT TIME ZONE ${TENANT_TZ_SQL})
+            AND s.occurred_at <  (($2::date + 1)::timestamp AT TIME ZONE ${TENANT_TZ_SQL})
+            ${user_id ? 'AND s.user_id = $3::uuid' : ''}
+          GROUP BY 1, 2
+       ),
+       -- Leaves are spans, not points, so they join the range on overlap: a
+       -- multi-day leave still lands on every day it covers.
+       day_leaves AS (
+         SELECT lr.user_id, r.d,
+                json_agg(json_build_object(
+                  'type', lr.type,
+                  'from_ts', lr.from_ts,
+                  'to_ts', lr.to_ts
+                ) ORDER BY lr.from_ts, lr.to_ts) AS leaves
+           FROM leave_requests lr
+           JOIN range r
+             ON lr.from_ts < (r.d + INTERVAL '1 day')::timestamptz
+            AND lr.to_ts   >  r.d::timestamptz
+          WHERE lr.status = 'approved'
+            ${user_id ? 'AND lr.user_id = $3::uuid' : ''}
+          GROUP BY 1, 2
        )
        SELECT r.d AS day,
               m.user_id, m.email, m.display_name,
@@ -687,56 +766,10 @@ export async function loadAnomalies(
               st.flexible_enabled, st.flex_in_before_min, st.flex_in_after_min,
               st.flex_out_before_min, st.flex_out_after_min,
               st.flex_lunch_before_min, st.flex_lunch_after_min,
-              COALESCE(
-                (SELECT json_agg(json_build_object(
-                  'day_of_week', sl.day_of_week,
-                  'start_time', to_char(sl.start_time, 'HH24:MI'),
-                  'end_time', to_char(sl.end_time, 'HH24:MI')
-                ) ORDER BY sl.day_of_week, sl.start_time)
-                 FROM shift_template_slots sl
-                WHERE sl.shift_template_id = a.shift_template_id),
-                '[]'::json
-              ) AS slots,
-              COALESCE(
-                (SELECT json_agg(json_build_object(
-                  'day_of_week', dl.day_of_week,
-                  'lunch_min', dl.lunch_min
-                ) ORDER BY dl.day_of_week)
-                 FROM shift_template_day_lunch dl
-                WHERE dl.shift_template_id = a.shift_template_id),
-                '[]'::json
-              ) AS day_lunch,
-              COALESCE(
-                (SELECT json_agg(json_build_object(
-                  'event_type', s.event_type,
-                  'occurred_at', s.occurred_at,
-                  'out_of_geofence', s.out_of_geofence,
-                  'geofence_distance_m', s.geofence_distance_m
-                ) ORDER BY s.occurred_at)
-                 FROM stamps s
-                WHERE s.user_id = m.user_id
-                  AND s.deleted_at IS NULL
-                  -- r.d is a tenant-local calendar day; occurred_at is a UTC
-                  -- instant. Casting r.d straight to timestamptz resolved it
-                  -- against the server clock (UTC in prod), so the bucket ran
-                  -- 00:00Z..00:00Z instead of the local day it stands for.
-                  AND s.occurred_at >= (r.d::timestamp AT TIME ZONE ${TENANT_TZ_SQL})
-                  AND s.occurred_at <  ((r.d + 1)::timestamp AT TIME ZONE ${TENANT_TZ_SQL})),
-                '[]'::json
-              ) AS stamps,
-              COALESCE(
-                (SELECT json_agg(json_build_object(
-                  'type', lr.type,
-                  'from_ts', lr.from_ts,
-                  'to_ts', lr.to_ts
-                ))
-                 FROM leave_requests lr
-                WHERE lr.user_id = m.user_id
-                  AND lr.status = 'approved'
-                  AND lr.from_ts <  (r.d + INTERVAL '1 day')::timestamptz
-                  AND lr.to_ts   >   r.d::timestamptz),
-                '[]'::json
-              ) AS leaves
+              COALESCE(tsl.slots, '[]'::json) AS slots,
+              COALESCE(tdl.day_lunch, '[]'::json) AS day_lunch,
+              COALESCE(ds.stamps, '[]'::json) AS stamps,
+              COALESCE(dlv.leaves, '[]'::json) AS leaves
          FROM range r
          CROSS JOIN memb m
          LEFT JOIN user_shift_assignments a
@@ -744,6 +777,10 @@ export async function loadAnomalies(
           AND a.valid_from <= r.d
           AND (a.valid_to IS NULL OR a.valid_to >= r.d)
          LEFT JOIN shift_templates st ON st.id = a.shift_template_id
+         LEFT JOIN tpl_slots tsl ON tsl.shift_template_id = a.shift_template_id
+         LEFT JOIN tpl_day_lunch tdl ON tdl.shift_template_id = a.shift_template_id
+         LEFT JOIN day_stamps ds ON ds.user_id = m.user_id AND ds.d = r.d
+         LEFT JOIN day_leaves dlv ON dlv.user_id = m.user_id AND dlv.d = r.d
         ORDER BY r.d, m.email`,
       user_id ? [from, to, user_id] : [from, to]
     );

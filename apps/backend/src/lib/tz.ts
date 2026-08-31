@@ -93,10 +93,18 @@ export function startOfZonedDayUtcMs(dateStr: string, timeZone: string = DEFAULT
   return zonedWallClockToUtcMs(dateStr, '00:00', timeZone);
 }
 
+// The ISO date ('YYYY-MM-DD') `days` calendar days after `dateStr` (negative
+// goes back). Pure calendar arithmetic on a date key that has already been
+// resolved in the tenant's zone, so UTC is the right frame to count in here —
+// it is the zone resolution that must not happen in UTC, not the day counting.
+export function addIsoDays(dateStr: string, days: number): string {
+  const [y, mo, d] = dateStr.split('-').map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, mo - 1, d + days)).toISOString().slice(0, 10);
+}
+
 // The ISO date ('YYYY-MM-DD') one calendar day after `dateStr`.
 export function nextIsoDate(dateStr: string): string {
-  const [y, mo, d] = dateStr.split('-').map(Number) as [number, number, number];
-  return new Date(Date.UTC(y, mo - 1, d + 1)).toISOString().slice(0, 10);
+  return addIsoDays(dateStr, 1);
 }
 
 // SQL scalar for the current tenant's zone, for use inside a tenantHandler
