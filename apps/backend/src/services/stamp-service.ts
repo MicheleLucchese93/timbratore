@@ -160,6 +160,36 @@ export async function assertBreakStampAllowed(
   throw new ForbiddenError('Break stamping disabled for this shift', 'BREAK_DISABLED');
 }
 
+/**
+ * Upper bound on a declared queue age, in hours: the 30 days the mobile queue
+ * keeps an undelivered punch for (QUEUE_TTL_MS in
+ * apps/mobile/src/lib/offline-queue-policy.ts). Nothing older can legitimately
+ * arrive from the queue, so nothing older is worth recording.
+ */
+export const MAX_QUEUED_HOURS = 30 * 24;
+
+/**
+ * How long the client says this punch sat in its offline queue (the
+ * `X-Queued-Hours` header), or null when it did not say.
+ *
+ * The header is advisory metadata: it is recorded on the row, and nothing is
+ * decided from it. So a malformed value is ignored rather than rejected —
+ * losing a real punch over a bad header would be a worse failure than losing
+ * the annotation. What must not happen is the raw `Number()` this replaces:
+ * `Number('abc')` is NaN and `Number('1e999')` is Infinity, and Postgres
+ * accepts both into the `double precision` column (003_stamps.sql), which puts
+ * a value no arithmetic survives into payroll-adjacent data.
+ *
+ * Zero maps to null so that `queued_hours IS NOT NULL` keeps its plain meaning
+ * of "this punch came from the queue".
+ */
+export function parseQueuedHours(raw: string | undefined): number | null {
+  if (!raw) return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.min(n, MAX_QUEUED_HOURS);
+}
+
 export async function evaluateStamp(
   client: PoolClient,
   input: EvaluateInput

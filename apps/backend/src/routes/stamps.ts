@@ -5,7 +5,7 @@ import { tenantHandler } from '../lib/route-helpers.js';
 import { ok } from '../lib/api-response.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../errors/index.js';
 import { idempotencyMiddleware } from '../middleware/idempotency.js';
-import { computeCurrentState, evaluateStamp } from '../services/stamp-service.js';
+import { computeCurrentState, evaluateStamp, parseQueuedHours } from '../services/stamp-service.js';
 import type { StampEventType } from '@sonoqui/shared';
 import { TENANT_TZ_SQL } from '../lib/tz.js';
 import { loadStampHistory } from '../lib/stamp-history.js';
@@ -84,7 +84,7 @@ stampsRouter.post(
         body.device_app_version ?? null,
         evaluated.suspiciousMockLocation,
         body.notes ?? null,
-        req.header('x-queued-hours') ? Number(req.header('x-queued-hours')) : null,
+        parseQueuedHours(req.header('x-queued-hours')),
         evaluated.outOfGeofence,
         evaluated.geofenceDistanceM,
       ]
