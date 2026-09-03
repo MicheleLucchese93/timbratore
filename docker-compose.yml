@@ -83,6 +83,21 @@ services:
       # xdevapp hosts stay so already-installed mobile builds and the old web
       # origin keep working. app.sonoqui.pro is the same-origin web app.
       GOTRUE_URI_ALLOW_LIST: "sonoqui://auth-callback,sonoqui://*,https://api-sonoqui.xdevapp.it/**,https://app-sonoqui.xdevapp.it/**,https://app.sonoqui.pro/**,https://sonoqui.pro/**,https://api.sonoqui.pro/**,https://partners.sonoqui.pro/**"
+      # Hosts GoTrue is allowed to take from X-Forwarded-Host/Host when building
+      # the {{ .ConfirmationURL }} base for invite/recovery/confirmation mails.
+      # Unlisted hosts are ignored (GoTrue logs "…have not been added to
+      # GOTRUE_MAILER_EXTERNAL_HOSTS and will not be used") and the link falls
+      # back to API_EXTERNAL_URL — which is pinned to the old xdevapp host
+      # because token validation depends on that issuer. Allow-listing the .pro
+      # host here moves the user-visible verify link to
+      # https://auth.sonoqui.pro/verify without touching API_EXTERNAL_URL or the
+      # JWT issuer. Caddy already serves this vhost straight to gotrue-sonoqui
+      # (/verify answers 303), and the redirect_to targets stay governed by
+      # GOTRUE_URI_ALLOW_LIST above. Hostnames only — no scheme, no path.
+      # NOTE: mail triggered through auth-sonoqui.xdevapp.it (older mobile
+      # builds still call that host) keeps producing xdevapp links until that
+      # host is added here too.
+      GOTRUE_MAILER_EXTERNAL_HOSTS: "auth.sonoqui.pro"
       GOTRUE_JWT_SECRET: "${SONOQUI_JWT_SECRET}"
       GOTRUE_JWT_ISSUER: "https://auth-sonoqui.xdevapp.it"
       GOTRUE_JWT_EXP: "3600"
