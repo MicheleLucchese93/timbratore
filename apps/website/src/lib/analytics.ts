@@ -7,6 +7,13 @@ import { erasePosthogStorage } from "./posthog-storage";
 //
 // EU cloud (Frankfurt) is deliberate and load-bearing: eu.i.posthog.com keeps
 // visitor data inside the EU, which is the whole reason we are not on GA4.
+//
+// In production PUBLIC_POSTHOG_HOST is not eu.i.posthog.com directly but a
+// first-party relay on our own origin (https://sonoqui.pro/relay, configured in
+// the xdevapp-infra repo), because ad blockers drop 10-25% of events sent to the
+// vendor's domain. The relay only changes the browser's first hop — the data
+// still terminates on PostHog's EU cloud. `ui_host` below must therefore stay
+// pointed at the real dashboard host, or "view recording" links break.
 
 const projectKey = import.meta.env.PUBLIC_POSTHOG_KEY;
 const apiHost = import.meta.env.PUBLIC_POSTHOG_HOST || "https://eu.i.posthog.com";
