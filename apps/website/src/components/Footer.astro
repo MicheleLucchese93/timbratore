@@ -25,6 +25,15 @@ const eulaPath = `/${lang}/eula/`;
           <input type="email" name="email" required maxlength="254" placeholder={t("contact.email")}
             class="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-base text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" />
         </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <input type="tel" name="phone" required maxlength="30" inputmode="tel" autocomplete="tel"
+            pattern="[0-9+\(\)\.\/\s\-]{6,30}" title="Inserisci un numero di telefono valido"
+            placeholder={t("contact.phone")}
+            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-base text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" />
+          <input type="text" name="company" required maxlength="120" autocomplete="organization"
+            placeholder={t("contact.company")}
+            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-base text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" />
+        </div>
         <input type="text" name="subject" required maxlength="200" placeholder={t("contact.subject")}
           class="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-base text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" />
         <textarea name="message" required rows="5" maxlength="5000" placeholder={t("contact.message")}

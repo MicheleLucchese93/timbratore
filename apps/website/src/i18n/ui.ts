@@ -152,6 +152,8 @@ export const ui = {
       'Vuoi provare sonoQui? Scrivici e ti aiutiamo a partire.',
     'contact.name': 'Nome',
     'contact.email': 'Email',
+    'contact.phone': 'Telefono',
+    'contact.company': 'Azienda',
     'contact.subject': 'Oggetto',
     'contact.message': 'Messaggio',
     'contact.send': 'Invia',
