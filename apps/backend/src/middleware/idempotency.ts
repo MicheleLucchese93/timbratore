@@ -47,16 +47,30 @@ async function claimOrReplay(
     });
     return false;
   }
-  // Record whatever the handler answers, so the retry replays it verbatim.
+  // Record a SUCCESSFUL answer, so the retry replays it verbatim. A failure is
+  // released instead of stored: pinning it would make one verdict permanent for
+  // the key's whole 24h TTL, and the client that owns that key has no way to
+  // pick a new one. The punch queued while the branch radius was still wrong,
+  // or the one that met a transient 500, would keep replaying that first error
+  // long after the cause was gone. Releasing is safe because every handler
+  // behind this middleware writes inside a transaction that rolled back — a
+  // failed attempt left nothing behind for the retry to duplicate.
   const origJson = res.json.bind(res);
   res.json = function (body: unknown) {
     const status = res.statusCode;
-    pool
-      .query(
-        `UPDATE idempotency_keys SET response_status = $1, response_body = $2 WHERE key = $3`,
-        [status, body, key]
-      )
-      .catch(() => {});
+    const persist =
+      status >= 200 && status < 300
+        ? pool.query(
+            `UPDATE idempotency_keys SET response_status = $1, response_body = $2 WHERE key = $3`,
+            [status, body, key]
+          )
+        : // `response_status IS NULL` keeps this from ever dropping a claim that
+          // already carries a stored success.
+          pool.query(
+            `DELETE FROM idempotency_keys WHERE key = $1 AND response_status IS NULL`,
+            [key]
+          );
+    persist.catch(() => {});
     return origJson(body);
   };
   return true;
