@@ -114,11 +114,21 @@ const eulaPath = `/${lang}/eula/`;
       e.preventDefault();
 
       const fd = new FormData(form);
+      const source = (fd.get("source") || "sonoqui").toString();
+      // Analytics is consent-gated and lazy-loaded, so this global only exists
+      // once the visitor accepted the analytics category. No consent → no-op.
+      // Every submission outcome is reported, not just the happy path: without
+      // the failure events a form that silently rejects everyone looks exactly
+      // like a form nobody tried to use.
+      const track = (event: string, properties: Record<string, unknown>) =>
+        window.__sqTrack?.(event, { source, ...properties });
+
       const token = (fd.get("cf-turnstile-response") || "").toString();
       if (!token) {
         msg.textContent = "Completa la verifica di sicurezza.";
         msg.className = "text-base text-danger";
         msg.classList.remove("hidden");
+        track("form_contatto_errore", { motivo: "captcha_mancante" });
         return;
       }
 
@@ -138,14 +148,19 @@ const eulaPath = `/${lang}/eula/`;
           msg.textContent = "Messaggio inviato. Ti rispondiamo al più presto.";
           msg.className = "text-base text-success";
           form.reset();
+          track("form_contatto_inviato", {});
         } else {
           const json = (await res.json().catch(() => ({}))) as { error?: string };
           msg.textContent = json.error || "Errore durante l'invio. Riprova più tardi.";
           msg.className = "text-base text-danger";
+          // Send the status, not the message body: the body can echo back what
+          // the visitor typed, and this event must not carry form content.
+          track("form_contatto_errore", { motivo: `http_${res.status}`, stato: res.status });
         }
       } catch {
         msg.textContent = "Errore di rete. Riprova più tardi.";
         msg.className = "text-base text-danger";
+        track("form_contatto_errore", { motivo: "rete" });
       } finally {
         btn.disabled = false;
         btn.textContent = original;

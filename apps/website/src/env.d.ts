@@ -10,3 +10,18 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+interface Window {
+  /**
+   * Published by src/lib/analytics.ts once PostHog is initialised and opted in,
+   * and removed again when consent is withdrawn.
+   *
+   * It exists so components can send an event WITHOUT importing the analytics
+   * module: a static import of that module would pull the ~254K posthog-js
+   * bundle into the importing chunk and ship it to visitors who never accepted
+   * analytics, which is exactly what the consent gate is there to prevent.
+   * Call it optionally (`window.__sqTrack?.(…)`) — when there is no consent
+   * there is no global, and the call is a no-op.
+   */
+  __sqTrack?: (event: string, properties?: Record<string, unknown>) => void;
+}

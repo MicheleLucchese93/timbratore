@@ -20,6 +20,21 @@ const apiHost = import.meta.env.PUBLIC_POSTHOG_HOST || "https://eu.i.posthog.com
 
 let initialised = false;
 
+/**
+ * Expose a minimal capture function on `window` while capturing is live.
+ *
+ * Components that need to send an event (the contact form in Footer.astro)
+ * cannot import this module: a static import would bundle posthog-js into their
+ * chunk and load it for visitors who refused analytics. Publishing one function
+ * here keeps the SDK behind the consent gate and leaves callers with a no-op
+ * when consent is absent — `window.__sqTrack?.(…)` simply does nothing.
+ */
+function publishTracker(): void {
+  window.__sqTrack = (event, properties) => {
+    posthog.capture(event, properties);
+  };
+}
+
 export function startAnalytics(): void {
   // No key configured (local dev, or a build made without the secret): stay a
   // no-op instead of init-ing with undefined and erroring on every page view.
@@ -31,6 +46,7 @@ export function startAnalytics(): void {
     // unrecognisable across page loads for the rest of the session.
     posthog.set_config({ persistence: "localStorage+cookie" });
     posthog.opt_in_capturing({ captureEventName: null });
+    publishTracker();
     return;
   }
 
@@ -79,6 +95,8 @@ export function startAnalytics(): void {
   if (posthog.has_opted_out_capturing()) {
     posthog.opt_in_capturing({ captureEventName: null });
   }
+
+  publishTracker();
 }
 
 export function stopAnalytics(): void {
@@ -87,6 +105,9 @@ export function stopAnalytics(): void {
   // which regenerates the distinct id and re-writes exactly the ph_* entries we
   // are trying to erase. (Verified: withdrawing consent left both cookies in
   // place until this call was removed.) Opt out first, then clear.
+  // Withdraw the tracker first: anything still holding a reference stops being
+  // able to queue events before the instance is told to stop.
+  delete window.__sqTrack;
   posthog.opt_out_capturing();
   // Belt and braces against the same race: once persistence is memory-only the
   // instance cannot write to cookies or localStorage again, whatever it still
