@@ -60,7 +60,11 @@ const EXCLUDE =
   "properties.$current_url NOT ILIKE '%localhost%' " +
   "AND properties.$current_url NOT ILIKE '%probe=%' " +
   "AND properties.$current_url NOT ILIKE '%cachebust=%' " +
-  "AND properties.$current_url NOT ILIKE '%custodo.ai%'";
+  "AND properties.$current_url NOT ILIKE '%custodo.ai%' " +
+  // Local dev of other projects that briefly shipped this token, and the
+  // pre-cutover xdevapp host: neither is caught by "localhost".
+  "AND properties.$current_url NOT ILIKE '%127.0.0.1%' " +
+  "AND properties.$current_url NOT ILIKE '%xdevapp.it%'";
 const WINDOW = `timestamp > now() - interval ${DAYS} day`;
 
 async function hogql(query) {
