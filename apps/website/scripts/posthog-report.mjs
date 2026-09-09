@@ -75,9 +75,13 @@ async function hogql(query) {
 }
 
 const QUERIES = {
+  // Visitors = people with a $pageview, not people with any event: the SDK
+  // defers the initial $pageview while the tab is hidden, so background-tab
+  // visits emit only $pageleave/$web_vitals and were inflating visitors above
+  // pageviews (8 vs 6 on 2026-09-07).
   overview: `
     select
-      uniq(distinct_id) as visitors,
+      uniqIf(distinct_id, event = '$pageview') as visitors,
       countIf(event = '$pageview') as pageviews,
       uniq(properties.$session_id) as sessions
     from events
@@ -85,7 +89,7 @@ const QUERIES = {
 
   byDay: `
     select toDate(timestamp) as day,
-      uniq(distinct_id) as visitors,
+      uniqIf(distinct_id, event = '$pageview') as visitors,
       countIf(event = '$pageview') as pageviews
     from events
     where ${WINDOW} and ${EXCLUDE}
@@ -93,7 +97,7 @@ const QUERIES = {
 
   topPaths: `
     select properties.$pathname as path,
-      uniq(distinct_id) as visitors,
+      uniqIf(distinct_id, event = '$pageview') as visitors,
       count() as views
     from events
     where event = '$pageview' and ${WINDOW} and ${EXCLUDE}
@@ -112,7 +116,7 @@ const QUERIES = {
     group by channel order by sessions desc`,
 
   referrers: `
-    select properties.$referring_domain as referrer, uniq(distinct_id) as visitors
+    select properties.$referring_domain as referrer, uniqIf(distinct_id, event = '$pageview') as visitors
     from events
     where event = '$pageview' and ${WINDOW} and ${EXCLUDE}
       and properties.$referring_domain != '$direct' and properties.$referring_domain is not null
@@ -120,13 +124,13 @@ const QUERIES = {
 
   utm: `
     select properties.utm_source as source, properties.utm_medium as medium,
-      properties.utm_campaign as campaign, uniq(distinct_id) as visitors
+      properties.utm_campaign as campaign, uniqIf(distinct_id, event = '$pageview') as visitors
     from events
     where event = '$pageview' and ${WINDOW} and ${EXCLUDE} and properties.utm_source is not null
     group by source, medium, campaign order by visitors desc limit 10`,
 
   devices: `
-    select properties.$device_type as device, uniq(distinct_id) as visitors
+    select properties.$device_type as device, uniqIf(distinct_id, event = '$pageview') as visitors
     from events
     where event = '$pageview' and ${WINDOW} and ${EXCLUDE}
     group by device order by visitors desc`,
@@ -138,7 +142,7 @@ const QUERIES = {
     group by event, motivo order by event, n desc`,
 
   seoLandingPages: `
-    select properties.$pathname as path, uniq(distinct_id) as visitors, count() as views
+    select properties.$pathname as path, uniqIf(distinct_id, event = '$pageview') as visitors, count() as views
     from events
     where event = '$pageview' and ${WINDOW} and ${EXCLUDE}
       and (properties.$pathname ILIKE '/it/timbratura-gps-app%'
