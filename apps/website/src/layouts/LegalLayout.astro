@@ -2,13 +2,13 @@
 import BaseLayout from "./BaseLayout.astro";
 import type { Lang } from "../i18n/ui";
 import { getLangFromUrl, useTranslations } from "../i18n/utils";
-import { SITE_URL, legalMeta } from "../data/seo";
-import { legalLastUpdated, legalRevision } from "../data/legal.mjs";
+import { SITE_URL, ORGANIZATION_ID, WEBSITE_ID, legalMeta, buildOrganizationSchema, buildWebSiteSchema } from "../data/seo";
+import { formatItDate, legalRevision } from "../data/revisions.mjs";
 
 interface Props {
   title: string;
   /**
-   * Key into src/data/legal.mjs and src/data/seo.ts — the page's URL segment.
+   * Key into src/data/revisions.mjs and src/data/seo.ts — the page's URL segment.
    * Supplies the visible revision line, the schema.org `dateModified` and (via
    * astro.config.mjs reading the same registry) the sitemap `lastmod`, so the
    * three cannot drift apart. Also supplies the meta description.
@@ -25,20 +25,27 @@ const t = useTranslations(lang);
 
 // Throws at build time if the slug is not registered, rather than rendering a
 // legal page with no date on it.
-const isoDate = legalRevision(slug).date;
-const lastUpdated = legalLastUpdated(slug);
+const { date: isoDate, version } = legalRevision(slug);
 const metaDescription = description ?? legalMeta[slug]?.it;
 
 const pageUrl = alternatePaths?.[lang] ? `${SITE_URL}${alternatePaths[lang]}` : undefined;
-const schema = {
-  "@context": "https://schema.org",
-  "@type": "WebPage",
-  name: `${title} — sonoQui`,
-  ...(pageUrl ? { url: pageUrl } : {}),
-  inLanguage: "it-IT",
-  dateModified: isoDate,
-  publisher: { "@type": "Organization", name: "sonoQui", url: SITE_URL },
-};
+// The WebPage references the site-wide Organization/WebSite nodes by @id
+// instead of re-embedding a stub, and those nodes are emitted alongside it so
+// the references resolve on this page too.
+const schema = [
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: `${title} — sonoQui`,
+    ...(pageUrl ? { url: pageUrl } : {}),
+    inLanguage: "it-IT",
+    dateModified: isoDate,
+    isPartOf: { "@id": WEBSITE_ID },
+    publisher: { "@id": ORGANIZATION_ID },
+  },
+  buildOrganizationSchema(),
+  buildWebSiteSchema(),
+];
 ---
 
 <BaseLayout title={`${title} — sonoQui`} description={metaDescription} type="article" alternatePaths={alternatePaths} schema={schema}>
@@ -46,7 +53,7 @@ const schema = {
     <div class="mx-auto max-w-3xl px-4 sm:px-6">
       <h1 class="text-3xl font-bold text-primary sm:text-4xl">{title}</h1>
       <p class="mt-2 text-sm text-on-surface-variant">
-        {t("legal.lastUpdated")}: {lastUpdated}
+        {t("legal.lastUpdated")}: <time datetime={isoDate}>{formatItDate(isoDate)}</time> · v{version}
       </p>
     </div>
   </div>

@@ -53,7 +53,7 @@ const eulaPath = `/${lang}/eula/`;
     <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 border-t border-gray-200 pt-8">
       <div>
         <div class="flex items-center gap-2">
-          <img src="/icon.png" alt="sonoQui" class="h-8 w-8 rounded-lg" />
+          <img src="/icon-192.png" alt="sonoQui" width="32" height="32" class="h-8 w-8 rounded-lg" />
           <span class="text-lg font-extrabold tracking-tight text-primary">sono<span class="text-accent">Qui</span></span>
         </div>
         <p class="mt-3 text-sm text-on-surface-variant">
@@ -65,7 +65,7 @@ const eulaPath = `/${lang}/eula/`;
         <h4 class="mb-3 text-sm font-semibold uppercase tracking-wide text-on-surface-variant">Soluzioni</h4>
         <ul class="space-y-2">
           {contentPageLinks.map((link) => (
-            <li><a href={link.href} class="text-sm text-on-surface-variant hover:text-primary transition-colors">{link.label}</a></li>
+            <li><a href={link.href} class="inline-block py-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors">{link.label}</a></li>
           ))}
         </ul>
       </div>
@@ -73,22 +73,22 @@ const eulaPath = `/${lang}/eula/`;
       <div>
         <h4 class="mb-3 text-sm font-semibold uppercase tracking-wide text-on-surface-variant">Prodotto</h4>
         <ul class="space-y-2">
-          <li><a href={`/${lang}/#screenshots`} class="text-sm text-on-surface-variant hover:text-primary transition-colors">{t("nav.screenshots")}</a></li>
-          <li><a href={`/${lang}/#web`} class="text-sm text-on-surface-variant hover:text-primary transition-colors">{t("nav.web")}</a></li>
-          <li><a href={`/${lang}/#moduli`} class="text-sm text-on-surface-variant hover:text-primary transition-colors">{t("nav.moduli")}</a></li>
-          <li><a href={`/${lang}/#pricing`} class="text-sm text-on-surface-variant hover:text-primary transition-colors">{t("nav.pricing")}</a></li>
-          <li><a href={`/${lang}/#faq`} class="text-sm text-on-surface-variant hover:text-primary transition-colors">{t("nav.faq")}</a></li>
-          <li><a href={`/${lang}/partner/`} class="text-sm text-on-surface-variant hover:text-primary transition-colors">{t("nav.partner")}</a></li>
+          <li><a href={`/${lang}/#screenshots`} class="inline-block py-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors">{t("nav.screenshots")}</a></li>
+          <li><a href={`/${lang}/#web`} class="inline-block py-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors">{t("nav.web")}</a></li>
+          <li><a href={`/${lang}/#moduli`} class="inline-block py-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors">{t("nav.moduli")}</a></li>
+          <li><a href={`/${lang}/#pricing`} class="inline-block py-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors">{t("nav.pricing")}</a></li>
+          <li><a href={`/${lang}/#faq`} class="inline-block py-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors">{t("nav.faq")}</a></li>
+          <li><a href={`/${lang}/partner/`} class="inline-block py-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors">{t("nav.partner")}</a></li>
         </ul>
       </div>
 
       <div>
         <h4 class="mb-3 text-sm font-semibold uppercase tracking-wide text-on-surface-variant">Legale</h4>
         <ul class="space-y-2">
-          <li><a href={privacyPath} class="text-sm text-on-surface-variant hover:text-primary transition-colors">{t("footer.privacy")}</a></li>
-          <li><a href={cookiePath} class="text-sm text-on-surface-variant hover:text-primary transition-colors">{t("footer.cookies")}</a></li>
-          <li><a href={termsPath} class="text-sm text-on-surface-variant hover:text-primary transition-colors">{t("footer.terms")}</a></li>
-          <li><a href={eulaPath} class="text-sm text-on-surface-variant hover:text-primary transition-colors">{t("footer.eula")}</a></li>
+          <li><a href={privacyPath} class="inline-block py-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors">{t("footer.privacy")}</a></li>
+          <li><a href={cookiePath} class="inline-block py-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors">{t("footer.cookies")}</a></li>
+          <li><a href={termsPath} class="inline-block py-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors">{t("footer.terms")}</a></li>
+          <li><a href={eulaPath} class="inline-block py-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors">{t("footer.eula")}</a></li>
           <!-- Withdrawing consent has to be as easy as giving it (art. 7(3) GDPR).
                The banner is gone after the first answer, so this is the only way
                back to the analytics toggle. data-cc is bound by vanilla-cookieconsent. -->
@@ -103,7 +103,45 @@ const eulaPath = `/${lang}/eula/`;
   </div>
 </footer>
 
-<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script>
+  // Turnstile is only needed by the contact form at the very bottom of the
+  // page, so it is fetched when that section comes near the viewport (or the
+  // moment a field gets focus) instead of on every page load. The widget
+  // auto-renders `.cf-turnstile` whenever the script arrives, so late loading
+  // needs no explicit render call. Visitors who never scroll to the form —
+  // most of them — no longer pay for a third-party script.
+  const TURNSTILE_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+  let turnstileRequested = false;
+  function loadTurnstile() {
+    if (turnstileRequested) return;
+    turnstileRequested = true;
+    const s = document.createElement("script");
+    s.src = TURNSTILE_SRC;
+    s.async = true;
+    s.defer = true;
+    document.head.appendChild(s);
+  }
+  const contactSection = document.getElementById("contact");
+  if (contactSection) {
+    if ("IntersectionObserver" in window) {
+      const io = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) {
+            loadTurnstile();
+            io.disconnect();
+          }
+        },
+        { rootMargin: "600px 0px" },
+      );
+      io.observe(contactSection);
+    } else {
+      loadTurnstile();
+    }
+    // Keyboard users and deep links (#contact) may reach a field before the
+    // observer fires.
+    contactSection.addEventListener("focusin", loadTurnstile, { once: true });
+  }
+</script>
 <script>
   const form = document.getElementById("contact-form") as HTMLFormElement | null;
   const btn = document.getElementById("contact-submit") as HTMLButtonElement | null;

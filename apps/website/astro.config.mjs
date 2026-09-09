@@ -1,38 +1,46 @@
 import { defineConfig } from 'astro/config';
 import tailwindcss from '@tailwindcss/vite';
 import sitemap from '@astrojs/sitemap';
-import { LEGAL_REVISIONS } from './src/data/legal.mjs';
+import { LEGAL_REVISIONS, CONTENT_REVISIONS } from './src/data/revisions.mjs';
 
 const site = 'https://sonoqui.pro';
-// Build-time date for content pages so the sitemap reflects each deploy instead
-// of a frozen string; legal pages carry their own (rarely-changing) date.
+// Only the homepage gets the build date as lastmod: it aggregates every section
+// and genuinely changes on most deploys. Every other page reports the date its
+// copy last changed, from the one registry LegalLayout and the content pages
+// also render from (src/data/revisions.mjs) — so the sitemap `lastmod`, the
+// schema.org dates and the date printed on the page cannot disagree.
+//
+// Stamping the build date on every URL was actively harmful: it told search
+// engines that all nine pages changed on every deploy, which is precisely how
+// `lastmod` gets discounted as noise — and the three content pages Google had
+// never crawled were the ones paying for it.
 const buildDate = new Date();
-// Legal pages date themselves from src/data/legal.mjs, the same registry
-// LegalLayout renders from — so the sitemap `lastmod`, the schema.org
-// `dateModified` and the date printed on the page cannot disagree. Registering
-// a new legal page there also enrols it here automatically.
-const legalLastmod = Object.entries(LEGAL_REVISIONS).map(
-  ([slug, { date }]) => [`/${slug}/`, new Date(`${date}T00:00:00.000Z`)],
-);
-const legalEntry = (url) => legalLastmod.find(([path]) => url.includes(path));
+const toDate = (iso) => new Date(`${iso}T00:00:00.000Z`);
+const registeredLastmod = [
+  ...Object.entries(LEGAL_REVISIONS).map(([slug, { date }]) => [`/${slug}/`, toDate(date), true]),
+  ...Object.entries(CONTENT_REVISIONS).map(([slug, { updated }]) => [`/${slug}/`, toDate(updated), false]),
+];
+const registered = (url) => registeredLastmod.find(([path]) => url.includes(path));
 
 export default defineConfig({
   site,
   integrations: [
+    // No `priority` / `changefreq`: Google has ignored both since 2020, and a
+    // `priority: 1.0` that means nothing only misleads the next maintainer.
     sitemap({
-      changefreq: 'weekly',
       lastmod: buildDate,
-      priority: 0.7,
       filter: (page) => page !== `${site}/`,
       serialize: (item) => {
         if (item.url.endsWith('/it/')) {
-          return { ...item, lastmod: buildDate, priority: 1 };
+          return { ...item, lastmod: buildDate };
         }
-        const legal = legalEntry(item.url);
-        if (legal) {
-          return { ...item, changefreq: 'yearly', lastmod: legal[1], priority: 0.2 };
+        const entry = registered(item.url);
+        if (entry) {
+          return { ...item, lastmod: entry[1] };
         }
-        return { ...item, lastmod: buildDate, priority: 0.8 };
+        // An unregistered non-home page would silently fall back to the build
+        // date — the exact bug this replaces. Make the omission loud instead.
+        throw new Error(`Sitemap: no revision registered for ${item.url} — add it to src/data/revisions.mjs`);
       },
     }),
   ],

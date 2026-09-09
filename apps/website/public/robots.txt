@@ -2,23 +2,33 @@
 #
 # Goal: keep sonoQui visible in classic search and AI answer engines while
 # reserving rights for model training.
+#
+# Content-Signal is repeated in every named group on purpose: a crawler applies
+# only the group that matches it and never merges in the `*` group, so a
+# signal declared once under `*` is invisible to every bot named above it.
 
 User-agent: OAI-SearchBot
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /
 
 User-agent: ChatGPT-User
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /
 
 User-agent: Claude-SearchBot
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /
 
 User-agent: Claude-User
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /
 
 User-agent: PerplexityBot
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /
 
 User-agent: Perplexity-User
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /
 
 User-agent: GPTBot

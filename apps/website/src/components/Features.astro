@@ -4,10 +4,15 @@ import { getLangFromUrl, useTranslations } from "../i18n/utils";
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 
-const features = [
+// `link` points a feature card at the content page that goes deeper on it.
+// These in-body links (plus the closing line below the grid) are what give the
+// three content pages real inlinks — before, each had exactly one, from the
+// footer, and Googlebot had never fetched any of them.
+const features: { title: string; desc: string; icon: string; link?: { href: string; label: string } }[] = [
   {
     title: "Timbratura in un tap",
     desc: "Il dipendente timbra dal telefono. La posizione viene verificata solo nel momento del tap, mai durante il resto della giornata. Raggio della sede impostabile da 50 a 1500 metri.",
+    link: { href: "/it/timbratura-gps-app/", label: "Come funziona la timbratura GPS" },
     icon: `<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
   },
   {
@@ -43,6 +48,7 @@ const features = [
   {
     title: "Export per il commercialista",
     desc: "Un foglio Excel mensile pronto per le paghe italiane: ore totali, anomalie, ferie e permessi, divisi per dipendente e per sede.",
+    link: { href: "/it/rilevazione-presenze-pmi/", label: "Rilevazione presenze per PMI" },
     icon: `<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>`,
   },
   {
@@ -78,8 +84,18 @@ const features = [
           </div>
           <h3 class="mt-4 text-lg font-semibold text-on-surface">{f.title}</h3>
           <p class="mt-2 text-sm leading-relaxed text-on-surface-variant">{f.desc}</p>
+          {f.link && (
+            <a href={f.link.href} class="mt-3 inline-block py-1 text-sm font-semibold text-primary hover:underline">
+              {f.link.label} →
+            </a>
+          )}
         </div>
       ))}
     </div>
+
+    <p class="mt-10 text-center text-base text-on-surface-variant" data-reveal>
+      Stai confrontando più soluzioni?
+      <a href="/it/migliori-app-rilevazione-presenze-2026/" class="font-semibold text-primary hover:underline">Leggi il confronto 2026 delle app di rilevazione presenze per PMI →</a>
+    </p>
   </div>
 </section>

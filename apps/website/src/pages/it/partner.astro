@@ -2,12 +2,15 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Partner from "../../components/Partner.astro";
 import { getLangFromUrl, useTranslations } from "../../i18n/utils";
-import { partnerMeta, partnerFaq, buildPartnerSchemas, PARTNER_APP_URL } from "../../data/seo";
+import { partnerMeta, partnerFaq, partnerSections, buildPartnerSchemas, PARTNER_APP_URL } from "../../data/seo";
+import { contentRevision, formatItDate } from "../../data/revisions.mjs";
 
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 const meta = partnerMeta[lang];
 const faq = partnerFaq[lang];
+const sections = partnerSections[lang];
+const revision = contentRevision("partner");
 ---
 
 <BaseLayout
@@ -47,6 +50,26 @@ const faq = partnerFaq[lang];
   </section>
 
   <Partner />
+
+  <section class="bg-white py-16 sm:py-20" aria-labelledby="partner-programma-heading">
+    <div class="mx-auto grid max-w-3xl gap-10 px-4 sm:px-6">
+      <p class="text-sm text-on-surface-variant">
+        Aggiornato il <time datetime={revision.updated}>{formatItDate(revision.updated)}</time>
+      </p>
+      {sections.map((section, index) => (
+        <section>
+          <h2 id={index === 0 ? "partner-programma-heading" : undefined} class="text-2xl font-bold tracking-tight text-on-surface">
+            {section.heading}
+          </h2>
+          <div class="mt-4 space-y-4">
+            {section.body.map((paragraph) => (
+              <p class="text-base leading-relaxed text-on-surface-variant">{paragraph}</p>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  </section>
 
   <section class="bg-surface py-20 sm:py-24">
     <div class="mx-auto max-w-3xl px-4 sm:px-6">

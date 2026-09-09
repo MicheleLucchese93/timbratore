@@ -82,8 +82,16 @@ const t = useTranslations(lang);
         <div class="relative flex items-center justify-center py-4">
           <div class="relative w-36 -translate-x-2 translate-y-3 -rotate-[8deg] sm:w-48 md:w-56 z-0 drop-shadow-xl">
             <div class="rounded-[1.3rem] border-[3px] border-on-surface bg-on-surface p-px shadow-2xl">
+              {/* Back phone renders at 144–224 css px; the 384/576 variants
+                  (scripts/hero-variants.mjs) cover 1x–2x without shipping the
+                  1170px store screenshot. Not the LCP candidate, so no
+                  fetchpriority — two "high" hints just cancel each other. */}
               <picture>
-                <source srcset="/screenshots/storico.webp" type="image/webp" />
+                <source
+                  type="image/webp"
+                  srcset="/screenshots/storico-384.webp 384w, /screenshots/storico-576.webp 576w, /screenshots/storico.webp 1170w"
+                  sizes="(min-width: 768px) 224px, (min-width: 640px) 192px, 144px"
+                />
                 <img
                   class="block w-full rounded-[1.1rem] bg-on-surface"
                   src="/screenshots/storico.png"
@@ -91,15 +99,20 @@ const t = useTranslations(lang);
                   width="1170"
                   height="2532"
                   loading="eager"
-                  fetchpriority="high"
                 />
               </picture>
             </div>
           </div>
           <div class="relative -ml-4 w-44 -translate-y-2 rotate-[6deg] sm:w-56 md:w-64 z-10 drop-shadow-2xl">
             <div class="rounded-[1.4rem] border-[4px] border-on-surface bg-on-surface p-px shadow-2xl">
+              {/* Front phone: the largest above-the-fold image and the LCP
+                  candidate, so this is the one that keeps fetchpriority=high. */}
               <picture>
-                <source srcset="/screenshots/timbra.webp" type="image/webp" />
+                <source
+                  type="image/webp"
+                  srcset="/screenshots/timbra-384.webp 384w, /screenshots/timbra-576.webp 576w, /screenshots/timbra.webp 1170w"
+                  sizes="(min-width: 768px) 256px, (min-width: 640px) 224px, 176px"
+                />
                 <img
                   class="block w-full rounded-[1.2rem] bg-on-surface"
                   src="/screenshots/timbra.png"

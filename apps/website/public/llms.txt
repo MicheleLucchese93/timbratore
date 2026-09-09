@@ -9,7 +9,8 @@ sonoQui è un servizio SaaS italiano dedicato alla rilevazione presenze. Il prod
 ## Modello commerciale
 
 - Nessuna registrazione pubblica: l'azienda viene attivata su richiesta e il primo account amministratore è creato dal team sonoQui.
-- Il prezzo dipende dal numero di dipendenti e dalle funzioni attivate; viene fornito un preventivo su misura tramite il modulo di contatto.
+- Prezzi pubblici, per fascia di dipendenti (IVA esclusa): 24,99 €/mese fino a 10 dipendenti e 3 sedi; 39,99 €/mese fino a 20 dipendenti e 5 sedi. Tutta la rilevazione presenze è inclusa in entrambi i piani. Oltre i limiti del piano: 1,99 €/mese per dipendente aggiuntivo, 2,99 €/mese per sede aggiuntiva. Con la fatturazione annuale 1 mese è gratis.
+- I moduli aggiuntivi (Cantieri, API) sono opzionali, si attivano su richiesta e si pagano a consumo mensile con prezzo su richiesta.
 - L'app è gratuita da scaricare dagli store; il servizio è destinato alle aziende clienti.
 
 ## Caratteristiche chiave

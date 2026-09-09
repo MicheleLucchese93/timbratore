@@ -3,11 +3,13 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import {
   getContentPages,
   buildContentPageSchemas,
+  relatedContentPages,
   APP_STORE_URL,
   PLAY_STORE_URL,
   WEB_APP_URL,
   type ContentPage,
 } from "../../data/seo";
+import { contentRevision, formatItDate } from "../../data/revisions.mjs";
 
 export function getStaticPaths() {
   return getContentPages().map((page) => ({
@@ -21,11 +23,16 @@ interface Props {
 }
 
 const { page } = Astro.props;
+// Same registry the Article JSON-LD reads, so the visible date and the
+// structured-data date cannot drift apart.
+const revision = contentRevision(page.slug);
+const related = relatedContentPages(page.slug);
 ---
 
 <BaseLayout
   title={page.title}
   description={page.description}
+  image={page.image}
   type="article"
   alternatePaths={{ it: `/it/${page.slug}/` }}
   schema={buildContentPageSchemas(page)}
@@ -41,6 +48,17 @@ const { page } = Astro.props;
       <h1 class="mt-8 text-3xl font-extrabold leading-tight tracking-tight text-on-surface text-balance sm:text-5xl">
         {page.h1}
       </h1>
+
+      {/* Who wrote it and when. A page with no visible date cannot be judged
+          fresh by anyone — reader, Google, or an AI answer engine. */}
+      <p class="mt-4 text-sm text-on-surface-variant">
+        A cura del team sonoQui
+        <span class="mx-2" aria-hidden="true">·</span>
+        Pubblicato il <time datetime={revision.published}>{formatItDate(revision.published)}</time>
+        <span class="mx-2" aria-hidden="true">·</span>
+        Aggiornato il <time datetime={revision.updated}>{formatItDate(revision.updated)}</time>
+      </p>
+
       <p class="mt-6 text-lg leading-relaxed text-on-surface-variant sm:text-xl">
         {page.intro}
       </p>
@@ -54,6 +72,12 @@ const { page } = Astro.props;
       </ul>
 
       <div class="mt-8 flex flex-wrap gap-3">
+        <a
+          href="/it/#contact"
+          class="inline-flex items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-container transition-colors"
+        >
+          Richiedi l'attivazione
+        </a>
         <a
           href={APP_STORE_URL}
           target="_blank"
@@ -83,19 +107,61 @@ const { page } = Astro.props;
 
     <div class="border-y border-gray-100 bg-surface py-14">
       <div class="mx-auto grid max-w-4xl gap-10 px-4 sm:px-6">
-        {page.sections.map((section) => (
-          <section>
-            <h2 class="text-2xl font-bold tracking-tight text-on-surface">
-              {section.heading}
-            </h2>
-            <div class="mt-4 space-y-4">
-              {section.body.map((paragraph) => (
-                <p class="text-base leading-relaxed text-on-surface-variant">
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-          </section>
+        {page.sections.map((section, index) => (
+          <>
+            <section id={section.id}>
+              <h2 class="text-2xl font-bold tracking-tight text-on-surface">
+                {section.heading}
+              </h2>
+              <div class="mt-4 space-y-4">
+                {section.body.map((paragraph) => (
+                  <p class="text-base leading-relaxed text-on-surface-variant">
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+            </section>
+
+            {/* The comparison table sits right after the methodology section
+                (index 1 on the buyer guide), before the per-tool write-ups it
+                summarises. */}
+            {page.comparison && index === 1 && (
+              <section aria-labelledby="confronto-heading">
+                <h2 id="confronto-heading" class="text-2xl font-bold tracking-tight text-on-surface">
+                  Tabella di confronto
+                </h2>
+                <div class="mt-4 overflow-x-auto rounded-lg border border-gray-200 bg-white">
+                  <table class="w-full min-w-[56rem] border-collapse text-left text-sm">
+                    <caption class="px-4 py-3 text-left text-xs text-on-surface-variant">
+                      {page.comparison.caption}
+                    </caption>
+                    <thead class="bg-surface text-xs uppercase tracking-wide text-on-surface-variant">
+                      <tr>
+                        {page.comparison.columns.map((column) => (
+                          <th scope="col" class="px-4 py-3 font-semibold">{column}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                      {page.comparison.rows.map((row) => (
+                        <tr class={row.anchor === "sonoqui" ? "bg-primary/5" : undefined}>
+                          <th scope="row" class="px-4 py-3 font-semibold text-on-surface">
+                            <a href={`#${row.anchor}`} class="hover:text-primary">{row.name}</a>
+                          </th>
+                          {row.cells.map((cell) => (
+                            <td class="px-4 py-3 align-top text-on-surface-variant">{cell}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {page.comparison.note && (
+                  <p class="mt-3 text-xs text-on-surface-variant">{page.comparison.note}</p>
+                )}
+              </section>
+            )}
+          </>
         ))}
       </div>
     </div>
@@ -118,6 +184,35 @@ const { page } = Astro.props;
             </p>
           </details>
         ))}
+      </div>
+    </section>
+
+    {page.sources && (
+      <section class="mx-auto max-w-4xl px-4 pb-14 sm:px-6" aria-labelledby="fonti-heading">
+        <h2 id="fonti-heading" class="text-lg font-bold tracking-tight text-on-surface">Fonti</h2>
+        <ul class="mt-3 space-y-2 text-sm text-on-surface-variant">
+          {page.sources.map((source) => (
+            <li>
+              <a href={source.url} target="_blank" rel="noopener noreferrer" class="underline decoration-gray-300 underline-offset-4 hover:text-primary hover:decoration-primary">
+                {source.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    <section class="border-t border-gray-100 bg-surface py-14" aria-labelledby="leggi-anche-heading">
+      <div class="mx-auto max-w-4xl px-4 sm:px-6">
+        <h2 id="leggi-anche-heading" class="text-2xl font-bold tracking-tight text-on-surface">Leggi anche</h2>
+        <ul class="mt-6 grid gap-4 sm:grid-cols-2">
+          {related.map((item) => (
+            <li class="rounded-lg border border-gray-100 bg-white p-5">
+              <a href={item.href} class="text-base font-semibold text-primary hover:underline">{item.label}</a>
+              <p class="mt-2 text-sm leading-relaxed text-on-surface-variant">{item.description}</p>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
 

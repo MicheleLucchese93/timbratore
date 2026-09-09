@@ -8,7 +8,9 @@ const t = useTranslations(lang);
 <header class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100 transition-shadow" id="header">
   <nav class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
     <a href={`/${lang}/`} class="flex items-center gap-2">
-      <img src="/icon.png" alt="sonoQui" class="h-9 w-9 rounded-lg" />
+      {/* 192px asset, not /icon.png: that one is the 1024² store icon (354 KB)
+          and was being downloaded on every page to paint a 36px logo. */}
+      <img src="/icon-192.png" alt="sonoQui" width="36" height="36" class="h-9 w-9 rounded-lg" />
       <span class="text-xl font-extrabold tracking-tight text-primary">sono<span class="text-accent">Qui</span></span>
     </a>
 

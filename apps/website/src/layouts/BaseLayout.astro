@@ -6,6 +6,11 @@ import CookieBanner from "../components/CookieBanner.astro";
 import { defaultLang, type Lang } from "../i18n/ui";
 import { getLangFromUrl } from "../i18n/utils";
 import { DEFAULT_IMAGE } from "../data/seo";
+// Preloaded below. The `?url` import resolves to the same content-hashed file
+// the stylesheet references, so the hint never goes stale across builds. Only
+// the two weights that paint above the fold: 400 (body) and 800 (the H1).
+import inter400 from "@fontsource/inter/files/inter-latin-400-normal.woff2?url";
+import inter800 from "@fontsource/inter/files/inter-latin-800-normal.woff2?url";
 
 interface Props {
   title: string;
@@ -44,6 +49,10 @@ const schemas = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- Flag JS early so reveal elements only start hidden when JS can reveal them. -->
     <script is:inline>document.documentElement.classList.add("js");</script>
+    <!-- Fonts are otherwise discovered only after the render-blocking CSS is
+         parsed; preloading the two above-the-fold weights removes that hop. -->
+    <link rel="preload" as="font" type="font/woff2" crossorigin href={inter400} />
+    <link rel="preload" as="font" type="font/woff2" crossorigin href={inter800} />
     <meta name="description" content={description} />
     <meta name="theme-color" content="#15569e" />
     <meta name="color-scheme" content="light" />

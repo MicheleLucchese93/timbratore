@@ -1,6 +1,12 @@
 import type { Lang } from '../i18n/ui';
+import { contentRevision } from './revisions.mjs';
 
 export const SITE_URL = 'https://sonoqui.pro';
+// Stable identifiers for the site-wide entity nodes. Every page emits the full
+// Organization/WebSite once and references them by @id everywhere else
+// (publisher, author, about, isPartOf) — one entity, not nine look-alike copies.
+export const ORGANIZATION_ID = `${SITE_URL}/#organization`;
+export const WEBSITE_ID = `${SITE_URL}/#website`;
 export const APP_STORE_URL = 'https://apps.apple.com/it/app/sonoqui/id6772960002';
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=app.sonoqui.mobile';
 export const WEB_APP_URL = 'https://app.sonoqui.pro/login';
@@ -164,6 +170,7 @@ export function buildOrganizationSchema() {
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
+    '@id': ORGANIZATION_ID,
     name: 'sonoQui',
     url: SITE_URL,
     logo: LOGO_URL,
@@ -184,10 +191,11 @@ export function buildWebSiteSchema() {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
+    '@id': WEBSITE_ID,
     name: 'sonoQui',
     url: SITE_URL,
     inLanguage: 'it-IT',
-    publisher: { '@type': 'Organization', name: 'sonoQui', url: SITE_URL },
+    publisher: { '@id': ORGANIZATION_ID },
   };
 }
 
@@ -224,6 +232,9 @@ export function buildHomeSchema(lang: Lang) {
       { '@type': 'ImageObject', url: `${SITE_URL}/screenshots/storico.png`, caption: 'Storico delle timbrature' },
       { '@type': 'ImageObject', url: `${SITE_URL}/screenshots-web/dashboard.png`, caption: 'Dashboard amministratori' },
     ],
+    // AggregateOffer summarises the range; the named plans live in an
+    // OfferCatalog. An Offer has no `offers` property in the vocabulary, so the
+    // plans used to be nested somewhere every parser silently dropped.
     offers: {
       '@type': 'AggregateOffer',
       priceCurrency: 'EUR',
@@ -232,7 +243,11 @@ export function buildHomeSchema(lang: Lang) {
       offerCount: 2,
       url: `${SITE_URL}/it/#pricing`,
       description: 'Due piani in abbonamento mensile con tutta la rilevazione presenze inclusa; prezzo in base ai dipendenti. Fatturazione annuale con 1 mese gratis. Dipendenti aggiuntivi 1,99 €/mese, sedi aggiuntive 2,99 €/mese. Moduli aggiuntivi opzionali (Cantieri, API) a consumo mensile, prezzo su richiesta. Prezzi IVA esclusa.',
-      offers: [
+    },
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: 'Piani sonoQui',
+      itemListElement: [
         {
           '@type': 'Offer',
           name: 'Piccola',
@@ -251,7 +266,7 @@ export function buildHomeSchema(lang: Lang) {
         },
       ],
     },
-    publisher: buildOrganizationSchema(),
+    publisher: { '@id': ORGANIZATION_ID },
     audience: {
       '@type': 'BusinessAudience',
       audienceType: 'Piccole e medie imprese italiane',
@@ -283,6 +298,7 @@ export function buildFaqSchema(lang: Lang) {
 export function buildPartnerSchemas(lang: Lang) {
   const meta = partnerMeta[lang];
   const url = `${SITE_URL}/it/partner/`;
+  const revision = contentRevision('partner');
   const webPage = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
@@ -290,8 +306,11 @@ export function buildPartnerSchemas(lang: Lang) {
     description: meta.description,
     url,
     inLanguage: 'it-IT',
-    isPartOf: { '@type': 'WebSite', name: 'sonoQui', url: SITE_URL },
-    about: buildOrganizationSchema(),
+    datePublished: revision.published,
+    dateModified: revision.updated,
+    isPartOf: { '@id': WEBSITE_ID },
+    about: { '@id': ORGANIZATION_ID },
+    publisher: { '@id': ORGANIZATION_ID },
     primaryImageOfPage: { '@type': 'ImageObject', url: `${SITE_URL}${DEFAULT_IMAGE}` },
   };
   const breadcrumb = {
@@ -302,8 +321,38 @@ export function buildPartnerSchemas(lang: Lang) {
       { '@type': 'ListItem', position: 2, name: 'Programma partner', item: url },
     ],
   };
-  return [webPage, breadcrumb, buildOrganizationSchema(), faqPageSchema(partnerFaq[lang])];
+  return [webPage, breadcrumb, buildOrganizationSchema(), buildWebSiteSchema(), faqPageSchema(partnerFaq[lang])];
 }
+
+// Body sections for the partner page, rendered by src/pages/it/partner.astro
+// between the hero and the FAQ. The page used to be badge + lead + six short
+// Q&As (~566 words), under the ~800-word floor for a solution page and thin on
+// the questions a commercialista actually arrives with.
+export const partnerSections: Record<Lang, ContentSection[]> = {
+  it: [
+    {
+      heading: 'A chi è rivolto il programma partner',
+      body: [
+        "Il programma partner sonoQui è pensato per chi segue già le piccole e medie imprese italiane sul fronte del personale e vuole aggiungere la rilevazione presenze ai propri servizi senza sviluppare o mantenere un prodotto: commercialisti e consulenti del lavoro che gestiscono le paghe di più aziende, software house e agenzie IT che offrono soluzioni gestionali, system integrator che seguono i clienti nella digitalizzazione.",
+        "In tutti questi casi il rapporto commerciale resta tuo: il cliente conosce te, tu conosci le sue esigenze, e sonoQui è lo strumento con cui rispondi alla domanda «come rileviamo le presenze in modo conforme e senza hardware?». Non serve una struttura tecnica dedicata, né un volume minimo di aziende per iniziare.",
+      ],
+    },
+    {
+      heading: "Come funziona l'attivazione di un cliente",
+      body: [
+        "Dalla console partner su partners.sonoqui.pro crei l'azienda cliente, imposti i limiti del piano (dipendenti e sedi) e generi il primo account amministratore. Da quel momento il cliente invita i dipendenti, configura sedi e orari e inizia a timbrare dall'app; tu mantieni la visione d'insieme di tutte le aziende che gestisci.",
+        "Le operazioni ricorrenti — sospendere o riattivare un servizio, alzare i limiti, attivare o disattivare i moduli aggiuntivi Cantieri e API per una singola azienda — le fai in autonomia dalla stessa console, senza dover passare da noi per ogni richiesta. Infrastruttura, aggiornamenti, sicurezza e backup restano a carico di sonoQui.",
+      ],
+    },
+    {
+      heading: 'Margine e fatturazione',
+      body: [
+        "Il modello è semplice: sonoQui fattura a te il servizio a un prezzo riservato ai partner, e tu fatturi il cliente finale al prezzo che decidi. Il margine è ricorrente, mese dopo mese, e cresce con i volumi grazie a uno sconto incrementale a scaglioni: più aziende gestisci, più il prezzo partner scende.",
+        "I moduli aggiuntivi seguono la stessa logica — li attivi per il singolo cliente, si fatturano a consumo mensile in aggiunta all'abbonamento e li rivendi con il tuo margine. Le condizioni economiche complete vengono illustrate nella chiamata di attivazione del partner, che di norma fissiamo entro 1-2 giorni lavorativi dalla richiesta.",
+      ],
+    },
+  ],
+};
 
 // All structured-data nodes for the homepage, emitted as separate JSON-LD blocks.
 export function buildHomeSchemas(lang: Lang) {
@@ -322,7 +371,15 @@ export function buildHomeSchemas(lang: Lang) {
 // buyer-guide listicle. Italian-only, matching the rest of the site.
 // ---------------------------------------------------------------------------
 
-export type ContentSection = { heading: string; body: string[] };
+// `id` gives a section a stable in-page anchor (the buyer guide's per-tool
+// headings), which the ItemList JSON-LD and the comparison table link to.
+export type ContentSection = { heading: string; body: string[]; id?: string };
+// A primary source the page's legal/statistical claims can be checked against.
+// Rendered as a "Fonti" list; the whole point is that a reader (or an AI
+// answer engine) can verify the claim without trusting us.
+export type ContentSource = { label: string; url: string };
+export type ComparisonRow = { name: string; anchor: string; cells: string[] };
+export type Comparison = { caption: string; columns: string[]; rows: ComparisonRow[]; note?: string };
 export type ContentPage = {
   key: string;
   slug: string;
@@ -335,8 +392,14 @@ export type ContentPage = {
   sections: ContentSection[];
   faq: FaqItem[];
   cta: { title: string; text: string };
-  // Tool names for the ItemList node (buyer-guide page only).
-  itemList?: string[];
+  // Page-specific social/preview image; falls back to the site default.
+  image?: string;
+  sources?: ContentSource[];
+  // Structured comparison rendered as a real <table> (buyer-guide page only).
+  comparison?: Comparison;
+  // Tool names for the ItemList node (buyer-guide page only). Each must match a
+  // section `id` so the list items can deep-link into the page.
+  itemList?: { name: string; anchor: string }[];
 };
 
 export const contentPages: ContentPage[] = [
@@ -371,10 +434,9 @@ export const contentPages: ContentPage[] = [
         ],
       },
       {
-        heading: "Timbratura GPS e art. 4 dello Statuto dei Lavoratori",
+        heading: "La timbratura GPS è conforme all'art. 4 dello Statuto dei Lavoratori?",
         body: [
-          "sonoQui è progettata nel rispetto dell'art. 4: rileva la posizione solo al momento della timbratura, mai in continuo, e non utilizza riconoscimento facciale né dati biometrici. Le coordinate GPS non vengono conservate: la posizione è letta solo nell'istante della timbratura per verificare se il dipendente è nell'area della sede, e subito scartata. Sulla timbratura restano sede, data e ora.",
-          "L'attivazione resta comunque subordinata agli obblighi dell'art. 4 a carico del datore di lavoro: accordo sindacale aziendale oppure autorizzazione dell'Ispettorato Territoriale del Lavoro. È uno strumento pensato per aiutarti a rispettare la norma, non per aggirarla.",
+          "sonoQui è progettata nel rispetto dell'art. 4 dello Statuto dei Lavoratori (Legge 20 maggio 1970, n. 300): rileva la posizione del dipendente solo al momento del tap su «Timbra», mai in modo continuativo, e non utilizza riconoscimento facciale né altri dati biometrici. Le coordinate GPS non vengono conservate: la posizione è letta una sola volta, nell'istante della timbratura, per verificare che il dipendente si trovi nell'area della sede di lavoro (raggio configurabile da 50 a 1500 metri), e viene subito scartata; sulla timbratura restano solo sede, data e ora. L'uso della localizzazione resta comunque subordinato agli obblighi che l'art. 4 impone al datore di lavoro: un accordo con le rappresentanze sindacali aziendali oppure, in mancanza, l'autorizzazione dell'Ispettorato Territoriale del Lavoro competente. È uno strumento pensato per aiutarti a rispettare la norma, non per aggirarla.",
         ],
       },
       {
@@ -385,16 +447,32 @@ export const contentPages: ContentPage[] = [
         ],
       },
     ],
+    // Two entries are shared with the homepage on purpose (they are the
+    // canonical answers); the pricing and onboarding ones are phrased for this
+    // page so the same 130 words are not indexed verbatim on three URLs.
     faq: [
       homeFaq.it[0], // Come funziona la timbratura GPS?
-      homeFaq.it[1], // conforme art. 4?
       homeFaq.it[4], // dimenticanza timbratura
-      homeFaq.it[9], // quanto costa
+      {
+        question: 'Quanto costa la timbratura GPS con sonoQui?',
+        answer:
+          "La timbratura GPS è inclusa in ogni piano, senza hardware da acquistare: si parte da 24,99 €/mese fino a 10 dipendenti e 3 sedi, oppure 39,99 €/mese fino a 20 dipendenti e 5 sedi (IVA esclusa), con 1 mese gratis se paghi annualmente. Un dipendente in più costa 1,99 €/mese, una sede in più 2,99 €/mese. L'app è gratuita da scaricare per i dipendenti.",
+      },
+      {
+        question: 'Serve una registrazione per iniziare a timbrare?',
+        answer:
+          "Non c'è una registrazione pubblica: l'azienda viene attivata da noi su richiesta e creiamo il primo account amministratore, in genere entro 1-2 giorni lavorativi. Da lì l'amministratore invita i dipendenti, che scaricano l'app gratuita da App Store o Google Play e iniziano a timbrare.",
+      },
     ],
     cta: {
       title: 'Porta la timbratura nello smartphone dei tuoi dipendenti',
-      text: 'Scarica sonoQui o richiedi l’attivazione per la tua azienda: ti aiutiamo a partire in pochi giorni.',
+      text: "Compila il modulo di contatto: attiviamo noi la tua azienda e creiamo il primo account amministratore, in genere entro 1-2 giorni lavorativi. L'app è gratuita da scaricare per i dipendenti.",
     },
+    image: '/screenshots/timbra.png',
+    sources: [
+      { label: 'Art. 4, Legge 20 maggio 1970, n. 300 (Statuto dei Lavoratori) — Normattiva', url: 'https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1970-05-20;300~art4' },
+      { label: 'Regolamento (UE) 2016/679 (GDPR) — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg/2016/679/oj/ita' },
+    ],
   },
   {
     key: 'rilevazione-presenze-pmi',
@@ -402,7 +480,7 @@ export const contentPages: ContentPage[] = [
     breadcrumb: 'Rilevazione presenze per PMI',
     title: 'Software di rilevazione presenze per PMI italiane | sonoQui',
     description:
-      'Software di rilevazione presenze pensato per le PMI italiane: timbratura GPS, ferie, permessi, anomalie ed export per il commercialista. Da 24,99 €/mese, prezzo in base ai dipendenti.',
+      'Software di rilevazione presenze dipendenti pensato per le PMI italiane: timbratura GPS, ferie, permessi, anomalie ed export per il commercialista. Da 24,99 €/mese, prezzo in base ai dipendenti.',
     h1: 'Il software di rilevazione presenze pensato per le PMI italiane',
     intro:
       "sonoQui è il sistema di rilevazione presenze su misura per le piccole e medie imprese italiane: semplice per chi timbra, completo per chi amministra e già pronto per il commercialista. Tutta la rilevazione presenze è inclusa in ogni piano; i moduli aggiuntivi — Cantieri e API — sono opzionali.",
@@ -413,10 +491,9 @@ export const contentPages: ContentPage[] = [
     ],
     sections: [
       {
-        heading: 'Perché una PMI ha bisogno di un sistema di rilevazione presenze',
+        heading: 'Perché una PMI ha bisogno di un sistema di rilevazione presenze?',
         body: [
-          "La sentenza della Corte di Giustizia UE nel caso CCOO (2019) obbliga i datori di lavoro a dotarsi di un sistema oggettivo, affidabile e accessibile per misurare l'orario di lavoro. In pratica i fogli presenze cartacei e i file Excel non firmati non bastano più come documentazione.",
-          "Per una PMI questo non deve tradursi in una suite HR complessa e costosa: serve uno strumento che i dipendenti usino davvero e che faccia risparmiare tempo a chi gestisce le paghe.",
+          "Dal 14 maggio 2019 le PMI italiane sono obbligate per legge a un sistema oggettivo di rilevazione dell'orario di lavoro: i fogli presenze cartacei e i file Excel non firmati non bastano più come documentazione. Lo stabilisce la sentenza della Corte di Giustizia dell'Unione Europea nella causa C-55/18 (caso CCOO), che impone ai datori di lavoro uno strumento oggettivo, affidabile e accessibile per misurare l'orario di ciascun dipendente. In Italia questo obbligo si affianca a quelli dell'art. 4 dello Statuto dei Lavoratori quando la rilevazione utilizza strumenti come il GPS. Per una piccola o media impresa, rispettarlo non richiede una suite HR complessa: basta un'app di rilevazione presenze — come sonoQui — che i dipendenti usino davvero ogni giorno e che produca un documento verificabile, pronto per il commercialista, senza rincorrere firme cartacee o fogli Excel a fine mese.",
         ],
       },
       {
@@ -444,87 +521,132 @@ export const contentPages: ContentPage[] = [
     faq: [
       homeFaq.it[2], // export commercialista
       homeFaq.it[5], // sicurezza dati
-      homeFaq.it[9], // prezzo
+      {
+        question: 'Quanto costa un software di rilevazione presenze per una PMI?',
+        answer:
+          "Con sonoQui il prezzo è per fascia di dipendenti, non per singola funzione: 24,99 €/mese fino a 10 dipendenti e 3 sedi, 39,99 €/mese fino a 20 dipendenti e 5 sedi, IVA esclusa, con tutta la rilevazione presenze inclusa. Se paghi annualmente un mese è gratis; oltre i limiti del piano un dipendente costa 1,99 €/mese e una sede 2,99 €/mese. Non servono badge, totem o altro hardware.",
+      },
       homeFaq.it[11], // come iniziamo
     ],
     cta: {
-      title: 'Prova sonoQui nella tua PMI',
+      title: 'Attiva sonoQui nella tua PMI',
       text: 'Compila il modulo di contatto: attiviamo noi la tua azienda e creiamo il primo account amministratore, in genere entro 1-2 giorni lavorativi.',
     },
+    image: '/screenshots-web/dashboard.png',
+    sources: [
+      { label: 'CGUE, causa C-55/18, Federación de Servicios de Comisiones Obreras (CCOO) c. Deutsche Bank, sentenza del 14 maggio 2019 — EUR-Lex', url: 'https://eur-lex.europa.eu/legal-content/IT/TXT/?uri=CELEX:62018CJ0055' },
+      { label: 'Art. 4, Legge 20 maggio 1970, n. 300 (Statuto dei Lavoratori) — Normattiva', url: 'https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1970-05-20;300~art4' },
+      { label: 'Regolamento (UE) 2016/679 (GDPR) — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg/2016/679/oj/ita' },
+    ],
   },
   {
     key: 'migliori-app-rilevazione-presenze',
     slug: 'migliori-app-rilevazione-presenze-2026',
     breadcrumb: 'Migliori app rilevazione presenze 2026',
-    title: 'Migliori app di rilevazione presenze per PMI (2026) | sonoQui',
+    title: 'Migliori app rilevazione presenze per PMI: confronto 2026 | sonoQui',
     description:
-      'Guida 2026 alle app di rilevazione presenze per PMI italiane: i criteri per scegliere e una panoramica onesta delle soluzioni — sonoQui, Fluida, Factorial, Jibble, Dipendenti in Cloud e Zucchetti.',
-    h1: 'Migliori app di rilevazione presenze per PMI italiane (2026)',
+      'Confronto 2026 tra le 6 app di rilevazione presenze più usate dalle PMI italiane — sonoQui, Fluida, Factorial, Jibble, Dipendenti in Cloud e Zucchetti — con tabella, criteri di scelta e per chi è adatta ciascuna.',
+    h1: 'Le 6 migliori app di rilevazione presenze per PMI italiane: confronto 2026',
+    // The verdict comes first: an AI answer engine or a skimming reader gets
+    // the conditional recommendation in the opening sentence instead of after
+    // eight sections. The "how to choose" framing follows.
     intro:
-      "Scegliere un'app di rilevazione presenze non significa cercare quella con più funzioni, ma quella che i tuoi dipendenti useranno davvero e che ti fa chiudere il mese senza fatica. Ecco i criteri che contano e una panoramica onesta delle soluzioni sul mercato italiano nel 2026, sonoQui inclusa.",
+      "Per una PMI italiana che vuole timbratura GPS da smartphone senza hardware, conformità all'art. 4 dello Statuto dei Lavoratori ed export pronto per il commercialista a un prezzo fisso, sonoQui è l'app pensata esattamente per questo caso, da 24,99 €/mese. Se invece servono una suite HR completa, un'integrazione stretta con lo studio paghe o una piattaforma enterprise, Factorial, Dipendenti in Cloud o Zucchetti possono essere scelte più adatte. Qui sotto i criteri che contano, una tabella di confronto e una scheda onesta per ciascuna delle sei soluzioni.",
     highlights: [
       'I criteri di scelta che contano per una PMI',
-      'Panoramica delle principali soluzioni italiane e internazionali',
-      'Quando conviene sonoQui e quando un’altra soluzione',
+      'Tabella di confronto tra le 6 soluzioni principali',
+      'Per chi è adatta ciascuna app, sonoQui inclusa',
     ],
     sections: [
       {
         heading: 'Come scegliere: i criteri che contano',
         body: [
-          "Conformità normativa: l'app deve aiutarti a rispettare l'art. 4 dello Statuto dei Lavoratori e il GDPR, e a soddisfare l'obbligo (sentenza CGUE CCOO, 2019) di un sistema oggettivo e affidabile di misurazione dell'orario.",
+          "Conformità normativa: l'app deve aiutarti a rispettare l'art. 4 dello Statuto dei Lavoratori (Legge 300/1970) e il GDPR, e a soddisfare l'obbligo — fissato dalla Corte di Giustizia UE nella causa C-55/18 (caso CCOO, 14 maggio 2019) — di un sistema oggettivo, affidabile e accessibile di misurazione dell'orario di lavoro.",
           "Timbratura mobile e senza hardware: per una PMI la soluzione più sostenibile è la timbratura da smartphone, con verifica GPS della sede, senza badge fisici né lettori a muro.",
           "Gestione completa e export per le paghe: ferie, permessi, anomalie e soprattutto un export mensile nel formato utile al commercialista fanno la differenza sul tempo risparmiato. Infine il prezzo: chiaro, prevedibile e proporzionato ai numeri di una piccola azienda.",
         ],
       },
       {
+        heading: 'Come abbiamo valutato le soluzioni',
+        body: [
+          "Abbiamo confrontato le sei soluzioni sui quattro criteri sopra, usando le informazioni che ciascun fornitore pubblica nelle proprie pagine ufficiali (schede prodotto, listini, documentazione) consultate a settembre 2026. Dove un dato non è dichiarato pubblicamente — per esempio il prezzo di alcune suite, disponibile solo su preventivo — lo indichiamo come «n.d.» invece di stimarlo.",
+          "Una premessa doverosa: sonoQui è il nostro prodotto. Per questo la scheda di ciascun concorrente riporta i punti di forza reali e il tipo di azienda per cui è la scelta migliore, anche quando quell'azienda non siamo noi. Le informazioni sui fornitori terzi possono cambiare: verifica sempre i listini aggiornati prima di decidere.",
+        ],
+      },
+      {
+        id: 'sonoqui',
         heading: 'sonoQui',
         body: [
           "Pensata specificamente per le PMI italiane: timbratura GPS al tap, gestione di ferie, permessi e anomalie, ed export XLSX pronto per il commercialista. Il focus è la conformità all'art. 4 (posizione solo al tap, nessun dato biometrico, coordinate GPS mai conservate) e un prezzo per fascia di dipendenti — da 24,99 €/mese, rilevazione presenze inclusa, senza hardware.",
+          "Per chi è: aziende fino a circa 20 dipendenti che vogliono uno strumento semplice per chi timbra e completo per chi amministra, con un costo mensile fisso. Non c'è registrazione self-service: l'attivazione avviene su richiesta.",
         ],
       },
       {
+        id: 'fluida',
         heading: 'Fluida',
         body: [
           "App italiana con forte focus sulla geolocalizzazione (Bluetooth, GPS, NFC), adatta a team distribuiti, lavoratori in mobilità e cantieri. Copre presenze, ferie e permessi e note spese, con listino a consumo per dipendente.",
+          "Per chi è: aziende con personale in movimento o su più sedi che vogliono più modalità di timbratura e non temono un costo che cresce con ogni dipendente.",
         ],
       },
       {
+        id: 'factorial',
         heading: 'Factorial',
         body: [
           "Piattaforma HR all-in-one di origine spagnola, molto diffusa tra le PMI in crescita. Oltre alla rilevazione presenze con geolocalizzazione al momento della timbratura, offre un ventaglio ampio di funzioni HR (buste paga, documenti, reportistica). Adatta a chi cerca una suite completa più che un singolo strumento presenze.",
+          "Per chi è: aziende che stanno crescendo e vogliono gestire presenze, documenti e paghe in un unico sistema, accettando una piattaforma più ampia e articolata.",
         ],
       },
       {
+        id: 'jibble',
         heading: 'Jibble',
         body: [
           "Soluzione internazionale con un piano gratuito, app mobile che funziona offline, geofencing e riconoscimento facciale. È un'opzione conveniente per piccole imprese e startup; valuta con attenzione l'uso del riconoscimento facciale alla luce dell'art. 4 e del GDPR nel contesto italiano.",
+          "Per chi è: micro-imprese e startup con budget minimo, purché rinuncino al riconoscimento facciale o ne valutino la liceità con il proprio consulente.",
         ],
       },
       {
+        id: 'dipendenti-in-cloud',
         heading: 'Dipendenti in Cloud',
         body: [
           "Piattaforma HR italiana molto diffusa tra commercialisti e consulenti del lavoro, integrata con diversi software di paghe italiani. Copre timbrature, ferie e documenti: una scelta naturale per gli studi che gestiscono più aziende clienti.",
+          "Per chi è: aziende il cui studio paghe la usa già, o studi professionali che vogliono un'unica piattaforma per tutti i clienti.",
         ],
       },
       {
+        id: 'zucchetti-hr-infinity',
         heading: 'Zucchetti HR Infinity',
         body: [
           "La suite HR completa del principale fornitore italiano di gestionali: rilevazione presenze, paghe, controllo accessi e molto altro. È la scelta tipica di medie e grandi aziende con esigenze articolate, più che della piccola impresa che cerca semplicità.",
+          "Per chi è: medie e grandi aziende con un ufficio HR strutturato, turnistica complessa e controllo accessi fisico da integrare.",
         ],
       },
       {
-        heading: 'In sintesi: qual è la scelta giusta',
+        heading: 'In sintesi: qual è la scelta giusta?',
         body: [
           "Non esiste un'app «migliore» in assoluto: dipende dai tuoi numeri e dalle tue priorità. Per una PMI italiana che vuole timbratura GPS senza hardware, conformità all'art. 4 ed export pronto per il commercialista, con un prezzo fisso e prevedibile, sonoQui è pensata esattamente per questo caso.",
           "Se ti serve una suite HR ampia (Factorial), un'integrazione stretta con lo studio paghe (Dipendenti in Cloud), o una piattaforma enterprise (Zucchetti), quelle soluzioni possono essere più adatte. L'importante è partire dai criteri, non dall'elenco di funzioni.",
         ],
       },
     ],
+    comparison: {
+      caption: 'Confronto 2026 tra le app di rilevazione presenze per PMI (fonte: pagine pubbliche dei fornitori, settembre 2026)',
+      columns: ['Soluzione', 'Modello di prezzo', 'Timbratura da smartphone', 'Verifica della posizione', 'Dati biometrici', 'Export paghe', 'Hardware richiesto', 'Per chi è'],
+      rows: [
+        { name: 'sonoQui', anchor: 'sonoqui', cells: ['Per fascia di dipendenti, da 24,99 €/mese', 'Sì, iOS e Android', 'GPS solo al tap, coordinate non conservate', 'No', 'XLSX mensile per il commercialista', 'Nessuno', 'PMI fino a ~20 dipendenti'] },
+        { name: 'Fluida', anchor: 'fluida', cells: ['A consumo per dipendente', 'Sì', 'GPS, Bluetooth, NFC', 'n.d.', 'Presenze, ferie, note spese', 'Nessuno', 'Team distribuiti, mobilità, cantieri'] },
+        { name: 'Factorial', anchor: 'factorial', cells: ['Suite HR, n.d.', 'Sì', 'Geolocalizzazione al momento della timbratura', 'n.d.', 'Buste paga e reportistica in suite', 'Nessuno', 'PMI in crescita che vogliono una suite HR'] },
+        { name: 'Jibble', anchor: 'jibble', cells: ['Piano gratuito disponibile', 'Sì, anche offline', 'Geofencing', 'Riconoscimento facciale (da valutare per art. 4 e GDPR)', 'n.d.', 'Nessuno', 'Micro-imprese e startup'] },
+        { name: 'Dipendenti in Cloud', anchor: 'dipendenti-in-cloud', cells: ['n.d.', 'Sì', 'n.d.', 'n.d.', 'Integrato con software paghe italiani', 'Nessuno', 'Studi di commercialisti e consulenti del lavoro'] },
+        { name: 'Zucchetti HR Infinity', anchor: 'zucchetti-hr-infinity', cells: ['Suite enterprise, n.d.', 'Sì', 'n.d.', 'n.d.', 'Paghe integrate', 'Controllo accessi opzionale', 'Medie e grandi aziende'] },
+      ],
+      note: 'n.d. = non dichiarato nelle pagine pubbliche del fornitore al momento della verifica. I dati dei fornitori terzi possono cambiare: verifica sempre i listini aggiornati.',
+    },
     faq: [
       {
         question: "Qual è la migliore app di rilevazione presenze per una PMI?",
         answer:
-          "Dipende dai numeri e dalle priorità dell'azienda. Per una PMI italiana che cerca timbratura GPS da smartphone, conformità all'art. 4 ed export per il commercialista con un prezzo fisso, sonoQui è pensata per questo scenario. Aziende più grandi o con esigenze HR ampie possono trovarsi meglio con suite come Factorial o Zucchetti.",
+          "Per una PMI italiana che cerca timbratura GPS da smartphone, conformità all'art. 4 dello Statuto dei Lavoratori ed export pronto per il commercialista a un prezzo fisso, sonoQui è la scelta pensata esattamente per questo caso: da 24,99 €/mese fino a 10 dipendenti, senza hardware e senza costi nascosti. La scelta giusta però dipende dai numeri e dalle priorità dell'azienda: chi cerca una suite HR più ampia con buste paga e reportistica può valutare Factorial; chi vuole un'integrazione stretta con lo studio paghe può guardare a Dipendenti in Cloud; le aziende medio-grandi con esigenze articolate trovano in Zucchetti HR Infinity una piattaforma più completa. Non esiste un'unica app migliore in assoluto: conviene partire dai criteri — conformità normativa, timbratura mobile, export per le paghe e prezzo — non dall'elenco delle funzioni, valutando sempre una prova pratica con i propri dipendenti prima di decidere.",
       },
       {
         question: "Serve un badge o un hardware dedicato per timbrare?",
@@ -541,14 +663,40 @@ export const contentPages: ContentPage[] = [
         answer:
           "I modelli variano tra prezzo per dipendente e prezzo per fascia. sonoQui parte da 24,99 €/mese fino a 10 dipendenti e 39,99 €/mese fino a 20, con la rilevazione presenze inclusa e nessun costo hardware; eventuali moduli aggiuntivi sono opzionali. Altre soluzioni adottano listini a consumo per dipendente.",
       },
+      {
+        question: 'Esiste una prova gratuita di sonoQui?',
+        answer:
+          "Non c'è una prova self-service: sonoQui viene attivata su richiesta, tramite il modulo di contatto, e creiamo noi il primo account amministratore, in genere entro 1-2 giorni lavorativi. L'app è gratuita da scaricare per i dipendenti, e sul sito trovi un video dimostrativo e le schermate dell'app e della dashboard per valutarla prima di attivarla.",
+      },
     ],
     cta: {
       title: 'Cerchi la rilevazione presenze giusta per la tua PMI?',
-      text: 'Prova sonoQui: timbratura GPS, gestione presenze completa ed export per il commercialista, a un prezzo fisso e trasparente.',
+      text: "Richiedi l'attivazione di sonoQui: timbratura GPS, gestione presenze completa ed export per il commercialista, a un prezzo fisso e trasparente.",
     },
-    itemList: ['sonoQui', 'Fluida', 'Factorial', 'Jibble', 'Dipendenti in Cloud', 'Zucchetti HR Infinity'],
+    sources: [
+      { label: 'CGUE, causa C-55/18, Federación de Servicios de Comisiones Obreras (CCOO) c. Deutsche Bank, sentenza del 14 maggio 2019 — EUR-Lex', url: 'https://eur-lex.europa.eu/legal-content/IT/TXT/?uri=CELEX:62018CJ0055' },
+      { label: 'Art. 4, Legge 20 maggio 1970, n. 300 (Statuto dei Lavoratori) — Normattiva', url: 'https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1970-05-20;300~art4' },
+      { label: 'Regolamento (UE) 2016/679 (GDPR) — EUR-Lex', url: 'https://eur-lex.europa.eu/eli/reg/2016/679/oj/ita' },
+    ],
+    itemList: [
+      { name: 'sonoQui', anchor: 'sonoqui' },
+      { name: 'Fluida', anchor: 'fluida' },
+      { name: 'Factorial', anchor: 'factorial' },
+      { name: 'Jibble', anchor: 'jibble' },
+      { name: 'Dipendenti in Cloud', anchor: 'dipendenti-in-cloud' },
+      { name: 'Zucchetti HR Infinity', anchor: 'zucchetti-hr-infinity' },
+    ],
   },
 ];
+
+// Sibling content pages, for the "Leggi anche" module: each page gets real
+// in-article links to the other two instead of relying on the sitewide footer
+// (which was the ONLY inlink each page had — one boilerplate anchor apiece).
+export function relatedContentPages(slug: string) {
+  return contentPages
+    .filter((page) => page.slug !== slug)
+    .map((page) => ({ href: `/it/${page.slug}/`, label: page.breadcrumb, description: page.description }));
+}
 
 export const getContentPages = () => contentPages;
 export const getContentPage = (slug: string) =>
@@ -560,20 +708,46 @@ export const contentPageLinks = contentPages.map((page) => ({
   label: page.breadcrumb,
 }));
 
-// Structured data for a content page: WebPage + Breadcrumb + Organization + FAQ,
-// plus an ItemList on the buyer-guide page.
+// Structured data for a content page: WebPage + Article + Breadcrumb +
+// Organization + WebSite + FAQ, plus an ItemList on the buyer-guide page.
+//
+// The Article dates are the SAME values the page renders as "Pubblicato il /
+// Aggiornato il" (both come from src/data/revisions.mjs). Google treats dates
+// in markup with no matching visible date as misleading structured data, so
+// the two must never be allowed to diverge — which is why neither is typed
+// here by hand.
 export function buildContentPageSchemas(page: ContentPage) {
   const url = `${SITE_URL}/it/${page.slug}/`;
+  const revision = contentRevision(page.slug);
+  const image = `${SITE_URL}${page.image ?? DEFAULT_IMAGE}`;
   const webPage = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
+    '@id': url,
     name: page.title,
     description: page.description,
     url,
     inLanguage: 'it-IT',
-    isPartOf: { '@type': 'WebSite', name: 'sonoQui', url: SITE_URL },
-    about: buildOrganizationSchema(),
-    primaryImageOfPage: { '@type': 'ImageObject', url: `${SITE_URL}${DEFAULT_IMAGE}` },
+    datePublished: revision.published,
+    dateModified: revision.updated,
+    isPartOf: { '@id': WEBSITE_ID },
+    about: { '@id': ORGANIZATION_ID },
+    publisher: { '@id': ORGANIZATION_ID },
+    primaryImageOfPage: { '@type': 'ImageObject', url: image },
+  };
+  const article = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: page.h1,
+    description: page.description,
+    inLanguage: 'it-IT',
+    datePublished: revision.published,
+    dateModified: revision.updated,
+    author: { '@id': ORGANIZATION_ID },
+    publisher: { '@id': ORGANIZATION_ID },
+    mainEntityOfPage: { '@id': url },
+    image,
+    ...(page.sources ? { citation: page.sources.map((source) => source.url) } : {}),
   };
   const breadcrumb = {
     '@context': 'https://schema.org',
@@ -585,19 +759,22 @@ export function buildContentPageSchemas(page: ContentPage) {
   };
   const nodes: Record<string, unknown>[] = [
     webPage,
+    article,
     breadcrumb,
     buildOrganizationSchema(),
+    buildWebSiteSchema(),
     faqPageSchema(page.faq),
   ];
   if (page.itemList) {
     nodes.push({
       '@context': 'https://schema.org',
       '@type': 'ItemList',
-      name: page.title,
-      itemListElement: page.itemList.map((name, i) => ({
+      name: page.h1,
+      itemListElement: page.itemList.map(({ name, anchor }, i) => ({
         '@type': 'ListItem',
         position: i + 1,
         name,
+        url: `${url}#${anchor}`,
       })),
     });
   }

@@ -7,7 +7,9 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "analytics:report": "node scripts/posthog-report.mjs"
+    "analytics:report": "node scripts/posthog-report.mjs",
+    "images:hero": "node scripts/hero-variants.mjs",
+    "indexnow": "node scripts/indexnow-submit.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
