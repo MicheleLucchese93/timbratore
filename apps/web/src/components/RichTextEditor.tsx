@@ -1,8 +1,6 @@
 import { useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Link from '@tiptap/extension-link';
-import Underline from '@tiptap/extension-underline';
 import { useTranslation } from 'react-i18next';
 import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 
@@ -32,17 +30,22 @@ export function RichTextEditor({
 
   const editor = useEditor({
     extensions: [
+      // StarterKit v3 already bundles underline and link, so they are configured
+      // here rather than added as separate extensions (registering them twice
+      // makes Tiptap warn about duplicates).
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
         // hr is not in the server allowlist — drop it so it can't be authored
         // then silently stripped. blockquote / codeBlock / inline code stay on.
         horizontalRule: false,
-      }),
-      Underline,
-      Link.configure({
-        openOnClick: false,
-        autolink: true,
-        HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' },
+        // v3-only helper that appends an empty paragraph after block nodes; it
+        // would leak stray <p></p> into the saved HTML, so keep it off.
+        trailingNode: false,
+        link: {
+          openOnClick: false,
+          autolink: true,
+          HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' },
+        },
       }),
     ],
     content: value || '',
