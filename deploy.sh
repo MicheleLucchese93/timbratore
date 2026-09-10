@@ -9,7 +9,14 @@ SSH_PORT=2222
 PROJECT_DIR="/opt/sonoqui"
 
 echo "==> Pulling latest main + rebuilding sonoQui…"
-ssh -p $SSH_PORT $SERVER "cd $PROJECT_DIR && \
+# Keepalives are what let the client notice a dead link. On 2026-09-10 the
+# connection dropped mid-build (office network); the server finished the whole
+# deploy on its own two minutes later, but with no keepalive the client sat on
+# the dead socket for an hour (macOS TCP keepalive only fires after ~2h) and
+# never reached the health probes. Now a dropped link fails in ~2 minutes —
+# then check `docker compose ps` on the box before re-running: the build may
+# well have completed anyway.
+ssh -p $SSH_PORT -o ServerAliveInterval=30 -o ServerAliveCountMax=4 $SERVER "cd $PROJECT_DIR && \
   git pull origin main && \
   docker compose build --no-cache sonoqui-api sonoqui-web sonoqui-web-pro sonoqui-website sonoqui-partner sonoqui-mobile-web && \
   docker compose up -d && \
