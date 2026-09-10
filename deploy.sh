@@ -21,7 +21,7 @@ ssh -p $SSH_PORT -o ServerAliveInterval=30 -o ServerAliveCountMax=4 $SERVER "cd 
   python3 infra/sync-document-log-privacy.py --apply && \
   docker compose build --no-cache sonoqui-api sonoqui-web sonoqui-web-pro sonoqui-website sonoqui-partner sonoqui-mobile-web && \
   docker compose stop sonoqui-api && \
-  docker compose run --rm --no-deps sonoqui-api npm run migrate && \
+  docker compose run --rm --no-deps --interactive=false -T sonoqui-api npm run migrate && \
   docker compose up -d && \
   docker image prune -f && \
   sleep 5 && \
