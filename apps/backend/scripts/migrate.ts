@@ -20,16 +20,19 @@ async function main(): Promise<void> {
     }
     const sql = await readFile(join(dir.pathname, f), 'utf8');
     logger.info({ file: f }, 'applying');
-    await pool.query('BEGIN');
+    const client = await pool.connect();
     try {
-      await pool.query(sql);
-      await pool.query(`INSERT INTO schema_migrations(filename) VALUES ($1)`, [f]);
-      await pool.query('COMMIT');
+      await client.query('BEGIN');
+      await client.query(sql);
+      await client.query(`INSERT INTO schema_migrations(filename) VALUES ($1)`, [f]);
+      await client.query('COMMIT');
       logger.info({ file: f }, 'applied');
     } catch (err) {
-      await pool.query('ROLLBACK');
+      await client.query('ROLLBACK').catch(() => {});
       logger.error({ err, file: f }, 'failed');
       throw err;
+    } finally {
+      client.release();
     }
   }
   await pool.end();

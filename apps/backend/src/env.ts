@@ -121,6 +121,9 @@ const Env = z.object({
 export const env = Env.parse(process.env);
 
 if (env.NODE_ENV === 'production') {
+  if (env.STORAGE_DRIVER !== 'r2') {
+    throw new Error('Production document storage requires STORAGE_DRIVER=r2');
+  }
   if (env.DEV_AUTH_ENABLED) {
     throw new Error('DEV_AUTH_ENABLED must be false in production');
   }

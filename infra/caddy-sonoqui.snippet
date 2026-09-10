@@ -21,6 +21,8 @@
 				request>uri query {
 					delete title
 					delete filename
+					delete user_id
+					delete category
 				}
 			}
 		}
@@ -165,7 +167,7 @@ app.sonoqui.pro {
 # No /connection/websocket — the partner app has no realtime surface.
 partners.sonoqui.pro {
 	import origin_tls
-	import access_log
+	import access_log_docs
 	import api_security_headers
 	handle /api/* {
 		reverse_proxy sonoqui-api:4000

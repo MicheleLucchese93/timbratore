@@ -192,3 +192,10 @@ jobs:
       # tests and then refuses to exit, which the per-test timeout cannot see.
       - name: Unit + integration tests
         run: timeout 600 npm test
+
+      - name: Document authorization and failure recovery
+        working-directory: apps/backend
+        env:
+          DEV_AUTH_ENABLED: 'true'
+          STORAGE_DRIVER: disk
+        run: timeout 120 node --import tsx scripts/assess-document-security.mjs
