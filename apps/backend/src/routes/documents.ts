@@ -20,10 +20,16 @@ import { notifyDocumentUploaded } from '../lib/notifications.js';
 import { buildDocumentOtpMail, sendMail } from '../lib/mailer.js';
 import { createLogger } from '../lib/logger.js';
 import { DOCUMENT_CATEGORIES, type DocumentCategory } from '@sonoqui/shared';
+import { assertDocumentKey, PRIVATE_DOCUMENT_CACHE_CONTROL, verifyDocumentOtp } from '../lib/document-security.js';
 
 const logger = createLogger('documents');
 
 export const documentsRouter = Router();
+documentsRouter.use((_req, res, next) => {
+  res.setHeader('Cache-Control', PRIVATE_DOCUMENT_CACHE_CONTROL);
+  res.setHeader('Pragma', 'no-cache');
+  next();
+});
 documentsRouter.use(authenticate);
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB
@@ -37,7 +43,6 @@ const PDF_MAGIC = Buffer.from('%PDF');
 const OTP_LENGTH = 6;
 const OTP_CODE_TTL_MIN = 10;
 const OTP_SESSION_TTL_MIN = 10;
-const OTP_MAX_ATTEMPTS = 5;
 
 const CATEGORY_ENUM = z.enum(
   DOCUMENT_CATEGORIES as [DocumentCategory, ...DocumentCategory[]]
@@ -76,13 +81,15 @@ function sanitizeFilename(name: string): string {
 // The internal R2 object path is never needed by clients (downloads go through
 // the presigned-URL endpoint) — strip it from every row returned to the browser
 // so the storage layout isn't disclosed.
-function withoutR2Key<T extends Record<string, unknown>>(row: T): Omit<T, 'r2_key'> {
-  const { r2_key: _omit, ...rest } = row;
+function withoutR2Key<T extends Record<string, unknown>>(row: T): Omit<T, 'r2_key' | 'storage_state'> {
+  const { r2_key: _omit, storage_state: _state, ...rest } = row;
   void _omit;
+  void _state;
   return rest;
 }
 
-function presignFor(doc: { id: string; r2_key: string }): Promise<string> {
+function presignFor(doc: { id: string; tenant_id: string; r2_key: string }): Promise<string> {
+  assertDocumentKey(doc);
   const localFallback =
     env.BACKEND_URL.replace(/\/+$/, '') + `/api/v1/documents/${doc.id}/raw`;
   return storagePresignedGetUrl(doc.r2_key, PRESIGN_TTL_SECONDS, localFallback);
@@ -123,7 +130,7 @@ type AccessAction =
 
 // Append-only audit of every Documentale document access + OTP event. Distinct
 // from document_views (the owner read-receipt) — a Documentale access must NEVER
-// touch that. Best-effort: an audit write failure must not fail the user action.
+// touch that. Reads fail closed if their audit record cannot be persisted.
 async function logDocumentAccess(opts: {
   tenantId: string;
   actorId: string;
@@ -139,14 +146,17 @@ async function logDocumentAccess(opts: {
     );
   } catch (err) {
     logger.error({ err, action: opts.action }, 'document access log write failed');
+    if (opts.action === 'list' || opts.action === 'download') throw err;
   }
 }
 
-async function otpSessionActive(tenantId: string, userId: string): Promise<boolean> {
+async function otpSessionActive(tenantId: string, userId: string, sessionId?: string): Promise<boolean> {
+  if (!sessionId) return false;
   const r = await adminPool.query(
     `SELECT 1 FROM document_otps
-      WHERE tenant_id = $1 AND user_id = $2 AND verified_until > now()`,
-    [tenantId, userId]
+      WHERE tenant_id = $1 AND user_id = $2 AND verified_until > now()
+        AND verified_session_id = $3`,
+    [tenantId, userId, sessionId]
   );
   return (r.rowCount ?? 0) > 0;
 }
@@ -155,7 +165,7 @@ async function otpSessionActive(tenantId: string, userId: string): Promise<boole
 // session. The web client catches this code and shows the code-entry modal.
 async function requireDocumentaleOtp(req: Request, _res: Response, next: NextFunction): Promise<void> {
   try {
-    const active = await otpSessionActive(req.user!.tenantId, req.user!.id);
+    const active = await otpSessionActive(req.user!.tenantId, req.user!.id, req.documentSessionId);
     if (!active) return next(new ForbiddenError('OTP verification required', 'OTP_REQUIRED'));
     next();
   } catch (err) {
@@ -173,6 +183,14 @@ const otpRequestLimiter = rateLimit({
   // subnet and passes IPv4 through untouched.
   keyGenerator: (req: Request) => req.user?.id ?? ipKeyGenerator(req.ip ?? 'anon'),
   message: { error: 'Too many code requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const otpVerifyLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 30,
+  keyGenerator: (req: Request) => req.user!.id,
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -219,47 +237,25 @@ const VerifyBody = z.object({ code: z.string().min(1).max(12) });
 documentsRouter.post(
   '/otp/verify',
   requireDocumentale,
+  otpVerifyLimiter,
   asyncHandler(async (req, res) => {
     const parsed = VerifyBody.safeParse(req.body);
     if (!parsed.success) throw new ValidationError('Codice non valido');
     const tenantId = req.user!.tenantId;
     const userId = req.user!.id;
 
-    const row = await adminPool.query(
-      `SELECT code_hash, code_expires_at, attempts
-         FROM document_otps WHERE tenant_id = $1 AND user_id = $2`,
-      [tenantId, userId]
-    );
-    const rec = row.rows[0];
-    if (!rec || !rec.code_hash || !rec.code_expires_at || new Date(rec.code_expires_at) < new Date()) {
-      await logDocumentAccess({ tenantId, actorId: userId, action: 'otp_verify_fail' });
-      throw new ValidationError('Codice non valido o scaduto', { code: 'OTP_INVALID' });
-    }
-    if (rec.attempts >= OTP_MAX_ATTEMPTS) {
+    if (!req.documentSessionId) throw new ForbiddenError('OTP verification required', 'OTP_REQUIRED');
+    const outcome = await verifyDocumentOtp({
+      tenantId, userId, sessionId: req.documentSessionId, code: parsed.data.code,
+    });
+    if (outcome === 'locked') {
       await logDocumentAccess({ tenantId, actorId: userId, action: 'otp_verify_fail' });
       throw new ForbiddenError('Troppi tentativi. Richiedi un nuovo codice.', 'OTP_LOCKED');
     }
-
-    const provided = hashOtp(parsed.data.code);
-    const matches =
-      rec.code_hash.length === provided.length &&
-      crypto.timingSafeEqual(Buffer.from(rec.code_hash), Buffer.from(provided));
-    if (!matches) {
-      await adminPool.query(
-        `UPDATE document_otps SET attempts = attempts + 1 WHERE tenant_id = $1 AND user_id = $2`,
-        [tenantId, userId]
-      );
+    if (outcome !== 'verified') {
       await logDocumentAccess({ tenantId, actorId: userId, action: 'otp_verify_fail' });
-      throw new ValidationError('Codice non valido', { code: 'OTP_INVALID' });
+      throw new ValidationError('Codice non valido o scaduto', { code: 'OTP_INVALID' });
     }
-
-    await adminPool.query(
-      `UPDATE document_otps
-          SET verified_until = now() + ($3 || ' minutes')::interval,
-              code_hash = NULL, code_expires_at = NULL, attempts = 0
-        WHERE tenant_id = $1 AND user_id = $2`,
-      [tenantId, userId, String(OTP_SESSION_TTL_MIN)]
-    );
     await logDocumentAccess({ tenantId, actorId: userId, action: 'otp_verify' });
     await logAuditAs(adminPool, tenantId, userId, {
       action: 'document.session_start',
@@ -276,8 +272,9 @@ documentsRouter.get(
   requireDocumentale,
   asyncHandler(async (req, res) => {
     const r = await adminPool.query(
-      `SELECT verified_until FROM document_otps WHERE tenant_id = $1 AND user_id = $2`,
-      [req.user!.tenantId, req.user!.id]
+      `SELECT verified_until FROM document_otps WHERE tenant_id = $1 AND user_id = $2
+        AND verified_session_id = $3`,
+      [req.user!.tenantId, req.user!.id, req.documentSessionId]
     );
     const vu = r.rows[0]?.verified_until ? new Date(r.rows[0].verified_until) : null;
     const active = !!vu && vu > new Date();
@@ -324,7 +321,9 @@ documentsRouter.post(
 
     const tenantId = req.user!.tenantId;
     const actorId = req.user!.id;
-    const sanitized = sanitizeFilename(meta.filename);
+    const documentId = crypto.randomUUID();
+    // Names belong in access-controlled metadata, not in storage keys/logs.
+    const r2Key = `tenants/${tenantId}/documents/${documentId}/document.pdf`;
 
     const client = await adminPool.connect();
     let finalDoc;
@@ -339,15 +338,14 @@ documentsRouter.post(
       );
       if (member.rowCount === 0) throw new NotFoundError('user not in tenant');
 
-      // Insert the row first to mint the document id, then key the R2 object by
-      // it so the storage path is collision-free even for identical filenames.
-      const ins = await client.query(
+      // Commit the pending row BEFORE PUT. Even process death or an ambiguous
+      // storage response leaves durable cleanup work, hidden from all readers.
+      await client.query(
         `INSERT INTO documents(
            tenant_id, user_id, uploaded_by, category, title, original_filename,
-           mime_type, size_bytes, r2_key, retention_until
+           mime_type, size_bytes, r2_key, retention_until, id, storage_state
          )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now() + interval '36 months')
-         RETURNING *`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now() + interval '36 months', $10, 'pending')`,
         [
           tenantId,
           meta.user_id,
@@ -357,20 +355,26 @@ documentsRouter.post(
           meta.filename,
           PDF_MIME,
           body.length,
-          'pending', // placeholder; rewritten to the id-keyed path below in the same tx
+          r2Key,
+          documentId,
         ]
       );
-      const doc = ins.rows[0];
-      const r2Key = `tenants/${tenantId}/documents/${doc.id}/${sanitized}`;
+      await client.query('COMMIT');
+      await client.query('BEGIN');
+      // Retention uses SKIP LOCKED, so it cannot delete an in-flight upload.
+      const pending = await client.query(
+        `SELECT id FROM documents WHERE id = $1 AND tenant_id = $2
+          AND storage_state = 'pending' FOR UPDATE`,
+        [documentId, tenantId]
+      );
+      if (!pending.rowCount) throw new Error('Document upload is no longer pending');
+      await storagePut(r2Key, body, PDF_MIME);
       const upd = await client.query(
-        `UPDATE documents SET r2_key = $1 WHERE id = $2 RETURNING *`,
-        [r2Key, doc.id]
+        `UPDATE documents SET storage_state = 'ready'
+          WHERE id = $1 AND tenant_id = $2 RETURNING *`,
+        [documentId, tenantId]
       );
       finalDoc = upd.rows[0];
-
-      // Object store write inside the tx — if it throws, the tx rolls back and
-      // no orphan row survives.
-      await storagePut(r2Key, body, PDF_MIME);
       await logAuditAs(client, tenantId, actorId, {
         action: 'document.upload',
         resourceType: 'document',
@@ -385,6 +389,9 @@ documentsRouter.post(
       });
       await client.query('COMMIT');
     } catch (err) {
+      // Do not delete here: COMMIT may have succeeded despite a lost reply.
+      // A rolled-back finalization leaves a pending row for the retention job;
+      // a committed ready row remains intact in either case.
       await client.query('ROLLBACK').catch(() => {});
       throw err;
     } finally {
@@ -438,7 +445,7 @@ documentsRouter.get(
          ) vc ON vc.document_id = d.id
          LEFT JOIN document_views dv
                 ON dv.document_id = d.id AND dv.user_id = d.user_id
-        WHERE d.tenant_id = $1 AND d.deleted_at IS NULL
+        WHERE d.tenant_id = $1 AND d.deleted_at IS NULL AND d.storage_state = 'ready'
           ${userFilter}
         ORDER BY d.created_at DESC
         LIMIT 1000`,
@@ -485,7 +492,7 @@ documentsRouter.get(
          FROM documents d
          LEFT JOIN document_views dv
                 ON dv.document_id = d.id AND dv.user_id = $1
-        WHERE d.user_id = $1 AND d.deleted_at IS NULL
+        WHERE d.user_id = $1 AND d.deleted_at IS NULL AND d.storage_state = 'ready'
         ORDER BY d.created_at DESC
         LIMIT 1000`,
       [req.user!.id]
@@ -504,7 +511,7 @@ documentsRouter.get(
     // Owner path: own-only RLS returns the row ONLY if the caller owns it. This
     // is the unchanged employee self-download — receipt invariant preserved.
     const own = await client.query(
-      `SELECT * FROM documents WHERE id = $1 AND deleted_at IS NULL`,
+      `SELECT * FROM documents WHERE id = $1 AND deleted_at IS NULL AND storage_state = 'ready'`,
       [id.data]
     );
     if (own.rowCount && own.rows[0].user_id === req.user!.id) {
@@ -529,11 +536,11 @@ documentsRouter.get(
 
     // Not the owner → only a Documentale with a live OTP session may proceed.
     if (!req.user!.isDocumentale) throw new NotFoundError('document');
-    if (!(await otpSessionActive(req.user!.tenantId, req.user!.id))) {
+    if (!(await otpSessionActive(req.user!.tenantId, req.user!.id, req.documentSessionId))) {
       throw new ForbiddenError('OTP verification required', 'OTP_REQUIRED');
     }
     const r = await adminPool.query(
-      `SELECT * FROM documents WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL`,
+      `SELECT * FROM documents WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL AND storage_state = 'ready'`,
       [id.data, req.user!.tenantId]
     );
     if (r.rowCount === 0) throw new NotFoundError('document');
@@ -560,7 +567,7 @@ documentsRouter.get(
     if (!id.success) throw new ValidationError('invalid id');
 
     const own = await client.query(
-      `SELECT * FROM documents WHERE id = $1 AND deleted_at IS NULL`,
+      `SELECT * FROM documents WHERE id = $1 AND deleted_at IS NULL AND storage_state = 'ready'`,
       [id.data]
     );
     let doc;
@@ -568,11 +575,11 @@ documentsRouter.get(
       doc = own.rows[0];
     } else {
       if (!req.user!.isDocumentale) throw new NotFoundError('document');
-      if (!(await otpSessionActive(req.user!.tenantId, req.user!.id))) {
+      if (!(await otpSessionActive(req.user!.tenantId, req.user!.id, req.documentSessionId))) {
         throw new ForbiddenError('OTP verification required', 'OTP_REQUIRED');
       }
       const r = await adminPool.query(
-        `SELECT * FROM documents WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL`,
+        `SELECT * FROM documents WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL AND storage_state = 'ready'`,
         [id.data, req.user!.tenantId]
       );
       if (r.rowCount === 0) throw new NotFoundError('document');
@@ -586,6 +593,7 @@ documentsRouter.get(
       });
     }
 
+    assertDocumentKey(doc);
     const buf = await getObjectForDriver(doc.r2_key);
     res.setHeader('Content-Type', doc.mime_type || PDF_MIME);
     res.setHeader(
@@ -606,11 +614,12 @@ documentsRouter.delete(
     const id = z.string().uuid().safeParse(req.params.id);
     if (!id.success) throw new ValidationError('invalid id');
     const sel = await adminPool.query(
-      `SELECT * FROM documents WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL`,
+      `SELECT * FROM documents WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL AND storage_state = 'ready'`,
       [id.data, req.user!.tenantId]
     );
     if (sel.rowCount === 0) throw new NotFoundError('document');
     const doc = sel.rows[0];
+    assertDocumentKey(doc);
 
     const upd = await adminPool.query(
       `UPDATE documents SET deleted_at = now()

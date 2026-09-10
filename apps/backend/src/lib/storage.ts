@@ -6,6 +6,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { env } from '../env.js';
+import { PRIVATE_DOCUMENT_CACHE_CONTROL } from './document-security.js';
 
 // Shared S3-compatible client for Cloudflare R2. Built lazily on first use so a
 // disk-driver deploy (STORAGE_DRIVER=disk, no R2_* vars) never constructs it.
@@ -46,6 +47,7 @@ export async function putObject(
       Key: key,
       Body: body,
       ContentType: contentType,
+      CacheControl: PRIVATE_DOCUMENT_CACHE_CONTROL,
     })
   );
 }
@@ -70,7 +72,7 @@ export async function getPresignedGetUrl(
 ): Promise<string> {
   return getSignedUrl(
     getStorageClient(),
-    new GetObjectCommand({ Bucket: bucket(), Key: key }),
+    new GetObjectCommand({ Bucket: bucket(), Key: key, ResponseCacheControl: PRIVATE_DOCUMENT_CACHE_CONTROL }),
     { expiresIn: ttlSeconds }
   );
 }

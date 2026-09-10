@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../lib/jwt.js';
+import { documentSessionId } from '../lib/document-security.js';
 import { adminPool } from '../lib/admin-db.js';
 import { ForbiddenError, UnauthorizedError } from '../errors/index.js';
 import {
@@ -11,6 +12,7 @@ import {
 
 declare module 'express-serve-static-core' {
   interface Request {
+    documentSessionId?: string;
     user?: {
       id: string;
       email: string | null;
@@ -162,6 +164,8 @@ export async function authenticate(
       throw new UnauthorizedError(message, code);
     }
     if (!payload.sub) throw new UnauthorizedError('Invalid token: missing sub');
+    req.documentSessionId = documentSessionId(token,
+      typeof payload.session_id === 'string' && UUID_RE.test(payload.session_id) ? payload.session_id : undefined);
 
     // Read-only partner support session. Recognised by a claim the API itself
     // minted (lib/support-session.ts) — a GoTrue-issued token never carries it.
@@ -181,7 +185,11 @@ export async function authenticate(
       throw new ForbiddenError('Invalid tenant', 'TENANT_NOT_ALLOWED');
     }
 
-    const membership = await loadMembership(payload.sub, requestedTenantId);
+    // HR document access must observe revocations immediately, including on
+    // another API replica whose in-memory membership cache was not invalidated.
+    const membership = req.baseUrl.toLowerCase() === '/api/v1/documents'
+      ? await fetchMembership(payload.sub, requestedTenantId)
+      : await loadMembership(payload.sub, requestedTenantId);
     if (!membership) {
       if (requestedTenantId) {
         throw new ForbiddenError('Not a member of the requested tenant', 'TENANT_NOT_ALLOWED');

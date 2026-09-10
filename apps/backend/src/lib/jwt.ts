@@ -11,10 +11,12 @@ export interface TokenPayload {
   iat?: number;
   iss?: string;
   aud?: string;
+  session_id?: string;
 }
 
 export async function verifyToken(token: string): Promise<TokenPayload> {
   const { payload } = await jwtVerify(token, secret, {
+    algorithms: ['HS256'],
     ...(env.GOTRUE_JWT_AUDIENCE ? { audience: env.GOTRUE_JWT_AUDIENCE } : {}),
     ...(env.GOTRUE_JWT_ISSUER ? { issuer: env.GOTRUE_JWT_ISSUER } : {}),
   });
