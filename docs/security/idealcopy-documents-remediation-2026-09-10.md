@@ -10,8 +10,8 @@ Verified through Chrome's native MCP controls in account `d99d141402ac05f695e7d3
 - The bucket reports Eastern Europe (`EEUR`) location, with default jurisdiction. A location hint is not an explicit EU jurisdiction restriction.
 - CORS is not configured. R2 data-access logging was enabled during remediation and the dashboard showed **Enabled** with a Workers Observability link. Cloudflare documents asynchronous, best-effort delivery for successful operations; failed requests (HTTP 400+) are excluded and earlier activity is not backfilled. This supplements application records rather than providing a complete audit trail. [R2 Data Access Logs](https://developers.cloudflare.com/r2/buckets/data-access-logs/).
 - The Workers & Pages inventory listed two Pages projects, `custodo` and `timesystem-demo`. Their production and preview settings showed no resource bindings; no R2 bindings or R2 credential variables were found in those settings. No separate Worker application appeared in the inventory. This does not prove that historic deployment bundles or other account administrators cannot contain/use storage credentials.
-- Before remediation, SonoQui used **R2 Account Token**, with **Admin Read & Write on all buckets**, shared with `penno-api` and the infrastructure environment. SonoQui now uses the dedicated **sonoqui-prod-documents** account token with **Object Read & Write only on `sonoqui-documents`**. Chrome's creation summary and live storage permission tests confirmed that scope. The old shared token remains in use by the other services and still grants them access to this bucket; that cross-service exposure remains open.
-- Another user token, `claude_code`, also has all-bucket administrative access. Account-wide administrator credentials remain a trust boundary even after the application credential is reduced.
+- Before remediation, SonoQui used **R2 Account Token**, with **Admin Read & Write on all buckets**, shared with `penno-api` and the infrastructure environment. SonoQui now uses the dedicated **sonoqui-prod-documents** account token with **Object Read & Write only on `sonoqui-documents`**. Chrome's creation summary and live storage permission tests confirmed that scope. The old shared token now has an explicit six-bucket Object Read & Write allowlist excluding both SonoQui buckets; live negative tests confirmed it cannot access document storage.
+- The `claude_code` user token was downgraded from Admin Read & Write to Object Read & Write. Two attempts to save the same bucket allowlist did not persist: reopening the editor still selected all buckets. Its remaining object access therefore remains unresolved pending the user's decision on complete revocation. No consumer of its token ID was found in the 24 inspected running/stopped containers or the known application/infrastructure environment files. This inventory does not cover developer tools elsewhere.
 
 R2 encrypts all object data and metadata at rest with AES-256 under Cloudflare-managed keys. This is automatic and is independent of tenant authorization. Tenant isolation here uses authorization, RLS, and checked object prefixes in a shared bucket; it does not use separate tenant encryption keys. [Cloudflare R2 data security](https://developers.cloudflare.com/r2/reference/data-security/).
 
@@ -28,6 +28,7 @@ R2 encrypts all object data and metadata at rest with AES-256 under Cloudflare-m
 | Audit writes fail open | Documentale list/download fail if their audit insert fails. | Covered by route review; OTP event logging remains best effort. |
 | Deployment drift | Require R2 in production; restrict JWT algorithm to HS256; run migrations on one dedicated connection and during API deployment. | TypeScript and backend suite pass. API is stopped only after image build, before schema migration, to avoid old uploads racing the new key constraint. |
 | SonoQui's all-bucket administrator credential | Replace its runtime credential with the dedicated bucket-scoped account token. | Synthetic LIST/PUT/HEAD/GET/COPY/DELETE and signed GET passed. Access to `penno-receipts`, `xdevapp-postgres-backups`, `sonoqui-public`, and the document bucket's CORS configuration returned 403. |
+| Shared production token can access SonoQui storage | Restrict **R2 Account Token** to Object Read & Write on six explicitly named non-SonoQui buckets. | Nine negative storage checks returned 403, including document reads/writes/deletes and signed GET. Penno storage operations and the actual backup upload command passed using synthetic fixtures. |
 
 ## Validation and rollout
 
@@ -49,9 +50,32 @@ The candidate passed positive storage tests and negative permission tests before
 
 After the switch, the application's actual storage helpers successfully wrote and read a synthetic object and issued a working signed download with `private, no-store`; the synthetic object was removed. All 14 active production documents passed a fresh HEAD/cache check with the installed credential. Anonymous document access remained 401 and `/health` returned 200. Temporary credential and rollback files were removed after verification. No employee document bodies were read and no employee notifications were sent.
 
+### Remove the shared token's direct access to SonoQui
+
+At the user's request, **R2 Account Token** was changed in Chrome from all-bucket administration to Object Read & Write on this explicit allowlist:
+
+- `custodo-prod`
+- `custodo-staging`
+- `penno-public`
+- `penno-receipts`
+- `penno-receipts-staging`
+- `xdevapp-postgres-backups`
+
+Neither `sonoqui-documents` nor `sonoqui-public` is included, and newly created buckets are not automatically included. Cloudflare's saved token summary confirmed the list. The existing token value and consumers were preserved; only its permission policy changed. Bucket administration was removed because that grant is account-wide. [R2 token permissions and resources](https://developers.cloudflare.com/r2/api/tokens/).
+
+The shared credential is used by Penno's runtime (`penno-receipts-staging`) and the infrastructure backup configuration (`xdevapp-postgres-backups`). The container inventory included running and stopped containers. Verification used the installed credentials in memory, without printing credentials or signed URLs:
+
+- LIST with an empty synthetic prefix succeeded in all six allowed buckets.
+- Synthetic PUT, HEAD, GET, signed GET and DELETE succeeded in Penno's runtime bucket and the backup bucket.
+- The infrastructure job's actual `rclone copyto --s3-no-check-bucket --s3-no-head` upload path succeeded; readback matched the synthetic fixture and cleanup succeeded. No database dump was generated by this check.
+- With the shared credential, document LIST, HEAD, GET, PUT, DELETE, bucket configuration access and signed GET each returned **403**. LIST and HEAD on `sonoqui-public` also returned **403**. The document fixture was created and removed with SonoQui's dedicated credential.
+- SonoQui's actual production storage helpers still passed synthetic write/read/signed-download/delete checks, including `private, no-store` on the download response. SonoQui and Penno remained healthy, with unchanged container start times during the policy changes.
+
+All synthetic objects were removed. These checks close the shared token's direct access to the SonoQui buckets; they do not establish separate encryption keys per tenant or isolation of database backups. The retained shared PostgreSQL backup bucket includes SonoQui database metadata and remains a separate infrastructure trust boundary.
+
 ## Remaining decisions and limits
 
-1. **Remaining cross-service exposure:** SonoQui's dedicated credential is installed, but the legacy all-bucket administrator token still runs in Penno/infrastructure and can access `sonoqui-documents`. Migrate those consumers to their own required scopes and retire the shared token after confirming every consumer. Review administrator-token owners and rotation, including `claude_code`. The new SonoQui token has no automatic expiry or IP filter; it requires managed rotation. This cutover alone does not establish storage isolation between all applications in the account.
+1. **User-token access remains open:** The shared production token is now denied access to SonoQui buckets, but `claude_code` still has all-bucket object access after the dashboard failed to persist its allowlist. Complete revocation requires a decision because it would also remove its access to other applications. Account administrators remain privileged, and the new SonoQui token has no automatic expiry or IP filter; it requires managed rotation. Penno/infrastructure retain a shared six-bucket credential, so those other applications are not isolated from one another by this change.
 2. Keep historical gateway log access restricted and review retention/backups. Existing log copies were not erased by this change. Upload metadata still travels in URL query parameters, so Cloudflare or other intermediaries need separate log review; moving metadata into multipart bodies is a coordinated client/API change.
 3. Decide whether an explicit EU jurisdiction is required. Current location is EEUR, default jurisdiction; encryption does not establish residency. R2 data-access logging is now enabled, with the delivery and coverage limits above.
 4. Documentale entitlement remains administered by tenant admins, who can self-grant subject to the existing cap. A separation-of-duties policy requires a product/ownership decision.
