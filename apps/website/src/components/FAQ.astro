@@ -18,7 +18,7 @@ const subtitle = "Risposte rapide su timbratura GPS, conformità, costi e gestio
       {homeFaq[lang].map((item, i) => (
         <details class="group p-6" data-reveal style={`--reveal-delay:${(i % 3) * 90}ms`}>
           <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-base font-semibold text-on-surface">
-            <span>{item.question}</span>
+            <h3>{item.question}</h3>
             <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface text-primary transition-transform group-open:rotate-45">+</span>
           </summary>
           <p class="mt-3 text-sm leading-relaxed text-on-surface-variant">{item.answer}</p>

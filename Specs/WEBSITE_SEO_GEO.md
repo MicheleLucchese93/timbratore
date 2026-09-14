@@ -75,9 +75,10 @@ Re-score only with evidence (GSC impressions, Googlebot fetches, PostHog
       `/it/migliori-app-rilevazione-presenze-2026/`, `/it/partner/`; confirm
       the sitemap is (re)submitted. Highest-leverage item: nothing else
       matters until Googlebot fetches these URLs.
-- [ ] **PostHog personal API key** → `~/.config/sonoqui/posthog.env` (scopes
+- [x] **PostHog personal API key** → `~/.config/sonoqui/posthog.env` (scopes
       `query:read project:read event_definition:read insight:read`, project
       260322). Unblocks `node apps/website/scripts/posthog-report.mjs`.
+      — verified working by the routine 2026-09-14.
 - [ ] Cloudflare: single-hop `www.sonoqui.pro` → `https://sonoqui.pro/…`
       redirect rule (today http→https→apex = 2 hops).
 - [ ] Legal review of a possible "Timbratura GPS e giurisprudenza 2026" page
@@ -97,9 +98,12 @@ Re-score only with evidence (GSC impressions, Googlebot fetches, PostHog
       `img-src 'self' data:`; `font-src 'self'`; `style-src 'self'
       'unsafe-inline'` (Tailwind inline styles). Ship Report-Only first, read
       the website container logs for a week, then enforce.
-- [ ] Homepage heading hierarchy: feature cards are `h3` under an `h2` — fine;
+- [x] Homepage heading hierarchy: feature cards are `h3` under an `h2` — fine;
       but `Moduli` / `Pricing` / `FAQ` sub-blocks mix `h3`/`p.font-bold`.
-      Normalise to `h3`.
+      Normalise to `h3`. — 2026-09-14: FAQ questions are now `h3` inside
+      `<summary>`; Pricing plan-card "included" labels and add-on titles are
+      `h4` (they sit under the plan / "Cresci oltre" `h3`); Moduli was already
+      h2>h3>h4. Classes unchanged, so no visual change (preflight resets).
 - [ ] Refresh cadence: each content page's copy (and `updated`) should move at
       least every ~90 days with a real change (recency ≈ 3× citation
       likelihood). Candidates: update the buyer-guide "verified" month, add a
