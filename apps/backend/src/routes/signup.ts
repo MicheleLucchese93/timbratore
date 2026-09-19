@@ -389,7 +389,7 @@ signupRouter.post(
 
 /**
  * The person-level acceptances captured on the website form (T&C, privacy
- * notice, optional marketing), written against the account once it exists —
+ * notice), written against the account once it exists —
  * with the moment, IP and browser of the REGISTRATION, which is when they were
  * given. The company-level ones (DPA, art. 1341, powers) are recorded at step 3.
  */

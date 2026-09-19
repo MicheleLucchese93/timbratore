@@ -4,7 +4,7 @@ import { getLangFromUrl, useTranslations } from "../../i18n/utils";
 import { signupMeta, buildSignupSchemas, SIGNUP_PATH, WEB_APP_URL } from "../../data/seo";
 
 // Step 1 of the self-service signup (Specs/SELF_SERVICE_BILLING.md §3.2). The
-// website only collects the PERSON — name, email, optional phone, consents.
+// website only collects the PERSON — name, email, T&C and privacy.
 // The backend emails a confirmation link; the password, the company (P.IVA +
 // VIES) and any payment all happen in the web app. Nothing is created until
 // the email is confirmed.
@@ -165,14 +165,6 @@ const legalLinkClass = "font-semibold text-primary underline hover:no-underline"
                 <p id="signup-email-error" class={errorClass}></p>
               </div>
 
-              <div>
-                <label for="signup-phone" class={labelClass}>
-                  Telefono <span class="font-normal text-on-surface-variant">(facoltativo)</span>
-                </label>
-                <input id="signup-phone" name="phone" type="tel" maxlength="30" autocomplete="tel" inputmode="tel" class={inputClass} />
-                <p id="signup-phone-error" class={errorClass}></p>
-              </div>
-
               <div class="space-y-3 pt-1">
                 <div>
                   <div class="flex items-start gap-3">
@@ -191,13 +183,6 @@ const legalLinkClass = "font-semibold text-primary underline hover:no-underline"
                     </label>
                   </div>
                   <p id="signup-privacy-error" class={`${errorClass} pl-8`}></p>
-                </div>
-                <div class="flex items-start gap-3">
-                  <input id="signup-marketing" name="marketing" type="checkbox" class={checkboxClass} />
-                  <label for="signup-marketing" class="text-sm leading-relaxed text-on-surface-variant">
-                    Voglio ricevere via email novità, consigli d'uso e offerte su sonoQui. Facoltativo: puoi
-                    disiscriverti in qualsiasi momento.
-                  </label>
                 </div>
               </div>
 
@@ -312,7 +297,7 @@ const legalLinkClass = "font-semibold text-primary underline hover:no-underline"
 <script>
   type PlanKey = "free" | "piccola" | "media";
   type View = "loading" | "unavailable" | "form" | "success";
-  type FieldName = "first_name" | "last_name" | "email" | "phone" | "accept_tos" | "accept_privacy";
+  type FieldName = "first_name" | "last_name" | "email" | "accept_tos" | "accept_privacy";
   type Captcha = { token(): string; reset(): void; remove(): void };
   type TurnstileApi = {
     render(container: HTMLElement, params: Record<string, unknown>): string | undefined;
@@ -330,7 +315,7 @@ const legalLinkClass = "font-semibold text-primary underline hover:no-underline"
   const CONFIG_TIMEOUT_MS = 8_000;
   const REQUEST_TIMEOUT_MS = 20_000;
   const CAMPAIGN_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid"];
-  const FIELDS: FieldName[] = ["first_name", "last_name", "email", "phone", "accept_tos", "accept_privacy"];
+  const FIELDS: FieldName[] = ["first_name", "last_name", "email", "accept_tos", "accept_privacy"];
 
   const PLANS: Record<PlanKey, { name: string; note: string }> = {
     free: {
@@ -370,7 +355,6 @@ const legalLinkClass = "font-semibold text-primary underline hover:no-underline"
     first_name: "Controlla il nome: massimo 80 caratteri, senza i simboli < e >.",
     last_name: "Controlla il cognome: massimo 80 caratteri, senza i simboli < e >.",
     email: "Questo indirizzo email non è valido: controllalo e riprova.",
-    phone: "Controlla il numero di telefono, oppure lascia vuoto il campo.",
     accept_tos: "Per registrarti devi accettare i Termini e condizioni.",
     accept_privacy: "Conferma di aver letto l'informativa privacy.",
   };
@@ -532,7 +516,6 @@ const legalLinkClass = "font-semibold text-primary underline hover:no-underline"
     const captchaBox = byId("signup-turnstile");
     const captchaError = byId("signup-turnstile-error");
     const honeypot = byId<HTMLInputElement>("signup-company-website");
-    const marketing = byId<HTMLInputElement>("signup-marketing");
     const unavailableTitle = byId("signup-unavailable-title");
     const unavailableCta = byId<HTMLAnchorElement>("signup-unavailable-cta");
     const successEmail = byId("signup-success-email");
@@ -546,7 +529,6 @@ const legalLinkClass = "font-semibold text-primary underline hover:no-underline"
       first_name: byId<HTMLInputElement>("signup-first-name"),
       last_name: byId<HTMLInputElement>("signup-last-name"),
       email: byId<HTMLInputElement>("signup-email"),
-      phone: byId<HTMLInputElement>("signup-phone"),
       accept_tos: byId<HTMLInputElement>("signup-tos"),
       accept_privacy: byId<HTMLInputElement>("signup-privacy"),
     };
@@ -554,7 +536,6 @@ const legalLinkClass = "font-semibold text-primary underline hover:no-underline"
       first_name: byId("signup-first-name-error"),
       last_name: byId("signup-last-name-error"),
       email: byId("signup-email-error"),
-      phone: byId("signup-phone-error"),
       accept_tos: byId("signup-tos-error"),
       accept_privacy: byId("signup-privacy-error"),
     };
@@ -720,7 +701,6 @@ const legalLinkClass = "font-semibold text-primary underline hover:no-underline"
 
     const NAME_FORBIDDEN = /[\r\n<>]/;
     const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const PHONE_CHARS = /^[0-9+()./\s-]+$/;
 
     function validate(name: FieldName): string | null {
       const input = inputs[name];
@@ -738,12 +718,6 @@ const legalLinkClass = "font-semibold text-primary underline hover:no-underline"
           if (!value) return "Inserisci il tuo indirizzo email.";
           if (value.length > 254 || !EMAIL_SHAPE.test(value)) {
             return "Inserisci un indirizzo email valido, ad esempio nome@azienda.it.";
-          }
-          return null;
-        case "phone":
-          if (!value) return null;
-          if (value.length > 30 || !PHONE_CHARS.test(value) || value.replace(/\D/g, "").length < 6) {
-            return "Inserisci un numero valido (cifre, spazi e + ( ) . / -), oppure lascia vuoto il campo.";
           }
           return null;
         case "accept_tos":
@@ -843,12 +817,10 @@ const legalLinkClass = "font-semibold text-primary underline hover:no-underline"
         first_name: inputs.first_name.value.trim(),
         last_name: inputs.last_name.value.trim(),
         email,
-        phone: inputs.phone.value.trim() || null,
         plan,
         language: "it",
         accept_tos: inputs.accept_tos.checked,
         accept_privacy: inputs.accept_privacy.checked,
-        marketing: marketing.checked,
         turnstileToken: token,
         company_website: honeypot.value,
       };

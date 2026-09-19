@@ -16,14 +16,14 @@ import { SELLER, SELLER_ADDRESS } from "../../data/seo";
 
   <h2 id="fornitore">1. Il Fornitore</h2>
   <p>Il Servizio è fornito da:</p>
-  <!-- TODO(legal): CAP, Partita IVA, codice fiscale, REA, capitale sociale e PEC di Idealcopy S.r.l. sono segnaposto visibili: compilarli in SELLER (src/data/seo.ts). -->
   <ul>
     <li><strong>{SELLER.name}</strong>, {SELLER_ADDRESS}</li>
     <li>Partita IVA {SELLER.vatNumber} — Codice fiscale {SELLER.taxCode}</li>
-    <li>REA {SELLER.rea} — Capitale sociale {SELLER.shareCapital}</li>
-    <li>PEC {SELLER.pec}</li>
+    <li>Codice destinatario SDI {SELLER.sdi}</li>
+    <li>T. {SELLER.phone}</li>
+    <li><a href={`mailto:${SELLER.email}`}>{SELLER.email}</a> — <a href={`mailto:${SELLER.emailSegreteria}`}>{SELLER.emailSegreteria}</a></li>
   </ul>
-  <p>Di seguito anche "Fornitore" o "noi". Puoi scriverci tramite il <a href="#contact">modulo di contatto</a> del sito o, per le comunicazioni formali, all'indirizzo PEC indicato sopra.</p>
+  <p>Di seguito anche "Fornitore" o "noi". Puoi scriverci tramite il <a href="#contact">modulo di contatto</a> del sito o, per le comunicazioni formali, agli indirizzi email indicati sopra.</p>
 
   <h2 id="definizioni">2. Definizioni</h2>
   <ul>
@@ -178,11 +178,10 @@ import { SELLER, SELLER_ADDRESS } from "../../data/seo";
   <p>Possiamo modificare le presenti Condizioni, ad esempio per adeguarle a nuove funzioni o a novità normative. Le modifiche sostanziali sono comunicate via email all'Amministratore almeno 30 giorni prima dell'entrata in vigore e, per Piani e Moduli a pagamento, si applicano dal primo rinnovo successivo. Il Cliente che non intende accettarle può recedere prima dell'entrata in vigore, senza costi. La versione in vigore è sempre pubblicata su questa pagina, con la data dell'ultimo aggiornamento.</p>
 
   <h2 id="comunicazioni">23. Comunicazioni</h2>
-  <p>Le comunicazioni relative al contratto sono inviate all'indirizzo email dell'Amministratore o a quello di fatturazione indicato nell'app. Il Cliente può scriverci tramite il <a href="#contact">modulo di contatto</a> o, per le comunicazioni formali, alla PEC {SELLER.pec}.</p>
+  <p>Le comunicazioni relative al contratto sono inviate all'indirizzo email dell'Amministratore o a quello di fatturazione indicato nell'app. Il Cliente può scriverci tramite il <a href="#contact">modulo di contatto</a> o, per le comunicazioni formali, a <a href={`mailto:${SELLER.email}`}>{SELLER.email}</a> o <a href={`mailto:${SELLER.emailSegreteria}`}>{SELLER.emailSegreteria}</a>.</p>
 
   <h2 id="foro">24. Legge applicabile e foro competente</h2>
-  <!-- TODO(legal): indicare la città del foro competente (esclusivo). -->
-  <p>Le presenti Condizioni sono regolate dalla legge italiana. Per ogni controversia relativa alla loro interpretazione, esecuzione o risoluzione è competente in via esclusiva il <strong>Foro di [città da inserire]</strong>.</p>
+  <p>Le presenti Condizioni sono regolate dalla legge italiana. Per ogni controversia relativa alla loro interpretazione, esecuzione o risoluzione è competente in via esclusiva il <strong>Foro di Verona</strong>.</p>
 
   <h2 id="clausole-vessatorie">25. Approvazione specifica delle clausole (artt. 1341 e 1342 c.c.)</h2>
   <!-- REVIEW(legal): l'elenco deve coincidere con il testo della casella che l'app mostra alla creazione dell'azienda ("limitazione di responsabilità, sospensione del servizio, recesso, rinnovo automatico, foro competente"). -->

@@ -15,10 +15,9 @@ import { SELLER, SELLER_ADDRESS } from "../../data/seo";
   </div>
 
   <h2 id="parti">1. Parti e ruoli</h2>
-  <!-- TODO(legal): CAP, Partita IVA e PEC di Idealcopy S.r.l. sono segnaposto visibili: compilarli in SELLER (src/data/seo.ts). -->
   <ul>
     <li><strong>Titolare del trattamento</strong>: l'azienda cliente che utilizza sonoQui ("Titolare" o "Cliente"), che determina finalità e mezzi del trattamento dei dati dei propri dipendenti e collaboratori.</li>
-    <li><strong>Responsabile del trattamento</strong>: {SELLER.name}, {SELLER_ADDRESS}, Partita IVA {SELLER.vatNumber}, PEC {SELLER.pec} ("Responsabile"), che fornisce il servizio sonoQui.</li>
+    <li><strong>Responsabile del trattamento</strong>: {SELLER.name}, {SELLER_ADDRESS}, Partita IVA {SELLER.vatNumber}, SDI {SELLER.sdi}, <a href={`mailto:${SELLER.email}`}>{SELLER.email}</a> ("Responsabile"), che fornisce il servizio sonoQui.</li>
   </ul>
 
   <h2 id="oggetto">2. Oggetto e durata</h2>
@@ -119,6 +118,6 @@ import { SELLER, SELLER_ADDRESS } from "../../data/seo";
 
   <div class="contact-box">
     <h3>Contattaci</h3>
-    <p>Per domande su questo Accordo, per richieste relative ai sub-responsabili o per esercitare le verifiche previste, usa il <a href="#contact">modulo di contatto</a> sul sito o scrivi alla PEC {SELLER.pec}.</p>
+    <p>Per domande su questo Accordo, per richieste relative ai sub-responsabili o per esercitare le verifiche previste, usa il <a href="#contact">modulo di contatto</a> sul sito o scrivi a <a href={`mailto:${SELLER.email}`}>{SELLER.email}</a> o <a href={`mailto:${SELLER.emailSegreteria}`}>{SELLER.emailSegreteria}</a>.</p>
   </div>
 </LegalLayout>

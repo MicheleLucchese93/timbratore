@@ -19,22 +19,22 @@ export const PARTNER_APP_URL = 'https://partners.sonoqui.pro';
 // Legal identity of the seller (Specs/SELF_SERVICE_BILLING.md, decision D16):
 // Idealcopy S.r.l. sells the service, holds the Stripe account and issues the
 // fatture. Rendered in the footer and on the legal pages (D.Lgs. 70/2003 art. 7,
-// art. 2250 c.c., GDPR art. 13) — and deliberately NOT in the Organization
-// JSON-LD (see Specs/WEBSITE_SEO_GEO.md). The bracketed values are VISIBLE
-// placeholders until the company data arrives: fill them here, once, and every
-// page follows. Go-live blocker: no payment may be taken while any is left.
+// GDPR art. 13) — and deliberately NOT in the Organization JSON-LD (see
+// Specs/WEBSITE_SEO_GEO.md).
 export const SELLER = {
   name: 'Idealcopy S.r.l.',
-  street: 'Viale della Fiera 6/B',
-  cap: '[CAP da inserire]', // TODO(legal): CAP della sede legale
+  street: 'Viale della Fiera 6B',
+  cap: '37136',
   city: 'Verona',
   province: 'VR',
-  vatNumber: '[P.IVA da inserire]', // TODO(legal): Partita IVA
-  taxCode: '[C.F. da inserire]', // TODO(legal): codice fiscale (se diverso dalla P.IVA)
-  rea: '[REA da inserire]', // TODO(legal): numero REA, es. "VR-000000"
-  shareCapital: '[capitale sociale da inserire]', // TODO(legal): capitale sociale ("… € i.v." se interamente versato)
-  pec: '[PEC da inserire]', // TODO(legal): indirizzo PEC
+  vatNumber: '02415080239',
+  taxCode: '02415080239',
+  sdi: 'T04ZHR3',
+  phone: '+39 045 504399',
+  email: 'info@idealcopy.it',
+  emailSegreteria: 'segreteria@idealcopy.it',
 } as const;
+export const SELLER_PHONE_TEL = SELLER.phone.replace(/[^\d+]/g, '');
 export const SELLER_ADDRESS = `${SELLER.street}, ${SELLER.cap} ${SELLER.city} (${SELLER.province})`;
 // 1200x630 branded social card (generated, see public/og-default.png). The square
 // /icon.png stays as favicon/app icon only.
