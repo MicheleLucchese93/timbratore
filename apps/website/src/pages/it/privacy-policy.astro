@@ -8,14 +8,15 @@ import { SELLER, SELLER_ADDRESS } from "../../data/seo";
   slug="privacy-policy"
   alternatePaths={{ it: "/it/privacy-policy/" }}
 >
-  <!-- REVIEW(legal): v2.0 — titolare Idealcopy S.r.l.; nuovi trattamenti per registrazione online, dati azienda/VIES, fatturazione e pagamenti (Stripe), email (Brevo), anti-bot (Cloudflare Turnstile), marketing facoltativo; nuove voci di conservazione (§ 9.5-9.7). Da far rivedere al legale, insieme ai ruoli (l'eventuale società che sviluppa o gestisce la piattaforma va indicata come sub-responsabile). -->
+  <!-- REVIEW(legal): v2.1 — titolare Idealcopy S.r.l.; registrazione online, dati azienda/VIES, fatturazione e pagamenti (Stripe), email di servizio (Brevo), anti-bot (Cloudflare Turnstile); nessuna comunicazione commerciale. Da far rivedere al legale, insieme ai ruoli (l'eventuale società che sviluppa o gestisce la piattaforma va indicata come sub-responsabile). -->
   <h2>1. Titolare del trattamento</h2>
   <p>Il Titolare del trattamento dei dati personali raccolti tramite il sito sonoqui.pro, l'applicazione mobile sonoQui e la dashboard web è la società che offre il servizio con il marchio sonoQui:</p>
-  <!-- TODO(legal): CAP, Partita IVA, codice fiscale e PEC di Idealcopy S.r.l. sono segnaposto visibili: compilarli in SELLER (src/data/seo.ts). -->
   <ul>
     <li><strong>{SELLER.name}</strong>, con sede legale in {SELLER_ADDRESS}</li>
     <li>Partita IVA {SELLER.vatNumber} — Codice fiscale {SELLER.taxCode}</li>
-    <li>PEC: {SELLER.pec}</li>
+    <li>Codice destinatario SDI {SELLER.sdi}</li>
+    <li>T. {SELLER.phone}</li>
+    <li>Email: <a href={`mailto:${SELLER.email}`}>{SELLER.email}</a> — <a href={`mailto:${SELLER.emailSegreteria}`}>{SELLER.emailSegreteria}</a></li>
     <li>Contatto: tramite il <a href="#contact">modulo di contatto</a> sul sito sonoqui.pro</li>
   </ul>
   <p>{SELLER.name} non ha designato un Responsabile della Protezione dei Dati (DPO) poiché il trattamento non rientra nelle soglie dell'art. 37 GDPR. Per qualsiasi richiesta in materia di protezione dei dati, usa i contatti sopra indicati.</p>
@@ -69,9 +70,9 @@ import { SELLER, SELLER_ADDRESS } from "../../data/seo";
 
   <h3>4.5 Registrazione online e account dell'amministratore</h3>
   <ul>
-    <li><strong>Dati di contatto</strong> — nome, cognome, indirizzo email e, se lo indichi, numero di telefono, inseriti nel modulo di registrazione su sonoqui.pro</li>
+    <li><strong>Dati di contatto</strong> — nome, cognome e indirizzo email, inseriti nel modulo di registrazione su sonoqui.pro</li>
     <li><strong>Piano scelto e provenienza</strong> — il piano indicato al momento della registrazione e gli eventuali parametri della campagna da cui arrivi (ad esempio <em>utm_source</em> o <em>gclid</em>), letti dall'indirizzo della pagina e non da cookie</li>
-    <li><strong>Accettazioni e consensi</strong> — accettazione dei Termini e condizioni, presa visione di questa Informativa ed eventuale consenso alle comunicazioni commerciali, con data, ora, indirizzo IP e tipo di browser</li>
+    <li><strong>Accettazioni</strong> — accettazione dei Termini e condizioni e presa visione di questa Informativa, con data, ora, indirizzo IP e tipo di browser</li>
     <li><strong>Password</strong> — scelta dopo la conferma dell'indirizzo email, sottoposta ad hashing e mai conservata in chiaro</li>
   </ul>
 
@@ -90,10 +91,8 @@ import { SELLER, SELLER_ADDRESS } from "../../data/seo";
     <li><strong>Dati della carta di pagamento</strong> — raccolti e trattati direttamente da Stripe (vedi § 7): non li riceviamo e non li conserviamo</li>
   </ul>
 
-  <h3>4.8 Comunicazioni commerciali (facoltative)</h3>
-  <ul>
-    <li>Solo se lo acconsenti durante la registrazione, usiamo nome e indirizzo email per inviarti novità, consigli d'uso e offerte su sonoQui. Il consenso è facoltativo, non condiziona la registrazione ed è revocabile in qualsiasi momento, con il link presente in ogni email o tramite il modulo di contatto</li>
-  </ul>
+  <h3>4.8 Comunicazioni commerciali</h3>
+  <p>Non inviamo comunicazioni commerciali, newsletter né offerte promozionali. Il modulo di registrazione non raccoglie un consenso di marketing.</p>
 
   <h3>4.9 Protezione dei moduli dai bot</h3>
   <ul>
@@ -108,7 +107,7 @@ import { SELLER, SELLER_ADDRESS } from "../../data/seo";
     <li><strong>Legittimo interesse del fornitore (art. 6(1)(f)):</strong> logging di sicurezza, prevenzione frodi, stabilità del servizio; verifica della Partita IVA, protezione dei moduli del sito da abusi e registrazioni automatiche, prova delle accettazioni contrattuali, promemoria per completare una registrazione avviata</li>
     <li><strong>Esecuzione del contratto con l'azienda cliente e misure precontrattuali (art. 6(1)(b)):</strong> registrazione online, creazione e gestione dell'account e dell'azienda, abbonamenti, pagamenti e assistenza</li>
     <li><strong>Obbligo legale del fornitore (art. 6(1)(c)):</strong> fatturazione elettronica, tenuta delle scritture contabili e conservazione dei documenti fiscali</li>
-    <li><strong>Consenso (art. 6(1)(a)):</strong> comunicazioni commerciali via email, revocabile in qualsiasi momento senza pregiudicare la liceità dei trattamenti precedenti</li>
+    <li><strong>Consenso (art. 6(1)(a)):</strong> cookie analitici sul sito sonoqui.pro, solo se li accetti dal banner (vedi la <a href="/it/cookie-policy/">Cookie Policy</a>)</li>
   </ul>
 
   <h2>6. Come utilizziamo le tue informazioni</h2>
@@ -121,7 +120,6 @@ import { SELLER, SELLER_ADDRESS } from "../../data/seo";
     <li>Gestire la registrazione online: inviarti il link di conferma e, se non completi la registrazione, al massimo due promemoria</li>
     <li>Verificare la Partita IVA e creare l'azienda cliente</li>
     <li>Gestire abbonamenti e pagamenti ed emettere la fattura elettronica</li>
-    <li>Inviarti comunicazioni commerciali, solo se hai dato il consenso</li>
     <li>Rispettare gli obblighi legali e proteggere i nostri diritti</li>
   </ul>
 
@@ -131,7 +129,7 @@ import { SELLER, SELLER_ADDRESS } from "../../data/seo";
     <li><strong>Infrastruttura di hosting e database</strong> — fornitore di infrastruttura cloud con sede nell'Unione Europea</li>
     <li><strong>Object storage</strong> — servizio di archiviazione oggetti per gli allegati delle richieste, con Clausole Contrattuali Standard (SCC)</li>
     <li><strong>Servizio di autenticazione</strong> — gestione delle credenziali ospitata sulla nostra infrastruttura nell'Unione Europea</li>
-    <li><strong>Invio delle email</strong> — <strong>Brevo</strong> (Sendinblue SAS, Francia), per le email del servizio — conferma della registrazione, inviti, notifiche, avvisi relativi ai pagamenti — e per le eventuali comunicazioni commerciali</li>
+    <li><strong>Invio delle email</strong> — <strong>Brevo</strong> (Sendinblue SAS, Francia), per le email del servizio: conferma della registrazione, inviti, notifiche e avvisi relativi ai pagamenti</li>
     <li><strong>Servizi di consegna delle notifiche push</strong> — gestiti dai fornitori dei sistemi operativi mobili (iOS Apple Inc., Android Google LLC)</li>
     <li><strong>Reverse proxy, DNS e protezione anti-bot</strong> — <strong>Cloudflare, Inc.</strong>, fornitore di servizi di rete (reverse proxy e DNS) e del servizio Turnstile per i moduli del sito</li>
     <li><strong>Analisi del sito web</strong> — <strong>PostHog, Inc.</strong>, limitatamente alle statistiche di navigazione delle pagine pubbliche di sonoqui.pro e <strong>solo previo consenso</strong> ai cookie analitici. I dati sono raccolti e conservati sull'infrastruttura europea del fornitore (Francoforte, Germania). Dettagli su cosa viene raccolto, inclusa la registrazione della sessione, nella <a href="/it/cookie-policy/">Cookie Policy</a></li>
@@ -191,9 +189,7 @@ import { SELLER, SELLER_ADDRESS } from "../../data/seo";
   </ul>
 
   <h3>9.7 Comunicazioni commerciali</h3>
-  <ul>
-    <li>Nome e indirizzo email sono usati a questo fine fino alla revoca del consenso</li>
-  </ul>
+  <p>Non conserviamo dati per finalità di marketing: non inviamo comunicazioni commerciali.</p>
 
   <h2>10. Archiviazione e sicurezza</h2>
   <p>Adottiamo misure tecniche e organizzative adeguate per proteggere i dati personali da accessi non autorizzati, perdita, alterazione o divulgazione, tra cui:</p>
@@ -215,7 +211,7 @@ import { SELLER, SELLER_ADDRESS } from "../../data/seo";
     <li><strong>Limitazione</strong> (art. 18) — limitare il trattamento dei tuoi dati</li>
     <li><strong>Portabilità</strong> (art. 20) — ricevere i tuoi dati in formato leggibile da macchina</li>
     <li><strong>Opposizione</strong> (art. 21) — opporti al trattamento basato sul legittimo interesse</li>
-    <li><strong>Revoca del consenso</strong> (art. 7(3)) — revocare in qualsiasi momento il consenso alle comunicazioni commerciali</li>
+    <li><strong>Revoca del consenso</strong> (art. 7(3)) — revocare in qualsiasi momento il consenso ai cookie analitici, dalle preferenze cookie in fondo a ogni pagina</li>
     <li><strong>Non essere sottoposto a decisioni automatizzate</strong> (art. 22) — sonoQui non effettua decisioni automatizzate con effetti giuridici</li>
   </ul>
   <p>Per esercitare un diritto rispetto ai dati raccolti per conto del tuo datore di lavoro, contatta in primo luogo il tuo datore di lavoro (Titolare del trattamento). Per richieste tecniche o relative al servizio, utilizza il <a href="#contact">modulo di contatto</a> sul sito. Rispondiamo entro 30 giorni (art. 12(3)).</p>
@@ -237,6 +233,6 @@ import { SELLER, SELLER_ADDRESS } from "../../data/seo";
 
   <div class="contact-box">
     <h3>Contattaci</h3>
-    <p>Per domande o per esercitare i tuoi diritti, usa il <a href="#contact">modulo di contatto</a> sul sito o scrivi alla PEC {SELLER.pec}.</p>
+    <p>Per domande o per esercitare i tuoi diritti, usa il <a href="#contact">modulo di contatto</a> sul sito o scrivi a <a href={`mailto:${SELLER.email}`}>{SELLER.email}</a> o <a href={`mailto:${SELLER.emailSegreteria}`}>{SELLER.emailSegreteria}</a>.</p>
   </div>
 </LegalLayout>

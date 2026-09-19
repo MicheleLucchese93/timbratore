@@ -69,7 +69,6 @@ test.describe('website — registration page', () => {
       language: 'it',
       accept_tos: true,
       accept_privacy: true,
-      marketing: false,
       company_website: '',
       utm: { utm_source: 'e2e-site', utm_campaign: 'autunno' },
     });

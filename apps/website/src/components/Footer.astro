@@ -1,6 +1,6 @@
 ---
 import { getLangFromUrl, useTranslations } from "../i18n/utils";
-import { contentPageLinks, SELLER, SELLER_ADDRESS } from "../data/seo";
+import { contentPageLinks, SELLER, SELLER_ADDRESS, SELLER_PHONE_TEL } from "../data/seo";
 
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
@@ -102,11 +102,12 @@ const dpaPath = `/${lang}/dpa/`;
     <div class="mt-8 border-t border-gray-200 pt-6 text-center text-xs leading-relaxed text-on-surface-variant">
       <p>&copy; {new Date().getFullYear()} sonoQui. {t("footer.rights")}</p>
       {/* Seller identity required on the site of a company selling online
-          (D.Lgs. 70/2003 art. 7, art. 2250 c.c.). Values come from SELLER in
-          src/data/seo.ts; the bracketed ones are visible placeholders. */}
-      <!-- TODO(legal): CAP, P.IVA, REA, capitale sociale e PEC di Idealcopy S.r.l. sono segnaposto visibili: compilarli in SELLER (src/data/seo.ts). -->
+          (D.Lgs. 70/2003 art. 7). Values come from SELLER in src/data/seo.ts. */}
       <p class="mt-1">
-        sonoQui è un servizio di {SELLER.name} · {SELLER_ADDRESS} · P.IVA {SELLER.vatNumber} · REA {SELLER.rea} · Capitale sociale {SELLER.shareCapital} · PEC {SELLER.pec}
+        sonoQui è un servizio di {SELLER.name} · {SELLER_ADDRESS} · T. <a href={`tel:${SELLER_PHONE_TEL}`} class="hover:text-primary">{SELLER.phone}</a>
+        · <a href={`mailto:${SELLER.email}`} class="hover:text-primary">{SELLER.email}</a>
+        · <a href={`mailto:${SELLER.emailSegreteria}`} class="hover:text-primary">{SELLER.emailSegreteria}</a>
+        · P.IVA/C.F. {SELLER.vatNumber} · SDI {SELLER.sdi}
       </p>
     </div>
   </div>

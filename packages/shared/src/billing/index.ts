@@ -295,10 +295,10 @@ export function billingProfileGaps(p: BillingProfileInput | null | undefined): s
 // Recorded in legal_acceptances with every acceptance. Bump the version here in
 // the same change that edits the document on the website (src/data/revisions.mjs).
 export const LEGAL_VERSIONS = {
-  tos: '2026-09-18',
-  privacy_ack: '2026-09-18',
-  dpa: '2026-09-18',
-  art1341: '2026-09-18',
+  tos: '2026-09-19',
+  privacy_ack: '2026-09-19',
+  dpa: '2026-09-19',
+  art1341: '2026-09-19',
   powers: '2026-09-18',
   paid_terms: '2026-09-18',
   marketing: '2026-09-18',

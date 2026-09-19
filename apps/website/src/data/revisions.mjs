@@ -22,11 +22,11 @@ export const LEGAL_REVISIONS = {
   // 2.0 (2026-09-18): self-service signup, subscriptions and Stripe payments,
   // seller Idealcopy S.r.l. Keep the dates in step with LEGAL_VERSIONS in
   // packages/shared/src/billing (what legal_acceptances records at signup).
-  'privacy-policy': { version: '2.0', date: '2026-09-18' },
+  'privacy-policy': { version: '2.1', date: '2026-09-19' },
   'cookie-policy': { version: '1.4', date: '2026-08-29' },
-  'termini-e-condizioni': { version: '2.0', date: '2026-09-18' },
+  'termini-e-condizioni': { version: '2.1', date: '2026-09-19' },
   eula: { version: '1.1', date: '2026-06-16' },
-  dpa: { version: '1.0', date: '2026-09-18' },
+  dpa: { version: '1.1', date: '2026-09-19' },
 };
 
 /**
