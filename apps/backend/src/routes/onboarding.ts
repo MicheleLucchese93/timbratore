@@ -2,6 +2,7 @@ import { Router } from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { z } from 'zod';
 import {
+  DEFAULT_SDI_CODE,
   HEADCOUNT_BANDS,
   LEGAL_VERSIONS,
   PLAN_CAPS,
@@ -242,9 +243,9 @@ onboardingRouter.post(
           await client.query(
             `INSERT INTO tenant_billing_profiles
                (tenant_id, legal_name, partita_iva, codice_fiscale, address, cap, city, province,
-                billing_email, vat_status, vies_name, vies_address, vies_request_id, vies_checked_at,
+                sdi_code, billing_email, vat_status, vies_name, vies_address, vies_request_id, vies_checked_at,
                 headcount_band, updated_by)
-             VALUES ($1, $2, $3, NULL, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+             VALUES ($1, $2, $3, NULL, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
             [
               tenantId,
               b.ragione_sociale,
@@ -253,6 +254,7 @@ onboardingRouter.post(
               b.cap,
               b.city,
               b.province,
+              DEFAULT_SDI_CODE,
               signup.email,
               vies.status,
               vies.name,

@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  DEFAULT_SDI_CODE,
   billingProfileGaps,
   isValidCap,
   isValidCodiceFiscale,
@@ -34,7 +35,7 @@ export function BillingProfileForm({
     cap: profile.cap ?? '',
     city: profile.city ?? '',
     province: profile.province ?? '',
-    sdi_code: profile.sdi_code ?? '',
+    sdi_code: profile.sdi_code ?? DEFAULT_SDI_CODE,
     pec: profile.pec ?? '',
     billing_email: profile.billing_email ?? '',
   });
@@ -68,7 +69,7 @@ export function BillingProfileForm({
         cap: f.cap.trim(),
         city: f.city.trim(),
         province: f.province.trim().toUpperCase(),
-        sdi_code: f.sdi_code.trim() || null,
+        sdi_code: f.sdi_code.trim() || DEFAULT_SDI_CODE,
         pec: f.pec.trim() || null,
         billing_email: f.billing_email.trim(),
       });

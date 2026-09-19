@@ -236,6 +236,14 @@ export function isValidCodiceFiscale(value: string): boolean {
   return String.fromCharCode(65 + (sum % 26)) === v[15];
 }
 
+/**
+ * Default SDI recipient for new self-service companies: "via PEC / cassetto
+ * fiscale". With this set at company creation, checkout can start without the
+ * admin filling the billing form (address/P.IVA/email already come from VIES
+ * + signup). They can still replace it with a real 7-char code or a PEC later.
+ */
+export const DEFAULT_SDI_CODE = '0000000';
+
 /** SDI recipient code for e-invoices: 7 alphanumerics ("0000000" = via PEC / cassetto). */
 export function isValidSdiCode(value: string): boolean {
   return /^[A-Z0-9]{7}$/.test(value.trim().toUpperCase());

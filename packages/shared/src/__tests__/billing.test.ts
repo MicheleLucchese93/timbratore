@@ -144,6 +144,7 @@ test('billing profile completeness', () => {
   assert.deepEqual(billingProfileGaps(complete), []);
   assert.deepEqual(billingProfileGaps({ ...complete, sdi_code: null, pec: 'acme@pec.it' }), []);
   assert.deepEqual(billingProfileGaps({ ...complete, sdi_code: null, pec: null }), ['recipient']);
+  assert.deepEqual(billingProfileGaps({ ...complete, sdi_code: '0000000', pec: null }), []);
   assert.deepEqual(billingProfileGaps({ ...complete, cap: '3710', province: 'Verona' }), ['cap', 'province']);
   assert.ok(billingProfileGaps(null).length > 0);
 });
