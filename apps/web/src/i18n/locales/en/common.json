@@ -154,6 +154,9 @@
     "LAST_ADMIN": "Cannot remove the last administrator",
     "GEOCODING_UNAVAILABLE": "Geocoding unavailable",
     "CONFLICT": "Conflict with the current state",
-    "INTERNAL": "Internal server error"
+    "INTERNAL": "Internal server error",
+    "PLAN_LIMIT_EXCEEDED": "Exports locked: your company is above its plan limits",
+    "BILLING_DISABLED": "Online payments are not active yet",
+    "BILLING_MODE_STRIPE": "Managed through the online subscription"
   }
 }

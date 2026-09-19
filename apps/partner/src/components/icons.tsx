@@ -145,3 +145,69 @@ export const IconPlug = () => (
     <path d="M12 17v4" />
   </Svg>
 );
+
+// Credit card (Lucide) — the super-user's per-company "Abbonamento" action.
+export const IconCard = () => (
+  <Svg>
+    <rect x="2" y="5" width="20" height="14" rx="2" />
+    <line x1="2" y1="10" x2="22" y2="10" />
+    <line x1="6" y1="15" x2="10" y2="15" />
+  </Svg>
+);
+
+// Download tray (Lucide) — CSV export.
+export const IconDownload = () => (
+  <Svg>
+    <path d="M12 3v12" />
+    <path d="m7 11 5 5 5-5" />
+    <path d="M5 21h14" />
+  </Svg>
+);
+
+// Two sheets (Lucide copy) — copy a value to the clipboard.
+export const IconCopy = () => (
+  <Svg>
+    <rect x="9" y="9" width="13" height="13" rx="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </Svg>
+);
+
+// Receipt (Lucide) — "segna come fatturato".
+export const IconReceipt = () => (
+  <Svg>
+    <path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 1 .67V2l-1 .67L16 2l-3 2-3-2-3 2Z" />
+    <path d="M8 8h8" />
+    <path d="M8 12h8" />
+    <path d="M8 16h5" />
+  </Svg>
+);
+
+// Counter-clockwise arrow (Lucide undo-2) — undo an invoicing mark.
+export const IconUndo = () => (
+  <Svg>
+    <path d="M9 14 4 9l5-5" />
+    <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+  </Svg>
+);
+
+// Building (Lucide building-2) — jump to the company in Aziende.
+export const IconBuilding = () => (
+  <Svg>
+    <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+    <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+    <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+    <path d="M10 6h4" />
+    <path d="M10 10h4" />
+    <path d="M10 14h4" />
+    <path d="M10 18h4" />
+  </Svg>
+);
+
+// Square with an outbound arrow (Lucide external-link) — opens a new tab.
+export const IconExternal = () => (
+  <Svg>
+    <path d="M15 3h6v6" />
+    <path d="M10 14 21 3" />
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+  </Svg>
+);

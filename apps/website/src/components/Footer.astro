@@ -1,6 +1,6 @@
 ---
 import { getLangFromUrl, useTranslations } from "../i18n/utils";
-import { contentPageLinks } from "../data/seo";
+import { contentPageLinks, SELLER, SELLER_ADDRESS } from "../data/seo";
 
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
@@ -9,6 +9,7 @@ const privacyPath = `/${lang}/privacy-policy/`;
 const cookiePath = `/${lang}/cookie-policy/`;
 const termsPath = `/${lang}/termini-e-condizioni/`;
 const eulaPath = `/${lang}/eula/`;
+const dpaPath = `/${lang}/dpa/`;
 ---
 
 <footer id="contact" class="border-t border-gray-100 bg-surface py-12">
@@ -89,6 +90,7 @@ const eulaPath = `/${lang}/eula/`;
           <li><a href={cookiePath} class="inline-block py-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors">{t("footer.cookies")}</a></li>
           <li><a href={termsPath} class="inline-block py-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors">{t("footer.terms")}</a></li>
           <li><a href={eulaPath} class="inline-block py-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors">{t("footer.eula")}</a></li>
+          <li><a href={dpaPath} class="inline-block py-1.5 text-sm text-on-surface-variant hover:text-primary transition-colors">{t("footer.dpa")}</a></li>
           <!-- Withdrawing consent has to be as easy as giving it (art. 7(3) GDPR).
                The banner is gone after the first answer, so this is the only way
                back to the analytics toggle. data-cc is bound by vanilla-cookieconsent. -->
@@ -97,8 +99,15 @@ const eulaPath = `/${lang}/eula/`;
       </div>
     </div>
 
-    <div class="mt-8 border-t border-gray-200 pt-6 text-center text-xs text-on-surface-variant">
-      &copy; {new Date().getFullYear()} sonoQui. {t("footer.rights")}
+    <div class="mt-8 border-t border-gray-200 pt-6 text-center text-xs leading-relaxed text-on-surface-variant">
+      <p>&copy; {new Date().getFullYear()} sonoQui. {t("footer.rights")}</p>
+      {/* Seller identity required on the site of a company selling online
+          (D.Lgs. 70/2003 art. 7, art. 2250 c.c.). Values come from SELLER in
+          src/data/seo.ts; the bracketed ones are visible placeholders. */}
+      <!-- TODO(legal): CAP, P.IVA, REA, capitale sociale e PEC di Idealcopy S.r.l. sono segnaposto visibili: compilarli in SELLER (src/data/seo.ts). -->
+      <p class="mt-1">
+        sonoQui è un servizio di {SELLER.name} · {SELLER_ADDRESS} · P.IVA {SELLER.vatNumber} · REA {SELLER.rea} · Capitale sociale {SELLER.shareCapital} · PEC {SELLER.pec}
+      </p>
     </div>
   </div>
 </footer>
@@ -115,6 +124,10 @@ const eulaPath = `/${lang}/eula/`;
   function loadTurnstile() {
     if (turnstileRequested) return;
     turnstileRequested = true;
+    // The registration page loads the same script for its own form. A second
+    // copy of api.js makes Turnstile warn and misbehave, so reuse the tag if it
+    // is already there — its implicit render still picks up `.cf-turnstile`.
+    if (document.querySelector(`script[src^="${TURNSTILE_SRC}"]`)) return;
     const s = document.createElement("script");
     s.src = TURNSTILE_SRC;
     s.async = true;

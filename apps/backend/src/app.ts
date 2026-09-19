@@ -40,6 +40,11 @@ import { ticketsRouter } from './routes/tickets.js';
 import { partnershipTicketsRouter } from './routes/partnership-tickets.js';
 import { apiKeysRouter } from './routes/api-keys.js';
 import { publicApiRouter } from './routes/public/index.js';
+import { signupRouter } from './routes/signup.js';
+import { onboardingRouter } from './routes/onboarding.js';
+import { billingRouter } from './routes/billing.js';
+import { stripeWebhookRouter } from './routes/stripe-webhook.js';
+import { partnershipBillingRouter } from './routes/partnership-billing.js';
 
 export function createApp(): Express {
   const app = express();
@@ -74,6 +79,11 @@ export function createApp(): Express {
           : false,
     })
   );
+
+  // Stripe webhooks need the RAW body (the signature covers the exact bytes), so
+  // this router is mounted before the JSON parser — and therefore also before
+  // the IP rate limiter, which would otherwise throttle Stripe's own bursts.
+  app.use('/api/v1/webhooks/stripe', stripeWebhookRouter);
 
   // Input is validated per-route with Zod and persisted via parameterized
   // queries; output is escaped at every sink (React on the web, escapeHtml in
@@ -162,6 +172,12 @@ export function createApp(): Express {
   app.use('/api/v1/audit', auditRouter);
   app.use('/api/v1/cantieri', cantieriRouter);
   app.use('/api/v1/helpdesk', helpdeskRouter);
+  // Self-service registration (Specs/SELF_SERVICE_BILLING.md). /signup is public
+  // (Turnstile + limiters); /onboarding authenticates an ACCOUNT that may have
+  // no company yet; /billing is the company admins' plan & modules surface.
+  app.use('/api/v1/signup', signupRouter);
+  app.use('/api/v1/onboarding', onboardingRouter);
+  app.use('/api/v1/billing', billingRouter);
   app.use('/api/v1/tickets', ticketsRouter);
   // Management of the company's own API keys (Impostazioni → API). Gated on the
   // tenant module flag AND the admin role; runs on the RLS pool so the column
@@ -179,6 +195,8 @@ export function createApp(): Express {
   // Mounted BEFORE the partnership router so the literal /tickets prefix is
   // matched by its own router rather than falling into partnership's handlers.
   app.use('/api/v1/partnership/tickets', partnershipTicketsRouter);
+  // Super-user billing console (signups, payments ledger, per-company billing).
+  app.use('/api/v1/partnership/billing', partnershipBillingRouter);
   app.use('/api/v1/partnership', partnershipRouter);
   // The internal-e2e router runs destructive cross-table deletes. It mounts
   // ONLY when both the bearer secret AND the tenant pin are configured — so a

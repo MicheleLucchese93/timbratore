@@ -120,7 +120,13 @@ async function refreshAccessToken(): Promise<boolean> {
 
 export async function api<T = unknown>(
   path: string,
-  init: RequestInit & { json?: unknown; noTenant?: boolean } = {}
+  init: RequestInit & {
+    json?: unknown;
+    noTenant?: boolean;
+    /** Keep the session on 403 NO_ACTIVE_TENANT: a freshly registered account
+     *  has no company yet and must reach the onboarding wizard, not /login. */
+    noAutoLogout?: boolean;
+  } = {}
 ): Promise<T> {
   const support = isSupportMode();
   // Read-only support session: refuse writes here rather than round-tripping to
@@ -149,7 +155,8 @@ export async function api<T = unknown>(
       headers.set('Content-Type', 'application/json');
       body = JSON.stringify(init.json);
     }
-    return fetch(apiUrl(path), { ...init, headers, body });
+    const { json: _json, noTenant: _noTenant, noAutoLogout: _noAutoLogout, ...fetchInit } = init;
+    return fetch(apiUrl(path), { ...fetchInit, headers, body });
   };
   let res = await exec();
   if (res.status === 401 && support) {
@@ -192,7 +199,8 @@ export async function api<T = unknown>(
     if (
       res.status === 403 &&
       (err.code === 'NO_ACTIVE_TENANT' || err.code === 'TENANT_NOT_ALLOWED') &&
-      getToken()
+      getToken() &&
+      !init.noAutoLogout
     ) {
       clearTokens();
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {

@@ -21,7 +21,9 @@
     "manual": "Manual",
     "logout": "Sign out",
     "openMenu": "Open menu",
-    "closeMenu": "Close menu"
+    "closeMenu": "Close menu",
+    "signups": "Signups",
+    "payments": "Payments"
   },
   "settings": {
     "title": "Settings",
@@ -104,7 +106,10 @@
     "no": "No",
     "of": "of",
     "saving": "Saving…",
-    "empty": "No results"
+    "empty": "No results",
+    "prev": "Previous",
+    "next": "Next",
+    "range": "{{from}}–{{to}} of {{total}}"
   },
   "login": {
     "tagline": "Partner console",
@@ -153,7 +158,11 @@
       "note": "Note",
       "status": "Status",
       "created": "Created",
-      "actions": "Actions"
+      "actions": "Actions",
+      "origin": "Origin",
+      "plan": "Plan",
+      "subscription": "Subscription",
+      "piva": "VAT no."
     },
     "status": {
       "active": "Active",
@@ -222,7 +231,18 @@
       "done": "Company deleted. Users removed: {{deleted}}, unlinked: {{unlinked}}."
     },
     "empty": "No companies yet",
-    "emptyHint": "Create the first one: this is where you manage your customers’ users, limits and modules."
+    "emptyHint": "Create the first one: this is where you manage your customers’ users, limits and modules.",
+    "filter": {
+      "all": "All",
+      "self_service": "Self-service",
+      "partner": "Partner",
+      "vat_review": "VAT to review"
+    },
+    "searchPlaceholder": "Search company name, email, VAT no.…",
+    "emptyFiltered": "No companies match these filters",
+    "emptyFilteredHint": "Change the filter or the search text to see the others.",
+    "stripeManaged": "Managed by the Stripe subscription — use Subscription",
+    "stripeManagedNoSuper": "Managed by the Stripe subscription — only the super-user can change it"
   },
   "partners": {
     "title": "Partners",
@@ -367,7 +387,15 @@
       "ticket.status": "Request state changed",
       "ticket.assign": "Request assigned",
       "ticket.reply": "Reply sent to the customer",
-      "ticket.note": "Internal note changed"
+      "ticket.note": "Internal note changed",
+      "tenant.billing_mode_change": "Billing mode changed",
+      "tenant.entitlement_override": "Limit overrides changed",
+      "tenant.vat_review": "VAT number reviewed",
+      "tenant.stripe_cancel": "Stripe subscriptions cancelled",
+      "billing.payment_invoiced": "Payment marked as invoiced",
+      "billing.payment_uninvoiced": "Payment invoicing undone",
+      "signup.resend": "Signup email resent",
+      "signup.reject": "Signup rejected"
     },
     "empty": "No activity recorded",
     "emptyHint": "Every action taken in this console is recorded here."
@@ -383,10 +411,18 @@
     "LAST_ADMIN": "You can't remove the last administrator.",
     "TENANT_NOT_OWNED": "This company is not yours.",
     "CANTIERI_NOT_ALLOWED": "You are not allowed to manage the Cantieri module. Contact the platform administrator.",
+    "API_NOT_ALLOWED": "You are not allowed to manage the API module. Contact the platform administrator.",
     "SUPPORT_NOT_ALLOWED": "You are not allowed to open read-only sessions. Contact the platform administrator.",
-    "SUPER_ADMIN_REQUIRED": "Only the super-user can delete a company.",
+    "SUPER_ADMIN_REQUIRED": "Only the super-user can do this.",
     "NAME_MISMATCH": "The company name you typed doesn't match.",
-    "default": "Operation failed. Try again."
+    "default": "Operation failed. Try again.",
+    "BILLING_MODE_STRIPE": "This company's limits and modules are managed by its Stripe subscription: use Subscription (overrides) or switch it to manual billing.",
+    "STRIPE_SUBSCRIPTIONS_ACTIVE": "The company has active Stripe subscriptions: cancel them first (Subscription → Switch to manual billing).",
+    "SIGNUP_NOT_PENDING": "The email is already confirmed: no need to resend it.",
+    "SIGNUP_NOT_REJECTABLE": "It cannot be rejected: a company has already been created from this signup.",
+    "NO_CUSTOMER": "The company has no Stripe customer yet: there is nothing to sync.",
+    "BILLING_DISABLED": "Stripe billing is disabled on this server.",
+    "STRIPE_MODE_MISMATCH": "This company is billed in the other Stripe mode: switch STRIPE_MODE to that mode to cancel its subscriptions."
   },
   "tickets": {
     "title": "Requests",
@@ -476,5 +512,341 @@
     "emptyHint": "Support requests raised by customers land here.",
     "emptyFiltered": "No requests match these filters",
     "emptyFilteredHint": "Change the status, the assignment or the search text to see the others."
+  },
+  "billing": {
+    "action": "Subscription",
+    "title": "Subscription",
+    "plan": {
+      "free": "Free",
+      "piccola": "Piccola",
+      "media": "Media",
+      "custom": "Custom"
+    },
+    "pendingPlan": "→ {{plan}} pending",
+    "pendingPlanTitle": "Chose the {{plan}} plan but did not complete the payment",
+    "overLimit": "Over the limits",
+    "overLimitSince": "Over the plan limits since {{date}}",
+    "origin": {
+      "partner": "Partner",
+      "self_service": "Self-service",
+      "partnerTitle": "Created from the console (partner or platform)",
+      "self_serviceTitle": "Signed up on its own from the website"
+    },
+    "subStatus": {
+      "active": "Active",
+      "trialing": "Trial",
+      "past_due": "Payment past due",
+      "unpaid": "Unpaid",
+      "canceled": "Ended",
+      "incomplete": "Payment incomplete",
+      "incomplete_expired": "Ended",
+      "paused": "Paused"
+    },
+    "vat": {
+      "valid": "verified",
+      "not_in_vies": "not in VIES",
+      "unavailable": "to check",
+      "reviewed": "reviewed",
+      "reviewedTitle": "Reviewed by hand on {{date}}",
+      "title": "VAT number check on VIES",
+      "requestId": "consultation no. {{id}}"
+    },
+    "subs": {
+      "title": "Stripe subscriptions",
+      "empty": "No subscriptions.",
+      "plan": "{{plan}} plan",
+      "planGeneric": "Plan",
+      "module": "{{module}} module",
+      "interval": {
+        "month": "monthly",
+        "year": "yearly"
+      },
+      "renews": "Renews on {{date}}",
+      "endsOn": "Cancelled: ends on {{date}}",
+      "ended": "Ended on {{date}}"
+    },
+    "dialog": {
+      "summary": "Summary",
+      "origin": "Origin",
+      "plan": "Plan",
+      "mode": "Billing",
+      "limits": "Limits in force",
+      "limitsValue": "Users {{users}} · Branches {{branches}} · Admins {{admins}} · Documentali {{documentali}}",
+      "created": "Created on",
+      "stripeCustomer": "Stripe customer",
+      "openStripe": "Open in Stripe",
+      "noCustomer": "No Stripe customer: no payment has been started yet.",
+      "billingDisabled": "Stripe billing is disabled on this server: syncing and cancelling subscriptions are not available.",
+      "paymentsTitle": "Payments",
+      "paymentsNone": "No payments recorded.",
+      "paymentsSummary_one": "1 payment · {{total}} in total",
+      "paymentsSummary_other": "{{count}} payments · {{total}} in total",
+      "paymentsToInvoice": "{{count}} to invoice",
+      "paymentsOpen": "Open in Payments",
+      "sandbox": "Stripe is in SANDBOX mode: the subscriptions and payments shown are tests, nothing is really charged."
+    },
+    "profile": {
+      "title": "Billing details",
+      "empty": "The company has not entered its billing details yet.",
+      "legal_name": "Company name",
+      "partita_iva": "VAT no.",
+      "codice_fiscale": "Tax code",
+      "address": "Address",
+      "cap": "Postcode",
+      "city": "City",
+      "province": "Province",
+      "country": "Country",
+      "sdi_code": "SDI code",
+      "pec": "PEC",
+      "billing_email": "Accounts email",
+      "vies_request_id": "VIES consultation no.",
+      "vies_checked_at": "VIES checked on",
+      "headcount_band": "Declared employees"
+    },
+    "vatReview": {
+      "recheck": "Re-run the VIES check first",
+      "submit": "Review VAT no.",
+      "hint": "Mark the VAT number as checked by hand. It is for numbers not listed on VIES or not verifiable: they stay under \"VAT to review\" until you review them.",
+      "done": "VAT number reviewed: {{status}}."
+    },
+    "signup": {
+      "title": "Signup",
+      "none": "No website signup: the company was created from the console.",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "planHint": "Chosen plan",
+      "utm": "Source (UTM)",
+      "requested": "Requested on",
+      "companyCreated": "Company created on"
+    },
+    "overrides": {
+      "title": "Limit overrides",
+      "hint": "Courtesy extras on top of what is paid: the higher of plan and override wins, and a ticked module stays on even without a subscription. Leave blank for no override.",
+      "managedHint": "Overrides do not apply under manual billing: change the limits with the pencil icon and the modules with the modules icon.",
+      "max_users": "Users",
+      "max_branches": "Branches",
+      "max_admins": "Admins",
+      "max_documentali": "Documentali",
+      "fromPlan": "plan: {{n}}",
+      "none": "none",
+      "module": "{{module}} module always on",
+      "invalid": "Overrides must be whole numbers from 1 up.",
+      "save": "Save overrides",
+      "clear": "Remove overrides",
+      "clearConfirm": "Remove every override? The company goes back to the limits and modules it pays for.",
+      "saved": "Overrides saved.",
+      "cleared": "Overrides removed."
+    },
+    "mode": {
+      "managed": "Manual billing",
+      "stripe": "Stripe (self-service)",
+      "title": "Billing mode",
+      "stripeDesc": "Stripe: limits and modules derive from the paid subscriptions (plus overrides) and update on their own.",
+      "managedDesc": "Manual billing: limits and modules are edited by hand, as for partner companies. Stripe no longer touches the company.",
+      "toManaged": "Switch to manual billing",
+      "toStripe": "Switch to Stripe billing",
+      "confirmTitle": "Change billing mode",
+      "toManagedText": "From now on limits and modules are edited by hand (pencil and modules icons) and keep their current values until you change them. Use it for a custom deal or to hand the company to a partner.",
+      "toStripeText": "Limits and modules will be recomputed from the Stripe subscriptions (plus overrides) and the values set by hand will be replaced. With no active subscription the company falls back to the free plan's limits.",
+      "liveSubs_one": "The company has 1 active Stripe subscription. What should happen to it?",
+      "liveSubs_other": "The company has {{count}} active Stripe subscriptions. What should happen to them?",
+      "subs": {
+        "keep": "Keep them active",
+        "keep_hint": "Stripe keeps charging: only choose this if the customer keeps paying that way.",
+        "cancel_at_period_end": "Cancel at period end",
+        "cancel_at_period_end_hint": "They stay active until the end of the period already paid, then close with no further charges.",
+        "cancel_now": "Cancel now",
+        "cancel_now_hint": "They close now, with no refund for the current period. This cannot be undone."
+      },
+      "cancelDisabled": "Stripe billing is disabled on this server: subscriptions cannot be cancelled from here.",
+      "done": "Billing mode updated."
+    },
+    "sync": {
+      "title": "Stripe sync",
+      "hint": "Re-reads subscriptions and their state from Stripe and recomputes limits and modules. Use it when an update from Stripe did not arrive.",
+      "submit": "Sync with Stripe",
+      "done": "Sync complete."
+    }
+  },
+  "signups": {
+    "title": "Signups",
+    "subtitle": "Signup requests from the website — {{count}} in the current filter",
+    "funnel": {
+      "title": "Signup funnel over the last 90 days",
+      "requested": "Requests",
+      "confirmed": "Emails confirmed",
+      "companies": "Companies created",
+      "stamping": "Clocking in",
+      "paying": "Paying",
+      "window": "last 90 days",
+      "ofRequested": "{{pct}}% of requests"
+    },
+    "filter": {
+      "all": "All",
+      "pending": "To confirm",
+      "email_confirmed": "Emails confirmed",
+      "company_created": "Companies created",
+      "expired": "Expired",
+      "rejected": "Rejected"
+    },
+    "status": {
+      "pending": "Email to confirm",
+      "email_confirmed": "Email confirmed",
+      "company_created": "Company created",
+      "expired": "Expired",
+      "rejected": "Rejected"
+    },
+    "searchPlaceholder": "Search name, email, company, VAT no.…",
+    "col": {
+      "created": "Requested",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "plan": "Chosen plan",
+      "status": "Status",
+      "company": "Company",
+      "stamps": "Last clock-in",
+      "utm": "Source"
+    },
+    "paying": "Paying",
+    "existingAccount": "existing account",
+    "expiresOn": "link valid until {{date}}",
+    "sentTimes_one": "email sent once",
+    "sentTimes_other": "email sent {{count}} times",
+    "headcount": "{{band}} employees",
+    "lastStamp": "Last clock-in: {{date}}",
+    "rejectedBecause": "Reason: {{reason}}",
+    "openCompany": "Open company",
+    "resend": {
+      "label": "Resend email",
+      "confirm": "Resend the signup confirmation email to {{email}}? The previous link stops working.",
+      "done": "Confirmation email resent to {{email}}.",
+      "notSent": "Link regenerated, but the email was not sent: check the SMTP configuration."
+    },
+    "reject": {
+      "label": "Reject",
+      "title": "Reject signup",
+      "intro": "The request is closed: the confirmation link stops working and no company can be created from it any more. The requester receives no email.",
+      "reason": "Reason (optional)",
+      "reasonPh": "E.g. test signup, fake details",
+      "submit": "Reject signup",
+      "done": "Signup of {{email}} rejected."
+    },
+    "empty": "No signups yet",
+    "emptyHint": "Requests sent from the website signup form show up here.",
+    "emptyFiltered": "No signups match these filters",
+    "emptyFilteredHint": "Change the status or the search text to see the others."
+  },
+  "payments": {
+    "title": "Payments",
+    "subtitle": "Stripe payments to invoice: the e-invoice is issued outside sonoQui, then marked here.",
+    "export": "Export CSV",
+    "filter": {
+      "to_invoice": "To invoice",
+      "invoiced": "Invoiced",
+      "all": "All"
+    },
+    "month": "Month paid",
+    "allMonths": "All months",
+    "searchPlaceholder": "Search company, VAT no., invoice no.…",
+    "tenantFilter": "Company: {{name}}",
+    "tenantFilterClear": "Remove the company filter",
+    "otherMonths_one": "There is 1 payment to invoice in other months.",
+    "otherMonths_other": "There are {{count}} payments to invoice in other months.",
+    "showAllMonths": "Show all months",
+    "rule": "Immediate invoice within 12 days of the payment, or one deferred invoice per company by the 15th of the following month (DPR 633/72, art. 21 c.4). Check with your accountant.",
+    "totals": {
+      "net": "Net",
+      "tax": "VAT",
+      "total": "Total collected",
+      "fee": "Stripe fees",
+      "toInvoice": "To invoice",
+      "ofCount_one": "of 1 payment",
+      "ofCount_other": "of {{count}} payments"
+    },
+    "col": {
+      "paidAt": "Paid on",
+      "company": "Company",
+      "piva": "VAT no.",
+      "recipient": "SDI / PEC",
+      "lines": "Items",
+      "net": "Net",
+      "tax": "VAT",
+      "total": "Total",
+      "fee": "Fee",
+      "status": "Status",
+      "due": "Invoice by",
+      "month": "Month",
+      "count": "Payments"
+    },
+    "status": {
+      "to_invoice": "To invoice",
+      "invoiced": "Invoiced no. {{number}} of {{date}}",
+      "refunded": "Refunded",
+      "refundedPartial": "Refunded {{amount}}",
+      "disputed": "Disputed"
+    },
+    "test": "Test",
+    "proration": "prorated",
+    "due": {
+      "immediate": "immediate {{date}}",
+      "deferred": "deferred {{date}}"
+    },
+    "group": {
+      "toggle": "Group by company and month",
+      "open": "Month detail",
+      "mark_one": "Mark as invoiced",
+      "mark_other": "Mark {{count}} payments as invoiced",
+      "toInvoice": "{{count}} to invoice",
+      "allInvoiced": "All invoiced",
+      "hint": "One deferred invoice can cover all of this company's payments for the month: issue it, then mark them all with the same number."
+    },
+    "detail": {
+      "open": "Detail",
+      "title": "Payment",
+      "invoiceData": "Invoice details",
+      "copyAll": "Copy all",
+      "copy": "Copy {{field}}",
+      "copied": "Copied to the clipboard.",
+      "copyFailed": "Copy failed: select the text by hand.",
+      "copyLines": "Copy items",
+      "vatAtPayment": "VAT number at payment time: {{status}}.",
+      "amounts": "Amounts",
+      "netReceived": "Net received",
+      "period": "Period",
+      "invoicing": "Invoicing",
+      "markedAt": "Marked on",
+      "stripeInvoice": "Stripe invoice (internal)",
+      "stripeCharge": "Stripe charge",
+      "mode": "Environment",
+      "live": "Live"
+    },
+    "mark": {
+      "label": "Mark as invoiced",
+      "title": "Mark as invoiced",
+      "titleMany": "Mark {{count}} payments as invoiced",
+      "intro": "Issue the e-invoice from your invoicing software first, then enter its number and date here.",
+      "introMany": "Same number and date on all of them: they are the lines of a single deferred invoice.",
+      "number": "Invoice number",
+      "numberPh": "E.g. 2026/123",
+      "numberRequired": "The invoice number is required.",
+      "date": "Invoice date",
+      "note": "Note (optional)",
+      "submit": "Mark as invoiced",
+      "done": "Payment marked as invoiced (no. {{number}}).",
+      "doneMany": "{{count}} payments marked as invoiced (no. {{number}}).",
+      "partial": "{{failed}} of {{count}} payments were not updated: try again."
+    },
+    "unmark": {
+      "label": "Undo invoicing",
+      "confirm": "Undo invoice no. {{number}}? The payment goes back to \"to invoice\". An invoice already issued must be reversed with a credit note in your invoicing software.",
+      "done": "Invoicing undone: the payment is to invoice again."
+    },
+    "empty": "Nothing to invoice",
+    "emptyHint": "Card payments show up here as soon as Stripe collects them.",
+    "emptyFiltered": "No payments match these filters",
+    "emptyFilteredHint": "Change the status, month or search text to see the others.",
+    "sandboxNotice": "Stripe is in SANDBOX mode: this list only shows test payments made with test cards. Do not invoice these amounts."
   }
 }

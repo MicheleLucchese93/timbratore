@@ -168,6 +168,28 @@ const schemas = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
         update();
       }
 
+      // --- Campaign parameters → signup links -----------------------------
+      // /it/registrazione sends utm_* / gclid from ITS OWN URL with the signup
+      // (attribution for the Registrazioni funnel). Visitors land elsewhere and
+      // click an "Inizia gratis" link, so copy this page's parameters onto those
+      // links. URL-only on purpose: nothing is written to cookies or storage, so
+      // this needs no consent.
+      const CAMPAIGN_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid"];
+      const landing = new URLSearchParams(window.location.search);
+      const campaign = CAMPAIGN_KEYS.filter((key) => landing.get(key));
+      if (campaign.length) {
+        document.querySelectorAll('a[href*="/registrazione"]').forEach((link) => {
+          const href = link.getAttribute("href");
+          if (!href) return;
+          const url = new URL(href, window.location.href);
+          if (url.origin !== window.location.origin) return;
+          campaign.forEach((key) => {
+            if (!url.searchParams.has(key)) url.searchParams.set(key, landing.get(key) ?? "");
+          });
+          link.setAttribute("href", url.pathname + url.search + url.hash);
+        });
+      }
+
       // --- Scroll-spy: highlight active nav link --------------------------
       const navLinks = document.querySelectorAll("[data-nav]");
       if (navLinks.length) {

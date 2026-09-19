@@ -154,6 +154,9 @@
     "LAST_ADMIN": "Non puoi rimuovere l'ultimo amministratore",
     "GEOCODING_UNAVAILABLE": "Geocodifica non disponibile",
     "CONFLICT": "Conflitto con lo stato attuale",
-    "INTERNAL": "Errore interno del server"
+    "INTERNAL": "Errore interno del server",
+    "PLAN_LIMIT_EXCEEDED": "Export bloccati: la tua azienda supera i limiti del piano",
+    "BILLING_DISABLED": "I pagamenti online non sono ancora attivi",
+    "BILLING_MODE_STRIPE": "Gestito tramite abbonamento online"
   }
 }

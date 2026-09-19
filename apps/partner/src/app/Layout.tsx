@@ -34,6 +34,7 @@ export function Layout({ children }: { children: ReactNode }) {
   // Off-canvas drawer state for phones; ignored at desktop width (CSS).
   const [mobileOpen, setMobileOpen] = useState(false);
   const isAdmin = me?.role === 'admin';
+  const isSuper = me?.is_super === true;
   const name = me?.display_name?.trim() || me?.email || '';
   const closeMobile = () => setMobileOpen(false);
 
@@ -80,6 +81,8 @@ export function Layout({ children }: { children: ReactNode }) {
           <NavLink to="/" end onClick={closeMobile}>{t('nav.tenants')}</NavLink>
           <NavLink to="/tickets" onClick={closeMobile}>{t('nav.tickets')}</NavLink>
           {isAdmin && <NavLink to="/partners" onClick={closeMobile}>{t('nav.partners')}</NavLink>}
+          {isSuper && <NavLink to="/signups" onClick={closeMobile} data-testid="nav-signups">{t('nav.signups')}</NavLink>}
+          {isSuper && <NavLink to="/payments" onClick={closeMobile} data-testid="nav-payments">{t('nav.payments')}</NavLink>}
           <NavLink to="/audit" onClick={closeMobile}>{t('nav.audit')}</NavLink>
           <NavLink to="/settings" onClick={closeMobile}>{t('nav.settings')}</NavLink>
           <NavLink to="/manual" onClick={closeMobile}>{t('nav.manual')}</NavLink>

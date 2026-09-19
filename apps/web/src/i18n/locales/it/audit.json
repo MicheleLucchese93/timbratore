@@ -30,7 +30,8 @@
     "exports": "Esportazioni",
     "documents": "Documenti",
     "settings": "Impostazioni",
-    "api": "API"
+    "api": "API",
+    "billing": "Abbonamento"
   },
   "action": {
     "user": {
@@ -117,7 +118,8 @@
     "tenant": {
       "update": "Impostazioni azienda modificate",
       "export_recipient_add": "Destinatario esportazioni aggiunto",
-      "export_recipient_remove": "Destinatario esportazioni rimosso"
+      "export_recipient_remove": "Destinatario esportazioni rimosso",
+      "self_signup": "Azienda registrata dal sito"
     },
     "cantiere": {
       "create": "Cantiere creato",
@@ -146,6 +148,18 @@
       "create": "Chiave API creata",
       "update": "Chiave API modificata",
       "revoke": "Chiave API revocata"
+    },
+    "billing": {
+      "profile_update": "Dati di fatturazione modificati",
+      "checkout_started": "Pagamento avviato",
+      "plan_started": "Piano attivato",
+      "plan_changed": "Piano modificato",
+      "plan_ended": "Piano terminato",
+      "module_activated": "Modulo attivato",
+      "module_cancel_scheduled": "Disattivazione modulo programmata",
+      "module_resumed": "Disattivazione modulo annullata",
+      "module_ended": "Modulo disattivato",
+      "payment_failed": "Pagamento non riuscito"
     }
   },
   "detail": {

@@ -8,6 +8,7 @@ import { logAuditAs } from '../lib/audit.js';
 import { ValidationError } from '../errors/index.js';
 import { changePassword } from '../lib/gotrue-admin.js';
 import { passwordSchema } from '../lib/password.js';
+import { overLimitState } from '../lib/billing.js';
 
 // Keep in sync with migrations 021_push_notification_prefs.sql,
 // 030_leave_reminders_and_email_prefs.sql, 041_documents.sql and
@@ -101,11 +102,17 @@ meRouter.get(
       `SELECT id, ragione_sociale, country, timezone, language,
               mock_location_action,
               max_admins, max_users, max_branches, max_documentali,
-              cantieri_enabled, api_enabled
+              cantieri_enabled, api_enabled,
+              plan, billing_mode, signup_source, pending_plan, over_limit_since
        FROM tenants
        WHERE id = $1`,
       [req.user!.tenantId]
     );
+    // Over-limit is re-evaluated against live counts only when flagged (rare),
+    // so deleting the extra users clears the banner on the next /me.
+    const overLimit = tenant.rows[0]?.over_limit_since
+      ? await overLimitState(req.user!.tenantId)
+      : null;
     // membershipId is null for a support session (no membership row exists).
     const membership = req.user!.membershipId
       ? await client.query(
@@ -157,7 +164,12 @@ meRouter.get(
         display_name: p.display_name ?? null,
         stamp_modes: req.support ? [] : (membership.rows[0]?.stamp_modes ?? ['gps']),
       },
-      tenant: tenant.rows[0],
+      tenant: {
+        ...tenant.rows[0],
+        // The live re-check may have just cleared a stale marker.
+        over_limit_since: overLimit ? overLimit.since : tenant.rows[0]?.over_limit_since ?? null,
+        over_limit: overLimit,
+      },
       branches: branches.rows,
       // Present ONLY inside a read-only support session. The web app keys its
       // banner + write-blocking off this, and it is server-derived: a client

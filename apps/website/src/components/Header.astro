@@ -1,5 +1,6 @@
 ---
 import { getLangFromUrl, useTranslations } from "../i18n/utils";
+import { SIGNUP_PATH, WEB_APP_URL } from "../data/seo";
 
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
@@ -23,12 +24,21 @@ const t = useTranslations(lang);
       <a href={`/${lang}/#faq`} data-nav="faq" class="nav-link text-sm font-medium text-on-surface-variant transition-colors">{t("nav.faq")}</a>
       <a href={`/${lang}/partner/`} class="nav-link text-sm font-medium text-on-surface-variant transition-colors">{t("nav.partner")}</a>
       <a href={`/${lang}/#contact`} data-nav="contact" class="nav-link text-sm font-medium text-on-surface-variant transition-colors">{t("nav.contact")}</a>
-      <a href={`/${lang}/#contact`} class="btn-lift rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white hover:bg-primary-container transition-colors">
-        {t("nav.download")}
-      </a>
+      <div class="flex items-center gap-2">
+        <a href={WEB_APP_URL} class="rounded-full border border-primary/30 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/5 transition-colors">
+          {t("nav.login")}
+        </a>
+        <a href={SIGNUP_PATH} class="btn-lift rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white hover:bg-primary-container transition-colors">
+          {t("nav.signup")}
+        </a>
+      </div>
     </div>
 
-    <div class="flex items-center gap-3 lg:hidden">
+    <div class="flex items-center gap-2 lg:hidden">
+      {/* The primary CTA stays one tap away on phones instead of hiding in the menu. */}
+      <a href={SIGNUP_PATH} class="rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-white hover:bg-primary-container transition-colors">
+        {t("nav.signup")}
+      </a>
       <button id="mobile-menu-btn" class="p-2" aria-label="Menu">
         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
@@ -46,9 +56,14 @@ const t = useTranslations(lang);
     <a href={`/${lang}/#faq`} class="block py-2 text-sm font-medium text-on-surface-variant">{t("nav.faq")}</a>
     <a href={`/${lang}/partner/`} class="block py-2 text-sm font-medium text-on-surface-variant">{t("nav.partner")}</a>
     <a href={`/${lang}/#contact`} class="block py-2 text-sm font-medium text-on-surface-variant">{t("nav.contact")}</a>
-    <a href={`/${lang}/#contact`} class="mt-2 block rounded-full bg-primary px-5 py-2 text-center text-sm font-semibold text-white">
-      {t("nav.download")}
-    </a>
+    <div class="mt-2 grid grid-cols-2 gap-2">
+      <a href={WEB_APP_URL} class="block rounded-full border border-primary/30 px-5 py-2 text-center text-sm font-semibold text-primary">
+        {t("nav.login")}
+      </a>
+      <a href={SIGNUP_PATH} class="block rounded-full bg-primary px-5 py-2 text-center text-sm font-semibold text-white">
+        {t("nav.signup")}
+      </a>
+    </div>
   </div>
 </header>
 

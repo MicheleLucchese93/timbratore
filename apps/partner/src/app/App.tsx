@@ -10,6 +10,8 @@ import { Partners } from '../pages/Partners.tsx';
 import { Audit } from '../pages/Audit.tsx';
 import { Settings } from '../pages/Settings.tsx';
 import { Manual } from '../pages/Manual.tsx';
+import { Signups } from '../pages/Signups.tsx';
+import { Payments } from '../pages/Payments.tsx';
 
 export function App() {
   const { me, loading, refresh } = useSession();
@@ -37,6 +39,9 @@ export function App() {
   }
 
   const isAdmin = me.role === 'admin';
+  // Self-service signups and the payments ledger belong to the super-user alone
+  // (the API answers 403 SUPER_ADMIN_REQUIRED to everyone else).
+  const isSuper = me.is_super === true;
 
   return (
     <Layout>
@@ -44,6 +49,8 @@ export function App() {
         <Route path="/" element={<Tenants />} />
         <Route path="/tickets" element={<Tickets />} />
         {isAdmin && <Route path="/partners" element={<Partners />} />}
+        {isSuper && <Route path="/signups" element={<Signups />} />}
+        {isSuper && <Route path="/payments" element={<Payments />} />}
         <Route path="/audit" element={<Audit />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/manual" element={<Manual />} />

@@ -10,6 +10,10 @@ import { InfoTip } from '../components/InfoTip.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
 import { useEscapeKey } from '../hooks/useEscapeKey.ts';
 import { fmtDateTime } from '../i18n/format.ts';
+import i18n from 'i18next';
+import type { TFunction } from 'i18next';
+import { Link } from 'react-router-dom';
+import { limitMessage } from '../lib/limits.ts';
 
 // Mirrors the backend TenantAccessEmailType: invite (brand-new account) /
 // recovery (reset fallback) / membership (contextual "added to <company>" mail
@@ -106,16 +110,21 @@ interface ImportResult {
 function documentaleLimitMessage(
   e: unknown,
   t: (key: string, opts?: Record<string, unknown>) => string,
-  fallback: string
+  fallback: string,
+  billingMode?: 'managed' | 'stripe'
 ): string {
   const err = e as ApiError;
-  const details = err?.details as { kind?: string; current?: number; max?: number } | undefined;
+  // The backend sends { kind, current, limit } (users.ts); `max` is kept as a
+  // fallback for older responses — reading only `max` left {{max}} empty.
+  const details = err?.details as { kind?: string; current?: number; limit?: number; max?: number } | undefined;
   if (err?.code === 'LIMIT_REACHED' && details?.kind === 'documentali') {
     return t('limits.documentaleLimitTitle', {
       count: details.current ?? '',
-      max: details.max ?? '',
+      max: details.limit ?? details.max ?? '',
     });
   }
+  const limit = limitMessage(e, i18n.t.bind(i18n) as unknown as TFunction, billingMode);
+  if (limit) return limit;
   return e instanceof Error ? e.message : fallback;
 }
 
@@ -345,7 +354,7 @@ export function Users() {
       await api(`/api/v1/users/${u.user_id}`, { method: 'PATCH', json: patch });
       await load();
     } catch (e) {
-      setErr(documentaleLimitMessage(e, t, t('errorGeneric')));
+      setErr(documentaleLimitMessage(e, t, t('errorGeneric'), me?.tenant.billing_mode));
     }
   }
 
@@ -432,6 +441,12 @@ export function Users() {
       const text = await r.text();
       const parsed = text ? JSON.parse(text) : {};
       if (!r.ok) {
+        const limited = limitMessage(
+          { code: parsed?.error?.code, details: parsed?.error?.details },
+          i18n.t.bind(i18n) as unknown as TFunction,
+          me?.tenant.billing_mode
+        );
+        if (limited) throw new Error(limited);
         const message = parsed?.error?.message ?? t('import.failed');
         const details = parsed?.error?.details?.errors as
           | Array<{ row: number; message: string }>
@@ -508,7 +523,13 @@ export function Users() {
             <button
               className="btn btn-primary"
               disabled={atUserLimit}
-              title={atUserLimit ? t('toolbar.limitReachedTitle') : ''}
+              title={
+                atUserLimit
+                  ? me?.tenant.billing_mode === 'stripe'
+                    ? `${i18n.t('billing:limit.users', { limit: usage?.max_users })} ${i18n.t('billing:limit.upsell')}`
+                    : t('toolbar.limitReachedTitle')
+                  : ''
+              }
               onClick={() => setShowInvite(true)}
             >
               {t('toolbar.invite')}
@@ -531,6 +552,11 @@ export function Users() {
             <span className="muted">{t('usage.documentali')}</span>
             <strong className="num">{documentaliCount}</strong> / {maxDocumentali}
           </div>
+          {atUserLimit && me?.tenant.billing_mode === 'stripe' && me.user.role === 'admin' && (
+            <Link to="/settings/subscription" className="icon-link font-semibold" data-testid="users-upsell">
+              {i18n.t('billing:badge.label')}
+            </Link>
+          )}
         </div>
       )}
 
@@ -1949,7 +1975,7 @@ function InviteForm({
       });
       onInvited(out?.email_type ?? (sendResetEmail ? 'recovery' : 'none'));
     } catch (e) {
-      setErr(documentaleLimitMessage(e, t, t('errorGeneric')));
+      setErr(documentaleLimitMessage(e, t, t('errorGeneric'), useSession.getState().me?.tenant.billing_mode));
     } finally {
       setBusy(false);
     }

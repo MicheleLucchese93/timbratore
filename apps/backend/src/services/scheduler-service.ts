@@ -15,6 +15,9 @@ import { cleanupReadNotifications } from './jobs/cleanup-read-notifications.js';
 import { bulletinActivation } from './jobs/bulletin-activation.js';
 import { flushRequestMetrics } from './jobs/metrics-flush.js';
 import { perfDigest } from './jobs/perf-digest.js';
+import { signupMaintenance } from './jobs/signup-maintenance.js';
+import { billingReconcile, rederiveStripeTenants } from './jobs/billing-reconcile.js';
+import { billingOverLimit } from './jobs/billing-over-limit.js';
 
 const logger = createLogger('scheduler');
 
@@ -147,6 +150,30 @@ class SchedulerService {
       cron.schedule(
         '0 7 * * 1',
         () => safeRun('perf_digest', perfDigest),
+        { timezone: 'Europe/Rome' }
+      )
+    );
+    // Self-service signup + billing (Specs/SELF_SERVICE_BILLING.md).
+    // Hourly: expire links, purge abandoned requests, reminders.
+    this.jobs.push(
+      cron.schedule('17 * * * *', () => safeRun('signup_maintenance', signupMaintenance))
+    );
+    // Once at start: re-derive Stripe-billed entitlements for the CURRENT
+    // STRIPE_MODE, so a sandbox ↔ live flip takes effect with the restart.
+    safeRun('billing_rederive', rederiveStripeTenants);
+    // Nightly: re-sync Stripe (lost-webhook safety net), VIES re-checks, log prune.
+    this.jobs.push(
+      cron.schedule(
+        '50 3 * * *',
+        () => safeRun('billing_reconcile', billingReconcile),
+        { timezone: 'Europe/Rome' }
+      )
+    );
+    // Mornings: over-limit notices to downgraded companies (D7).
+    this.jobs.push(
+      cron.schedule(
+        '0 9 * * *',
+        () => safeRun('billing_over_limit', billingOverLimit),
         { timezone: 'Europe/Rome' }
       )
     );

@@ -142,6 +142,16 @@ export default defineConfig({
       },
     },
 
+    // --- Self-service signup (LOCAL stack only) ---------------------------
+    // Public flow: no login setup, creates real companies → local backend with
+    // SIGNUP_ENABLED + DEV_AUTH_ENABLED only. Gated by E2E_SIGNUP=1 inside the
+    // spec; see e2e/signup/self-service-signup.spec.ts for the invocation.
+    {
+      name: 'signup',
+      testMatch: /signup\/.*\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], baseURL: URLS.web },
+    },
+
     // --- Smoke (read-only prod monitor) ----------------------------------
     // Self-logs-in (no setup dependency), creates/mutates nothing. Run against
     // prod as a synthetic monitor:

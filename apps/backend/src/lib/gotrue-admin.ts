@@ -408,3 +408,45 @@ export async function createUserWithPassword(
   }
   return (await r.json()) as GoTrueUser;
 }
+
+// ---- Self-service signup (Specs/SELF_SERVICE_BILLING.md §3.2) ---------------
+// Both helpers run ONLY after the signup confirmation token proved the caller
+// owns the mailbox, which is what makes `email_confirm: true` legitimate here.
+// Neither is reachable for an already-confirmed account: that path logs in with
+// its existing password instead, so signup can never overwrite credentials.
+
+/** Create a brand-new, already-confirmed account with the password the user chose. */
+export async function createConfirmedUser(
+  email: string,
+  password: string,
+  metadata: Record<string, unknown>
+): Promise<GoTrueUser> {
+  const jwt = await serviceRoleJwt();
+  const r = await fetch(`${env.GOTRUE_URL}/admin/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt}` },
+    body: JSON.stringify({ email, password, email_confirm: true, user_metadata: metadata }),
+  });
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error(`GoTrue POST /admin/users (signup) ${r.status}: ${text}`);
+  }
+  return (await r.json()) as GoTrueUser;
+}
+
+/**
+ * Give an existing but UNCONFIRMED account (pre-created as someone's employee,
+ * never activated) the password chosen at signup, and confirm it.
+ */
+export async function setPasswordAndConfirm(userId: string, password: string): Promise<void> {
+  const jwt = await serviceRoleJwt();
+  const r = await fetch(`${env.GOTRUE_URL}/admin/users/${userId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt}` },
+    body: JSON.stringify({ password, email_confirm: true }),
+  });
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error(`GoTrue PUT /admin/users/${userId} (signup) ${r.status}: ${text}`);
+  }
+}

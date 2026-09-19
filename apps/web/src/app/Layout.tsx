@@ -2,6 +2,8 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../store/session.ts';
+import { PremiumBadge } from '../components/billing/PremiumBadge.tsx';
+import { PlanBanners } from '../components/billing/PlanBanners.tsx';
 
 interface NavItem { to: string; key: string; icon: ReactNode }
 
@@ -141,6 +143,9 @@ export function Layout({ children }: { children: ReactNode }) {
             </div>
           )}
         </div>
+        {/* Its own row, outside .sidebar-brand: that block anchors the tenant
+            dropdown, which must be free to overlap what sits below it. */}
+        <PremiumBadge collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />
 
         <nav className="sidebar-nav">
           <ul>
@@ -206,7 +211,10 @@ export function Layout({ children }: { children: ReactNode }) {
         >
           <IconMenu />
         </button>
-        <div className="app-content">{children}</div>
+        <div className="app-content">
+          <PlanBanners />
+          {children}
+        </div>
       </div>
     </div>
   );

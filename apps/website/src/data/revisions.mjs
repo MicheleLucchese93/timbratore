@@ -19,10 +19,14 @@
  * @type {Record<string, { version: string; date: string }>}
  */
 export const LEGAL_REVISIONS = {
-  'privacy-policy': { version: '1.3', date: '2026-08-29' },
+  // 2.0 (2026-09-18): self-service signup, subscriptions and Stripe payments,
+  // seller Idealcopy S.r.l. Keep the dates in step with LEGAL_VERSIONS in
+  // packages/shared/src/billing (what legal_acceptances records at signup).
+  'privacy-policy': { version: '2.0', date: '2026-09-18' },
   'cookie-policy': { version: '1.4', date: '2026-08-29' },
-  'termini-e-condizioni': { version: '1.1', date: '2026-06-16' },
+  'termini-e-condizioni': { version: '2.0', date: '2026-09-18' },
   eula: { version: '1.1', date: '2026-06-16' },
+  dpa: { version: '1.0', date: '2026-09-18' },
 };
 
 /**
@@ -36,10 +40,13 @@ export const LEGAL_REVISIONS = {
  * @type {Record<string, { published: string; updated: string }>}
  */
 export const CONTENT_REVISIONS = {
-  'timbratura-gps-app': { published: '2026-07-08', updated: '2026-09-09' },
-  'rilevazione-presenze-pmi': { published: '2026-07-08', updated: '2026-09-09' },
-  'migliori-app-rilevazione-presenze-2026': { published: '2026-07-08', updated: '2026-09-09' },
+  'timbratura-gps-app': { published: '2026-07-08', updated: '2026-09-18' },
+  'rilevazione-presenze-pmi': { published: '2026-07-08', updated: '2026-09-18' },
+  'migliori-app-rilevazione-presenze-2026': { published: '2026-07-08', updated: '2026-09-18' },
   partner: { published: '2026-06-23', updated: '2026-09-09' },
+  // Self-service signup form (step 1 of Specs/SELF_SERVICE_BILLING.md §3.2).
+  // Shows no visible date, so only the sitemap reads this entry.
+  registrazione: { published: '2026-09-18', updated: '2026-09-18' },
 };
 
 /** @param {string} slug */

@@ -101,6 +101,10 @@ sonoqui.xdevapp.it {
 	handle /api/v1/helpdesk* {
 		reverse_proxy sonoqui-api:4000
 	}
+	# Self-service registration page (config, signup, resend) — same as sonoqui.pro.
+	handle /api/v1/signup* {
+		reverse_proxy sonoqui-api:4000
+	}
 	handle {
 		reverse_proxy sonoqui-website:8080
 	}
@@ -191,6 +195,10 @@ sonoqui.pro {
 	import access_log
 	# Same-origin proxy for the marketing contact form (mirrors the xdevapp host).
 	handle /api/v1/helpdesk* {
+		reverse_proxy sonoqui-api:4000
+	}
+	# Same-origin proxy for the self-service registration page (/it/registrazione: config, signup, resend).
+	handle /api/v1/signup* {
 		reverse_proxy sonoqui-api:4000
 	}
 	handle {

@@ -15,5 +15,7 @@
     "over_request_rate_limit": "Troppi tentativi. Riprova tra qualche minuto.",
     "user_banned": "Account sospeso. Contatta l'assistenza.",
     "default": "Accesso non riuscito. Riprova."
-  }
+  },
+  "signupLink": "Non hai un account?",
+  "signupCta": "Registra la tua azienda gratis"
 }

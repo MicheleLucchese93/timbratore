@@ -15,5 +15,6 @@
   "failed": "Accesso fallito",
   "invalidCredentials": "Email o password non corretti.",
   "noAccount": "Non hai un account? Contatta l'amministratore della tua azienda.",
-  "discoverSite": "Scopri sonoQui"
+  "discoverSite": "Scopri sonoQui",
+  "companyPending": "Ci sei quasi! Completa la registrazione della tua azienda da computer, su app.sonoqui.pro: poi potrai accedere anche dall'app."
 }

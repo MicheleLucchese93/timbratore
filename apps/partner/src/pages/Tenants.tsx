@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { useMediaQuery } from '@mui/material';
@@ -12,8 +12,11 @@ import { EmptyState } from '../components/EmptyState.tsx';
 import { MCard, MCardList } from '../components/MobileCards.tsx';
 import { Modal } from '../components/Modal.tsx';
 import { IconButton } from '../components/IconButton.tsx';
-import { IconEdit, IconPause, IconPlay, IconUsers, IconTrash, IconPlus, IconMail, IconUserMinus, IconModules, IconEye } from '../components/icons.tsx';
+import { BillingDialog } from '../components/BillingDialog.tsx';
+import { OriginBadge, PivaCell, PlanBadge, SubStatusBadge } from '../components/BillingBadges.tsx';
+import { IconEdit, IconPause, IconPlay, IconUsers, IconTrash, IconPlus, IconMail, IconUserMinus, IconModules, IconEye, IconCard } from '../components/icons.tsx';
 import { MODULES, moduleFlag, type ModuleDef } from '../lib/modules.ts';
+import { needsVatReview, type BillingModeKey, type PlanKey, type SignupSource, type VatStatus } from '../lib/billing.ts';
 
 interface TenantRow {
   id: string;
@@ -37,6 +40,47 @@ interface TenantRow {
   used_admins: number;
   used_documentali: number;
   used_branches: number;
+  // Self-service billing (migration 067). Partner-provisioned companies read
+  // 'partner' / 'managed' / 'custom' with no subscription.
+  signup_source: SignupSource;
+  billing_mode: BillingModeKey;
+  plan: PlanKey;
+  pending_plan: 'piccola' | 'media' | null;
+  partita_iva: string | null;
+  over_limit_since: string | null;
+  vat_status: VatStatus | null;
+  vat_reviewed_at: string | null;
+  plan_subscription_status: string | null;
+}
+
+// Aziende quick views (client-side; the list is already fully loaded).
+type TenantView = 'all' | 'self_service' | 'partner' | 'vat_review';
+const TENANT_VIEWS: { key: TenantView; testId: string }[] = [
+  { key: 'all', testId: 'tenants-filter-all' },
+  { key: 'self_service', testId: 'tenants-filter-self' },
+  { key: 'partner', testId: 'tenants-filter-partner' },
+  { key: 'vat_review', testId: 'tenants-filter-vat' },
+];
+
+function inView(r: TenantRow, view: TenantView): boolean {
+  switch (view) {
+    case 'self_service':
+      return r.signup_source === 'self_service';
+    case 'partner':
+      return r.signup_source !== 'self_service';
+    case 'vat_review':
+      return needsVatReview(r);
+    default:
+      return true;
+  }
+}
+
+function matchesQuery(r: TenantRow, q: string): boolean {
+  if (!q) return true;
+  const needle = q.toLowerCase();
+  return [r.ragione_sociale, r.admin_email, r.partita_iva, r.owner_name, r.owner_email, r.note].some(
+    (v) => typeof v === 'string' && v.toLowerCase().includes(needle)
+  );
 }
 
 function errMsg(t: (k: string, o?: Record<string, unknown>) => string, e: unknown): string {
@@ -114,6 +158,17 @@ export function Tenants() {
   // Read-only drill-downs opened from the counter cells.
   const [viewingMembers, setViewingMembers] = useState<{ tenant: TenantRow; documentaliOnly: boolean } | null>(null);
   const [viewingBranches, setViewingBranches] = useState<TenantRow | null>(null);
+  // Super-user billing dialog. By id, so it reads the refreshed row after a change.
+  const [billingForId, setBillingForId] = useState<string | null>(null);
+  const [view, setView] = useState<TenantView>('all');
+  // ?q= lets another page (Registrazioni → "Apri azienda") land on one company.
+  const [q, setQ] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '');
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has('q')) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -143,6 +198,30 @@ export function Tenants() {
     },
     [t, toast, load]
   );
+
+  // Why limits/modules are read-only on a Stripe-billed company, and where to go instead.
+  const stripeManagedHint = t(isSuper ? 'tenants.stripeManaged' : 'tenants.stripeManagedNoSuper');
+
+  // Billing columns + quick views are platform-admin only: a partner only ever
+  // sees their own (partner-provisioned, manually billed) companies.
+  const viewCounts = useMemo(
+    () =>
+      Object.fromEntries(TENANT_VIEWS.map((v) => [v.key, rows.filter((r) => inView(r, v.key)).length])) as Record<
+        TenantView,
+        number
+      >,
+    [rows]
+  );
+  const query = q.trim();
+  const visibleRows = useMemo(
+    () => rows.filter((r) => (isAdmin ? inView(r, view) : true) && matchesQuery(r, query)),
+    [rows, view, query, isAdmin]
+  );
+  const filtered = query !== '' || (isAdmin && view !== 'all');
+  const emptyArt = filtered ? 'search' : 'company';
+  const emptyTitle = filtered ? t('tenants.emptyFiltered') : t('tenants.empty');
+  const emptyHint = filtered ? t('tenants.emptyFilteredHint') : t('tenants.emptyHint');
+  const billingRow = billingForId ? rows.find((r) => r.id === billingForId) ?? null : null;
 
   // Shared by the DataGrid actions column (desktop) and the mobile card list.
   const renderActions = (row: TenantRow) => (
@@ -190,7 +269,19 @@ export function Tenants() {
           label={t('modules.manage')}
           testId="manage-modules"
           icon={<IconModules />}
+          // A Stripe-billed company gets its modules from its subscriptions: the
+          // server refuses a manual toggle (409 BILLING_MODE_STRIPE).
+          disabled={row.billing_mode === 'stripe'}
+          hint={row.billing_mode === 'stripe' ? stripeManagedHint : undefined}
           onClick={() => setManagingModules(row)}
+        />
+      )}
+      {isSuper && (
+        <IconButton
+          label={t('billing.action')}
+          testId="tenant-billing-action"
+          icon={<IconCard />}
+          onClick={() => setBillingForId(row.id)}
         />
       )}
       {isSuper && (
@@ -201,6 +292,20 @@ export function Tenants() {
 
   const columns: GridColDef<TenantRow>[] = [
     { field: 'ragione_sociale', headerName: t('tenants.col.name'), flex: 1.4, minWidth: 170 },
+    ...(isAdmin
+      ? [{
+          field: 'signup_source',
+          headerName: t('tenants.col.origin'),
+          width: 115,
+          valueGetter: (_v: unknown, row: TenantRow) =>
+            t(row.signup_source === 'self_service' ? 'billing.origin.self_service' : 'billing.origin.partner'),
+          renderCell: (p) => (
+            <span className="cell-badge">
+              <OriginBadge source={p.row.signup_source} />
+            </span>
+          ),
+        } as GridColDef<TenantRow>]
+      : []),
     {
       field: 'admin_email',
       headerName: t('tenants.col.admin_email'),
@@ -240,6 +345,45 @@ export function Tenants() {
             ),
         } as GridColDef<TenantRow>]
       : []),
+    ...(isAdmin
+      ? ([
+          {
+            field: 'plan',
+            headerName: t('tenants.col.plan'),
+            width: 190,
+            valueGetter: (_v: unknown, row: TenantRow) => (row.plan ? t(`billing.plan.${row.plan}`) : ''),
+            renderCell: (p) => (
+              <span className="cell-badge">
+                <PlanBadge plan={p.row.plan} pendingPlan={p.row.pending_plan} overLimitSince={p.row.over_limit_since} />
+              </span>
+            ),
+          },
+          {
+            field: 'plan_subscription_status',
+            headerName: t('tenants.col.subscription'),
+            width: 170,
+            valueGetter: (_v: unknown, row: TenantRow) =>
+              row.plan_subscription_status
+                ? t(`billing.subStatus.${row.plan_subscription_status}`, { defaultValue: row.plan_subscription_status })
+                : '',
+            renderCell: (p) => (
+              <span className="cell-badge">
+                <SubStatusBadge status={p.row.plan_subscription_status} />
+              </span>
+            ),
+          },
+        ] as GridColDef<TenantRow>[])
+      : []),
+    {
+      field: 'partita_iva',
+      headerName: t('tenants.col.piva'),
+      width: 250,
+      renderCell: (p) => (
+        <span className="cell-badge">
+          <PivaCell piva={p.row.partita_iva} status={p.row.vat_status} reviewedAt={p.row.vat_reviewed_at} />
+        </span>
+      ),
+    },
     {
       field: 'used_members',
       headerName: t('tenants.col.users'),
@@ -334,7 +478,7 @@ export function Tenants() {
       headerName: t('tenants.col.actions'),
       width:
         170 +
-        (isSuper ? 40 : 0) +
+        (isSuper ? 80 : 0) +
         (availableModules.length > 0 ? 40 : 0) +
         (canSupport ? 40 : 0),
       sortable: false,
@@ -352,15 +496,40 @@ export function Tenants() {
           <IconButton label={t('tenants.new')} testId="new-tenant" primary icon={<IconPlus />} onClick={() => setCreating(true)} />
         }
       />
+      <div className="filter-row">
+        {isAdmin &&
+          TENANT_VIEWS.map((v) => (
+            <button
+              key={v.key}
+              type="button"
+              className={`btn btn-sm ${view === v.key ? 'btn-primary' : 'btn-secondary'}`}
+              aria-pressed={view === v.key}
+              onClick={() => setView(v.key)}
+              data-testid={v.testId}
+            >
+              {t(`tenants.filter.${v.key}`)}
+              <span className="chip-count">{viewCounts[v.key]}</span>
+            </button>
+          ))}
+        <input
+          className="input filter-search"
+          type="search"
+          placeholder={t('tenants.searchPlaceholder')}
+          aria-label={t('tenants.searchPlaceholder')}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          data-testid="tenants-search"
+        />
+      </div>
       {isMobile ? (
         <MCardList
           loading={loading}
-          empty={!loading && rows.length === 0}
-          art="company"
-          emptyTitle={t('tenants.empty')}
-          emptyHint={t('tenants.emptyHint')}
+          empty={!loading && visibleRows.length === 0}
+          art={emptyArt}
+          emptyTitle={emptyTitle}
+          emptyHint={emptyHint}
         >
-          {rows.map((r) => (
+          {visibleRows.map((r) => (
             <MCard
               key={r.id}
               title={r.ragione_sociale}
@@ -372,6 +541,7 @@ export function Tenants() {
                 )
               }
               fields={[
+                ...(isAdmin ? [{ label: t('tenants.col.origin'), value: <OriginBadge source={r.signup_source} /> }] : []),
                 {
                   label: t('tenants.col.admin_email'),
                   value: r.admin_email
@@ -379,7 +549,22 @@ export function Tenants() {
                     : t('common.none'),
                 },
                 ...(isAdmin
-                  ? [{ label: t('tenants.col.owner'), value: r.owner_name || r.owner_email || t('tenants.platform') }]
+                  ? [
+                      { label: t('tenants.col.owner'), value: r.owner_name || r.owner_email || t('tenants.platform') },
+                      {
+                        label: t('tenants.col.plan'),
+                        value: <PlanBadge plan={r.plan} pendingPlan={r.pending_plan} overLimitSince={r.over_limit_since} />,
+                      },
+                      { label: t('tenants.col.subscription'), value: <SubStatusBadge status={r.plan_subscription_status} /> },
+                    ]
+                  : []),
+                ...(r.partita_iva
+                  ? [
+                      {
+                        label: t('tenants.col.piva'),
+                        value: <PivaCell piva={r.partita_iva} status={r.vat_status} reviewedAt={r.vat_reviewed_at} />,
+                      },
+                    ]
                   : []),
                 {
                   label: t('tenants.col.users'),
@@ -425,7 +610,7 @@ export function Tenants() {
       ) : (
         <div className="grid-wrap card">
           <DataGrid
-            rows={rows}
+            rows={visibleRows}
             columns={columns}
             loading={loading}
             disableRowSelectionOnClick
@@ -438,15 +623,24 @@ export function Tenants() {
             slots={{ noRowsOverlay: GridEmptyOverlay }}
             slotProps={{
               noRowsOverlay: {
-                art: 'company',
-                title: t('tenants.empty'),
-                hint: t('tenants.emptyHint'),
+                art: emptyArt,
+                title: emptyTitle,
+                hint: emptyHint,
               },
             }}
           />
         </div>
       )}
 
+      {billingForId && (
+        <BillingDialog
+          tenantId={billingForId}
+          tenantName={billingRow?.ragione_sociale ?? ''}
+          vatReviewedAt={billingRow?.vat_reviewed_at ?? null}
+          onClose={() => setBillingForId(null)}
+          onChanged={load}
+        />
+      )}
       {creating && (
         <CreateTenant
           caps={caps}
@@ -463,6 +657,7 @@ export function Tenants() {
           tenant={editing}
           caps={caps}
           isAdmin={isAdmin}
+          stripeManagedHint={stripeManagedHint}
           onClose={() => setEditing(null)}
           onDone={async () => {
             setEditing(null);
@@ -1009,17 +1204,22 @@ function EditLimits({
   tenant,
   caps,
   isAdmin,
+  stripeManagedHint,
   onClose,
   onDone,
 }: {
   tenant: TenantRow;
   caps: PartnerCaps | undefined;
   isAdmin: boolean;
+  stripeManagedHint: string;
   onClose: () => void;
   onDone: () => Promise<void>;
 }) {
   const { t } = useTranslation();
   const toast = useToast();
+  // Stripe-billed: the limits derive from the subscriptions (the server answers
+  // 409 BILLING_MODE_STRIPE), so they are shown read-only; note and partner stay editable.
+  const limitsLocked = tenant.billing_mode === 'stripe';
   const [maxUsers, setMaxUsers] = useState(tenant.max_users);
   const [maxAdmins, setMaxAdmins] = useState(tenant.max_admins);
   const [maxDoc, setMaxDoc] = useState(tenant.max_documentali);
@@ -1043,10 +1243,12 @@ function EditLimits({
     setBusy(true);
     setErr(null);
     try {
-      await api(`/api/v1/partnership/tenants/${tenant.id}/limits`, {
-        method: 'PATCH',
-        json: { max_users: maxUsers, max_admins: maxAdmins, max_documentali: maxDoc, max_branches: maxBranches },
-      });
+      if (!limitsLocked) {
+        await api(`/api/v1/partnership/tenants/${tenant.id}/limits`, {
+          method: 'PATCH',
+          json: { max_users: maxUsers, max_admins: maxAdmins, max_documentali: maxDoc, max_branches: maxBranches },
+        });
+      }
       // Reassign owning partner if the admin changed it.
       if (isAdmin && ownerPartner !== (tenant.created_by_partner ?? '')) {
         await api(`/api/v1/partnership/tenants/${tenant.id}/owner`, {
@@ -1093,11 +1295,16 @@ function EditLimits({
               </select>
             </div>
           )}
+          {limitsLocked && (
+            <div className="notice" data-testid="limits-stripe-managed">
+              {stripeManagedHint}
+            </div>
+          )}
           <div className="grid-2">
-            <NumField id="e-users" label={t('tenants.create.max_users')} value={maxUsers} max={caps?.cap_users_per_tenant} min={tenant.used_members} onChange={setMaxUsers} />
-            <NumField id="e-admins" label={t('tenants.create.max_admins')} value={maxAdmins} max={caps?.cap_admins_per_tenant} min={Math.max(1, tenant.used_admins)} onChange={setMaxAdmins} />
-            <NumField id="e-doc" label={t('tenants.create.max_documentali')} value={maxDoc} max={caps?.cap_documentali_per_tenant} min={tenant.used_documentali} onChange={setMaxDoc} />
-            <NumField id="e-branches" label={t('tenants.create.max_branches')} value={maxBranches} max={caps?.cap_branches_per_tenant} min={Math.max(1, tenant.used_branches)} onChange={setMaxBranches} />
+            <NumField id="e-users" label={t('tenants.create.max_users')} value={maxUsers} max={caps?.cap_users_per_tenant} min={tenant.used_members} onChange={setMaxUsers} disabled={limitsLocked} />
+            <NumField id="e-admins" label={t('tenants.create.max_admins')} value={maxAdmins} max={caps?.cap_admins_per_tenant} min={Math.max(1, tenant.used_admins)} onChange={setMaxAdmins} disabled={limitsLocked} />
+            <NumField id="e-doc" label={t('tenants.create.max_documentali')} value={maxDoc} max={caps?.cap_documentali_per_tenant} min={tenant.used_documentali} onChange={setMaxDoc} disabled={limitsLocked} />
+            <NumField id="e-branches" label={t('tenants.create.max_branches')} value={maxBranches} max={caps?.cap_branches_per_tenant} min={Math.max(1, tenant.used_branches)} onChange={setMaxBranches} disabled={limitsLocked} />
           </div>
           <div>
             <label className="label" htmlFor="e-note">{t('tenants.edit.note')}</label>
@@ -1358,6 +1565,7 @@ function NumField({
   onChange,
   min,
   max,
+  disabled,
 }: {
   id: string;
   label: string;
@@ -1365,6 +1573,7 @@ function NumField({
   onChange: (n: number) => void;
   min?: number;
   max?: number | null;
+  disabled?: boolean;
 }) {
   return (
     <div>
@@ -1379,6 +1588,7 @@ function NumField({
         value={value}
         min={min}
         {...(max != null ? { max } : {})}
+        disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
       />
     </div>

@@ -15,5 +15,6 @@
   "failed": "Sign-in failed",
   "invalidCredentials": "Incorrect email or password.",
   "noAccount": "Don't have an account? Contact your company administrator.",
-  "discoverSite": "Discover sonoQui"
+  "discoverSite": "Discover sonoQui",
+  "companyPending": "Almost there! Finish registering your company from a computer at app.sonoqui.pro, then sign in here."
 }

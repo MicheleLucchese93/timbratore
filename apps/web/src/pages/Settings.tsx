@@ -11,6 +11,9 @@ import { ApiKeysSection } from '../components/ApiKeysSection.tsx';
 import { LanguageSelect } from '../components/LanguageSwitcher.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
 import { ChangePasswordModal } from '../components/ChangePasswordModal.tsx';
+import { Link, useNavigate } from 'react-router-dom';
+import { ModulesPanel } from '../components/billing/ModulesPanel.tsx';
+import { getBilling, type BillingOverview } from '../lib/billing.ts';
 
 interface TenantSettings {
   id: string;
@@ -84,6 +87,17 @@ export function Settings() {
   const [switching, setSwitching] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const isAdmin = tenants.find((tn) => tn.tenant_id === activeTenantId)?.role === 'admin';
+  const { t: tb } = useTranslation('billing');
+  const navigate = useNavigate();
+  const [billing, setBilling] = useState<BillingOverview | null>(null);
+  // A self-service company's P.IVA is its billing identity (checked on VIES at
+  // registration): it is shown, not edited, here.
+  const pivaLocked = me?.tenant.billing_mode === 'stripe';
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    getBilling().then(setBilling).catch(() => setBilling(null));
+  }, [isAdmin]);
 
   async function onSwitchTenant(id: string) {
     if (id === activeTenantId || switching) return;
@@ -207,7 +221,7 @@ export function Settings() {
             <p className="field-hint">{t('readOnlyHint')}</p>
           </Field>
           <Field label={t('partitaIva')}>
-            {isAdmin ? (
+            {isAdmin && !pivaLocked ? (
               <>
                 <input
                   className="input num"
@@ -259,6 +273,38 @@ export function Settings() {
           </Field>
         </div>
       </SettingsRow>
+
+      {isAdmin && billing && (
+        <SettingsRow icon={<IconSparkle />} title={tb('section.title')} description={tb('section.desc')}>
+          <div className="space-y-4" data-testid="settings-plan-section">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-semibold">
+                  {billing.plan === 'free'
+                    ? tb('current.free')
+                    : billing.plan === 'custom'
+                      ? tb('current.custom')
+                      : tb('current.paid', { plan: tb(`plan.${billing.plan}`) })}
+                </p>
+                <p className="muted text-sm">
+                  {tb('current.users')} {tb('current.usage', { used: billing.usage.users, max: billing.limits.max_users })}
+                  {' · '}
+                  {tb('current.branches')} {tb('current.usage', { used: billing.usage.branches, max: billing.limits.max_branches })}
+                </p>
+              </div>
+              <Link to="/settings/subscription" className="btn btn-secondary btn-sm" data-testid="settings-manage-plan">
+                {tb('section.manage')}
+              </Link>
+            </div>
+            <ModulesPanel
+              overview={billing}
+              onChanged={setBilling}
+              onNeedProfile={() => navigate('/settings/subscription')}
+              onMessage={(kind, text) => setToast({ kind, text })}
+            />
+          </div>
+        </SettingsRow>
+      )}
 
       {isAdmin && (
         <CentroPagheSection s={s} onPatch={patchSettings} />
@@ -510,6 +556,13 @@ function Field({
 }
 
 /* Icons (inline, no dep) ------------------------------------------------ */
+function IconSparkle() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3l1.8 4.9L19 9.7l-4.3 3.1L16.2 18 12 15l-4.2 3 1.5-5.2L5 9.7l5.2-1.8Z" />
+    </svg>
+  );
+}
 function IconBell() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

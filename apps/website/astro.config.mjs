@@ -49,5 +49,20 @@ export default defineConfig({
     locales: ['it'],
     routing: { prefixDefaultLocale: true },
   },
-  vite: { plugins: [tailwindcss()] },
+  vite: {
+    plugins: [tailwindcss()],
+    // `astro dev` only: forward the same-origin /api calls (registration and
+    // contact forms) to a backend, the way Caddy's path routes do on
+    // sonoqui.pro. `server.proxy` belongs to the dev server, so `astro build`
+    // and the static output never see it. Point it elsewhere with
+    // WEBSITE_DEV_API_PROXY (e.g. a backend on another port).
+    server: {
+      proxy: {
+        '/api': {
+          target: process.env.WEBSITE_DEV_API_PROXY || 'http://localhost:4000',
+          changeOrigin: true,
+        },
+      },
+    },
+  },
 });

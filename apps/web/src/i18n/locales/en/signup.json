@@ -1,0 +1,80 @@
+{
+  "confirm": {
+    "loading": "Checking the link…",
+    "title": "Email confirmed",
+    "subtitle": "Hi {{name}}, choose the password for your account {{email}}.",
+    "password": "Password",
+    "passwordRepeat": "Repeat the password",
+    "mismatch": "The two passwords do not match.",
+    "rules": "At least 8 characters with an uppercase and a lowercase letter, a digit and a symbol.",
+    "submit": "Create account and continue",
+    "existingTitle": "You already have an account",
+    "existingText": "{{email}} already has a sonoQui account: sign in with your password to create the new company.",
+    "existingPassword": "Your password",
+    "login": "Sign in and continue",
+    "forgot": "Forgot your password?",
+    "invalidTitle": "Invalid or expired link",
+    "invalidText": "The confirmation link has expired or is not valid. Register again from the website: you will get a new link.",
+    "usedTitle": "Email already confirmed",
+    "usedText": "This link was already used. Sign in with your password to continue.",
+    "toLogin": "Go to sign in",
+    "toSignup": "Register again",
+    "mismatchAccount": "This link belongs to a different email address.",
+    "error": "The confirmation could not be completed. Please try again."
+  },
+  "wizard": {
+    "hello": "Welcome, {{name}}!",
+    "intro": "Two more steps and your company is ready.",
+    "logout": "Sign out",
+    "steps": {
+      "account": "Account",
+      "company": "Company",
+      "plan": "Plan"
+    },
+    "company": {
+      "title": "Your company",
+      "subtitle": "Enter the VAT number (Partita IVA): we fetch the company name and address from VIES.",
+      "piva": "VAT number (Partita IVA)",
+      "verify": "Check",
+      "checking": "Checking…",
+      "vat": {
+        "valid": "Verified on VIES: {{name}}",
+        "validNoName": "Verified on VIES",
+        "not_in_vies": "Not listed on VIES: common for companies that do not trade abroad. You can continue, we will check it ourselves.",
+        "unavailable": "VIES is not answering right now: you can continue, we will retry later.",
+        "invalid": "Invalid VAT number: check the 11 digits."
+      },
+      "ragioneSociale": "Company name",
+      "address": "Registered address",
+      "cap": "Postcode",
+      "city": "City",
+      "province": "Province",
+      "headcount": "How many people work in the company?",
+      "headcountOpts": {
+        "1-3": "1–3",
+        "4-10": "4–10",
+        "11-20": "11–20",
+        "20+": "More than 20"
+      },
+      "headcountHint": "The Free plan includes 3 users, you included. You can move to a paid plan any time.",
+      "dpa": "I accept the <a>data processing agreement</a> (appointment as data processor, art. 28 GDPR).",
+      "art1341": "I specifically approve, under articles 1341 and 1342 of the Italian Civil Code, the clauses of the <a>Terms</a> marked as onerous (limitation of liability, suspension, withdrawal, automatic renewal, jurisdiction).",
+      "powers": "I declare I am authorised to represent the company and accept these documents on its behalf.",
+      "submit": "Create the company",
+      "creating": "Creating…",
+      "duplicate": "This VAT number is already registered on sonoQui. Ask your company's administrator to add you as a user, or contact support.",
+      "invalidVat": "Invalid VAT number.",
+      "error": "The company could not be created. Please try again."
+    },
+    "plan": {
+      "title": "Choose your plan",
+      "subtitle": "Start for free or activate a plan now: you can change it any time.",
+      "startFree": "Start on the Free plan",
+      "billingTitle": "Details for the electronic invoice",
+      "billingSubtitle": "Needed to invoice the {{plan}} plan.",
+      "toPayment": "Proceed to payment",
+      "back": "Back",
+      "later": "I'll do it later"
+    }
+  }
+}

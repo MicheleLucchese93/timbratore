@@ -64,13 +64,12 @@ async function refreshAccessToken(): Promise<boolean> {
   return refreshing;
 }
 
-export async function api<T = unknown>(
-  path: string,
-  init: RequestInit & { json?: unknown } = {}
-): Promise<T> {
+// Bearer-authenticated fetch with one silent token refresh on 401. Shared by the
+// JSON client below and by file downloads, which need the raw Response.
+async function authedFetch(path: string, init: RequestInit & { json?: unknown } = {}): Promise<Response> {
   const exec = async (): Promise<Response> => {
     const headers = new Headers(init.headers ?? {});
-    headers.set('Accept', 'application/json');
+    if (!headers.has('Accept')) headers.set('Accept', 'application/json');
     const token = getToken();
     if (token) headers.set('Authorization', `Bearer ${token}`);
     let body = init.body;
@@ -93,26 +92,77 @@ export async function api<T = unknown>(
       }
     }
   }
+  return res;
+}
+
+function toApiError(status: number, parsed: unknown): ApiError {
+  const err: ApiError = new Error('API error');
+  err.status = status;
+  if (parsed && typeof parsed === 'object' && 'error' in parsed) {
+    const e = (parsed as { error: { code?: string; message?: string; details?: unknown } }).error;
+    err.message = e.message ?? err.message;
+    err.code = e.code;
+    err.details = e.details;
+  }
+  return err;
+}
+
+export async function api<T = unknown>(
+  path: string,
+  init: RequestInit & { json?: unknown } = {}
+): Promise<T> {
+  const res = await authedFetch(path, init);
   const text = await res.text();
   let parsed: unknown = null;
   if (text) {
     try { parsed = JSON.parse(text); } catch { parsed = text; }
   }
-  if (!res.ok) {
-    const err: ApiError = new Error('API error');
-    err.status = res.status;
-    if (parsed && typeof parsed === 'object' && 'error' in parsed) {
-      const e = (parsed as { error: { code?: string; message?: string; details?: unknown } }).error;
-      err.message = e.message ?? err.message;
-      err.code = e.code;
-      err.details = e.details;
-    }
-    throw err;
-  }
+  if (!res.ok) throw toApiError(res.status, parsed);
   if (parsed && typeof parsed === 'object' && 'data' in (parsed as Record<string, unknown>)) {
     return (parsed as { data: T }).data;
   }
   return parsed as T;
+}
+
+/** `attachment; filename="x.csv"` → `x.csv` (null when absent or unreadable). */
+function filenameFromDisposition(header: string | null): string | null {
+  if (!header) return null;
+  const star = /filename\*\s*=\s*(?:UTF-8'')?([^;]+)/i.exec(header);
+  if (star?.[1]) {
+    try {
+      return decodeURIComponent(star[1].trim().replace(/^"|"$/g, ''));
+    } catch { /* fall through to the plain form */ }
+  }
+  const plain = /filename\s*=\s*"?([^";]+)"?/i.exec(header);
+  return plain?.[1]?.trim() || null;
+}
+
+/**
+ * Authenticated file download (an <a href> carries no bearer token): fetch the
+ * file as a blob and hand it to the browser. The server's Content-Disposition
+ * name wins when the browser can read it; `fallbackName` otherwise. Failures
+ * throw the same ApiError shape as `api()` so callers map `errors.<code>`.
+ */
+export async function downloadFile(path: string, fallbackName: string): Promise<void> {
+  const res = await authedFetch(path, { headers: { Accept: '*/*' } });
+  if (!res.ok) {
+    const text = await res.text();
+    let parsed: unknown = null;
+    if (text) {
+      try { parsed = JSON.parse(text); } catch { parsed = text; }
+    }
+    throw toApiError(res.status, parsed);
+  }
+  const blob = await res.blob();
+  const name = filenameFromDisposition(res.headers.get('Content-Disposition')) ?? fallbackName;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 export function isAuthConfigured(): boolean {

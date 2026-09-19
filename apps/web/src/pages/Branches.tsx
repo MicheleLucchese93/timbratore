@@ -12,6 +12,10 @@ import { useConfirm } from '../components/ConfirmDialog.tsx';
 import { PageHeader } from '../components/PageHeader.tsx';
 import { IconButton } from '../components/IconButton.tsx';
 import { EmptyState } from '../components/EmptyState.tsx';
+import i18n from 'i18next';
+import type { TFunction } from 'i18next';
+import { limitMessage } from '../lib/limits.ts';
+import { useSession } from '../store/session.ts';
 
 interface Branch {
   id: string;
@@ -76,7 +80,13 @@ export function Branches() {
           <button
             className="btn btn-primary"
             disabled={atLimit}
-            title={atLimit ? t('limitReachedTitle') : ''}
+            title={
+              atLimit
+                ? useSession.getState().me?.tenant.billing_mode === 'stripe'
+                  ? `${i18n.t('billing:limit.branches', { limit: usage?.max_branches })} ${i18n.t('billing:limit.upsell')}`
+                  : t('limitReachedTitle')
+                : ''
+            }
             onClick={() => setShowCreate(true)}
           >
             {t('new')}
@@ -245,7 +255,10 @@ function BranchForm({
       }
       onSaved();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : t('common:state.error'));
+      setErr(
+        limitMessage(e, i18n.t.bind(i18n) as unknown as TFunction, useSession.getState().me?.tenant.billing_mode) ??
+          (e instanceof Error ? e.message : t('common:state.error'))
+      );
     } finally {
       setBusy(false);
     }

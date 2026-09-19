@@ -44,8 +44,10 @@ Re-score only with evidence (GSC impressions, Googlebot fetches, PostHog
 - Legal claims (Statuto art. 4, CGUE C-55/18, GDPR) must cite a primary
   source in the page's `sources`. New rulings (e.g. Tribunale di Cosenza n.
   972/2026) ship only after the user's legal review.
-- CTAs never promise a trial: there is no self-serve signup. "Richiedi
-  l'attivazione" / "Richiedi l'accesso".
+- CTAs lead to the free self-registration (`/it/registrazione/`, since
+  2026-09-18; Specs/SELF_SERVICE_BILLING.md): "Inizia gratis", and "Inizia ora"
+  with `?piano=piccola|media` on the paid tiers. Still no trial of a paid plan:
+  the Free plan is the way in. Enterprise and custom modules stay "Contattaci".
 - Hero images: regenerate variants with `npm run images:hero -w sonoqui-website`
   after replacing `public/screenshots/{storico,timbra}.webp`.
 - `robots.txt`: `Content-Signal` per named group; GPTBot/ClaudeBot/CCBot

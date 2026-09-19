@@ -5,6 +5,7 @@ export const TOC_EN = `
       <a href="#concetti">Key concepts</a>
       <a href="#ruoli">Roles and permissions</a>
       <a href="#accesso">Access and password</a>
+      <a href="#registrazione">Register your company</a>
 
       <h3>Web · Administrator</h3>
       <a href="#web-admin">Overview</a>
@@ -23,6 +24,7 @@ export const TOC_EN = `
       <a href="#web-admin-registro" class="sub">Activity log</a>
       <a href="#web-admin-assistenza" class="sub">Support</a>
       <a href="#web-admin-impostazioni" class="sub">Settings</a>
+      <a href="#web-admin-abbonamento" class="sub">Plan, subscription and modules</a>
 
       <h3>Web · Employee</h3>
       <a href="#web-user">Overview</a>
@@ -212,7 +214,25 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>Do not have an account yet?</h3>
-        <p>Only your company's administrator can create your account. When they start the access procedure you will receive an invitation to set your password and sign in (if you later forget your password you'll get a reset email instead).</p>
+        <p>If your company already uses sonoQui, your administrator creates your account: when they start the access procedure you will receive an invitation to set your password and sign in (if you later forget your password you'll get a reset email instead).</p>
+        <p>If you want to <strong>start using sonoQui for your company</strong>, you can register it yourself, for free: see <a href="#registrazione">Register your company</a>.</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="registrazione">
+      <h2><span class="chapter-num">04b</span>Register your company <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
+      <p class="lead">Whoever runs the company can activate sonoQui on their own from the website in a few minutes. You start on the <strong>Free plan</strong> (3 users, you included, and 1 site, forever) and move to a paid plan only when you need it.</p>
+      <ol class="steps">
+        <li><strong>Registration</strong> — on sonoqui.pro press <em>Inizia gratis</em> (or <em>Inizia ora</em> on a plan), enter first name, last name and email and accept the Terms. Nothing is created until you confirm the email.</li>
+        <li><strong>Email confirmation</strong> — open the link you receive (valid 48 hours) and choose your password. The email may take a few minutes, especially on company Microsoft/Outlook mailboxes: check the spam folder too. If the address already has a sonoQui account, sign in with the password you already use.</li>
+        <li><strong>Your company</strong> — enter the <strong>VAT number (Partita IVA)</strong>: we check it on the EU <strong>VIES</strong> service and, when listed, fill in company name and address. If it is not listed on VIES (common for companies that do not trade abroad) you can continue anyway: we check it ourselves. You accept the data processing agreement (art. 28 GDPR) and the clauses of the Terms. This step is done in the browser: if you sign in to the mobile app before completing it, the app reminds you to finish the registration at app.sonoqui.pro.</li>
+        <li><strong>The plan</strong> — choose <em>Continue for free</em> or a paid plan: enter the data for the electronic invoice (SDI code or PEC) and pay by card on Stripe's secure page. If you close the payment, the company stays on the Free plan and you can complete the activation whenever you like.</li>
+      </ol>
+      <div class="callout callout-info">
+        After registering, the Dashboard suggests the first steps: <strong>create the site</strong>, <strong>invite colleagues</strong>, <strong>set the working hours</strong> and <strong>get the app installed</strong>. The ticks update by themselves; you can hide the box at any time.
+      </div>
+      <div class="callout callout-warn">
+        A VAT number already registered on sonoQui cannot create a second company: ask your company's administrator to add you as a user.
       </div>
     </section>
 
@@ -489,7 +509,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>License usage</h3>
-        <p>At the top of the page counters show <strong>Users</strong> active / maximum allowed by the plan, <strong>Administrators</strong> active / maximum and <strong>Document managers</strong> active / maximum. If you reach the limit the <em>Invite user</em> button is disabled.</p>
+        <p>At the top of the page counters show <strong>Users</strong> active / maximum allowed by the plan, <strong>Administrators</strong> active / maximum and <strong>Document managers</strong> active / maximum. If you reach the limit the <em>Invite user</em> button is disabled; for self-registered companies a <em>Go Premium</em> link appears to raise it (see <a href="#web-admin-abbonamento">Plan, subscription and modules</a>).</p>
       </div>
 
       <div class="feature">
@@ -569,7 +589,7 @@ export const MAIN_EN = `
 
       <div class="feature">
         <h3>License usage</h3>
-        <p>At the top of the page a counter shows the <strong>Branches</strong> active / maximum allowed by the plan. If you reach the limit the <em>New branch</em> button is disabled.</p>
+        <p>At the top of the page a counter shows the <strong>Branches</strong> active / maximum allowed by the plan. If you reach the limit the <em>New branch</em> button is disabled (the Free plan includes 1 site: see <a href="#web-admin-abbonamento">Plan, subscription and modules</a>).</p>
       </div>
 
       <div class="feature">
@@ -1031,7 +1051,7 @@ export const MAIN_EN = `
       <div class="feature">
         <h3>Company details and localization</h3>
         <ul class="tidy">
-          <li><strong>Company name</strong> — read-only (editable by the provider). <strong>VAT number</strong> — editable by an admin (11 digits).</li>
+          <li><strong>Company name</strong> — read-only (editable by the provider). <strong>VAT number</strong> — editable by an admin (11 digits); for self-registered companies it is read-only because it identifies the company for invoicing.</li>
           <li><strong>Timezone</strong> — company time zone (Europe/Rome by default).</li>
           <li><strong>Language</strong> — Italian or English. The app initially picks your browser's language (anything other than Italian or English falls back to <em>English</em>); it stays a <em>personal</em> preference that applies only to your account and you change it here (on mobile from <em>Profile &rarr; Language</em>).</li>
           <li><strong>Country</strong> — optional, read-only.</li>
@@ -1065,6 +1085,62 @@ export const MAIN_EN = `
           <li><strong>Push notifications</strong> — info on the registration status of the device (managed by the mobile app).</li>
         </ul>
         <p>Each change shows a <em>Setting saved</em> toast and persists automatically.</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="web-admin-abbonamento">
+      <h2><span class="chapter-num">15b</span>Plan, subscription and modules <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
+      <p class="lead">The plan sets how many users and sites the company can have; modules add features. Manage them from <strong>Settings → Plan and modules</strong> and from the <strong>Plan and subscription</strong> page, which the <strong>Go Premium</strong> button under the logo also opens.</p>
+
+      <div class="feature">
+        <h3>The plans</h3>
+        <table>
+          <tr><th>Plan</th><th>Users</th><th>Sites</th><th>Price</th></tr>
+          <tr><td>Free</td><td>3 (you included)</td><td>1</td><td>€0, forever</td></tr>
+          <tr><td>Piccola</td><td>up to 10</td><td>up to 3</td><td>€24.99/month + VAT (yearly €274.89 + VAT)</td></tr>
+          <tr><td>Media</td><td>up to 20</td><td>up to 5</td><td>€39.99/month + VAT (yearly €439.89 + VAT)</td></tr>
+        </table>
+        <p>Every user that is not deleted counts, administrators included: a <em>deactivated</em> user still takes a seat; to free it, <em>delete</em> the user. Above 20 users we prepare a custom Enterprise plan: write to us from <em>Support</em>.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Moving to a paid plan</h3>
+        <ol class="steps">
+          <li>Press <strong>Go Premium</strong> (under the logo) or open <strong>Settings → Plan and modules → Manage plan and billing</strong>.</li>
+          <li>Choose <em>Monthly</em> or <em>Yearly</em> (1 month free) and press <strong>Choose Piccola</strong> or <strong>Choose Media</strong>.</li>
+          <li>If missing, complete the <strong>Billing details</strong>: address, <strong>SDI</strong> recipient code or <strong>PEC</strong>, tax code if any and accounts email.</li>
+          <li>Pay by card on <strong>Stripe</strong>'s secure page (22% VAT shown separately). Back in the app the plan activates within seconds and you get a confirmation email.</li>
+        </ol>
+        <div class="callout callout-info">
+          Stripe collects the payment but <strong>does not issue the invoice</strong>: the electronic invoice (fattura elettronica) is issued by Idealcopy S.r.l. and reaches you through the Italian SDI system at the details given in Billing details.
+        </div>
+      </div>
+
+      <div class="feature">
+        <h3>Cantieri and API modules</h3>
+        <p>In <strong>Settings → Plan and modules</strong> each module shows its price and state. <strong>Activate</strong> opens the payment (€50/month + VAT per module, on the Free plan too); the module is available as soon as the payment succeeds. With Cantieri, administrators immediately get the <em>Cantieri admin</em> role.</p>
+        <p><strong>Switch off at period end</strong> keeps the module until the renewal and then turns it off: site data is kept (but hidden), while API keys stop working. Until the period ends you can press <strong>Keep it active</strong>.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Payment method, plan change, cancellation</h3>
+        <ul class="tidy">
+          <li><strong>Payment method</strong> — update the card on Stripe's secure page.</li>
+          <li><strong>Change plan</strong> — moving to a bigger plan is immediate (you pay the difference for the current period); moving to a smaller one happens at renewal.</li>
+          <li><strong>Cancel plan</strong> — the plan stays active until the end of the paid period, then the company goes back to the Free plan.</li>
+          <li>If a payment fails we tell you by email and retry automatically for a few days; if every attempt fails the plan ends.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h3>If you exceed the plan limits</h3>
+        <p>When a paid plan ends and the company has more users or sites than the Free plan allows, a notice appears at the top of the pages: you have <strong>14 days</strong> to delete the extra ones or re-activate a plan. After that, <strong>exports are locked</strong> until the company fits the limits again. <strong>Clocking in always keeps working.</strong> The notice disappears by itself as soon as you are within the limits.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Companies managed by a partner</h3>
+        <p>If your company is managed by a partner or reseller, plan, limits and modules are set by them: the <em>Plan and modules</em> section is read-only and the Go Premium button does not appear. Contact your partner for changes.</p>
+        <p>Every activation, change and switch-off appears in the <strong>Activity log</strong>, category <em>Subscription</em>.</p>
       </div>
     </section>
 
@@ -1682,7 +1758,7 @@ export const MAIN_EN = `
 
     <section class="chapter" id="cantieri">
       <h2><span class="chapter-num">29a</span>Cantieri module <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
-      <p class="lead">The Cantieri (work sites) module records the daily activities carried out on your sites: travel and work times, vehicles used and company-defined custom fields. It is an optional module, enabled for the company by your partner/reseller.</p>
+      <p class="lead">The Cantieri (work sites) module records the daily activities carried out on your sites: travel and work times, vehicles used and company-defined custom fields. It is an optional module (€50/month + VAT): activate it from <em>Settings → Plan and modules</em> (see <a href="#web-admin-abbonamento">Plan, subscription and modules</a>), or, if your company is managed by a partner/reseller, they switch it on.</p>
 
       <div class="feature">
         <h3>Enabling and roles</h3>
@@ -1744,7 +1820,7 @@ export const MAIN_EN = `
 
     <section class="chapter" id="api">
       <h2><span class="chapter-num">29c</span>API module <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
-      <p class="lead">The API module lets one of your own systems — an HR or payroll system, a turnstile or badge reader, a reporting tool — read and write the company data without anyone signing in by hand. It is an optional module, switched on for the company by your partner/reseller.</p>
+      <p class="lead">The API module lets one of your own systems — an HR or payroll system, a turnstile or badge reader, a reporting tool — read and write the company data without anyone signing in by hand. It is an optional module (€50/month + VAT): activate it from <em>Settings → Plan and modules</em> (see <a href="#web-admin-abbonamento">Plan, subscription and modules</a>), or, if your company is managed by a partner/reseller, they switch it on.</p>
 
       <div class="feature">
         <h3>What it is for</h3>

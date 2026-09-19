@@ -7,6 +7,8 @@ import { Login } from '../pages/Login.tsx';
 import { ForgotPassword } from '../pages/ForgotPassword.tsx';
 import { ChooseTenant } from '../pages/ChooseTenant.tsx';
 import { SupportEnded, SupportHandoff } from '../pages/Support.tsx';
+import { SignupConfirm } from '../pages/SignupConfirm.tsx';
+import { Welcome } from '../pages/Welcome.tsx';
 import { Layout } from './Layout.tsx';
 import { ErrorBoundary } from '../components/ErrorBoundary.tsx';
 import { AppShellSkeleton, PageSkeleton } from './Skeleton.tsx';
@@ -38,9 +40,12 @@ const Cantieri = lazy(() => import('../pages/Cantieri.tsx').then((m) => ({ defau
 const Mezzi = lazy(() => import('../pages/Mezzi.tsx').then((m) => ({ default: m.Mezzi })));
 const CantieriCampi = lazy(() => import('../pages/CantieriCampi.tsx').then((m) => ({ default: m.CantieriCampi })));
 const CantieriDashboard = lazy(() => import('../pages/CantieriDashboard.tsx').then((m) => ({ default: m.CantieriDashboard })));
+const Subscription = lazy(() => import('../pages/Subscription.tsx').then((m) => ({ default: m.Subscription })));
+const CheckoutSuccess = lazy(() => import('../pages/CheckoutResult.tsx').then((m) => ({ default: m.CheckoutSuccess })));
+const CheckoutCancel = lazy(() => import('../pages/CheckoutResult.tsx').then((m) => ({ default: m.CheckoutCancel })));
 
 export function App() {
-  const { me, loading, tenants, activeTenantId, refresh } = useSession();
+  const { me, loading, tenants, activeTenantId, onboarding, refresh } = useSession();
   const nav = useNavigate();
   const loc = useLocation();
 
@@ -58,9 +63,18 @@ export function App() {
   // must never bounce a partner to the customer's login form.
   if (loc.pathname === '/support') return <SupportHandoff />;
   if (loc.pathname === '/support/ended') return <SupportEnded />;
+  // Self-service registration, step 2 (email link). Public, like the support
+  // handoff: it is what CREATES the account session.
+  if (loc.pathname === '/registrazione/conferma') return <SignupConfirm />;
 
   if (loading) {
     return <AppShellSkeleton />;
+  }
+
+  // Signed-in account that registered itself but has no company yet: the
+  // onboarding wizard (company, then plan) is the only thing to show.
+  if (!me && getToken() && onboarding) {
+    return <Welcome />;
   }
 
   // Authenticated but a member of several companies with none chosen yet:
@@ -111,6 +125,9 @@ export function App() {
               <Route path="/tickets" element={<Tickets />} />
               <Route path="/audit" element={<Audit />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/settings/subscription" element={<Subscription />} />
+              <Route path="/checkout/success" element={<CheckoutSuccess />} />
+              <Route path="/checkout/cancel" element={<CheckoutCancel />} />
               <Route path="/shifts" element={<Shifts />} />
               <Route path="/anomalies" element={<Anomalies />} />
               <Route path="/leaves" element={<Leaves />} />

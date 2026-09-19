@@ -14,7 +14,9 @@ export const ui = {
     'nav.faq': 'FAQ',
     'nav.partner': 'Partner',
     'nav.contact': 'Contatti',
-    'nav.download': "Richiedi l'accesso",
+    // Primary CTA → the self-service registration page; "Accedi" → the web app.
+    'nav.signup': 'Inizia gratis',
+    'nav.login': 'Accedi',
 
     // Video
     'video.title': 'Guarda sonoQui in azione',
@@ -146,10 +148,23 @@ export const ui = {
       "Programma partner per commercialisti, consulenti del lavoro e software house. Attivi e gestisci le aziende dei tuoi clienti da un'unica console, con un margine ricorrente. Al prodotto, all'infrastruttura e all'assistenza pensiamo noi.",
     'partner.page.faq.title': 'Domande frequenti sul programma partner',
 
+    // Registration page (/it/registrazione/). The form only appears once
+    // GET /api/v1/signup/config says signup is open; until then (signup ships
+    // dark) the page shows the "unavailable" fallback instead.
+    'signup.loading': 'Caricamento del modulo di registrazione…',
+    'signup.unavailable.title': 'La registrazione online arriva a breve',
+    'signup.unavailable.text':
+      'Stiamo per aprire la registrazione self-service. Nel frattempo scrivici o chiedi una demo: ti aiutiamo noi ad attivare sonoQui per la tua azienda.',
+    'signup.unavailable.cta': 'Scrivici o chiedi una demo',
+    'signup.unavailable.subject': 'Richiesta di attivazione o demo sonoQui',
+    'signup.haveAccount': 'Hai già un account?',
+    'signup.noscript':
+      'Per registrarti serve JavaScript attivo nel browser. In alternativa scrivici dal modulo di contatto qui sotto.',
+
     // Contact / Footer
     'contact.title': 'Contattaci',
     'contact.subtitle':
-      'Vuoi provare sonoQui? Scrivici e ti aiutiamo a partire.',
+      'Hai domande, ti serve un piano su misura o vuoi diventare partner? Scrivici e ti rispondiamo al più presto.',
     'contact.name': 'Nome',
     'contact.email': 'Email',
     'contact.phone': 'Telefono',
@@ -161,6 +176,7 @@ export const ui = {
     'footer.cookies': 'Cookie Policy',
     'footer.terms': 'Termini e Condizioni',
     'footer.eula': 'EULA',
+    'footer.dpa': 'Accordo trattamento dati (DPA)',
     'footer.cookiePrefs': 'Preferenze cookie',
     'footer.rights': 'Tutti i diritti riservati.',
 

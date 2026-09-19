@@ -1,0 +1,190 @@
+{
+  "badge": {
+    "label": "Passa a Premium",
+    "title": "Più utenti, più sedi: scopri i piani a pagamento"
+  },
+  "plan": {
+    "free": "Gratuito",
+    "piccola": "Piccola",
+    "media": "Media",
+    "custom": "Personalizzato"
+  },
+  "page": {
+    "title": "Piano e abbonamento",
+    "subtitle": "Il tuo piano, i moduli aggiuntivi e i dati per la fattura elettronica.",
+    "back": "Impostazioni"
+  },
+  "current": {
+    "heading": "Il tuo piano",
+    "free": "Piano gratuito",
+    "paid": "Piano {{plan}}",
+    "custom": "Piano personalizzato",
+    "renews": "Si rinnova il {{date}}",
+    "endsOn": "Termina il {{date}}: poi torni al piano gratuito",
+    "pastDue": "Pagamento non riuscito: aggiorna il metodo di pagamento per non perdere il piano.",
+    "usage": "{{used}} di {{max}}",
+    "users": "Utenti",
+    "branches": "Sedi",
+    "admins": "Amministratori",
+    "managePayment": "Metodo di pagamento",
+    "changePlan": "Cambia piano",
+    "cancelPlan": "Disdici il piano",
+    "interval": {
+      "month": "mensile",
+      "year": "annuale"
+    }
+  },
+  "plans": {
+    "heading": "Scegli il piano",
+    "monthly": "Mensile",
+    "yearly": "Annuale",
+    "yearlyHint": "1 mese gratis",
+    "perMonth": "/mese",
+    "perYear": "/anno",
+    "plusVat": "+ IVA",
+    "withVat": "{{amount}} IVA inclusa",
+    "users": "Fino a {{count}} utenti",
+    "branches_one": "{{count}} sede",
+    "branches_other": "Fino a {{count}} sedi",
+    "admins_one": "{{count}} amministratore",
+    "admins_other": "{{count}} amministratori",
+    "features": "Tutte le funzioni di rilevazione presenze",
+    "free": {
+      "title": "Gratuito",
+      "price": "0 €",
+      "forever": "per sempre"
+    },
+    "choose": "Scegli {{plan}}",
+    "current": "Piano attuale",
+    "freeCta": "Continua gratis",
+    "enterprise": {
+      "title": "Oltre 20 utenti?",
+      "text": "Per aziende più grandi o esigenze su misura prepariamo un piano Enterprise.",
+      "cta": "Contattaci"
+    }
+  },
+  "modules": {
+    "heading": "Moduli aggiuntivi",
+    "subheading": "Aggiungi funzioni al tuo piano, anche a quello gratuito. {{price}} al mese + IVA per modulo, disattivabili quando vuoi.",
+    "cantieri": {
+      "name": "Cantieri",
+      "desc": "Attività di cantiere, mezzi, campi personalizzati e report PDF per ogni cantiere."
+    },
+    "api": {
+      "name": "API",
+      "desc": "Collega sonoQui a gestionali, tornelli e strumenti di BI con chiavi API dedicate."
+    },
+    "price": "{{amount}}/mese + IVA",
+    "active": "Attivo",
+    "renews": "Si rinnova il {{date}}",
+    "endsOn": "Si disattiva il {{date}}",
+    "activate": "Attiva",
+    "cancel": "Disattiva a fine periodo",
+    "resume": "Mantieni attivo",
+    "managedNote": "I moduli della tua azienda sono gestiti dal tuo partner: contattalo per attivarli o disattivarli.",
+    "includedNote": "Attivato dal tuo partner",
+    "confirmCancelTitle": "Disattivare il modulo {{name}}?",
+    "confirmCancelCantieri": "Resta attivo fino al {{date}}. Dopo, i dati dei cantieri restano conservati ma non sono più visibili finché non lo riattivi.",
+    "confirmCancelApi": "Resta attivo fino al {{date}}. Dopo, tutte le chiavi API smettono di funzionare: le integrazioni collegate si fermano.",
+    "confirmCancelOk": "Disattiva a fine periodo",
+    "cancelled": "Il modulo si disattiverà a fine periodo.",
+    "resumed": "Il modulo resta attivo."
+  },
+  "profile": {
+    "heading": "Dati di fatturazione",
+    "subheading": "Servono per emettere la fattura elettronica di ogni pagamento.",
+    "legalName": "Ragione sociale",
+    "piva": "Partita IVA",
+    "pivaHint": "La Partita IVA identifica l'azienda e non si può modificare.",
+    "cf": "Codice fiscale",
+    "cfHint": "Facoltativo per le società; per le ditte individuali è il codice fiscale del titolare.",
+    "address": "Indirizzo sede legale",
+    "cap": "CAP",
+    "city": "Comune",
+    "province": "Provincia",
+    "sdi": "Codice destinatario (SDI)",
+    "sdiHint": "7 caratteri. Se non lo hai, indica la PEC.",
+    "pec": "PEC",
+    "pecHint": "In alternativa al codice SDI.",
+    "billingEmail": "Email amministrazione",
+    "billingEmailHint": "Riceve le comunicazioni su pagamenti e rinnovi.",
+    "save": "Salva dati di fatturazione",
+    "saved": "Dati di fatturazione salvati",
+    "incomplete": "Completa i dati di fatturazione per procedere al pagamento.",
+    "missing": {
+      "legal_name": "ragione sociale",
+      "partita_iva": "Partita IVA",
+      "codice_fiscale": "codice fiscale",
+      "address": "indirizzo",
+      "cap": "CAP",
+      "city": "comune",
+      "province": "provincia",
+      "recipient": "codice SDI o PEC",
+      "billing_email": "email amministrazione"
+    },
+    "missingList": "Mancano: {{list}}.",
+    "vat": {
+      "valid": "Verificata sul VIES",
+      "not_in_vies": "Non presente nel VIES",
+      "unavailable": "Verifica VIES in corso"
+    }
+  },
+  "managed": {
+    "title": "Abbonamento gestito dal tuo partner",
+    "text": "Piano, limiti e moduli della tua azienda sono gestiti dal tuo partner o rivenditore. Per modificarli contattalo, oppure apri una richiesta di assistenza."
+  },
+  "disabled": "I pagamenti online non sono ancora attivi. Contattaci per attivare un piano o un modulo.",
+  "invoiceNote": "Paghi con carta in modo sicuro su Stripe. La fattura elettronica viene emessa da Idealcopy S.r.l. e ti arriva tramite il Sistema di Interscambio (SDI).",
+  "banner": {
+    "pending": "Hai scelto il piano {{plan}}: completa l'attivazione per avere fino a {{users}} utenti e {{branches}} sedi.",
+    "pendingCta": "Completa l'attivazione",
+    "pendingDismiss": "Continua con il gratuito",
+    "over": "La tua azienda supera i limiti del piano ({{what}}). Entro il {{date}} elimina quelli in eccesso o passa a un piano a pagamento: dopo, gli export verranno bloccati. Le timbrature continuano a funzionare.",
+    "overLocked": "Export bloccati: la tua azienda supera i limiti del piano ({{what}}). Elimina quelli in eccesso o passa a un piano a pagamento. Le timbrature continuano a funzionare.",
+    "overCta": "Vedi i piani",
+    "kinds": {
+      "users": "utenti",
+      "branches": "sedi",
+      "admins": "amministratori"
+    }
+  },
+  "checkout": {
+    "success": {
+      "title": "Pagamento completato",
+      "activating": "Stiamo attivando il tuo acquisto…",
+      "done": "Fatto: il tuo acquisto è attivo.",
+      "slow": "L'attivazione richiede qualche secondo in più: riceverai un'email di conferma. Intanto puoi continuare a usare sonoQui.",
+      "cta": "Vai a piano e moduli"
+    },
+    "cancel": {
+      "title": "Pagamento annullato",
+      "text": "Non è stato effettuato alcun addebito. Puoi riprovare quando vuoi.",
+      "cta": "Torna ai piani"
+    }
+  },
+  "limit": {
+    "users": "Hai raggiunto il limite di {{limit}} utenti del tuo piano.",
+    "admins": "Hai raggiunto il limite di {{limit}} amministratori del tuo piano.",
+    "branches": "Hai raggiunto il limite di {{limit}} sedi del tuo piano.",
+    "documentali": "Hai raggiunto il limite di {{limit}} Documentali del tuo piano.",
+    "generic": "Hai raggiunto un limite del tuo piano.",
+    "upsell": "Passa a Premium per aumentarlo.",
+    "contact": "Contatta il tuo partner o l'assistenza per aumentarlo."
+  },
+  "section": {
+    "title": "Piano e moduli",
+    "desc": "Il tuo piano sonoQui, i moduli aggiuntivi e i dati di fatturazione.",
+    "manage": "Gestisci piano e fatturazione"
+  },
+  "errors": {
+    "PROFILE_INCOMPLETE": "Completa i dati di fatturazione prima di procedere.",
+    "ALREADY_SUBSCRIBED": "È già attivo: puoi gestirlo dal metodo di pagamento.",
+    "BILLING_DISABLED": "I pagamenti online non sono ancora attivi.",
+    "BILLING_MANAGED": "L'abbonamento della tua azienda è gestito dal tuo partner.",
+    "NO_CUSTOMER": "Non ci sono ancora pagamenti da gestire.",
+    "NO_PLAN_SUBSCRIPTION": "Non c'è un piano a pagamento attivo.",
+    "RATE_LIMITED": "Troppe richieste, riprova tra un minuto.",
+    "VALIDATION": "Controlla i campi evidenziati.",
+    "default": "Operazione non riuscita. Riprova."
+  }
+}

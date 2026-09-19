@@ -2057,3 +2057,130 @@ select.input { background-color: white; }
   color: var(--color-on-surface-variant);
   white-space: nowrap;
 }
+
+/* Self-service billing (Specs/SELF_SERVICE_BILLING.md) ------------------ */
+/* "Passa a Premium" pill under the logo. */
+.premium-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0.75rem 0.875rem 0.25rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 2px 8px -2px rgba(21, 86, 158, 0.45);
+  transition: filter 120ms ease, transform 120ms ease;
+}
+.premium-badge:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.premium-badge:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.premium-badge-collapsed { margin: 0.75rem auto 0.25rem; width: 2.25rem; height: 2.25rem; padding: 0; }
+
+/* Plan notices on top of every admin page. */
+.plan-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+.plan-banner-info { background: #e8f1fb; color: var(--color-primary); border: 1px solid #cfe0f5; }
+.plan-banner-warn { background: #fff7e0; color: #7a5200; border: 1px solid #f5e0a6; }
+.plan-banner-err { background: #fde8e8; color: var(--color-error); border: 1px solid #f5c6c6; }
+.plan-banner-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+/* Plan cards + interval toggle. */
+.plan-interval { display: inline-flex; padding: 0.2rem; border-radius: 999px; background: var(--color-surface-variant); }
+.plan-interval-btn {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.35rem 0.9rem; border-radius: 999px; font-size: 0.8125rem; font-weight: 600;
+  color: var(--color-on-surface-variant);
+}
+.plan-interval-btn.is-active { background: #fff; color: var(--color-primary); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+.plan-interval-hint { font-size: 0.6875rem; font-weight: 600; color: var(--color-secondary); }
+.plan-cards { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+.plan-card {
+  display: flex; flex-direction: column; gap: 0.5rem;
+  padding: 1.1rem; border-radius: 0.9rem; background: #fff;
+  border: 1px solid var(--color-surface-variant);
+}
+.plan-card h4 { font-size: 1rem; font-weight: 700; color: var(--color-on-surface); }
+.plan-card-current { border-color: var(--color-success); }
+.plan-card-selected { border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(21, 86, 158, 0.15); }
+.plan-card-price { display: flex; align-items: baseline; gap: 0.3rem; }
+.plan-card-amount { font-size: 1.6rem; font-weight: 800; color: var(--color-primary); }
+.plan-card-unit { font-size: 0.8125rem; color: var(--color-on-surface-variant); }
+.plan-card-gross { font-size: 0.75rem; color: var(--color-on-surface-variant); }
+.plan-card-features { margin: 0.25rem 0 0.5rem; padding-left: 1.1rem; list-style: disc; font-size: 0.8125rem; color: var(--color-on-surface-variant); }
+.plan-card-features li { margin: 0.15rem 0; }
+.plan-card-cta { margin-top: auto; align-self: flex-start; }
+
+/* Modules. */
+.module-cards { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
+.module-card { display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem; border-radius: 0.8rem; border: 1px solid var(--color-surface-variant); background: #fff; }
+.module-card-on { border-color: #b9dcc7; }
+.module-card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.module-card-head h4 { font-weight: 700; }
+.module-card-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: auto; }
+.module-card-price { font-weight: 700; color: var(--color-primary); font-size: 0.875rem; }
+.module-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+
+/* Usage bars. */
+.usage-bar-head { display: flex; justify-content: space-between; font-size: 0.8125rem; margin-bottom: 0.3rem; }
+.usage-bar-track { height: 0.45rem; border-radius: 999px; background: var(--color-surface-variant); overflow: hidden; }
+.usage-bar-fill { height: 100%; border-radius: 999px; background: var(--color-primary); }
+.usage-bar-fill.is-full { background: var(--color-warning); }
+.usage-bar-fill.is-over { background: var(--color-error); }
+
+/* Signup confirmation + onboarding wizard (full-page, outside the app shell). */
+.signup-shell {
+  min-height: 100vh; display: grid; place-items: center; padding: 1.5rem 1rem;
+  background: linear-gradient(160deg, #eef4fb 0%, #f7f9fc 55%, #eef7f6 100%);
+}
+.signup-card { width: 100%; max-width: 30rem; padding: 1.5rem; }
+.signup-card-wide { max-width: 52rem; }
+.signup-brand { display: flex; align-items: center; gap: 0.5rem; font-weight: 800; font-size: 1.15rem; }
+.wizard-steps { display: flex; gap: 0.5rem; flex-wrap: wrap; counter-reset: step; }
+.wizard-steps li {
+  counter-increment: step; display: flex; align-items: center; gap: 0.4rem;
+  padding: 0.3rem 0.75rem 0.3rem 0.35rem; border-radius: 999px; font-size: 0.8125rem; font-weight: 600;
+  background: var(--color-surface-variant); color: var(--color-on-surface-variant);
+}
+.wizard-steps li::before {
+  content: counter(step); display: inline-grid; place-items: center; width: 1.35rem; height: 1.35rem;
+  border-radius: 999px; background: #fff; font-size: 0.75rem;
+}
+.wizard-steps li.is-current { background: var(--color-primary); color: #fff; }
+.wizard-steps li.is-current::before { color: var(--color-primary); }
+.wizard-steps li.is-done { background: #e8f3ec; color: var(--color-success); }
+.wizard-steps li.is-done::before { content: '✓'; }
+.vat-chip { margin-top: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.6rem; font-size: 0.8125rem; line-height: 1.4; }
+.vat-chip-valid { background: #e8f3ec; color: var(--color-success); }
+.vat-chip-not_in_vies { background: #fff7e0; color: #7a5200; }
+.vat-chip-unavailable { background: var(--color-surface-variant); color: var(--color-on-surface-variant); }
+.chip-radio {
+  display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer;
+  padding: 0.35rem 0.8rem; border-radius: 999px; border: 1px solid var(--color-surface-variant);
+  font-size: 0.8125rem; font-weight: 600; background: #fff;
+}
+.chip-radio input { position: absolute; opacity: 0; pointer-events: none; }
+.chip-radio.is-active { border-color: var(--color-primary); color: var(--color-primary); background: #e8f1fb; }
+.consent { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.8125rem; line-height: 1.45; color: var(--color-on-surface-variant); }
+.consent input { margin-top: 0.2rem; flex-shrink: 0; }
+.consent a { color: var(--color-primary); text-decoration: underline; }
+/* First-run checklist (Dashboard, self-registered companies). */
+.onboarding-steps { display: grid; gap: 0.5rem; }
+.onboarding-steps li { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem; border-radius: 0.7rem; background: #f7f9fc; }
+.onboarding-steps li.is-done { opacity: 0.7; }
+.onboarding-step-num { display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 999px; background: #fff; border: 1px solid var(--color-surface-variant); font-weight: 700; font-size: 0.8125rem; flex-shrink: 0; }
+.onboarding-steps li.is-done .onboarding-step-num { background: #e8f3ec; color: var(--color-success); border-color: transparent; }
+.onboarding-step-body { display: flex; flex-direction: column; flex: 1; min-width: 0; }

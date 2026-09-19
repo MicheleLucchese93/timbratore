@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
+import { stripeConfigProblems } from './lib/stripe-mode.js';
 
 function loadDotenv(): void {
   const env = process.env.NODE_ENV ?? 'development';
@@ -21,6 +22,12 @@ function loadDotenv(): void {
 }
 
 loadDotenv();
+
+// `KEY=` in an env file means "not configured", not "configured as empty".
+const blankIsUnset = z
+  .string()
+  .optional()
+  .transform((v) => (v && v.trim() !== '' ? v.trim() : undefined));
 
 const Env = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -116,6 +123,56 @@ const Env = z.object({
   // all — fail closed. The endpoint creates a tenant and invites its first
   // admin via GoTrue /invite. Min length keeps brute-force out of reach.
   PROVISION_SECRET: z.string().min(32).optional(),
+
+  // ── Self-service signup + Stripe billing (Specs/SELF_SERVICE_BILLING.md) ──
+  // Both flags default OFF so the code ships dark: with SIGNUP_ENABLED=false the
+  // public /signup routes answer 503, with BILLING_ENABLED=false no checkout or
+  // portal session can be created (the Free plan and the caps still apply).
+  SIGNUP_ENABLED: z
+    .string()
+    .transform((v) => v === 'true')
+    .default('false'),
+  BILLING_ENABLED: z
+    .string()
+    .transform((v) => v === 'true')
+    .default('false'),
+  // Which Stripe key pair the API uses: `sandbox` or `live` (lib/stripe-mode.ts).
+  // Both pairs may be configured at once; flipping the mode is an env change +
+  // restart, and the billing tables keep each mode's customers apart.
+  STRIPE_MODE: z.enum(['sandbox', 'live']).default('sandbox'),
+  // Sandbox pair: a sk_test_/rk_test_ key and its webhook destination's signing
+  // secret. Locally the secret is any whsec_ value shared with
+  // scripts/stripe-dev-webhooks.ts, which signs the events it forwards.
+  STRIPE_SANDBOX_SECRET_KEY: blankIsUnset,
+  STRIPE_SANDBOX_WEBHOOK_SECRET: blankIsUnset,
+  // Live pair: a RESTRICTED key (rk_live_…, scopes in DEPLOY.md) and the live
+  // destination's signing secret. Never a full sk_live_ at runtime.
+  STRIPE_LIVE_SECRET_KEY: blankIsUnset,
+  STRIPE_LIVE_WEBHOOK_SECRET: blankIsUnset,
+  // Production + sandbox mode only: the companies (tenant ids, comma-separated)
+  // allowed to open Checkout. Everyone else sees "pagamenti non attivi", so a
+  // test card can never buy a real company a plan while prod runs the sandbox.
+  STRIPE_SANDBOX_TENANTS: z.string().optional(),
+  // Our own P.IVA, sent to VIES as the requester so every check returns a
+  // consultation number (the legal proof the check was made). Seller:
+  // Idealcopy S.r.l. Optional: without it VIES still answers, just unnumbered.
+  VIES_REQUESTER_VAT: z
+    .string()
+    .regex(/^\d{11}$/)
+    .optional(),
+  VIES_TIMEOUT_MS: z.coerce.number().default(8000),
+  // Public origin of the marketing site, for links in signup emails
+  // ("registrati di nuovo") and the legal documents referenced at acceptance.
+  WEBSITE_PUBLIC_URL: z.string().min(1).default('https://sonoqui.pro'),
+  // Hours a signup confirmation link stays valid.
+  SIGNUP_TOKEN_TTL_HOURS: z.coerce.number().int().min(1).max(168).default(48),
+  // Delete accounts that confirmed their email but never created a company,
+  // 90 days after confirmation (with a notice at 80). Off by default: an
+  // automated account deletion is worth switching on deliberately.
+  SIGNUP_ORPHAN_PURGE_ENABLED: z
+    .string()
+    .transform((v) => v === 'true')
+    .default('false'),
 });
 
 export const env = Env.parse(process.env);
@@ -129,6 +186,28 @@ if (env.NODE_ENV === 'production') {
   }
   if (!env.GOTRUE_JWT_AUDIENCE) {
     console.warn('Warning: GOTRUE_JWT_AUDIENCE not pinned in production');
+  }
+  // A public signup form without a CAPTCHA is an open account/tenant factory.
+  if (env.SIGNUP_ENABLED && !env.TURNSTILE_SECRET_KEY) {
+    throw new Error('SIGNUP_ENABLED requires TURNSTILE_SECRET_KEY in production');
+  }
+}
+
+// Stripe: each key in its own slot, and a complete active pair when billing is
+// on (lib/stripe-mode.ts). A misplaced key fails the boot instead of charging
+// real cards "in sandbox" — or taking none "in live".
+{
+  const problems = stripeConfigProblems({
+    mode: env.STRIPE_MODE,
+    sandboxSecretKey: env.STRIPE_SANDBOX_SECRET_KEY,
+    sandboxWebhookSecret: env.STRIPE_SANDBOX_WEBHOOK_SECRET,
+    liveSecretKey: env.STRIPE_LIVE_SECRET_KEY,
+    liveWebhookSecret: env.STRIPE_LIVE_WEBHOOK_SECRET,
+    billingEnabled: env.BILLING_ENABLED,
+  });
+  if (problems.length) throw new Error(`Stripe configuration: ${problems.join('; ')}`);
+  if (env.NODE_ENV === 'production' && env.BILLING_ENABLED && env.STRIPE_MODE === 'sandbox') {
+    console.warn('Warning: BILLING_ENABLED in production on the Stripe SANDBOX (STRIPE_MODE=sandbox)');
   }
 }
 

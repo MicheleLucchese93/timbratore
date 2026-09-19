@@ -56,5 +56,32 @@
     "correctionTitle": "Rifiuta correzione",
     "leaveLabel": "Motivo del rifiuto",
     "correctionLabel": "Nota di rifiuto (opzionale)"
+  },
+  "onboarding": {
+    "title": "Inizia con sonoQui",
+    "subtitle": "{{done}} di {{total}} passi completati.",
+    "dismiss": "Nascondi",
+    "steps": {
+      "branch": {
+        "title": "Crea la tua sede",
+        "hint": "Indirizzo e raggio entro cui si può timbrare.",
+        "cta": "Crea la sede"
+      },
+      "users": {
+        "title": "Invita i collaboratori",
+        "hint": "Il piano gratuito include 3 utenti, te compreso.",
+        "cta": "Invita"
+      },
+      "shifts": {
+        "title": "Configura l'orario di lavoro",
+        "hint": "Serve per ritardi, straordinari e anomalie.",
+        "cta": "Configura l'orario"
+      },
+      "app": {
+        "title": "Fai installare l'app",
+        "hint": "I collaboratori timbrano dall'app sonoQui (App Store e Google Play).",
+        "cta": "Come funziona"
+      }
+    }
   }
 }

@@ -1,7 +1,7 @@
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { isAuthConfigured, loginWithDevToken, loginWithPassword } from '../lib/api.ts';
+import { apiUrl, isAuthConfigured, loginWithDevToken, loginWithPassword } from '../lib/api.ts';
 import { useSession } from '../store/session.ts';
 import { HeroAnimation } from '../components/HeroAnimation.tsx';
 import { PasswordInput } from '../components/PasswordInput.tsx';
@@ -18,6 +18,23 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
   // membership / suspended). Lives in the store so it survives the app-shell
   // remount that happens while `loading` flips — a local setErr would be lost.
   const sessionError = useSession((s) => s.error);
+  // Self-service signup ships dark: offer the "register your company" link only
+  // once the backend says the form is open.
+  const [signupOpen, setSignupOpen] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetch(apiUrl('/api/v1/signup/config'))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((b: { data?: { enabled?: boolean } } | null) => {
+        if (alive) setSignupOpen(b?.data?.enabled === true);
+      })
+      .catch(() => {
+        /* no link — the login itself is unaffected */
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -132,6 +149,19 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
             <button className="btn btn-primary w-full py-3 text-base" disabled={busy} type="submit">
               {busy ? t('signingIn') : t('signIn')}
             </button>
+
+            {signupOpen && (
+              <p className="text-center text-sm" data-testid="login-signup-link">
+                <span className="muted">{t('signupLink')}</span>{' '}
+                <a
+                  href={`${(import.meta.env.VITE_WEBSITE_URL || 'https://sonoqui.pro').replace(/\/$/, '')}/it/registrazione/`}
+                  className="font-semibold underline-offset-4 hover:underline"
+                  style={{ color: 'var(--color-primary)' }}
+                >
+                  {t('signupCta')}
+                </a>
+              </p>
+            )}
 
             <p className="text-center text-sm">
               <a

@@ -33,13 +33,22 @@ export type PartnershipAction =
   | 'ticket.status'
   | 'ticket.assign'
   | 'ticket.reply'
-  | 'ticket.note';
+  | 'ticket.note'
+  // Self-service billing (migration 067). Super-user only.
+  | 'tenant.billing_mode_change'
+  | 'tenant.entitlement_override'
+  | 'tenant.vat_review'
+  | 'tenant.stripe_cancel'
+  | 'billing.payment_invoiced'
+  | 'billing.payment_uninvoiced'
+  | 'signup.resend'
+  | 'signup.reject';
 
 export interface PartnershipAuditEntry {
   actorUserId: string;
   actorRole: string;
   action: PartnershipAction;
-  targetType?: 'tenant' | 'partner' | 'ticket' | null;
+  targetType?: 'tenant' | 'partner' | 'ticket' | 'signup' | 'payment' | null;
   targetId?: string | null;
   targetLabel?: string | null;
   before?: unknown;

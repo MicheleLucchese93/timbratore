@@ -38,6 +38,13 @@ test.describe('web — Login visual baseline', () => {
   });
 
   test('login screen layout', async ({ page }) => {
+    // The "register your company" link appears only while self-service signup
+    // is open (GET /api/v1/signup/config). Pin it closed so one baseline holds
+    // on every backend, before and after the switch-on; the link itself is
+    // covered by e2e/signup/self-service-signup.spec.ts.
+    await page.route('**/api/v1/signup/config', (route) =>
+      route.fulfill({ json: { ok: true, data: { enabled: false } } })
+    );
     await page.goto('/login');
     await expect(page.getByRole('button', { name: 'Accedi' })).toBeVisible({ timeout: 15_000 });
     await expect(page).toHaveScreenshot('login.png', {

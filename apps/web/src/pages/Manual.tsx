@@ -11,6 +11,7 @@ const TOC_IT = `
       <a href="#concetti">Concetti chiave</a>
       <a href="#ruoli">Ruoli e permessi</a>
       <a href="#accesso">Accesso e password</a>
+      <a href="#registrazione">Registrare la tua azienda</a>
 
       <h3>Web · Amministratore</h3>
       <a href="#web-admin">Panoramica</a>
@@ -29,6 +30,7 @@ const TOC_IT = `
       <a href="#web-admin-registro" class="sub">Registro attività</a>
       <a href="#web-admin-assistenza" class="sub">Assistenza</a>
       <a href="#web-admin-impostazioni" class="sub">Impostazioni</a>
+      <a href="#web-admin-abbonamento" class="sub">Piano, abbonamento e moduli</a>
 
       <h3>Web · Dipendente</h3>
       <a href="#web-user">Panoramica</a>
@@ -219,7 +221,25 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Non hai ancora un account?</h3>
-        <p>Solo l'amministratore della tua azienda può crearti l'utenza. Quando avvia la procedura di accesso riceverai un invito a impostare la password ed entrare (se in seguito dimentichi la password riceverai invece un'email di reset).</p>
+        <p>Se la tua azienda usa già sonoQui, è l'amministratore a crearti l'utenza: quando avvia la procedura di accesso riceverai un invito a impostare la password ed entrare (se in seguito dimentichi la password riceverai invece un'email di reset).</p>
+        <p>Se invece vuoi <strong>attivare sonoQui per la tua azienda</strong>, puoi registrarla da solo, gratis: vedi <a href="#registrazione">Registrare la tua azienda</a>.</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="registrazione">
+      <h2><span class="chapter-num">04b</span>Registrare la tua azienda <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
+      <p class="lead">Chi guida l'azienda può attivare sonoQui in autonomia dal sito, in pochi minuti. Si parte con il <strong>piano gratuito</strong> (3 utenti, te compreso, e 1 sede, per sempre) e si passa a un piano a pagamento solo quando serve.</p>
+      <ol class="steps">
+        <li><strong>Registrazione</strong> — sul sito sonoqui.pro premi <em>Inizia gratis</em> (o <em>Inizia ora</em> su un piano), inserisci nome, cognome ed email e accetta i Termini. Non viene creato nulla finché non confermi l'email.</li>
+        <li><strong>Conferma email</strong> — apri il link ricevuto (valido 48 ore) e scegli la password. L'email può arrivare dopo qualche minuto, specie sulle caselle Microsoft/Outlook aziendali: controlla anche lo spam. Se l'indirizzo ha già un account sonoQui, accedi con la password che usi già.</li>
+        <li><strong>La tua azienda</strong> — inserisci la <strong>Partita IVA</strong>: la verifichiamo sul servizio europeo <strong>VIES</strong> e, se presente, compiliamo ragione sociale e indirizzo. Se la P.IVA non risulta nel VIES (succede spesso per chi non opera con l'estero) puoi continuare lo stesso: la verifichiamo noi. Accetti l'accordo sul trattamento dei dati (art. 28 GDPR) e le clausole dei Termini. Questo passaggio si fa dal browser: se accedi dall'app mobile prima di averlo completato, l'app ti ricorda di finire la registrazione su app.sonoqui.pro.</li>
+        <li><strong>Il piano</strong> — scegli <em>Continua gratis</em> oppure un piano a pagamento: inserisci i dati per la fattura elettronica (codice SDI o PEC) e paghi con carta sulla pagina sicura di Stripe. Se chiudi il pagamento, l'azienda resta sul piano gratuito e puoi completare l'attivazione quando vuoi.</li>
+      </ol>
+      <div class="callout callout-info">
+        Dopo la registrazione la Dashboard ti propone i primi passi: <strong>crea la sede</strong>, <strong>invita i collaboratori</strong>, <strong>configura l'orario</strong> e <strong>fai installare l'app</strong>. Le spunte si aggiornano da sole; puoi nascondere il riquadro quando vuoi.
+      </div>
+      <div class="callout callout-warn">
+        Una Partita IVA già registrata su sonoQui non può creare una seconda azienda: chiedi all'amministratore della tua azienda di aggiungerti come utente.
       </div>
     </section>
 
@@ -496,7 +516,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Utilizzo licenze</h3>
-        <p>In testa alla pagina dei contatori indicano <strong>Utenti</strong> attivi / massimo previsti dal piano, <strong>Amministratori</strong> attivi / massimo e <strong>Documentali</strong> attivi / massimo. Se raggiungi il limite il pulsante <em>Invita utente</em> viene disabilitato.</p>
+        <p>In testa alla pagina dei contatori indicano <strong>Utenti</strong> attivi / massimo previsti dal piano, <strong>Amministratori</strong> attivi / massimo e <strong>Documentali</strong> attivi / massimo. Se raggiungi il limite il pulsante <em>Invita utente</em> viene disabilitato; se la tua azienda si è registrata in autonomia compare il collegamento <em>Passa a Premium</em> per aumentarlo (vedi <a href="#web-admin-abbonamento">Piano, abbonamento e moduli</a>).</p>
       </div>
 
       <div class="feature">
@@ -576,7 +596,7 @@ const MAIN_IT = `
 
       <div class="feature">
         <h3>Utilizzo licenze</h3>
-        <p>In testa alla pagina un contatore indica le <strong>Sedi</strong> attive / massimo previste dal piano. Se raggiungi il limite il pulsante <em>Nuova sede</em> viene disabilitato.</p>
+        <p>In testa alla pagina un contatore indica le <strong>Sedi</strong> attive / massimo previste dal piano. Se raggiungi il limite il pulsante <em>Nuova sede</em> viene disabilitato (il piano gratuito include 1 sede: vedi <a href="#web-admin-abbonamento">Piano, abbonamento e moduli</a>).</p>
       </div>
 
       <div class="feature">
@@ -1038,7 +1058,7 @@ const MAIN_IT = `
       <div class="feature">
         <h3>Anagrafica e localizzazione</h3>
         <ul class="tidy">
-          <li><strong>Ragione sociale</strong> — sola lettura (modificabile dal provider). <strong>Partita IVA</strong> — modificabile dall'amministratore (11 cifre).</li>
+          <li><strong>Ragione sociale</strong> — sola lettura (modificabile dal provider). <strong>Partita IVA</strong> — modificabile dall'amministratore (11 cifre); per le aziende registrate in autonomia è in sola lettura perché identifica l'azienda ai fini della fatturazione.</li>
           <li><strong>Timezone</strong> — fuso orario aziendale (Europe/Rome di default).</li>
           <li><strong>Lingua</strong> — Italiano o English. All'inizio l'app usa la lingua del browser (le lingue diverse da italiano e inglese ripiegano su <em>English</em>); resta una preferenza <em>personale</em> che vale solo per il tuo account e la cambi qui (su mobile da <em>Profilo → Lingua</em>).</li>
           <li><strong>Paese</strong> — opzionale, sola lettura.</li>
@@ -1077,6 +1097,62 @@ const MAIN_IT = `
       <div class="feature">
         <h3>Azienda attiva</h3>
         <p>Se il tuo account è collegato a <strong>più aziende</strong>, qui compare la sezione <strong>Azienda attiva</strong> con un menù a tendina per scegliere su quale azienda lavorare. Selezionandone un'altra, l'app si ricarica con i dati e il ruolo della nuova azienda (potresti essere amministratore in una e dipendente in un'altra) e vieni riportato alla dashboard. Se appartieni a una sola azienda, la sezione non compare.</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="web-admin-abbonamento">
+      <h2><span class="chapter-num">15b</span>Piano, abbonamento e moduli <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
+      <p class="lead">Il piano definisce quanti utenti e sedi può avere l'azienda; i moduli aggiungono funzioni. Si gestiscono da <strong>Impostazioni → Piano e moduli</strong> e dalla pagina <strong>Piano e abbonamento</strong>, che apri anche dal pulsante <strong>Passa a Premium</strong> sotto il logo.</p>
+
+      <div class="feature">
+        <h3>I piani</h3>
+        <table>
+          <tr><th>Piano</th><th>Utenti</th><th>Sedi</th><th>Prezzo</th></tr>
+          <tr><td>Gratuito</td><td>3 (te compreso)</td><td>1</td><td>0 €, per sempre</td></tr>
+          <tr><td>Piccola</td><td>fino a 10</td><td>fino a 3</td><td>24,99 €/mese + IVA (annuale 274,89 € + IVA)</td></tr>
+          <tr><td>Media</td><td>fino a 20</td><td>fino a 5</td><td>39,99 €/mese + IVA (annuale 439,89 € + IVA)</td></tr>
+        </table>
+        <p>Contano come utenti tutti gli utenti non eliminati, amministratori compresi: un utente <em>disattivato</em> occupa ancora il posto, per liberarlo va <em>eliminato</em>. Oltre 20 utenti prepariamo un piano Enterprise su misura: scrivici da <em>Assistenza</em>.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Passare a un piano a pagamento</h3>
+        <ol class="steps">
+          <li>Premi <strong>Passa a Premium</strong> (sotto il logo) o apri <strong>Impostazioni → Piano e moduli → Gestisci piano e fatturazione</strong>.</li>
+          <li>Scegli <em>Mensile</em> o <em>Annuale</em> (1 mese gratis) e premi <strong>Scegli Piccola</strong> o <strong>Scegli Media</strong>.</li>
+          <li>Se mancano, completa i <strong>Dati di fatturazione</strong>: indirizzo, codice destinatario <strong>SDI</strong> oppure <strong>PEC</strong>, eventuale codice fiscale ed email amministrazione.</li>
+          <li>Paghi con carta sulla pagina sicura di <strong>Stripe</strong> (IVA 22% indicata a parte). Al rientro il piano si attiva in pochi secondi e ricevi un'email di conferma.</li>
+        </ol>
+        <div class="callout callout-info">
+          Stripe incassa il pagamento ma <strong>non emette la fattura</strong>: la fattura elettronica viene emessa da Idealcopy S.r.l. e ti arriva tramite il Sistema di Interscambio (SDI) ai recapiti indicati nei Dati di fatturazione.
+        </div>
+      </div>
+
+      <div class="feature">
+        <h3>Moduli Cantieri e API</h3>
+        <p>In <strong>Impostazioni → Piano e moduli</strong> ogni modulo mostra prezzo e stato. <strong>Attiva</strong> apre il pagamento (50 €/mese + IVA per modulo, anche con il piano gratuito); il modulo è disponibile appena il pagamento va a buon fine. Con Cantieri, gli amministratori ricevono subito il ruolo <em>Cantieri admin</em>.</p>
+        <p><strong>Disattiva a fine periodo</strong> lascia il modulo attivo fino al rinnovo e poi lo spegne: i dati dei cantieri restano conservati (ma non visibili), mentre le chiavi API smettono di funzionare. Finché il periodo non è finito puoi premere <strong>Mantieni attivo</strong>.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Metodo di pagamento, cambio piano, disdetta</h3>
+        <ul class="tidy">
+          <li><strong>Metodo di pagamento</strong> — aggiorna la carta sulla pagina sicura di Stripe.</li>
+          <li><strong>Cambia piano</strong> — il passaggio a un piano superiore è immediato (paghi la differenza per il periodo in corso); il passaggio a uno inferiore avviene al rinnovo.</li>
+          <li><strong>Disdici il piano</strong> — il piano resta attivo fino al termine del periodo pagato, poi l'azienda torna al piano gratuito.</li>
+          <li>Se un pagamento non va a buon fine ti avvisiamo via email e riproviamo automaticamente per alcuni giorni; se tutti i tentativi falliscono il piano termina.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h3>Se superi i limiti del piano</h3>
+        <p>Quando un piano a pagamento termina e l'azienda ha più utenti o sedi di quelli previsti dal piano gratuito, compare un avviso in cima alle pagine: hai <strong>14 giorni</strong> per eliminare quelli in eccesso o riattivare un piano. Dopo, le <strong>esportazioni vengono bloccate</strong> finché l'azienda non rientra nei limiti. <strong>Le timbrature continuano sempre a funzionare.</strong> L'avviso sparisce da solo appena rientri nei limiti.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Aziende seguite da un partner</h3>
+        <p>Se la tua azienda è gestita da un partner o rivenditore, piano, limiti e moduli li imposta lui: la sezione <em>Piano e moduli</em> è in sola lettura e non compare il pulsante Passa a Premium. Per modifiche contatta il tuo partner.</p>
+        <p>Ogni attivazione, cambio e disattivazione compare nel <strong>Registro attività</strong>, categoria <em>Abbonamento</em>.</p>
       </div>
     </section>
 
@@ -1698,7 +1774,7 @@ const MAIN_IT = `
 
     <section class="chapter" id="cantieri">
       <h2><span class="chapter-num">29a</span>Modulo Cantieri <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
-      <p class="lead">Il modulo Cantieri consente di registrare le attività giornaliere svolte nei cantieri: tempi di viaggio e di attività, mezzi utilizzati e campi personalizzati definiti dall'azienda. È un modulo opzionale: viene attivato per l'azienda dal partner/rivenditore.</p>
+      <p class="lead">Il modulo Cantieri consente di registrare le attività giornaliere svolte nei cantieri: tempi di viaggio e di attività, mezzi utilizzati e campi personalizzati definiti dall'azienda. È un modulo opzionale (50 €/mese + IVA): lo attivi da <em>Impostazioni → Piano e moduli</em> (vedi <a href="#web-admin-abbonamento">Piano, abbonamento e moduli</a>), oppure, se la tua azienda è seguita da un partner/rivenditore, lo attiva lui.</p>
 
       <div class="feature">
         <h3>Attivazione e ruoli</h3>
@@ -1760,7 +1836,7 @@ const MAIN_IT = `
 
     <section class="chapter" id="api">
       <h2><span class="chapter-num">29c</span>Modulo API <span class="badge badge-admin">admin</span> <span class="badge badge-web">web</span></h2>
-      <p class="lead">Il modulo API permette a un tuo sistema — gestionale del personale, tornello o lettore badge, strumento di analisi — di leggere e scrivere i dati dell'azienda senza che nessuno debba accedere a mano. È un modulo opzionale: viene attivato per l'azienda dal partner/rivenditore.</p>
+      <p class="lead">Il modulo API permette a un tuo sistema — gestionale del personale, tornello o lettore badge, strumento di analisi — di leggere e scrivere i dati dell'azienda senza che nessuno debba accedere a mano. È un modulo opzionale (50 €/mese + IVA): lo attivi da <em>Impostazioni → Piano e moduli</em> (vedi <a href="#web-admin-abbonamento">Piano, abbonamento e moduli</a>), oppure, se la tua azienda è seguita da un partner/rivenditore, lo attiva lui.</p>
 
       <div class="feature">
         <h3>A cosa serve</h3>

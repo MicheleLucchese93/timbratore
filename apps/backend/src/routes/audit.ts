@@ -24,6 +24,7 @@ const CATEGORIES: Record<string, string[]> = {
   exports: ['export.'],
   documents: ['document.'],
   api: ['api_key.'],
+  billing: ['billing.'],
   settings: ['tenant.'],
 };
 

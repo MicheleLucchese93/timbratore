@@ -17,3 +17,4 @@ export * from './bulletins/index.js';
 export * from './cantieri/index.js';
 export * from './tickets/index.js';
 export * from './api/index.js';
+export * from './billing/index.js';

@@ -1,7 +1,12 @@
 ---
+import { SIGNUP_PATH } from "../data/seo";
+
 // Optional add-on modules. The base subscription covers attendance for the
-// plan's users; modules add sector-specific capability on top, billed per month
-// on request. Italian-only inline copy, same convention as Features/Pricing.
+// plan's users; modules add sector-specific capability on top, at 50 €/month +
+// IVA each (MODULE_PRICE_CENTS in packages/shared/src/billing), bought by the
+// company admin from Impostazioni on any plan — free included. Partner-managed
+// companies get them from their partner. Italian-only inline copy, same
+// convention as Features/Pricing.
 // Web screenshots: public/screenshots-web/cantieri-*.{png,webp}
 // Mobile (field) screenshots: public/screenshots/cantieri-mobile-*.{png,webp}
 
@@ -87,9 +92,10 @@ const mwebp = (file: string) => `/screenshots/${file}.webp`;
         Espandi sonoQui con i moduli
       </h2>
       <p class="mx-auto mt-4 max-w-3xl text-lg text-on-surface-variant">
-        L'abbonamento include tutta la rilevazione presenze. Quando ti serve di più, attivi
+        Ogni piano include tutta la rilevazione presenze. Quando ti serve di più, attivi
         un <strong class="font-semibold text-on-surface">modulo</strong> pensato per il tuo settore:
-        si aggiunge all'abbonamento, si paga <strong class="font-semibold text-on-surface">a consumo mensile</strong> e il prezzo è su richiesta.
+        costa <strong class="font-semibold text-on-surface">50 €/mese + IVA per modulo</strong> e lo attivi in autonomia
+        da Impostazioni, anche con il piano gratuito. Se la tua azienda è seguita da un partner, lo attiva lui.
       </p>
     </div>
 
@@ -150,20 +156,19 @@ const mwebp = (file: string) => `/screenshots/${file}.webp`;
 
           <div class="mt-6 flex flex-wrap items-center gap-3">
             <a
-              href="#contact"
-              data-module-cta
-              data-module="Cantieri"
+              href={SIGNUP_PATH}
               class="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-container"
             >
-              Richiedi il modulo Cantieri
+              Inizia gratis
             </a>
             <span class="inline-flex items-center gap-1.5 text-xs font-medium text-on-surface-variant">
               <svg class="h-4 w-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
-              A consumo mensile, in aggiunta all'abbonamento
+              50 €/mese + IVA, attivabile da Impostazioni
             </span>
           </div>
           <p class="mt-3 text-xs leading-relaxed text-on-surface-variant">
-            Se gestisci sonoQui tramite un <a href="/it/partner/" class="font-semibold text-primary hover:underline">partner</a>, è il partner ad abilitarli per la tua azienda.
+            Lo attivi in autonomia anche con il piano gratuito e lo disattivi quando vuoi, con effetto a fine mese.
+            Se gestisci sonoQui tramite un <a href="/it/partner/" class="font-semibold text-primary hover:underline">partner</a>, è il partner ad abilitarlo per la tua azienda.
           </p>
         </div>
       </div>
@@ -306,16 +311,14 @@ const mwebp = (file: string) => `/screenshots/${file}.webp`;
 
       <div class="mt-6 flex flex-wrap items-center gap-3">
         <a
-          href="#contact"
-          data-module-cta
-          data-module="API"
+          href={SIGNUP_PATH}
           class="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-container"
         >
-          Richiedi il modulo API
+          Inizia gratis
         </a>
         <span class="inline-flex items-center gap-1.5 text-xs font-medium text-on-surface-variant">
           <svg class="h-4 w-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
-          A consumo mensile, in aggiunta all'abbonamento
+          50 €/mese + IVA, attivabile da Impostazioni
         </span>
       </div>
       <p class="mt-3 text-xs leading-relaxed text-on-surface-variant">
@@ -372,7 +375,9 @@ const mwebp = (file: string) => `/screenshots/${file}.webp`;
 </section>
 
 <script>
-  // Pre-fill the contact form so module enquiries arrive labelled with the module.
+  // Pre-fill the contact form so custom-module enquiries arrive labelled. The
+  // Cantieri/API CTAs lead to the registration page instead: those modules are
+  // bought from Impostazioni, not requested.
   function initModuleCtas() {
     document.querySelectorAll<HTMLAnchorElement>("[data-module-cta]").forEach((cta) => {
       cta.addEventListener("click", () => {

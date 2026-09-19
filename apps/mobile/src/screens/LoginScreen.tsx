@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Constants from 'expo-constants';
 import { useTranslation } from 'react-i18next';
-import { loginWithPassword } from '../lib/api';
+import { api, loginWithPassword } from '../lib/api';
 import { useSession } from '../store/session';
 import { useLock } from '../store/lock';
 import { color, space } from '@sonoqui/shared';
@@ -89,14 +89,22 @@ export function LoginScreen() {
       // The password itself just proved identity — don't immediately gate
       // this session behind the biometric lock (if enabled on this device).
       markUnlocked();
+      // A self-registered account whose company isn't created yet (the web
+      // wizard's step 3) has no membership. Asked BEFORE refresh(), which drops
+      // the tokens when no company resolves; 404 for everyone else.
+      const companyPending = await api<{ step: string }>('/api/v1/onboarding', { noTenant: true })
+        .then((o) => o.step === 'company')
+        .catch(() => false);
       await refresh();
       // Credentials valid but no active company (e.g. company suspended, or no
       // membership). Show the SAME generic error as wrong credentials so we
       // never reveal suspension (no account enumeration). The multi-company
       // chooser (tenants.length > 1) is a valid state and must not trip this.
+      // The one exception is the caller's own unfinished registration: the
+      // password just proved who they are, so say where to finish it.
       const s = useSession.getState();
       if (!s.me && s.tenants.length === 0) {
-        setErr(t('invalidCredentials'));
+        setErr(companyPending ? t('companyPending') : t('invalidCredentials'));
       }
     } catch {
       // Wrong password / rejected login → generic credential message (localized,

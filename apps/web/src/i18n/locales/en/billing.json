@@ -1,0 +1,190 @@
+{
+  "badge": {
+    "label": "Go Premium",
+    "title": "More users, more sites: see the paid plans"
+  },
+  "plan": {
+    "free": "Free",
+    "piccola": "Piccola",
+    "media": "Media",
+    "custom": "Custom"
+  },
+  "page": {
+    "title": "Plan and subscription",
+    "subtitle": "Your plan, add-on modules and the data for the electronic invoice.",
+    "back": "Settings"
+  },
+  "current": {
+    "heading": "Your plan",
+    "free": "Free plan",
+    "paid": "{{plan}} plan",
+    "custom": "Custom plan",
+    "renews": "Renews on {{date}}",
+    "endsOn": "Ends on {{date}}: then you are back on the Free plan",
+    "pastDue": "Payment failed: update your payment method to keep your plan.",
+    "usage": "{{used}} of {{max}}",
+    "users": "Users",
+    "branches": "Sites",
+    "admins": "Administrators",
+    "managePayment": "Payment method",
+    "changePlan": "Change plan",
+    "cancelPlan": "Cancel plan",
+    "interval": {
+      "month": "monthly",
+      "year": "yearly"
+    }
+  },
+  "plans": {
+    "heading": "Choose your plan",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "yearlyHint": "1 month free",
+    "perMonth": "/month",
+    "perYear": "/year",
+    "plusVat": "+ VAT",
+    "withVat": "{{amount}} incl. VAT",
+    "users": "Up to {{count}} users",
+    "branches_one": "{{count}} site",
+    "branches_other": "Up to {{count}} sites",
+    "admins_one": "{{count}} administrator",
+    "admins_other": "{{count}} administrators",
+    "features": "Every time-tracking feature",
+    "free": {
+      "title": "Free",
+      "price": "€0",
+      "forever": "forever"
+    },
+    "choose": "Choose {{plan}}",
+    "current": "Current plan",
+    "freeCta": "Continue for free",
+    "enterprise": {
+      "title": "More than 20 users?",
+      "text": "For larger companies or custom needs we prepare an Enterprise plan.",
+      "cta": "Contact us"
+    }
+  },
+  "modules": {
+    "heading": "Add-on modules",
+    "subheading": "Add features to your plan, the Free one included. {{price}} per month + VAT per module, cancel any time.",
+    "cantieri": {
+      "name": "Cantieri",
+      "desc": "Construction-site activity, vehicles, custom fields and a PDF report per site."
+    },
+    "api": {
+      "name": "API",
+      "desc": "Connect sonoQui to management software, turnstiles and BI tools with dedicated API keys."
+    },
+    "price": "{{amount}}/month + VAT",
+    "active": "Active",
+    "renews": "Renews on {{date}}",
+    "endsOn": "Switches off on {{date}}",
+    "activate": "Activate",
+    "cancel": "Switch off at period end",
+    "resume": "Keep it active",
+    "managedNote": "Your company's modules are managed by your partner: contact them to switch modules on or off.",
+    "includedNote": "Enabled by your partner",
+    "confirmCancelTitle": "Switch off the {{name}} module?",
+    "confirmCancelCantieri": "It stays active until {{date}}. After that, the site data is kept but hidden until you switch it back on.",
+    "confirmCancelApi": "It stays active until {{date}}. After that, every API key stops working: connected integrations will stop.",
+    "confirmCancelOk": "Switch off at period end",
+    "cancelled": "The module will switch off at the end of the period.",
+    "resumed": "The module stays active."
+  },
+  "profile": {
+    "heading": "Billing details",
+    "subheading": "Needed to issue the electronic invoice for every payment.",
+    "legalName": "Company name",
+    "piva": "VAT number (Partita IVA)",
+    "pivaHint": "The VAT number identifies the company and cannot be changed.",
+    "cf": "Tax code (codice fiscale)",
+    "cfHint": "Optional for companies; for sole traders it is the owner's tax code.",
+    "address": "Registered address",
+    "cap": "Postcode",
+    "city": "City",
+    "province": "Province",
+    "sdi": "Recipient code (SDI)",
+    "sdiHint": "7 characters. If you don't have one, enter the PEC.",
+    "pec": "PEC",
+    "pecHint": "Alternative to the SDI code.",
+    "billingEmail": "Accounts email",
+    "billingEmailHint": "Receives notices about payments and renewals.",
+    "save": "Save billing details",
+    "saved": "Billing details saved",
+    "incomplete": "Complete the billing details to proceed to payment.",
+    "missing": {
+      "legal_name": "company name",
+      "partita_iva": "VAT number",
+      "codice_fiscale": "tax code",
+      "address": "address",
+      "cap": "postcode",
+      "city": "city",
+      "province": "province",
+      "recipient": "SDI code or PEC",
+      "billing_email": "accounts email"
+    },
+    "missingList": "Missing: {{list}}.",
+    "vat": {
+      "valid": "Verified on VIES",
+      "not_in_vies": "Not listed on VIES",
+      "unavailable": "VIES check pending"
+    }
+  },
+  "managed": {
+    "title": "Subscription managed by your partner",
+    "text": "Your company's plan, limits and modules are managed by your partner or reseller. Contact them for changes, or open a support request."
+  },
+  "disabled": "Online payments are not active yet. Contact us to activate a plan or a module.",
+  "invoiceNote": "You pay securely by card on Stripe. The electronic invoice is issued by Idealcopy S.r.l. and reaches you through the Italian SDI system.",
+  "banner": {
+    "pending": "You chose the {{plan}} plan: complete the activation to get up to {{users}} users and {{branches}} sites.",
+    "pendingCta": "Complete activation",
+    "pendingDismiss": "Stay on Free",
+    "over": "Your company is above its plan limits ({{what}}). By {{date}} delete the extra ones or move to a paid plan: after that, exports will be locked. Clocking in keeps working.",
+    "overLocked": "Exports locked: your company is above its plan limits ({{what}}). Delete the extra ones or move to a paid plan. Clocking in keeps working.",
+    "overCta": "See the plans",
+    "kinds": {
+      "users": "users",
+      "branches": "sites",
+      "admins": "administrators"
+    }
+  },
+  "checkout": {
+    "success": {
+      "title": "Payment completed",
+      "activating": "Activating your purchase…",
+      "done": "Done: your purchase is active.",
+      "slow": "Activation is taking a few more seconds: you will get a confirmation email. You can keep using sonoQui meanwhile.",
+      "cta": "Go to plan and modules"
+    },
+    "cancel": {
+      "title": "Payment cancelled",
+      "text": "Nothing was charged. You can try again whenever you like.",
+      "cta": "Back to the plans"
+    }
+  },
+  "limit": {
+    "users": "You reached your plan's limit of {{limit}} users.",
+    "admins": "You reached your plan's limit of {{limit}} administrators.",
+    "branches": "You reached your plan's limit of {{limit}} sites.",
+    "documentali": "You reached your plan's limit of {{limit}} Documentali.",
+    "generic": "You reached a limit of your plan.",
+    "upsell": "Go Premium to raise it.",
+    "contact": "Contact your partner or support to raise it."
+  },
+  "section": {
+    "title": "Plan and modules",
+    "desc": "Your sonoQui plan, add-on modules and billing details.",
+    "manage": "Manage plan and billing"
+  },
+  "errors": {
+    "PROFILE_INCOMPLETE": "Complete the billing details before proceeding.",
+    "ALREADY_SUBSCRIBED": "Already active: manage it from the payment method.",
+    "BILLING_DISABLED": "Online payments are not active yet.",
+    "BILLING_MANAGED": "Your company's subscription is managed by your partner.",
+    "NO_CUSTOMER": "There are no payments to manage yet.",
+    "NO_PLAN_SUBSCRIPTION": "There is no active paid plan.",
+    "RATE_LIMITED": "Too many requests, try again in a minute.",
+    "VALIDATION": "Check the highlighted fields.",
+    "default": "Something went wrong. Please try again."
+  }
+}

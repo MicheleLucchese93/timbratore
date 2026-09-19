@@ -44,6 +44,7 @@ const CATEGORIES = [
   'exports',
   'documents',
   'api',
+  'billing',
   'settings',
 ] as const;
 

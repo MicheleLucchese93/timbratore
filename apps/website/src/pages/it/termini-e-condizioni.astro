@@ -1,5 +1,6 @@
 ---
 import LegalLayout from "../../layouts/LegalLayout.astro";
+import { SELLER, SELLER_ADDRESS } from "../../data/seo";
 ---
 
 <LegalLayout
@@ -7,64 +8,192 @@ import LegalLayout from "../../layouts/LegalLayout.astro";
   slug="termini-e-condizioni"
   alternatePaths={{ it: "/it/termini-e-condizioni/" }}
 >
-  <h2>1. Accettazione dei termini</h2>
-  <p>Utilizzando l'applicazione mobile sonoQui, la dashboard web app.sonoqui.pro e il sito sonoqui.pro ("il Servizio"), accetti di essere vincolato dai presenti Termini e Condizioni. Se non accetti questi termini, ti invitiamo a non utilizzare il Servizio.</p>
+  <!-- REVIEW(legal): versione 2.0 riscritta per la vendita online B2B (registrazione self-service, piano gratuito, abbonamenti e moduli pagati con Stripe, fattura elettronica emessa da Idealcopy S.r.l.). Bozza da far rivedere al legale prima della pubblicazione; la numerazione degli articoli è richiamata nell'art. 25 e nella casella "artt. 1341-1342" dell'app web (apps/web, i18n signup.json → wizard.company.art1341). -->
+  <p>Le presenti Condizioni generali di servizio ("Condizioni") regolano l'uso di sonoQui — l'app mobile, la dashboard web app.sonoqui.pro e i servizi collegati ("il Servizio") — da parte delle aziende clienti. Si applicano al piano gratuito, ai piani a pagamento e ai moduli aggiuntivi.</p>
+  <div class="highlight-box">
+    <p><strong>Servizio riservato a imprese e professionisti.</strong> sonoQui è destinato esclusivamente a imprese, enti e professionisti titolari di Partita IVA, che lo utilizzano per la propria attività imprenditoriale o professionale. Il Cliente non è un consumatore: non si applicano le norme del Codice del Consumo (D.Lgs. 206/2005), compreso il diritto di recesso previsto per i contratti conclusi a distanza.</p>
+  </div>
 
-  <h2>2. Descrizione del servizio</h2>
-  <p>sonoQui è un servizio software di rilevazione presenze rivolto principalmente alle piccole imprese italiane. Il Servizio consente di:</p>
+  <h2 id="fornitore">1. Il Fornitore</h2>
+  <p>Il Servizio è fornito da:</p>
+  <!-- TODO(legal): CAP, Partita IVA, codice fiscale, REA, capitale sociale e PEC di Idealcopy S.r.l. sono segnaposto visibili: compilarli in SELLER (src/data/seo.ts). -->
   <ul>
-    <li>Registrare timbrature di ingresso, uscita e pause tramite app mobile con verifica GPS al momento del tap</li>
+    <li><strong>{SELLER.name}</strong>, {SELLER_ADDRESS}</li>
+    <li>Partita IVA {SELLER.vatNumber} — Codice fiscale {SELLER.taxCode}</li>
+    <li>REA {SELLER.rea} — Capitale sociale {SELLER.shareCapital}</li>
+    <li>PEC {SELLER.pec}</li>
+  </ul>
+  <p>Di seguito anche "Fornitore" o "noi". Puoi scriverci tramite il <a href="#contact">modulo di contatto</a> del sito o, per le comunicazioni formali, all'indirizzo PEC indicato sopra.</p>
+
+  <h2 id="definizioni">2. Definizioni</h2>
+  <ul>
+    <li><strong>Cliente</strong>: l'impresa, l'ente o il professionista titolare di Partita IVA che registra un'azienda su sonoQui e accetta le presenti Condizioni.</li>
+    <li><strong>Amministratore</strong>: la persona che registra l'azienda, o a cui il Cliente assegna il ruolo di amministratore, e che agisce per conto del Cliente.</li>
+    <li><strong>Utente</strong>: ogni persona con un account nell'azienda del Cliente — amministratori, dipendenti e collaboratori — Amministratore compreso.</li>
+    <li><strong>Piano</strong>: il livello di servizio (Gratuito, Piccola, Media o su misura), con i limiti di Utenti e sedi indicati nella pagina <a href="/it/#pricing">Prezzi</a>.</li>
+    <li><strong>Modulo</strong>: una funzione aggiuntiva a pagamento (oggi Cantieri e API), attivabile insieme a qualsiasi Piano.</li>
+    <li><strong>Periodo di fatturazione</strong>: il mese o l'anno per cui un Piano o un Modulo è pagato in anticipo.</li>
+  </ul>
+
+  <h2 id="servizio">3. Oggetto del Servizio</h2>
+  <p>sonoQui è un servizio software di rilevazione presenze fornito in modalità SaaS, rivolto principalmente alle piccole e medie imprese italiane. Il Servizio consente di:</p>
+  <ul>
+    <li>Registrare timbrature di ingresso, uscita e pausa tramite app mobile, con verifica della posizione solo al momento del tap</li>
     <li>Richiedere e approvare ferie, permessi e correzioni di timbratura</li>
-    <li>Consultare la dashboard amministratori con anomalie, calendario assenze e saldo ferie</li>
-    <li>Esportare i dati in formato XLSX per la chiusura delle paghe</li>
-    <li>Configurare sedi di lavoro con geofence personalizzato</li>
+    <li>Consultare la dashboard amministratori con anomalie, calendario delle assenze e saldo ferie</li>
+    <li>Esportare i dati per l'elaborazione delle paghe</li>
+    <li>Configurare le sedi di lavoro con un raggio di verifica personalizzato</li>
+    <li>Distribuire documenti ai dipendenti, ad esempio i cedolini, con registrazione della presa visione</li>
   </ul>
+  <p>Le funzioni disponibili dipendono dal Piano e dai Moduli attivi. L'uso dell'app da parte degli Utenti è regolato anche dall'<a href="/it/eula/">EULA</a>.</p>
 
-  <h2>3. Account e ruoli</h2>
+  <h2 id="registrazione">4. Registrazione e conclusione del contratto</h2>
+  <p>La registrazione avviene online, in tre passaggi:</p>
   <ul>
-    <li>Gli account dipendente vengono creati dall'amministratore dell'azienda cliente. Non è previsto auto-registrazione pubblica.</li>
-    <li>Sei responsabile della sicurezza delle tue credenziali di accesso</li>
-    <li>L'utilizzo dell'account è personale e non trasferibile</li>
-    <li>L'azienda cliente è responsabile dei dati anagrafici forniti per i propri dipendenti</li>
+    <li>sul sito sonoqui.pro indichi nome, cognome ed email e accetti le presenti Condizioni;</li>
+    <li>confermi l'indirizzo email con il link che ti inviamo e scegli la password del tuo account;</li>
+    <li>nell'app inserisci i dati dell'azienda, a partire dalla Partita IVA, che verifichiamo anche sul servizio VIES della Commissione europea; accetti l'<a href="/it/dpa/">Accordo sul trattamento dei dati</a> e approvi specificamente le clausole indicate all'art. 25.</li>
+  </ul>
+  <p>Il contratto si conclude quando l'azienda viene creata nell'app, con il piano gratuito. L'acquisto di ciascun Piano o Modulo a pagamento si perfeziona quando il relativo pagamento viene confermato.</p>
+  <p>Chi registra l'azienda dichiara di avere i poteri per rappresentare il Cliente e per accettare le presenti Condizioni per suo conto. Il Cliente garantisce che i dati forniti sono veritieri, completi e aggiornati e si impegna a mantenerli tali. Ogni Partita IVA può corrispondere a una sola azienda registrata in autonomia.</p>
+  <p>Possiamo rifiutare o annullare una registrazione in presenza di dati non veritieri o incompleti, di una Partita IVA non valida, di un uso abusivo del Servizio o di motivi di sicurezza.</p>
+
+  <h2 id="account">5. Account e ruoli</h2>
+  <ul>
+    <li>L'Amministratore crea gli account degli altri Utenti dell'azienda e ne gestisce ruoli e accessi: gli Utenti non si registrano da soli.</li>
+    <li>Ogni account è personale e non cedibile. Il Cliente fa sì che ogni Utente custodisca con cura le proprie credenziali e ci segnala senza ritardo ogni uso non autorizzato.</li>
+    <li>Il Cliente risponde delle attività svolte con gli account della propria azienda e dei dati inseriti per i propri Utenti.</li>
   </ul>
 
-  <h2>4. Utilizzo accettabile</h2>
-  <p>Ti impegni a utilizzare il Servizio in modo lecito e responsabile. Non è consentito:</p>
+  <h2 id="piano-gratuito">6. Piano gratuito</h2>
+  <ul>
+    <li>Il piano gratuito comprende la rilevazione presenze per un massimo di 3 Utenti in totale, Amministratore compreso, 1 sede e 1 Amministratore, senza scadenza e senza costi.</li>
+    <li>Gli Utenti disattivati continuano a contare nel limite: per liberare un posto occorre eliminarli.</li>
+    <li>Il piano gratuito è offerto senza corrispettivo e senza impegni sui livelli di servizio. Possiamo modificarne i limiti o le funzioni, o cessare di offrirlo, con un preavviso di almeno 30 giorni via email all'Amministratore; in tal caso il Cliente può passare a un Piano a pagamento o cessare l'uso del Servizio.</li>
+  </ul>
+
+  <h2 id="abbonamenti">7. Piani a pagamento e rinnovo automatico</h2>
+  <ul>
+    <li>I Piani Piccola e Media si acquistano dall'app, con fatturazione mensile o annuale, ai prezzi pubblicati nella pagina <a href="/it/#pricing">Prezzi</a> al momento dell'acquisto. La fatturazione annuale corrisponde a 11 mensilità.</li>
+    <li><strong>Rinnovo automatico:</strong> l'abbonamento decorre dalla conferma del pagamento e alla scadenza di ogni Periodo di fatturazione si rinnova automaticamente per un periodo di uguale durata, fino a disdetta. A ogni rinnovo addebitiamo il prezzo in vigore sul metodo di pagamento registrato.</li>
+    <li>Le variazioni di prezzo sono comunicate via email almeno 30 giorni prima e si applicano dal primo rinnovo successivo; il Cliente che non intende accettarle può disdire prima del rinnovo.</li>
+    <li><strong>Disdetta:</strong> il Cliente può disdire in qualsiasi momento dall'app. La disdetta ha effetto alla fine del Periodo di fatturazione in corso: fino ad allora il Piano resta attivo, poi l'azienda passa automaticamente al piano gratuito, senza perdita di dati. Non sono previsti rimborsi, nemmeno parziali, per il periodo già pagato.</li>
+    <li><strong>Cambio di piano:</strong> il passaggio a un Piano superiore, o dalla fatturazione mensile a quella annuale, ha effetto immediato, con addebito della differenza calcolata in proporzione al periodo residuo. Il passaggio a un Piano inferiore, o dalla fatturazione annuale a quella mensile, ha effetto dal rinnovo successivo.</li>
+    <li>Utenti e sedi oltre i limiti dei Piani Piccola e Media, e il piano su misura per le aziende più grandi, si concordano su richiesta tramite il modulo di contatto.</li>
+  </ul>
+
+  <h2 id="moduli">8. Moduli aggiuntivi</h2>
+  <ul>
+    <li>I Moduli Cantieri e API costano 50 € al mese ciascuno, IVA esclusa, e li attiva l'Amministratore da Impostazioni, con qualsiasi Piano, compreso quello gratuito.</li>
+    <li>Ogni Modulo è un abbonamento mensile distinto dal Piano: si rinnova automaticamente ogni mese fino a disdetta e si può disattivare in qualsiasi momento, con effetto alla fine del mese già pagato e senza rimborsi per il periodo in corso. Per il resto si applica l'art. 7.</li>
+    <li>Quando un Modulo cessa, le sue funzioni si disattivano: le chiavi del Modulo API smettono di funzionare e i dati del Modulo Cantieri restano conservati ma non sono accessibili finché il Modulo non viene riattivato, fermo quanto previsto all'art. 20.</li>
+  </ul>
+
+  <h2 id="partner">9. Aziende seguite da un partner</h2>
+  <p>Se l'azienda del Cliente è attivata e gestita da un partner sonoQui (rivenditore), Piano, limiti e Moduli sono stabiliti dal partner secondo gli accordi commerciali tra il Cliente e il partner, che ne cura anche la fatturazione. In tal caso prezzi, pagamenti e fatturazione non sono regolati dagli artt. 7, 8, 10 e 11; restano valide tutte le altre disposizioni delle presenti Condizioni.</p>
+
+  <h2 id="pagamenti">10. Prezzi, pagamenti e fattura elettronica</h2>
+  <ul>
+    <li>Tutti i prezzi sono indicati al netto dell'IVA, che si aggiunge nella misura di legge (oggi 22%).</li>
+    <li>Piani e Moduli a pagamento si pagano in anticipo per ciascun Periodo di fatturazione, con carta di pagamento o con gli altri metodi proposti al momento dell'acquisto. I pagamenti sono gestiti da <strong>Stripe Payments Europe Ltd.</strong> (Irlanda), prestatore di servizi di pagamento: i dati della carta sono trattati direttamente da Stripe e non vengono mai conservati da noi.</li>
+    <li>Con l'acquisto il Cliente autorizza l'addebito automatico, sul metodo di pagamento registrato, degli importi dovuti per ogni rinnovo, fino alla disdetta. Il metodo di pagamento si aggiorna dall'app.</li>
+    <li>La <strong>fattura elettronica</strong> è emessa da {SELLER.name} e recapitata tramite il Sistema di Interscambio (SdI) al codice destinatario o all'indirizzo PEC indicati dal Cliente nell'app. I pagamenti di uno stesso mese possono essere riepilogati in un'unica fattura differita. Il Cliente è responsabile della correttezza dei dati di fatturazione.</li>
+  </ul>
+
+  <h2 id="mancato-pagamento">11. Mancato pagamento</h2>
+  <ul>
+    <li>Se un addebito non va a buon fine, lo ritentiamo automaticamente nei giorni successivi e avvisiamo l'Amministratore via email, invitandolo ad aggiornare il metodo di pagamento. Durante questi tentativi il Piano o il Modulo resta attivo.</li>
+    <li>Se anche l'ultimo tentativo non va a buon fine, il Piano a pagamento cessa e l'azienda torna al piano gratuito; i Moduli non pagati si disattivano. Per l'eventuale superamento dei limiti del piano gratuito si applica l'art. 12.</li>
+    <li>Resta fermo il nostro diritto a ottenere il pagamento degli importi dovuti per il periodo in cui il Piano o il Modulo è rimasto attivo.</li>
+  </ul>
+
+  <h2 id="limiti">12. Superamento dei limiti del piano gratuito</h2>
+  <ul>
+    <li>Quando un Piano a pagamento cessa — per disdetta, per cambio di piano o per mancato pagamento — l'azienda può avere più Utenti o sedi di quanti ne consenta il piano gratuito. Ne diamo avviso all'Amministratore, e il Cliente ha <strong>14 giorni</strong> per rientrare nei limiti, eliminando Utenti o sedi oppure attivando un Piano a pagamento.</li>
+    <li>Trascorsi i 14 giorni, e finché i limiti non vengono rispettati, le esportazioni dei dati (compreso l'export per le paghe) sono sospese. In ogni caso non è possibile aggiungere Utenti o sedi oltre i limiti del Piano.</li>
+    <li><strong>La timbratura non viene mai bloccata:</strong> gli Utenti continuano a timbrare e i dati restano consultabili e modificabili. Il blocco delle esportazioni cessa non appena i limiti sono rispettati o viene attivato un Piano adeguato.</li>
+  </ul>
+
+  <h2 id="uso">13. Utilizzo accettabile</h2>
+  <p>Il Cliente si impegna a utilizzare il Servizio, e a farlo utilizzare ai propri Utenti, in modo lecito e responsabile. Non è consentito:</p>
   <ul>
     <li>Utilizzare il Servizio per scopi illegali o non autorizzati</li>
     <li>Tentare di accedere ai dati di altri utenti o di altre aziende</li>
     <li>Interferire con il funzionamento del Servizio o dei suoi server</li>
     <li>Eseguire reverse engineering, decompilare o tentare di ricavare il codice sorgente</li>
     <li>Utilizzare sistemi automatizzati o falsificare la posizione del dispositivo per timbrare</li>
-    <li>Caricare contenuti dannosi, offensivi o illegali negli allegati delle richieste</li>
+    <li>Caricare contenuti dannosi, offensivi o illegali negli allegati o nei documenti</li>
+    <li>Usare inviti ed email del Servizio per inviare comunicazioni non richieste</li>
+    <li>Registrare aziende fittizie, o più aziende per lo stesso Cliente, per aggirare i limiti del piano gratuito</li>
   </ul>
 
-  <h2>5. Conformità normativa</h2>
+  <h2 id="conformita">14. Obblighi del Cliente e conformità normativa</h2>
   <div class="highlight-box">
     <p><strong>Nota importante per il datore di lavoro:</strong> sonoQui è uno strumento di rilevazione presenze. L'art. 4 della Legge 300/1970 (Statuto dei Lavoratori) richiede che l'utilizzo di strumenti tecnologici dai quali derivi anche la possibilità di controllo a distanza dell'attività dei lavoratori sia disciplinato da accordo sindacale aziendale o, in assenza, da autorizzazione dell'Ispettorato Territoriale del Lavoro. È responsabilità del datore di lavoro avere in essere tale accordo o autorizzazione <strong>prima</strong> di abilitare il servizio per i propri dipendenti. sonoQui non sostituisce questo adempimento.</p>
   </div>
+  <p>Il Cliente resta inoltre responsabile di informare i propri dipendenti sul trattamento dei loro dati, della correttezza delle presenze e delle retribuzioni elaborate a partire dai dati del Servizio e del rispetto degli altri obblighi di legge a suo carico.</p>
 
-  <h2>6. Proprietà intellettuale</h2>
-  <p>Il Servizio, inclusi design, codice sorgente, loghi, contenuti e marchi, è protetto dalle leggi sulla proprietà intellettuale. Non è consentito copiare, modificare, distribuire o creare opere derivate senza autorizzazione scritta.</p>
+  <h2 id="dati-personali">15. Protezione dei dati personali</h2>
+  <p>Per i dati personali dei propri Utenti il Cliente è titolare del trattamento e {SELLER.name} agisce come responsabile del trattamento, secondo l'<a href="/it/dpa/">Accordo sul trattamento dei dati (art. 28 GDPR)</a>, che il Cliente accetta al momento della creazione dell'azienda e che fa parte integrante delle presenti Condizioni. Per i dati che trattiamo come titolare autonomo — ad esempio i dati di registrazione, di fatturazione e di navigazione del sito — si applica l'<a href="/it/privacy-policy/">Informativa sulla Privacy</a>.</p>
 
-  <h2>7. Tariffe e fatturazione</h2>
-  <p>Il Servizio è erogato all'azienda cliente in base al contratto sottoscritto. Le condizioni economiche sono indicate nel contratto commerciale tra l'azienda cliente e sonoQui. I dipendenti non sostengono alcun costo per l'utilizzo dell'app.</p>
+  <h2 id="proprieta">16. Proprietà intellettuale</h2>
+  <p>Il Servizio, inclusi design, codice sorgente, loghi, contenuti e marchi, è protetto dalle leggi sulla proprietà intellettuale. Non è consentito copiare, modificare, distribuire o creare opere derivate senza autorizzazione scritta. I dati inseriti nel Servizio restano del Cliente.</p>
 
-  <h2>8. Limitazione di responsabilità</h2>
-  <p>Il Servizio è fornito "così com'è" e "come disponibile". Non forniamo garanzie di alcun tipo, esplicite o implicite, riguardo all'accuratezza, affidabilità o disponibilità del Servizio.</p>
-  <p>Nei limiti consentiti dalla legge, non rispondiamo di danni indiretti, incidentali, speciali o consequenziali derivanti dall'utilizzo o dall'impossibilità di utilizzare il Servizio, né delle conseguenze fiscali o previdenziali derivanti da un uso improprio dei dati esportati.</p>
+  <h2 id="disponibilita">17. Disponibilità e modifiche del Servizio</h2>
+  <p>Forniamo il Servizio con la diligenza professionale richiesta, ma non ne garantiamo il funzionamento ininterrotto o privo di errori. Le manutenzioni programmate sono comunicate via email con almeno 48 ore di anticipo. Possiamo aggiornare e modificare le funzioni del Servizio; se una modifica riduce in modo sostanziale le funzioni di un Piano o di un Modulo a pagamento, la comunichiamo con almeno 30 giorni di preavviso e il Cliente può disdire con effetto immediato, ottenendo il rimborso della quota già pagata e non goduta.</p>
 
-  <h2>9. Modifiche al servizio</h2>
-  <p>Ci riserviamo il diritto di modificare, sospendere o interrompere il Servizio in qualsiasi momento, con preavviso ragionevole all'azienda cliente. Le manutenzioni programmate saranno comunicate via email con almeno 48 ore di anticipo.</p>
+  <h2 id="sospensione">18. Sospensione del Servizio</h2>
+  <p>Possiamo sospendere, in tutto o in parte, l'accesso al Servizio per l'azienda del Cliente o per singoli Utenti:</p>
+  <ul>
+    <li>in caso di mancato pagamento, secondo quanto previsto dall'art. 11;</li>
+    <li>in caso di violazione delle presenti Condizioni, in particolare dell'art. 13, o di uso abusivo del Servizio;</li>
+    <li>se i dati di registrazione risultano non veritieri o la Partita IVA non è valida;</li>
+    <li>per motivi di sicurezza, per prevenire danni al Servizio o ad altri clienti, o su ordine dell'autorità.</li>
+  </ul>
+  <p>Quando possibile avvisiamo prima l'Amministratore e gli diamo modo di rimediare. La sospensione cessa quando viene meno la causa che l'ha determinata e non dà diritto a rimborsi o indennizzi.</p>
 
-  <h2>10. Risoluzione</h2>
-  <p>Ci riserviamo il diritto di sospendere o terminare l'accesso al Servizio in caso di violazione dei presenti termini. L'azienda cliente può terminare il contratto secondo le condizioni concordate. In caso di risoluzione, restano applicabili i termini di conservazione dei dati indicati nell'<a href="/it/privacy-policy/">Informativa sulla Privacy</a>.</p>
+  <h2 id="recesso">19. Durata, recesso e risoluzione</h2>
+  <ul>
+    <li>Il contratto è a tempo indeterminato. Piani e Moduli a pagamento durano per il Periodo di fatturazione e si rinnovano automaticamente come previsto dagli artt. 7 e 8.</li>
+    <li>Il Cliente può recedere in qualsiasi momento, disdicendo Piani e Moduli a pagamento dall'app (con effetto a fine periodo) e chiedendo la chiusura dell'azienda tramite il modulo di contatto. Non sono previsti rimborsi per i periodi già pagati.</li>
+    <li>Possiamo recedere dal contratto con un preavviso di almeno 30 giorni via email all'Amministratore; in tal caso rimborsiamo la quota di Piani e Moduli già pagata e non goduta.</li>
+    <li>Possiamo risolvere il contratto con effetto immediato, ai sensi dell'art. 1456 c.c. e mediante comunicazione scritta, in caso di grave violazione dell'art. 13, di dati di registrazione falsi o di uso del Servizio per scopi illeciti.</li>
+  </ul>
 
-  <h2>11. Legge applicabile e foro competente</h2>
-  <p>I presenti Termini e Condizioni sono regolati dalla legge italiana. Per ogni controversia derivante dall'esecuzione o dall'interpretazione del presente accordo è competente in via esclusiva il <strong>Foro di Milano</strong>, salvo l'applicazione di norme inderogabili a tutela del consumatore.</p>
+  <h2 id="cessazione">20. I dati alla cessazione del contratto</h2>
+  <!-- REVIEW(legal): la cancellazione dopo la cessazione non è ancora automatizzata (la chiusura di un'azienda oggi è una cancellazione logica): serve una procedura operativa o un job prima del go-live. Tempi allineati all'art. 7.8 del DPA. -->
+  <ul>
+    <li>Fino alla cessazione il Cliente può esportare in qualsiasi momento i propri dati dall'app, salvo quanto previsto all'art. 12.</li>
+    <li>Dopo la cessazione conserviamo i dati dell'azienda per 30 giorni, durante i quali il Cliente può chiederne la restituzione in un formato elettronico di uso comune. Nei 60 giorni successivi i dati vengono cancellati, salvo quelli che siamo tenuti a conservare per legge (ad esempio i dati di fatturazione, conservati per 10 anni). Le copie di backup vengono sovrascritte entro 30 giorni.</li>
+  </ul>
 
-  <h2>12. Modifiche ai termini</h2>
-  <p>Ci riserviamo il diritto di modificare i presenti Termini e Condizioni. Le modifiche saranno effettive dalla data di pubblicazione su questa pagina. Per modifiche sostanziali sarà data notifica via email al referente dell'azienda cliente almeno 30 giorni prima dell'entrata in vigore.</p>
+  <h2 id="responsabilita">21. Limitazione di responsabilità</h2>
+  <ul>
+    <li>Il Servizio è fornito così com'è e come disponibile, senza garanzie ulteriori rispetto a quelle previste dalle presenti Condizioni.</li>
+    <li>Salvi i casi di dolo o colpa grave, non rispondiamo di danni indiretti o consequenziali, di mancati guadagni, di perdite di dati imputabili al Cliente o ai suoi Utenti, né delle conseguenze fiscali, retributive o previdenziali di un uso improprio o non verificato dei dati esportati.</li>
+    <li>Salvi i casi di dolo o colpa grave, la nostra responsabilità complessiva verso il Cliente per qualsiasi causa legata al contratto non supera l'importo pagato dal Cliente nei 12 mesi precedenti l'evento che ha causato il danno. Per il solo piano gratuito, offerto senza corrispettivo, la responsabilità per colpa lieve è esclusa.</li>
+  </ul>
+
+  <h2 id="modifiche">22. Modifiche alle Condizioni</h2>
+  <p>Possiamo modificare le presenti Condizioni, ad esempio per adeguarle a nuove funzioni o a novità normative. Le modifiche sostanziali sono comunicate via email all'Amministratore almeno 30 giorni prima dell'entrata in vigore e, per Piani e Moduli a pagamento, si applicano dal primo rinnovo successivo. Il Cliente che non intende accettarle può recedere prima dell'entrata in vigore, senza costi. La versione in vigore è sempre pubblicata su questa pagina, con la data dell'ultimo aggiornamento.</p>
+
+  <h2 id="comunicazioni">23. Comunicazioni</h2>
+  <p>Le comunicazioni relative al contratto sono inviate all'indirizzo email dell'Amministratore o a quello di fatturazione indicato nell'app. Il Cliente può scriverci tramite il <a href="#contact">modulo di contatto</a> o, per le comunicazioni formali, alla PEC {SELLER.pec}.</p>
+
+  <h2 id="foro">24. Legge applicabile e foro competente</h2>
+  <!-- TODO(legal): indicare la città del foro competente (esclusivo). -->
+  <p>Le presenti Condizioni sono regolate dalla legge italiana. Per ogni controversia relativa alla loro interpretazione, esecuzione o risoluzione è competente in via esclusiva il <strong>Foro di [città da inserire]</strong>.</p>
+
+  <h2 id="clausole-vessatorie">25. Approvazione specifica delle clausole (artt. 1341 e 1342 c.c.)</h2>
+  <!-- REVIEW(legal): l'elenco deve coincidere con il testo della casella che l'app mostra alla creazione dell'azienda ("limitazione di responsabilità, sospensione del servizio, recesso, rinnovo automatico, foro competente"). -->
+  <p>Ai sensi e per gli effetti degli artt. 1341 e 1342 del Codice civile, il Cliente, con l'apposita casella presentata al momento della creazione dell'azienda nell'app, dichiara di aver letto e di approvare specificamente le seguenti clausole:</p>
+  <ul>
+    <li>art. 21 — Limitazione di responsabilità;</li>
+    <li>artt. 11 e 18 — Mancato pagamento e sospensione del Servizio;</li>
+    <li>artt. 6, 17 e 19 — Modifica del piano gratuito e del Servizio, durata, recesso e risoluzione;</li>
+    <li>artt. 7 e 8 — Rinnovo automatico di Piani e Moduli, disdetta a fine periodo ed esclusione dei rimborsi;</li>
+    <li>art. 24 — Legge applicabile e foro competente.</li>
+  </ul>
 
   <div class="contact-box">
     <h3>Contattaci</h3>

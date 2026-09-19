@@ -10,8 +10,32 @@ export const WEBSITE_ID = `${SITE_URL}/#website`;
 export const APP_STORE_URL = 'https://apps.apple.com/it/app/sonoqui/id6772960002';
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=app.sonoqui.mobile';
 export const WEB_APP_URL = 'https://app.sonoqui.pro/login';
+// Self-service registration (step 1 of the signup flow; the rest happens in the
+// web app). Pricing CTAs append ?piano=free|piccola|media.
+export const SIGNUP_PATH = '/it/registrazione/';
 // Reseller console (partner program). Existing partners log in here.
 export const PARTNER_APP_URL = 'https://partners.sonoqui.pro';
+
+// Legal identity of the seller (Specs/SELF_SERVICE_BILLING.md, decision D16):
+// Idealcopy S.r.l. sells the service, holds the Stripe account and issues the
+// fatture. Rendered in the footer and on the legal pages (D.Lgs. 70/2003 art. 7,
+// art. 2250 c.c., GDPR art. 13) — and deliberately NOT in the Organization
+// JSON-LD (see Specs/WEBSITE_SEO_GEO.md). The bracketed values are VISIBLE
+// placeholders until the company data arrives: fill them here, once, and every
+// page follows. Go-live blocker: no payment may be taken while any is left.
+export const SELLER = {
+  name: 'Idealcopy S.r.l.',
+  street: 'Viale della Fiera 6/B',
+  cap: '[CAP da inserire]', // TODO(legal): CAP della sede legale
+  city: 'Verona',
+  province: 'VR',
+  vatNumber: '[P.IVA da inserire]', // TODO(legal): Partita IVA
+  taxCode: '[C.F. da inserire]', // TODO(legal): codice fiscale (se diverso dalla P.IVA)
+  rea: '[REA da inserire]', // TODO(legal): numero REA, es. "VR-000000"
+  shareCapital: '[capitale sociale da inserire]', // TODO(legal): capitale sociale ("… € i.v." se interamente versato)
+  pec: '[PEC da inserire]', // TODO(legal): indirizzo PEC
+} as const;
+export const SELLER_ADDRESS = `${SELLER.street}, ${SELLER.cap} ${SELLER.city} (${SELLER.province})`;
 // 1200x630 branded social card (generated, see public/og-default.png). The square
 // /icon.png stays as favicon/app icon only.
 export const DEFAULT_IMAGE = '/og-default.png';
@@ -37,20 +61,32 @@ export const partnerMeta: Record<Lang, { title: string; description: string }> =
   },
 };
 
+// The self-service registration page (/it/registrazione/).
+export const signupMeta: Record<Lang, { title: string; description: string }> = {
+  it: {
+    title: 'Registrati gratis | sonoQui, rilevazione presenze per PMI',
+    description:
+      'Registra gratis la tua azienda su sonoQui: piano gratuito per sempre fino a 3 utenti e 1 sede, senza carta di credito. Bastano nome ed email per iniziare.',
+  },
+};
+
 // Per-page meta descriptions for the legal pages, so each indexable URL gets a
 // unique description instead of inheriting the BaseLayout default (duplicate meta).
 export const legalMeta: Record<string, { it: string }> = {
   'privacy-policy': {
-    it: 'Informativa privacy di sonoQui: titolare del trattamento, dati raccolti, GPS rilevato solo al momento della timbratura, base giuridica, conservazione e diritti GDPR.',
+    it: 'Informativa privacy di sonoQui: titolare Idealcopy S.r.l., dati di registrazione, timbratura e fatturazione, GPS solo al momento del tap, basi giuridiche e diritti GDPR.',
   },
   'cookie-policy': {
     it: 'Cookie policy di sonoQui: quali cookie e tecnologie usiamo su sonoqui.pro, finalità, durata e come gestire il consenso. Cookie analitici solo previo consenso.',
   },
   'termini-e-condizioni': {
-    it: 'Termini e condizioni del servizio sonoQui per le aziende clienti: attivazione, uso della piattaforma SaaS di rilevazione presenze, responsabilità e durata.',
+    it: 'Termini e condizioni di sonoQui per le aziende: registrazione, piano gratuito, abbonamenti con rinnovo automatico, moduli, pagamenti, fattura elettronica e disdetta.',
   },
   eula: {
     it: "EULA di sonoQui: contratto di licenza d'uso dell'app mobile e della dashboard web per i dipendenti, permessi del dispositivo, limitazioni e durata della licenza.",
+  },
+  dpa: {
+    it: "Accordo sul trattamento dei dati (art. 28 GDPR) tra l'azienda cliente e Idealcopy S.r.l. per sonoQui: dati trattati, misure di sicurezza, sub-responsabili e data breach.",
   },
 };
 
@@ -111,20 +147,50 @@ export const homeFaq: Record<Lang, FaqItem[]> = {
     {
       question: "Quanto costa sonoQui?",
       answer:
-        "sonoQui parte da 24,99 €/mese per le aziende fino a 10 dipendenti (massimo 3 sedi) e 39,99 €/mese fino a 20 dipendenti (massimo 5 sedi). Il prezzo dipende dai tuoi dipendenti e tutta la rilevazione presenze è inclusa in entrambi i piani, senza costi nascosti. Con la fatturazione annuale hai 1 mese gratis. Oltre i limiti del piano aggiungi singoli dipendenti a 1,99 €/mese e sedi a 2,99 €/mese. I moduli aggiuntivi (Cantieri e API) sono opzionali, si attivano a parte e si pagano a consumo mensile con prezzo su richiesta. Prezzi IVA esclusa; l'app è gratuita da scaricare e l'attivazione del servizio avviene su richiesta.",
+        "sonoQui è gratuita per sempre fino a 3 utenti (amministratore compreso) e 1 sede. Quando cresci, il piano Piccola costa 24,99 €/mese fino a 10 dipendenti e 3 sedi, il piano Media 39,99 €/mese fino a 20 dipendenti e 5 sedi; con la fatturazione annuale hai 1 mese gratis. Tutta la rilevazione presenze è inclusa in ogni piano, senza costi nascosti. I moduli aggiuntivi Cantieri e API sono facoltativi e costano 50 €/mese ciascuno. Oltre i limiti dei piani, dipendenti (1,99 €/mese) e sedi (2,99 €/mese) aggiuntivi si concordano su richiesta. Prezzi IVA esclusa; l'app è gratuita da scaricare.",
+    },
+    {
+      question: "C'è un piano gratuito?",
+      answer:
+        "Sì. Il piano Gratuito non scade e comprende tutta la rilevazione presenze per 3 utenti in totale, amministratore compreso (quindi tu più 2 collaboratori), e 1 sede. Non serve la carta di credito: registri l'azienda dal sito con nome ed email e inizi subito. Quando l'azienda cresce passi al piano Piccola o Media direttamente dall'app, senza perdere nessun dato.",
     },
     {
       question: "Cosa sono i moduli aggiuntivi?",
       answer:
-        "Oltre alla rilevazione presenze (inclusa in ogni piano), sonoQui offre moduli opzionali per esigenze specifiche di settore. Oggi sono due. Cantieri: gli addetti registrano dal telefono le attività di cantiere (tempo di viaggio, ore di lavoro, mezzi e campi su misura) e l'azienda ottiene report mensili per cantiere in PDF o via email. API: l'azienda crea chiavi di accesso con cui i propri sistemi — gestionale del personale, tornelli e lettori badge, strumenti di analisi — leggono e scrivono i dati di sonoQui senza inserimenti manuali, con permessi separati per tipo di dato e ogni operazione tracciata nel registro attività. I moduli si attivano su richiesta e si fatturano a consumo mensile in aggiunta all'abbonamento, con prezzo su richiesta. Possiamo anche sviluppare moduli su misura per il tuo settore.",
+        "Oltre alla rilevazione presenze (inclusa in ogni piano), sonoQui offre moduli opzionali per esigenze specifiche di settore. Oggi sono due. Cantieri: gli addetti registrano dal telefono le attività di cantiere (tempo di viaggio, ore di lavoro, mezzi e campi su misura) e l'azienda ottiene report mensili per cantiere in PDF o via email. API: l'azienda crea chiavi di accesso con cui i propri sistemi — gestionale del personale, tornelli e lettori badge, strumenti di analisi — leggono e scrivono i dati di sonoQui senza inserimenti manuali, con permessi separati per tipo di dato e ogni operazione tracciata nel registro attività. Ogni modulo costa 50 €/mese + IVA e si aggiunge a qualsiasi piano, anche a quello gratuito. Possiamo anche sviluppare moduli su misura per il tuo settore.",
+    },
+    {
+      question: "Come si attivano i moduli e quanto costano?",
+      answer:
+        "Ogni modulo, Cantieri o API, costa 50 €/mese + IVA. Lo attiva l'amministratore in autonomia da Impostazioni, nella dashboard web, con qualsiasi piano, anche quello gratuito: paghi con carta e il modulo è subito disponibile. Si rinnova ogni mese e lo disattivi quando vuoi, con effetto alla fine del mese già pagato. Se la tua azienda è seguita da un partner sonoQui, i moduli li attiva il partner.",
+    },
+    {
+      question: "Come si paga? Ricevo la fattura elettronica?",
+      answer:
+        "Piani e moduli a pagamento si acquistano dall'app e si pagano con carta tramite Stripe, in anticipo per il mese o l'anno scelto; l'abbonamento si rinnova automaticamente finché non lo disdici. Per i pagamenti ricevi la fattura elettronica tramite il Sistema di Interscambio (SdI), emessa da Idealcopy S.r.l., la società che commercializza sonoQui: basta indicare nell'app il codice destinatario SDI o la PEC dell'azienda. I prezzi sono IVA esclusa: l'IVA al 22% si aggiunge al momento del pagamento.",
+    },
+    {
+      question: "Posso disdire l'abbonamento?",
+      answer:
+        "Sì, quando vuoi, direttamente dall'app. La disdetta ha effetto alla fine del periodo già pagato, mensile o annuale: fino ad allora il piano resta attivo, poi l'azienda torna al piano gratuito senza perdere i dati. Non sono previsti rimborsi per il periodo in corso. Se a quel punto hai più utenti o sedi di quelli del piano gratuito, hai 14 giorni per rientrare nei limiti prima che le esportazioni vengano sospese; la timbratura non viene mai bloccata.",
     },
     {
       question: "Come iniziamo a usare sonoQui?",
       answer:
-        "Non c'è registrazione pubblica: attiviamo noi l'azienda e creiamo il primo account amministratore. Da lì inviti i dipendenti, configuri sedi e orari e sei operativo. Compila il modulo di contatto qui sotto e ti rispondiamo al più presto, in genere entro 1-2 giorni lavorativi.",
+        "Registri l'azienda gratis dal sito con nome ed email, confermi l'indirizzo dal link che ti inviamo e scegli la password. Nell'app inserisci la Partita IVA (recuperiamo ragione sociale e indirizzo dal VIES) e sei operativo con il piano gratuito; se hai scelto Piccola o Media completi il pagamento con carta. Poi crei la sede, inviti i dipendenti e imposti gli orari: loro scaricano l'app gratuita da App Store o Google Play e iniziano a timbrare.",
     },
   ],
 };
+
+// Content pages quote a few homepage answers verbatim (the canonical ones).
+// Looked up by question, never by array index: an index silently pointed at the
+// wrong answer once a new FAQ was inserted above it, while a renamed question
+// here fails the build instead.
+function homeFaqItem(question: string): FaqItem {
+  const item = homeFaq.it.find((faq) => faq.question === question);
+  if (!item) throw new Error(`homeFaq has no question "${question}" — update the content page reference`);
+  return item;
+}
 
 export const partnerFaq: Record<Lang, FaqItem[]> = {
   it: [
@@ -199,6 +265,19 @@ export function buildWebSiteSchema() {
   };
 }
 
+// A recurring net price per month: every paid price on the site is IVA esclusa.
+function monthlyPrice(price: string) {
+  return {
+    '@type': 'UnitPriceSpecification',
+    price,
+    priceCurrency: 'EUR',
+    unitCode: 'MON',
+    unitText: 'mese',
+    referenceQuantity: { '@type': 'QuantitativeValue', value: 1, unitCode: 'MON' },
+    valueAddedTaxIncluded: false,
+  };
+}
+
 export function buildHomeSchema(lang: Lang) {
   const meta = homeMeta[lang];
   return {
@@ -224,7 +303,8 @@ export function buildHomeSchema(lang: Lang) {
       'Export XLSX per il commercialista',
       'Documenti dei dipendenti con presa visione',
       'Smart working e sedi multiple',
-      'Modulo Cantieri opzionale (a consumo mensile)',
+      'Piano gratuito per sempre fino a 3 utenti e 1 sede',
+      'Moduli opzionali Cantieri e API (50 €/mese ciascuno)',
       "Conforme all'art. 4 dello Statuto dei Lavoratori e al GDPR",
     ],
     screenshot: [
@@ -232,27 +312,38 @@ export function buildHomeSchema(lang: Lang) {
       { '@type': 'ImageObject', url: `${SITE_URL}/screenshots/storico.png`, caption: 'Storico delle timbrature' },
       { '@type': 'ImageObject', url: `${SITE_URL}/screenshots-web/dashboard.png`, caption: 'Dashboard amministratori' },
     ],
-    // AggregateOffer summarises the range; the named plans live in an
+    // AggregateOffer summarises the range; the named offers live in an
     // OfferCatalog. An Offer has no `offers` property in the vocabulary, so the
-    // plans used to be nested somewhere every parser silently dropped.
+    // plans used to be nested somewhere every parser silently dropped. The
+    // summary covers exactly the five catalog offers below (Free 0 € … a
+    // module at 50 €/month): keep lowPrice/highPrice/offerCount in step with it.
     offers: {
       '@type': 'AggregateOffer',
       priceCurrency: 'EUR',
-      lowPrice: '24.99',
-      highPrice: '39.99',
-      offerCount: 2,
+      lowPrice: '0',
+      highPrice: '50.00',
+      offerCount: 5,
       url: `${SITE_URL}/it/#pricing`,
-      description: 'Due piani in abbonamento mensile con tutta la rilevazione presenze inclusa; prezzo in base ai dipendenti. Fatturazione annuale con 1 mese gratis. Dipendenti aggiuntivi 1,99 €/mese, sedi aggiuntive 2,99 €/mese. Moduli aggiuntivi opzionali (Cantieri, API) a consumo mensile, prezzo su richiesta. Prezzi IVA esclusa.',
+      description: 'Piano gratuito per sempre fino a 3 utenti e 1 sede; piani Piccola (24,99 €/mese) e Media (39,99 €/mese) con tutta la rilevazione presenze inclusa e fatturazione annuale con 1 mese gratis. Moduli opzionali Cantieri e API a 50 €/mese ciascuno. Dipendenti e sedi aggiuntivi su richiesta. Prezzi IVA esclusa.',
     },
     hasOfferCatalog: {
       '@type': 'OfferCatalog',
-      name: 'Piani sonoQui',
+      name: 'Piani e moduli sonoQui',
       itemListElement: [
+        {
+          '@type': 'Offer',
+          name: 'Gratuito',
+          price: '0',
+          priceCurrency: 'EUR',
+          description: 'Gratis per sempre: fino a 3 utenti (amministratore compreso) e 1 sede, rilevazione presenze completa inclusa. Nessuna carta richiesta.',
+          url: `${SITE_URL}/it/#pricing`,
+        },
         {
           '@type': 'Offer',
           name: 'Piccola',
           price: '24.99',
           priceCurrency: 'EUR',
+          priceSpecification: monthlyPrice('24.99'),
           description: 'Fino a 10 dipendenti, massimo 3 sedi. Rilevazione presenze completa inclusa, al mese.',
           url: `${SITE_URL}/it/#pricing`,
         },
@@ -261,8 +352,27 @@ export function buildHomeSchema(lang: Lang) {
           name: 'Media',
           price: '39.99',
           priceCurrency: 'EUR',
+          priceSpecification: monthlyPrice('39.99'),
           description: 'Fino a 20 dipendenti, massimo 5 sedi. Rilevazione presenze completa inclusa, al mese.',
           url: `${SITE_URL}/it/#pricing`,
+        },
+        {
+          '@type': 'Offer',
+          name: 'Modulo Cantieri',
+          price: '50.00',
+          priceCurrency: 'EUR',
+          priceSpecification: monthlyPrice('50.00'),
+          description: 'Modulo aggiuntivo per le attività di cantiere, attivabile da Impostazioni con qualsiasi piano, anche gratuito. Abbonamento mensile.',
+          url: `${SITE_URL}/it/#moduli`,
+        },
+        {
+          '@type': 'Offer',
+          name: 'Modulo API',
+          price: '50.00',
+          priceCurrency: 'EUR',
+          priceSpecification: monthlyPrice('50.00'),
+          description: 'Modulo aggiuntivo per integrare gestionali, tornelli e strumenti di analisi, attivabile da Impostazioni con qualsiasi piano, anche gratuito. Abbonamento mensile.',
+          url: `${SITE_URL}/it/#moduli`,
         },
       ],
     },
@@ -354,6 +464,35 @@ export const partnerSections: Record<Lang, ContentSection[]> = {
   ],
 };
 
+// Structured data for the registration page. No dates on purpose: the page
+// shows none, and a schema date with no visible counterpart is exactly what the
+// revisions registry exists to prevent (the sitemap still reads the registry).
+export function buildSignupSchemas(lang: Lang) {
+  const meta = signupMeta[lang];
+  const url = `${SITE_URL}${SIGNUP_PATH}`;
+  const webPage = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    '@id': url,
+    name: meta.title,
+    description: meta.description,
+    url,
+    inLanguage: 'it-IT',
+    isPartOf: { '@id': WEBSITE_ID },
+    about: { '@id': ORGANIZATION_ID },
+    publisher: { '@id': ORGANIZATION_ID },
+  };
+  const breadcrumb = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/it/` },
+      { '@type': 'ListItem', position: 2, name: 'Registrazione', item: url },
+    ],
+  };
+  return [webPage, breadcrumb, buildOrganizationSchema(), buildWebSiteSchema()];
+}
+
 // All structured-data nodes for the homepage, emitted as separate JSON-LD blocks.
 export function buildHomeSchemas(lang: Lang) {
   return [
@@ -409,7 +548,7 @@ export const contentPages: ContentPage[] = [
     breadcrumb: 'Timbratura GPS',
     title: 'App di timbratura GPS: timbra il cartellino dallo smartphone | sonoQui',
     description:
-      "App di timbratura GPS per PMI italiane: i dipendenti timbrano il cartellino dallo smartphone, con la posizione verificata solo al momento del tap. Nel rispetto dell'art. 4. Da 24,99 €/mese.",
+      "App di timbratura GPS per PMI italiane: i dipendenti timbrano il cartellino dallo smartphone, con la posizione verificata solo al tap. Nel rispetto dell'art. 4. Gratis fino a 3 utenti.",
     h1: 'Timbratura GPS: il cartellino è nello smartphone dei tuoi dipendenti',
     intro:
       "sonoQui trasforma lo smartphone in un cartellino digitale: un tap per timbrare, con la posizione verificata solo in quel momento per confermare che il dipendente sia nella sede di lavoro. Niente badge, niente totem, niente hardware da installare.",
@@ -451,22 +590,22 @@ export const contentPages: ContentPage[] = [
     // canonical answers); the pricing and onboarding ones are phrased for this
     // page so the same 130 words are not indexed verbatim on three URLs.
     faq: [
-      homeFaq.it[0], // Come funziona la timbratura GPS?
-      homeFaq.it[4], // dimenticanza timbratura
+      homeFaqItem('Come funziona la timbratura GPS?'),
+      homeFaqItem('Che succede se un dipendente si dimentica di timbrare?'),
       {
         question: 'Quanto costa la timbratura GPS con sonoQui?',
         answer:
-          "La timbratura GPS è inclusa in ogni piano, senza hardware da acquistare: si parte da 24,99 €/mese fino a 10 dipendenti e 3 sedi, oppure 39,99 €/mese fino a 20 dipendenti e 5 sedi (IVA esclusa), con 1 mese gratis se paghi annualmente. Un dipendente in più costa 1,99 €/mese, una sede in più 2,99 €/mese. L'app è gratuita da scaricare per i dipendenti.",
+          "La timbratura GPS è inclusa in ogni piano, senza hardware da acquistare, ed è gratuita per sempre fino a 3 utenti e 1 sede. Oltre si passa a 24,99 €/mese fino a 10 dipendenti e 3 sedi, oppure 39,99 €/mese fino a 20 dipendenti e 5 sedi (IVA esclusa), con 1 mese gratis se paghi annualmente. Dipendenti e sedi oltre i limiti del piano si aggiungono su richiesta. L'app è gratuita da scaricare per i dipendenti.",
       },
       {
         question: 'Serve una registrazione per iniziare a timbrare?',
         answer:
-          "Non c'è una registrazione pubblica: l'azienda viene attivata da noi su richiesta e creiamo il primo account amministratore, in genere entro 1-2 giorni lavorativi. Da lì l'amministratore invita i dipendenti, che scaricano l'app gratuita da App Store o Google Play e iniziano a timbrare.",
+          "Solo per l'azienda, e bastano pochi minuti: l'amministratore la registra gratis dal sito sonoqui.pro con nome ed email, conferma l'indirizzo e inserisce la Partita IVA nell'app. Poi invita i dipendenti, che non devono registrarsi: scaricano l'app gratuita da App Store o Google Play, accedono con l'invito ricevuto e iniziano a timbrare.",
       },
     ],
     cta: {
       title: 'Porta la timbratura nello smartphone dei tuoi dipendenti',
-      text: "Compila il modulo di contatto: attiviamo noi la tua azienda e creiamo il primo account amministratore, in genere entro 1-2 giorni lavorativi. L'app è gratuita da scaricare per i dipendenti.",
+      text: "Registra la tua azienda gratis: fino a 3 utenti non paghi nulla, per sempre, e non serve la carta di credito. L'app è gratuita da scaricare per i dipendenti.",
     },
     image: '/screenshots/timbra.png',
     sources: [
@@ -480,14 +619,14 @@ export const contentPages: ContentPage[] = [
     breadcrumb: 'Rilevazione presenze per PMI',
     title: 'Software di rilevazione presenze per PMI italiane | sonoQui',
     description:
-      'Software di rilevazione presenze dipendenti pensato per le PMI italiane: timbratura GPS, ferie, permessi, anomalie ed export per il commercialista. Da 24,99 €/mese, prezzo in base ai dipendenti.',
+      'Software di rilevazione presenze dipendenti pensato per le PMI italiane: timbratura GPS, ferie, permessi, anomalie ed export per il commercialista. Gratis fino a 3 utenti, poi da 24,99 €/mese.',
     h1: 'Il software di rilevazione presenze pensato per le PMI italiane',
     intro:
       "sonoQui è il sistema di rilevazione presenze su misura per le piccole e medie imprese italiane: semplice per chi timbra, completo per chi amministra e già pronto per il commercialista. Tutta la rilevazione presenze è inclusa in ogni piano; i moduli aggiuntivi — Cantieri e API — sono opzionali.",
     highlights: [
       'Timbratura, ferie, permessi e anomalie in un’unica app',
       'Export XLSX mensile pronto per le paghe italiane',
-      'Prezzo per fascia di dipendenti, rilevazione presenze inclusa, da 24,99 €/mese',
+      'Gratis fino a 3 utenti, poi da 24,99 €/mese per fascia di dipendenti',
     ],
     sections: [
       {
@@ -506,8 +645,8 @@ export const contentPages: ContentPage[] = [
       {
         heading: 'Prezzi trasparenti, pensati per le PMI',
         body: [
-          "sonoQui parte da 24,99 €/mese per le aziende fino a 10 dipendenti (massimo 3 sedi) e 39,99 €/mese fino a 20 dipendenti (massimo 5 sedi). Tutta la rilevazione presenze è inclusa in entrambi i piani, senza costi nascosti; i moduli aggiuntivi (Cantieri e API) sono opzionali e si pagano a consumo mensile.",
-          "Con la fatturazione annuale hai 1 mese gratis. Oltre i limiti del piano aggiungi singoli dipendenti a 1,99 €/mese e sedi a 2,99 €/mese. Prezzi IVA esclusa; l'app è gratuita da scaricare e l'attivazione avviene su richiesta.",
+          "sonoQui è gratuita per sempre fino a 3 utenti (amministratore compreso) e 1 sede, senza carta di credito: le micro-imprese possono usarla senza costi. Quando cresci, il piano Piccola costa 24,99 €/mese fino a 10 dipendenti (massimo 3 sedi) e il piano Media 39,99 €/mese fino a 20 dipendenti (massimo 5 sedi). Tutta la rilevazione presenze è inclusa in ogni piano, senza costi nascosti; i moduli aggiuntivi Cantieri e API sono opzionali e costano 50 €/mese ciascuno.",
+          "Con la fatturazione annuale hai 1 mese gratis e oltre i limiti del piano puoi concordare dipendenti (1,99 €/mese) e sedi (2,99 €/mese) aggiuntivi. Ti registri online in pochi minuti, paghi con carta e ricevi la fattura elettronica; disdici quando vuoi, con effetto a fine periodo. Prezzi IVA esclusa; l'app è gratuita da scaricare.",
         ],
       },
       {
@@ -519,18 +658,18 @@ export const contentPages: ContentPage[] = [
       },
     ],
     faq: [
-      homeFaq.it[2], // export commercialista
-      homeFaq.it[5], // sicurezza dati
+      homeFaqItem('Posso esportare i dati per il commercialista?'),
+      homeFaqItem('I miei dati sono al sicuro?'),
       {
         question: 'Quanto costa un software di rilevazione presenze per una PMI?',
         answer:
-          "Con sonoQui il prezzo è per fascia di dipendenti, non per singola funzione: 24,99 €/mese fino a 10 dipendenti e 3 sedi, 39,99 €/mese fino a 20 dipendenti e 5 sedi, IVA esclusa, con tutta la rilevazione presenze inclusa. Se paghi annualmente un mese è gratis; oltre i limiti del piano un dipendente costa 1,99 €/mese e una sede 2,99 €/mese. Non servono badge, totem o altro hardware.",
+          "Con sonoQui il prezzo è per fascia di dipendenti, non per singola funzione: gratis per sempre fino a 3 utenti e 1 sede, poi 24,99 €/mese fino a 10 dipendenti e 3 sedi o 39,99 €/mese fino a 20 dipendenti e 5 sedi, IVA esclusa, con tutta la rilevazione presenze inclusa. Se paghi annualmente un mese è gratis; oltre i limiti del piano un dipendente costa 1,99 €/mese e una sede 2,99 €/mese. Non servono badge, totem o altro hardware.",
       },
-      homeFaq.it[11], // come iniziamo
+      homeFaqItem('Come iniziamo a usare sonoQui?'),
     ],
     cta: {
-      title: 'Attiva sonoQui nella tua PMI',
-      text: 'Compila il modulo di contatto: attiviamo noi la tua azienda e creiamo il primo account amministratore, in genere entro 1-2 giorni lavorativi.',
+      title: 'Prova sonoQui gratis nella tua PMI',
+      text: 'Registra la tua azienda in pochi minuti: il piano gratuito include fino a 3 utenti e 1 sede, per sempre e senza carta di credito. Quando cresci, passi a un piano a pagamento dall’app.',
     },
     image: '/screenshots-web/dashboard.png',
     sources: [
@@ -551,7 +690,7 @@ export const contentPages: ContentPage[] = [
     // the conditional recommendation in the opening sentence instead of after
     // eight sections. The "how to choose" framing follows.
     intro:
-      "Per una PMI italiana che vuole timbratura GPS da smartphone senza hardware, conformità all'art. 4 dello Statuto dei Lavoratori ed export pronto per il commercialista a un prezzo fisso, sonoQui è l'app pensata esattamente per questo caso, da 24,99 €/mese. Se invece servono una suite HR completa, un'integrazione stretta con lo studio paghe o una piattaforma enterprise, Factorial, Dipendenti in Cloud o Zucchetti possono essere scelte più adatte. Qui sotto i criteri che contano, una tabella di confronto e una scheda onesta per ciascuna delle sei soluzioni.",
+      "Per una PMI italiana che vuole timbratura GPS da smartphone senza hardware, conformità all'art. 4 dello Statuto dei Lavoratori ed export pronto per il commercialista a un prezzo fisso, sonoQui è l'app pensata esattamente per questo caso: gratuita fino a 3 utenti, poi da 24,99 €/mese. Se invece servono una suite HR completa, un'integrazione stretta con lo studio paghe o una piattaforma enterprise, Factorial, Dipendenti in Cloud o Zucchetti possono essere scelte più adatte. Qui sotto i criteri che contano, una tabella di confronto e una scheda onesta per ciascuna delle sei soluzioni.",
     highlights: [
       'I criteri di scelta che contano per una PMI',
       'Tabella di confronto tra le 6 soluzioni principali',
@@ -577,8 +716,8 @@ export const contentPages: ContentPage[] = [
         id: 'sonoqui',
         heading: 'sonoQui',
         body: [
-          "Pensata specificamente per le PMI italiane: timbratura GPS al tap, gestione di ferie, permessi e anomalie, ed export XLSX pronto per il commercialista. Il focus è la conformità all'art. 4 (posizione solo al tap, nessun dato biometrico, coordinate GPS mai conservate) e un prezzo per fascia di dipendenti — da 24,99 €/mese, rilevazione presenze inclusa, senza hardware.",
-          "Per chi è: aziende fino a circa 20 dipendenti che vogliono uno strumento semplice per chi timbra e completo per chi amministra, con un costo mensile fisso. Non c'è registrazione self-service: l'attivazione avviene su richiesta.",
+          "Pensata specificamente per le PMI italiane: timbratura GPS al tap, gestione di ferie, permessi e anomalie, ed export XLSX pronto per il commercialista. Il focus è la conformità all'art. 4 (posizione solo al tap, nessun dato biometrico, coordinate GPS mai conservate) e un prezzo per fascia di dipendenti — gratis fino a 3 utenti, poi da 24,99 €/mese, rilevazione presenze inclusa, senza hardware.",
+          "Per chi è: aziende fino a circa 20 dipendenti che vogliono uno strumento semplice per chi timbra e completo per chi amministra, con un costo mensile fisso. La registrazione è self-service e il piano gratuito, senza scadenza, basta alle micro-imprese fino a 3 utenti e 1 sede.",
         ],
       },
       {
@@ -633,7 +772,7 @@ export const contentPages: ContentPage[] = [
       caption: 'Confronto 2026 tra le app di rilevazione presenze per PMI (fonte: pagine pubbliche dei fornitori, settembre 2026)',
       columns: ['Soluzione', 'Modello di prezzo', 'Timbratura da smartphone', 'Verifica della posizione', 'Dati biometrici', 'Export paghe', 'Hardware richiesto', 'Per chi è'],
       rows: [
-        { name: 'sonoQui', anchor: 'sonoqui', cells: ['Per fascia di dipendenti, da 24,99 €/mese', 'Sì, iOS e Android', 'GPS solo al tap, coordinate non conservate', 'No', 'XLSX mensile per il commercialista', 'Nessuno', 'PMI fino a ~20 dipendenti'] },
+        { name: 'sonoQui', anchor: 'sonoqui', cells: ['Gratis fino a 3 utenti; poi per fascia di dipendenti, da 24,99 €/mese', 'Sì, iOS e Android', 'GPS solo al tap, coordinate non conservate', 'No', 'XLSX mensile per il commercialista', 'Nessuno', 'PMI fino a ~20 dipendenti'] },
         { name: 'Fluida', anchor: 'fluida', cells: ['A consumo per dipendente', 'Sì', 'GPS, Bluetooth, NFC', 'n.d.', 'Presenze, ferie, note spese', 'Nessuno', 'Team distribuiti, mobilità, cantieri'] },
         { name: 'Factorial', anchor: 'factorial', cells: ['Suite HR, n.d.', 'Sì', 'Geolocalizzazione al momento della timbratura', 'n.d.', 'Buste paga e reportistica in suite', 'Nessuno', 'PMI in crescita che vogliono una suite HR'] },
         { name: 'Jibble', anchor: 'jibble', cells: ['Piano gratuito disponibile', 'Sì, anche offline', 'Geofencing', 'Riconoscimento facciale (da valutare per art. 4 e GDPR)', 'n.d.', 'Nessuno', 'Micro-imprese e startup'] },
@@ -646,7 +785,7 @@ export const contentPages: ContentPage[] = [
       {
         question: "Qual è la migliore app di rilevazione presenze per una PMI?",
         answer:
-          "Per una PMI italiana che cerca timbratura GPS da smartphone, conformità all'art. 4 dello Statuto dei Lavoratori ed export pronto per il commercialista a un prezzo fisso, sonoQui è la scelta pensata esattamente per questo caso: da 24,99 €/mese fino a 10 dipendenti, senza hardware e senza costi nascosti. La scelta giusta però dipende dai numeri e dalle priorità dell'azienda: chi cerca una suite HR più ampia con buste paga e reportistica può valutare Factorial; chi vuole un'integrazione stretta con lo studio paghe può guardare a Dipendenti in Cloud; le aziende medio-grandi con esigenze articolate trovano in Zucchetti HR Infinity una piattaforma più completa. Non esiste un'unica app migliore in assoluto: conviene partire dai criteri — conformità normativa, timbratura mobile, export per le paghe e prezzo — non dall'elenco delle funzioni, valutando sempre una prova pratica con i propri dipendenti prima di decidere.",
+          "Per una PMI italiana che cerca timbratura GPS da smartphone, conformità all'art. 4 dello Statuto dei Lavoratori ed export pronto per il commercialista a un prezzo fisso, sonoQui è la scelta pensata esattamente per questo caso: gratuita fino a 3 utenti, poi da 24,99 €/mese fino a 10 dipendenti, senza hardware e senza costi nascosti. La scelta giusta però dipende dai numeri e dalle priorità dell'azienda: chi cerca una suite HR più ampia con buste paga e reportistica può valutare Factorial; chi vuole un'integrazione stretta con lo studio paghe può guardare a Dipendenti in Cloud; le aziende medio-grandi con esigenze articolate trovano in Zucchetti HR Infinity una piattaforma più completa. Non esiste un'unica app migliore in assoluto: conviene partire dai criteri — conformità normativa, timbratura mobile, export per le paghe e prezzo — non dall'elenco delle funzioni, valutando sempre una prova pratica con i propri dipendenti prima di decidere.",
       },
       {
         question: "Serve un badge o un hardware dedicato per timbrare?",
@@ -661,17 +800,17 @@ export const contentPages: ContentPage[] = [
       {
         question: "Quanto costa un'app di rilevazione presenze?",
         answer:
-          "I modelli variano tra prezzo per dipendente e prezzo per fascia. sonoQui parte da 24,99 €/mese fino a 10 dipendenti e 39,99 €/mese fino a 20, con la rilevazione presenze inclusa e nessun costo hardware; eventuali moduli aggiuntivi sono opzionali. Altre soluzioni adottano listini a consumo per dipendente.",
+          "I modelli variano tra prezzo per dipendente e prezzo per fascia. sonoQui è gratuita fino a 3 utenti e 1 sede, poi costa 24,99 €/mese fino a 10 dipendenti e 39,99 €/mese fino a 20, con la rilevazione presenze inclusa e nessun costo hardware; i moduli aggiuntivi (50 €/mese ciascuno) sono opzionali. Altre soluzioni adottano listini a consumo per dipendente.",
       },
       {
         question: 'Esiste una prova gratuita di sonoQui?',
         answer:
-          "Non c'è una prova self-service: sonoQui viene attivata su richiesta, tramite il modulo di contatto, e creiamo noi il primo account amministratore, in genere entro 1-2 giorni lavorativi. L'app è gratuita da scaricare per i dipendenti, e sul sito trovi un video dimostrativo e le schermate dell'app e della dashboard per valutarla prima di attivarla.",
+          "Più di una prova: sonoQui ha un piano gratuito senza scadenza, per 3 utenti in totale (amministratore compreso) e 1 sede, con tutta la rilevazione presenze inclusa. Registri l'azienda dal sito con nome ed email, senza carta di credito, e passi a un piano a pagamento solo quando ti serve. L'app è gratuita da scaricare per i dipendenti; sul sito trovi anche un video dimostrativo e le schermate dell'app e della dashboard.",
       },
     ],
     cta: {
       title: 'Cerchi la rilevazione presenze giusta per la tua PMI?',
-      text: "Richiedi l'attivazione di sonoQui: timbratura GPS, gestione presenze completa ed export per il commercialista, a un prezzo fisso e trasparente.",
+      text: 'Prova sonoQui gratis: timbratura GPS, gestione presenze completa ed export per il commercialista. Gratis fino a 3 utenti, poi un prezzo fisso e trasparente.',
     },
     sources: [
       { label: 'CGUE, causa C-55/18, Federación de Servicios de Comisiones Obreras (CCOO) c. Deutsche Bank, sentenza del 14 maggio 2019 — EUR-Lex', url: 'https://eur-lex.europa.eu/legal-content/IT/TXT/?uri=CELEX:62018CJ0055' },

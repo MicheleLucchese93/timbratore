@@ -1,0 +1,80 @@
+{
+  "confirm": {
+    "loading": "Verifica del link…",
+    "title": "Email confermata",
+    "subtitle": "Ciao {{name}}, scegli la password del tuo account {{email}}.",
+    "password": "Password",
+    "passwordRepeat": "Ripeti la password",
+    "mismatch": "Le due password non coincidono.",
+    "rules": "Almeno 8 caratteri con una maiuscola, una minuscola, un numero e un simbolo.",
+    "submit": "Crea account e continua",
+    "existingTitle": "Hai già un account",
+    "existingText": "L'indirizzo {{email}} ha già un account sonoQui: accedi con la tua password per creare la nuova azienda.",
+    "existingPassword": "La tua password",
+    "login": "Accedi e continua",
+    "forgot": "Password dimenticata?",
+    "invalidTitle": "Link non valido o scaduto",
+    "invalidText": "Il link di conferma è scaduto o non è valido. Ripeti la registrazione dal sito: riceverai un nuovo link.",
+    "usedTitle": "Email già confermata",
+    "usedText": "Questo link è già stato usato. Accedi con la tua password per continuare.",
+    "toLogin": "Vai all'accesso",
+    "toSignup": "Registrati di nuovo",
+    "mismatchAccount": "Questo link appartiene a un altro indirizzo email.",
+    "error": "Non è stato possibile completare la conferma. Riprova."
+  },
+  "wizard": {
+    "hello": "Benvenuto, {{name}}!",
+    "intro": "Ancora due passi e la tua azienda è pronta.",
+    "logout": "Esci",
+    "steps": {
+      "account": "Account",
+      "company": "Azienda",
+      "plan": "Piano"
+    },
+    "company": {
+      "title": "La tua azienda",
+      "subtitle": "Inserisci la Partita IVA: recuperiamo ragione sociale e indirizzo dal VIES.",
+      "piva": "Partita IVA",
+      "verify": "Verifica",
+      "checking": "Verifica in corso…",
+      "vat": {
+        "valid": "Verificata sul VIES: {{name}}",
+        "validNoName": "Verificata sul VIES",
+        "not_in_vies": "Non risulta nel VIES: succede spesso se l'azienda non opera con l'estero. Puoi continuare, la verifichiamo noi.",
+        "unavailable": "Il servizio VIES non risponde in questo momento: puoi continuare, riproveremo più tardi.",
+        "invalid": "Partita IVA non valida: controlla le 11 cifre."
+      },
+      "ragioneSociale": "Ragione sociale",
+      "address": "Indirizzo sede legale",
+      "cap": "CAP",
+      "city": "Comune",
+      "province": "Provincia",
+      "headcount": "Quante persone lavorano in azienda?",
+      "headcountOpts": {
+        "1-3": "1–3",
+        "4-10": "4–10",
+        "11-20": "11–20",
+        "20+": "Più di 20"
+      },
+      "headcountHint": "Il piano gratuito include 3 utenti, te compreso. Puoi passare a un piano a pagamento quando vuoi.",
+      "dpa": "Accetto l'<a>accordo sul trattamento dei dati</a> (nomina a responsabile del trattamento, art. 28 GDPR).",
+      "art1341": "Approvo specificamente, ai sensi degli artt. 1341 e 1342 c.c., le clausole dei <a>Termini</a> indicate come vessatorie (limitazione di responsabilità, sospensione del servizio, recesso, rinnovo automatico, foro competente).",
+      "powers": "Dichiaro di avere i poteri per rappresentare l'azienda e accettare questi documenti per suo conto.",
+      "submit": "Crea l'azienda",
+      "creating": "Creazione in corso…",
+      "duplicate": "Questa Partita IVA è già registrata su sonoQui. Chiedi all'amministratore della tua azienda di aggiungerti come utente, oppure contatta l'assistenza.",
+      "invalidVat": "Partita IVA non valida.",
+      "error": "Non è stato possibile creare l'azienda. Riprova."
+    },
+    "plan": {
+      "title": "Scegli il piano",
+      "subtitle": "Parti gratis oppure attiva subito un piano: lo puoi cambiare quando vuoi.",
+      "startFree": "Inizia con il piano gratuito",
+      "billingTitle": "Dati per la fattura elettronica",
+      "billingSubtitle": "Servono per emettere la fattura del piano {{plan}}.",
+      "toPayment": "Vai al pagamento",
+      "back": "Indietro",
+      "later": "Lo farò più tardi"
+    }
+  }
+}

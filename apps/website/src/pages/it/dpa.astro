@@ -1,0 +1,124 @@
+---
+import LegalLayout from "../../layouts/LegalLayout.astro";
+import { SELLER, SELLER_ADDRESS } from "../../data/seo";
+---
+
+<LegalLayout
+  title="Accordo sul trattamento dei dati (art. 28 GDPR)"
+  slug="dpa"
+  alternatePaths={{ it: "/it/dpa/" }}
+>
+  <!-- REVIEW(legal): documento nuovo (v1.0), accettato online con la casella "DPA" alla creazione dell'azienda (legal_acceptances.document = 'dpa', versione = LEGAL_VERSIONS.dpa). Da far rivedere al legale: ruoli (Idealcopy responsabile; l'eventuale società che sviluppa o gestisce la piattaforma come sub-responsabile; accesso in sola lettura dei partner alle aziende che seguono), elenco dei sub-responsabili, tempi di cancellazione (§ 7.8) e regole di audit (§ 7.9). -->
+  <p>Il presente Accordo sul trattamento dei dati personali ("Accordo") integra i <a href="/it/termini-e-condizioni/">Termini e condizioni</a> del servizio sonoQui e disciplina il trattamento dei dati personali che {SELLER.name} svolge per conto delle aziende clienti, ai sensi dell'art. 28 del Regolamento (UE) 2016/679 ("GDPR").</p>
+  <div class="highlight-box">
+    <p><strong>Come si accetta.</strong> L'Accordo è accettato online dall'amministratore al momento della creazione dell'azienda in sonoQui, con un'apposita casella di spunta. Registriamo la versione accettata, con data, ora e indirizzo IP dell'accettazione. La versione in vigore è quella indicata in cima a questa pagina.</p>
+  </div>
+
+  <h2 id="parti">1. Parti e ruoli</h2>
+  <!-- TODO(legal): CAP, Partita IVA e PEC di Idealcopy S.r.l. sono segnaposto visibili: compilarli in SELLER (src/data/seo.ts). -->
+  <ul>
+    <li><strong>Titolare del trattamento</strong>: l'azienda cliente che utilizza sonoQui ("Titolare" o "Cliente"), che determina finalità e mezzi del trattamento dei dati dei propri dipendenti e collaboratori.</li>
+    <li><strong>Responsabile del trattamento</strong>: {SELLER.name}, {SELLER_ADDRESS}, Partita IVA {SELLER.vatNumber}, PEC {SELLER.pec} ("Responsabile"), che fornisce il servizio sonoQui.</li>
+  </ul>
+
+  <h2 id="oggetto">2. Oggetto e durata</h2>
+  <p>Oggetto dell'Accordo è il trattamento dei dati personali necessario a fornire al Titolare il servizio di rilevazione delle presenze e delle timbrature dei dipendenti, e i servizi collegati descritti nei Termini e condizioni. L'Accordo ha la stessa durata del contratto di servizio; gli obblighi di riservatezza, cancellazione e restituzione dei dati restano validi fino al loro completo adempimento.</p>
+
+  <h2 id="natura">3. Natura e finalità del trattamento</h2>
+  <p>Il Responsabile tratta i dati con strumenti elettronici, su server situati nell'Unione Europea, svolgendo le operazioni di raccolta, registrazione, organizzazione, conservazione, consultazione, elaborazione, estrazione, comunicazione al Titolare, cancellazione e distruzione, al solo scopo di:</p>
+  <ul>
+    <li>registrare le timbrature di ingresso, uscita e pausa e verificare, nel solo momento della timbratura, che il dipendente si trovi nell'area della sede;</li>
+    <li>gestire ferie, permessi, malattie, correzioni e anomalie di orario, con i relativi flussi di approvazione;</li>
+    <li>calcolare le ore lavorate e produrre i riepiloghi e le esportazioni per l'elaborazione delle paghe;</li>
+    <li>distribuire ai dipendenti i documenti caricati dal Titolare, ad esempio cedolini e CU, e registrarne la presa visione;</li>
+    <li>inviare agli utenti notifiche e comunicazioni di servizio;</li>
+    <li>fornire le funzioni dei moduli aggiuntivi (Cantieri, API), se attivati dal Titolare;</li>
+    <li>garantire la sicurezza, il funzionamento e l'assistenza del servizio.</li>
+  </ul>
+
+  <h2 id="dati">4. Tipi di dati personali</h2>
+  <ul>
+    <li><strong>Dati anagrafici e di contatto</strong>: nome, cognome, indirizzo email, eventuale telefono e identificativo interno, ruolo e sede di riferimento;</li>
+    <li><strong>Dati di timbratura</strong>: data, ora e tipo di ogni timbratura, sede, correzioni con la relativa motivazione;</li>
+    <li><strong>Posizione al momento della timbratura</strong>: coordinate rilevate solo nell'istante del tap, usate per verificare la sede e non conservate; restano l'esito della verifica («fuori area», con la distanza dalla sede) e l'eventuale segnalazione di posizione simulata;</li>
+    <li><strong>Assenze</strong>: ferie, permessi e malattia, con periodi e ore, ed eventuali allegati caricati dal dipendente, che possono contenere dati relativi alla salute (art. 9 GDPR);</li>
+    <li><strong>Documenti HR</strong>: documenti caricati dal Titolare per i dipendenti (ad esempio cedolini, CU, contratti) e registrazione della presa visione;</li>
+    <li><strong>Dati tecnici</strong>: log di accesso e di sicurezza, modello e sistema operativo del dispositivo, token per le notifiche;</li>
+    <li><strong>Dati dei moduli</strong>, se attivati: attività di cantiere, mezzi e campi personalizzati (Cantieri); operazioni eseguite con le chiavi di accesso (API).</li>
+  </ul>
+
+  <h2 id="interessati">5. Categorie di interessati</h2>
+  <p>Dipendenti, collaboratori e altro personale del Titolare che utilizzano sonoQui, compresi gli amministratori e gli approvatori designati dal Titolare.</p>
+
+  <h2 id="titolare">6. Obblighi del Titolare</h2>
+  <p>Il Titolare:</p>
+  <ul>
+    <li>tratta i dati in base a un'idonea base giuridica e fornisce agli interessati l'informativa prevista dagli artt. 13 e 14 GDPR;</li>
+    <li>prima di attivare la timbratura con verifica della posizione, adempie agli obblighi dell'art. 4 della Legge 300/1970 (accordo sindacale o autorizzazione dell'Ispettorato Territoriale del Lavoro);</li>
+    <li>inserisce nel servizio solo i dati necessari e ne cura l'esattezza;</li>
+    <li>impartisce al Responsabile istruzioni conformi alla normativa sulla protezione dei dati.</li>
+  </ul>
+
+  <h2 id="responsabile">7. Obblighi del Responsabile</h2>
+
+  <h3>7.1 Istruzioni documentate</h3>
+  <p>Il Responsabile tratta i dati solo su istruzione documentata del Titolare. Costituiscono istruzioni documentate il presente Accordo, i Termini e condizioni e le configurazioni impostate dal Titolare nel servizio (ad esempio periodi di conservazione, sedi, utenti e moduli attivi). Il Responsabile informa senza ritardo il Titolare se ritiene che un'istruzione violi il GDPR o altre norme sulla protezione dei dati, e trasferisce dati fuori dallo Spazio economico europeo solo nel rispetto del Capo V del GDPR (vedi § 8).</p>
+
+  <h3>7.2 Riservatezza</h3>
+  <p>Il Responsabile garantisce che le persone autorizzate a trattare i dati si siano impegnate alla riservatezza o abbiano un adeguato obbligo legale di riservatezza, e che vi accedano solo nella misura necessaria, ad esempio per l'assistenza richiesta dal Titolare.</p>
+
+  <h3>7.3 Sicurezza del trattamento (art. 32 GDPR)</h3>
+  <p>Il Responsabile adotta misure tecniche e organizzative adeguate al rischio, tra cui:</p>
+  <ul>
+    <li>cifratura dei dati in transito e a riposo;</li>
+    <li>isolamento logico dei dati di ciascuna azienda cliente;</li>
+    <li>autenticazione degli utenti e controlli di accesso basati sui ruoli; accesso all'archivio documentale completo protetto da un codice di verifica;</li>
+    <li>registrazione delle operazioni amministrative e delle consultazioni dei documenti;</li>
+    <li>backup periodici cifrati, conservati nell'Unione Europea;</li>
+    <li>minimizzazione dei dati: le coordinate della timbratura non vengono conservate;</li>
+    <li>aggiornamenti di sicurezza costanti e verifica periodica dell'efficacia delle misure adottate.</li>
+  </ul>
+
+  <h3>7.4 Sub-responsabili</h3>
+  <p>Il Titolare autorizza in via generale il Responsabile ad avvalersi di altri responsabili del trattamento (sub-responsabili). Alla data di questa versione le categorie sono:</p>
+  <ul>
+    <li>infrastruttura di hosting e database, con server nell'Unione Europea;</li>
+    <li>archiviazione di file e allegati (object storage);</li>
+    <li>invio delle email di servizio (Brevo, Francia);</li>
+    <li>consegna delle notifiche push (Apple Inc. e Google LLC);</li>
+    <li>reverse proxy, DNS e protezione della rete (Cloudflare, Inc.).</li>
+  </ul>
+  <p>Il Responsabile informa il Titolare, via email all'amministratore e con almeno 30 giorni di anticipo, dell'aggiunta o della sostituzione di un sub-responsabile. Entro tale termine il Titolare può opporsi per motivi ragionevoli legati alla protezione dei dati; se le parti non trovano una soluzione, il Titolare può recedere dal contratto senza penali prima che la modifica abbia effetto, con il rimborso della quota già pagata e non goduta. Il Responsabile impone ai sub-responsabili, per contratto, obblighi di protezione dei dati equivalenti a quelli del presente Accordo e risponde nei confronti del Titolare del loro adempimento. L'elenco nominativo aggiornato è disponibile su richiesta tramite il <a href="#contact">modulo di contatto</a>.</p>
+
+  <h3>7.5 Assistenza per i diritti degli interessati</h3>
+  <p>Tenuto conto della natura del trattamento, il Responsabile assiste il Titolare con misure tecniche e organizzative adeguate nel dare seguito alle richieste degli interessati (artt. 15-22 GDPR): il servizio consente all'amministratore di consultare, correggere, esportare e cancellare i dati, e per le richieste che non può gestire in autonomia il Titolare può rivolgersi al Responsabile. Se un interessato si rivolge direttamente al Responsabile, questi lo indirizza al Titolare e ne informa il Titolare senza ritardo.</p>
+
+  <h3>7.6 Assistenza negli altri adempimenti</h3>
+  <p>Il Responsabile assiste il Titolare, nei limiti delle informazioni di cui dispone, nel rispetto degli obblighi degli artt. 32-36 GDPR: sicurezza del trattamento, notifica e comunicazione delle violazioni, valutazione d'impatto e consultazione preventiva.</p>
+
+  <h3>7.7 Violazioni dei dati personali</h3>
+  <p>Il Responsabile notifica al Titolare, via email all'amministratore e <strong>senza ingiustificato ritardo</strong> dopo esserne venuto a conoscenza, ogni violazione dei dati personali trattati per suo conto. La notifica contiene le informazioni previste dall'art. 33(3) GDPR — natura della violazione, categorie e numero approssimativo di interessati e di registrazioni coinvolte, probabili conseguenze, misure adottate o proposte — anche in più fasi, man mano che sono disponibili. Il Responsabile adotta senza ritardo le misure necessarie a contenere la violazione e ad attenuarne gli effetti.</p>
+
+  <h3>7.8 Cancellazione o restituzione dei dati</h3>
+  <!-- REVIEW(legal): tempi allineati all'art. 20 dei Termini; la cancellazione dopo la cessazione non è ancora automatizzata e richiede una procedura operativa prima del go-live. -->
+  <p>Fino alla cessazione del servizio il Titolare può esportare i propri dati dall'app; nei 30 giorni successivi può chiederne la restituzione in un formato elettronico di uso comune. Trascorso tale termine il Responsabile cancella, entro i successivi 60 giorni, i dati personali trattati per conto del Titolare, salvo che il diritto dell'Unione o nazionale ne imponga la conservazione; le copie di backup vengono sovrascritte entro 30 giorni. Su richiesta, il Responsabile conferma per iscritto l'avvenuta cancellazione.</p>
+
+  <h3>7.9 Informazioni e verifiche</h3>
+  <p>Il Responsabile mette a disposizione del Titolare le informazioni necessarie a dimostrare il rispetto degli obblighi dell'art. 28 GDPR e consente e contribuisce alle attività di revisione, comprese le ispezioni, svolte dal Titolare o da un revisore da questi incaricato e vincolato alla riservatezza. In prima battuta il Responsabile risponde a questionari scritti e fornisce la documentazione delle misure adottate. Le ispezioni sono concordate con almeno 30 giorni di preavviso, si svolgono in orario lavorativo senza compromettere la sicurezza e la riservatezza degli altri clienti e, salvo il caso di una violazione imputabile al Responsabile, sono a spese del Titolare.</p>
+
+  <h2 id="trasferimenti">8. Trasferimenti fuori dall'Unione Europea</h2>
+  <p>I dati sono conservati su server nell'Unione Europea. Alcuni sub-responsabili (notifiche push, rete e protezione) possono trattare dati negli Stati Uniti: in tali casi i trasferimenti avvengono sulla base della decisione di adeguatezza EU-US Data Privacy Framework o delle Clausole Contrattuali Standard della Commissione europea (Decisione 2021/914).</p>
+
+  <h2 id="finali">9. Registro, responsabilità e disposizioni finali</h2>
+  <ul>
+    <li>Il Responsabile tiene il registro delle attività di trattamento svolte per conto dei titolari (art. 30(2) GDPR).</li>
+    <li>La responsabilità delle parti per i danni derivanti dal trattamento è regolata dall'art. 82 GDPR e, nei limiti consentiti dalla legge, dai Termini e condizioni.</li>
+    <li>In caso di contrasto tra il presente Accordo e i Termini e condizioni, per quanto riguarda la protezione dei dati personali prevale il presente Accordo.</li>
+    <li>Le modifiche dell'Accordo sono comunicate con le modalità previste dai Termini e condizioni per le modifiche contrattuali; la versione accettata da ciascun Titolare resta registrata.</li>
+  </ul>
+
+  <div class="contact-box">
+    <h3>Contattaci</h3>
+    <p>Per domande su questo Accordo, per richieste relative ai sub-responsabili o per esercitare le verifiche previste, usa il <a href="#contact">modulo di contatto</a> sul sito o scrivi alla PEC {SELLER.pec}.</p>
+  </div>
+</LegalLayout>

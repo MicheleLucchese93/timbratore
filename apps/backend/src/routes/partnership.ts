@@ -29,6 +29,7 @@ import {
 } from '../lib/gotrue-admin.js';
 import { passwordSchema } from '../lib/password.js';
 import { createLogger } from '../lib/logger.js';
+import { tenantLivemodeSql } from '../lib/stripe.js';
 
 const logger = createLogger('partnership');
 
@@ -185,6 +186,12 @@ partnershipRouter.get(
               t.max_admins, t.max_users, t.max_documentali, t.max_branches,
               t.cantieri_enabled, t.api_enabled,
               t.suspended_at, t.created_at, t.created_by_partner, t.partner_note AS note,
+              t.signup_source, t.billing_mode, t.plan, t.pending_plan, t.partita_iva,
+              t.over_limit_since, bpf.vat_status, bpf.vat_reviewed_at,
+              (SELECT bs.status FROM billing_subscriptions bs
+                 WHERE bs.tenant_id = t.id AND bs.product_line = 'plan'
+                   AND bs.livemode = ${tenantLivemodeSql('t.id')}
+                 ORDER BY bs.created_at DESC LIMIT 1) AS plan_subscription_status,
               pu.email AS owner_email, opm.partner_name AS owner_name,
               (SELECT au.email FROM memberships am JOIN auth_users au ON au.id = am.user_id
                  WHERE am.tenant_id = t.id AND am.role = 'admin'
@@ -204,6 +211,7 @@ partnershipRouter.get(
          FROM tenants t
          LEFT JOIN auth_users pu ON pu.id = t.created_by_partner
          LEFT JOIN partnership_members opm ON opm.user_id = t.created_by_partner
+         LEFT JOIN tenant_billing_profiles bpf ON bpf.tenant_id = t.id
         WHERE t.deleted_at IS NULL ${scope}
         ORDER BY t.created_at DESC`,
       params
@@ -355,7 +363,7 @@ async function loadOwnedTenant(p: PartnerContext, tenantId: string) {
   if (!UUID_RE.test(tenantId)) throw new ValidationError('invalid tenant id');
   const r = await adminPool.query(
     `SELECT t.id, t.ragione_sociale, t.created_by_partner, t.suspended_at, t.partner_note,
-            t.language, t.cantieri_enabled, t.api_enabled,
+            t.language, t.cantieri_enabled, t.api_enabled, t.billing_mode,
             t.max_admins, t.max_users, t.max_documentali, t.max_branches,
             (SELECT am.user_id FROM memberships am
                WHERE am.tenant_id = t.id AND am.role = 'admin'
@@ -385,6 +393,19 @@ async function loadOwnedTenant(p: PartnerContext, tenantId: string) {
   return t;
 }
 
+// A self-service company billed through Stripe derives its caps and modules
+// from what it pays for (lib/billing.ts). Editing them by hand here would be
+// overwritten on the next sync, so it is refused; the super-user uses the
+// entitlement overrides (or switches the company to managed billing) instead.
+function assertManagedBilling(t: { billing_mode?: string | null }): void {
+  if (t.billing_mode === 'stripe') {
+    throw new ConflictError(
+      'This company is billed through Stripe: use the billing overrides instead',
+      'BILLING_MODE_STRIPE'
+    );
+  }
+}
+
 // ---- PATCH /tenants/:id/limits ---------------------------------------------
 const UpdateLimits = z
   .object({
@@ -403,6 +424,7 @@ partnershipRouter.patch(
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     const b = parse.data;
     const t = await loadOwnedTenant(p, String(req.params.id));
+    assertManagedBilling(t);
 
     if (p.role === 'partner') {
       enforceCap('max_users', b.max_users, p.capUsersPerTenant);
@@ -501,6 +523,7 @@ partnershipRouter.patch(
       throw new ForbiddenError('not allowed to manage the Cantieri module', 'CANTIERI_NOT_ALLOWED');
     }
     const t = await loadOwnedTenant(p, String(req.params.id));
+    assertManagedBilling(t);
     if (t.cantieri_enabled === enabled) {
       return ok(res, { tenant_id: t.id, cantieri_enabled: enabled });
     }
@@ -547,6 +570,7 @@ partnershipRouter.patch(
       throw new ForbiddenError('not allowed to manage the API module', 'API_NOT_ALLOWED');
     }
     const t = await loadOwnedTenant(p, String(req.params.id));
+    assertManagedBilling(t);
     if (t.api_enabled === enabled) {
       return ok(res, { tenant_id: t.id, api_enabled: enabled });
     }
@@ -748,6 +772,18 @@ partnershipRouter.delete(
     // too, but never trust the client for an irreversible action).
     if (parse.data.confirm_name.trim() !== t.ragione_sociale) {
       throw new ConflictError('confirmation name does not match', 'NAME_MISMATCH');
+    }
+    // A deleted company must not keep being charged: its Stripe subscriptions
+    // are stopped first, deliberately (Billing dialog → gestione manuale).
+    // Deliberately across BOTH Stripe modes: whichever mode the API runs now,
+    // a live subscription left behind would keep charging a deleted company.
+    const liveSubs = await adminPool.query(
+      `SELECT 1 FROM billing_subscriptions
+        WHERE tenant_id = $1 AND status IN ('active', 'trialing', 'past_due') LIMIT 1`,
+      [t.id]
+    );
+    if (liveSubs.rowCount) {
+      throw new ConflictError('Cancel the Stripe subscriptions before deleting', 'STRIPE_SUBSCRIPTIONS_ACTIVE');
     }
 
     // Split this tenant's current members into orphans (delete their account) and
@@ -1142,6 +1178,20 @@ partnershipRouter.patch(
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     const ownerId = parse.data.partner_user_id;
     const t = await loadOwnedTenant(p, String(req.params.id)); // admin → any tenant
+    if (ownerId) {
+      // Handing a company that pays us through Stripe to a partner would leave
+      // Stripe charging a customer the partner now bills: stop the subscriptions
+      // (Billing → gestione manuale) first. Checked whatever the billing mode —
+      // a switch to managed billing may have KEPT the subscriptions running.
+      const live = await adminPool.query(
+        `SELECT 1 FROM billing_subscriptions
+          WHERE tenant_id = $1 AND status IN ('active', 'trialing', 'past_due') LIMIT 1`,
+        [t.id]
+      );
+      if (live.rowCount) {
+        throw new ConflictError('Cancel the Stripe subscriptions before assigning a partner', 'STRIPE_SUBSCRIPTIONS_ACTIVE');
+      }
+    }
     if (ownerId) {
       const pm = await adminPool.query(
         `SELECT 1 FROM partnership_members WHERE user_id = $1 AND role = 'partner' AND active = TRUE`,

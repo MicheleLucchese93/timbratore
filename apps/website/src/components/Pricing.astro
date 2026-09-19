@@ -1,10 +1,43 @@
 ---
+import { SIGNUP_PATH } from "../data/seo";
+
 // Public pricing section. Italian-only site, so copy is inline (same convention
-// as Features.astro). Two flat plans, every feature included in both; the only
-// difference is the user/sede ceiling. Monthly/annual billing toggle (annual =
-// 11 months, i.e. one month free) is handled client-side by swapping the two
-// price blocks rendered in each card. No-JS fallback shows the monthly price.
-const plans = [
+// as Features.astro). A free plan plus two flat paid plans, every attendance
+// feature included in all of them; the difference is the user/sede ceiling.
+// Monthly/annual billing toggle (annual = 11 months, i.e. one month free) is
+// handled client-side by swapping the two price blocks rendered in each paid
+// card. No-JS fallback shows the monthly price.
+//
+// Prices must match PLAN_PRICES_CENTS / PLAN_CAPS in packages/shared/src/billing
+// (what Stripe actually charges). They are repeated here rather than imported:
+// the website's Docker build context only carries packages/shared's tokens.css.
+type Plan = {
+  name: string;
+  tagline: string;
+  limits: { label: string; value: string }[];
+  cta: { label: string; href: string };
+  /** Free plan: no billing toggle, filled CTA. */
+  free?: boolean;
+  /** Enterprise: price on request. */
+  custom?: boolean;
+  monthly?: string;
+  annualPerMonth?: string;
+  annualTotal?: string;
+  annualSave?: string;
+  recommended?: boolean;
+};
+
+const plans: Plan[] = [
+  {
+    name: "Gratuito",
+    tagline: "Per iniziare, gratis per sempre",
+    free: true,
+    limits: [
+      { label: "Utenti", value: "3, te compreso" },
+      { label: "Sedi", value: "1" },
+    ],
+    cta: { label: "Inizia gratis", href: `${SIGNUP_PATH}?piano=free` },
+  },
   {
     name: "Piccola",
     tagline: "Per team fino a 10 persone",
@@ -12,9 +45,11 @@ const plans = [
     annualPerMonth: "22,91",
     annualTotal: "274,89",
     annualSave: "24,99",
-    userLimit: "10",
-    sediLimit: "3",
-    recommended: false,
+    limits: [
+      { label: "Dipendenti", value: "fino a 10" },
+      { label: "Sedi", value: "fino a 3" },
+    ],
+    cta: { label: "Inizia ora", href: `${SIGNUP_PATH}?piano=piccola` },
   },
   {
     name: "Media",
@@ -23,19 +58,35 @@ const plans = [
     annualPerMonth: "36,66",
     annualTotal: "439,89",
     annualSave: "39,99",
-    userLimit: "20",
-    sediLimit: "5",
-    recommended: false,
+    limits: [
+      { label: "Dipendenti", value: "fino a 20" },
+      { label: "Sedi", value: "fino a 5" },
+    ],
+    cta: { label: "Inizia ora", href: `${SIGNUP_PATH}?piano=media` },
   },
   {
     name: "Enterprise",
-    tagline: "Per aziende con più di 20 persone",
+    tagline: "Per aziende oltre 20 persone",
     custom: true,
-    userLimit: "20+",
-    sediLimit: "5+",
-    ctaLabel: "Contattaci",
-    recommended: false,
+    limits: [
+      { label: "Dipendenti", value: "oltre 20" },
+      { label: "Sedi", value: "su misura" },
+    ],
+    cta: { label: "Contattaci", href: "#contact" },
   },
+];
+
+// The free plan has a single sede, so "sedi multiple" is not part of it.
+const freeIncluded = [
+  "Timbratura GPS al momento del tap",
+  "Ferie, permessi e malattia",
+  "Correzioni con audit log",
+  "Anomalie orario segnalate in automatico",
+  "Dashboard web per amministratori",
+  "Export Excel per il commercialista",
+  "Documenti e cedolini dei dipendenti",
+  "Smart working",
+  "App iOS, Android e dashboard web",
 ];
 
 const enterpriseIncluded = [
@@ -92,7 +143,7 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
         Prezzi chiari, senza sorprese
       </h2>
       <p class="mx-auto mt-4 max-w-2xl text-lg text-on-surface-variant">
-        Paghi in base ai <strong class="font-semibold text-on-surface">tuoi dipendenti</strong>: ogni piano include tutta la rilevazione presenze, senza costi nascosti. Cambi piano quando cresci. I <a href="#moduli" class="font-semibold text-primary hover:underline">moduli aggiuntivi</a> sono opzionali, a consumo mensile.
+        Fino a 3 utenti è <strong class="font-semibold text-on-surface">gratis per sempre</strong>; poi paghi in base ai <strong class="font-semibold text-on-surface">tuoi dipendenti</strong>. Ogni piano include tutta la rilevazione presenze, senza costi nascosti, e cambi piano quando cresci. I <a href="#moduli" class="font-semibold text-primary hover:underline">moduli aggiuntivi</a> sono opzionali: 50 €/mese ciascuno.
       </p>
 
       <div class="mt-8 flex flex-col items-center gap-3">
@@ -119,16 +170,27 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
       </div>
     </div>
 
-    <div id="pricing-scroller" class="mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pt-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] lg:mx-auto lg:grid lg:max-w-6xl lg:grid-cols-3 lg:gap-6 lg:overflow-visible lg:px-0 lg:pt-0 lg:pb-0">
+    {/* Four cards: a swipeable carousel on phones/tablets, 2×2 at lg, one row
+        at xl. A single row at lg would squeeze the prices into ~180px cards. */}
+    <div id="pricing-scroller" class="mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pt-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] lg:mx-auto lg:grid lg:max-w-6xl lg:grid-cols-2 lg:gap-6 lg:overflow-visible lg:px-0 lg:pt-0 lg:pb-0 xl:grid-cols-4">
       {plans.map((p, i) => (
-        <div data-plan-card data-reveal style={`--reveal-delay:${(i % 3) * 90}ms`} class={`relative flex w-[82%] shrink-0 snap-center flex-col rounded-3xl bg-white p-8 sm:w-[58%] lg:w-auto ${p.recommended ? "border-2 border-primary shadow-xl lg:scale-[1.02]" : "border border-gray-200 shadow-sm"}`}>
+        <div data-plan-card data-reveal style={`--reveal-delay:${(i % 4) * 90}ms`} class={`relative flex w-[82%] shrink-0 snap-center flex-col rounded-3xl bg-white p-8 sm:w-[58%] lg:w-auto xl:p-6 ${p.recommended ? "border-2 border-primary shadow-xl lg:scale-[1.02]" : "border border-gray-200 shadow-sm"}`}>
           <h3 class="text-xl font-bold text-on-surface">{p.name}</h3>
           <p class="mt-1 text-sm text-on-surface-variant">{p.tagline}</p>
 
           {p.custom ? (
             <div class="mt-6 flex min-h-[5.5rem] flex-col justify-center">
               <span class="text-4xl font-extrabold tracking-tight text-on-surface">Su misura</span>
-              <p class="mt-2 text-sm text-on-surface-variant">Prezzo dedicato per la tua azienda</p>
+              <p class="mt-2 text-sm text-on-surface-variant">Prezzo dedicato per te</p>
+            </div>
+          ) : p.free ? (
+            <div class="mt-6 min-h-[5.5rem]">
+              <div class="flex items-baseline gap-1.5">
+                <span class="text-5xl font-extrabold tracking-tight text-on-surface">0</span>
+                <span class="text-xl font-bold text-on-surface">€</span>
+                <span class="text-sm font-medium text-on-surface-variant">per sempre</span>
+              </div>
+              <p class="mt-2 text-sm text-on-surface-variant">Nessuna carta richiesta</p>
             </div>
           ) : (
             <div class="mt-6 min-h-[5.5rem]">
@@ -153,26 +215,26 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
             </div>
           )}
 
-          <div class="mt-6 grid grid-cols-2 gap-3">
-            <div class="rounded-xl bg-surface p-3 text-center">
-              <div class="text-xl font-bold text-primary">{p.custom ? p.userLimit : `fino a ${p.userLimit}`}</div>
-              <div class="mt-0.5 text-xs text-on-surface-variant">dipendenti</div>
-            </div>
-            <div class="rounded-xl bg-surface p-3 text-center">
-              <div class="text-xl font-bold text-primary">{p.custom ? p.sediLimit : `fino a ${p.sediLimit}`}</div>
-              <div class="mt-0.5 text-xs text-on-surface-variant">sedi</div>
-            </div>
-          </div>
+          {/* Rows rather than side-by-side tiles: at xl a card is ~210px wide and
+              "fino a 10" no longer fits in half of it. */}
+          <dl class="mt-6 divide-y divide-gray-200/70 rounded-xl bg-surface text-sm">
+            {p.limits.map((l) => (
+              <div class="flex items-center justify-between gap-3 px-4 py-2.5">
+                <dt class="text-on-surface-variant">{l.label}</dt>
+                <dd class="text-right font-bold text-primary">{l.value}</dd>
+              </div>
+            ))}
+          </dl>
 
-          <a href="#contact"
-            class={`btn-lift mt-6 inline-flex items-center justify-center rounded-full px-6 py-3 text-base font-semibold transition-colors ${p.custom ? "bg-primary text-white hover:bg-primary-container" : "border border-primary text-primary hover:bg-primary/5"}`}>
-            {p.ctaLabel ?? "Inizia ora"}
+          <a href={p.cta.href}
+            class={`btn-lift mt-6 inline-flex items-center justify-center rounded-full px-6 py-3 text-base font-semibold transition-colors ${p.free ? "bg-primary text-white hover:bg-primary-container" : "border border-primary text-primary hover:bg-primary/5"}`}>
+            {p.cta.label}
           </a>
 
           <div class="mt-8 border-t border-gray-100 pt-6">
             <h4 class="text-sm font-semibold text-on-surface">{p.custom ? "Su misura per te" : "Rilevazione presenze completa"}</h4>
             <ul class="mt-4 space-y-3">
-              {(p.custom ? enterpriseIncluded : included).map((f) => (
+              {(p.custom ? enterpriseIncluded : p.free ? freeIncluded : included).map((f) => (
                 <li class="flex items-start gap-2.5 text-sm text-on-surface-variant">
                   <Fragment set:html={check} />
                   <span>{f}</span>
@@ -194,7 +256,10 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
     <div class="mx-auto mt-8 max-w-4xl rounded-3xl border border-gray-200 bg-white p-6 sm:p-8">
       <div class="text-center">
         <h3 class="text-lg font-semibold text-on-surface">Cresci oltre i limiti del piano</h3>
-        <p class="mt-1 text-sm text-on-surface-variant">Aggiungi dipendenti e sedi singolarmente, quando ti servono.</p>
+        <p class="mt-1 text-sm text-on-surface-variant">
+          Con i piani Piccola e Media puoi aggiungere dipendenti e sedi singolarmente, su richiesta:{" "}
+          <a href="#contact" class="font-semibold text-primary hover:underline">contattaci</a>.
+        </p>
       </div>
       <div class="mt-6 grid gap-4 sm:grid-cols-2">
         {addons.map((a) => (
@@ -216,8 +281,8 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
 
     <div class="mx-auto mt-6 flex max-w-4xl flex-col items-center justify-between gap-3 rounded-2xl bg-secondary/5 px-6 py-4 text-center sm:flex-row sm:text-left">
       <p class="text-sm text-on-surface-variant">
-        <span class="font-semibold text-on-surface">Cerchi funzionalità per il tuo settore?</span>
-        Aggiungi un modulo (es. Cantieri), a consumo mensile sopra l'abbonamento.
+        <span class="font-semibold text-on-surface">Moduli Cantieri e API:</span>{" "}
+        50 €/mese + IVA ciascuno, attivabili da Impostazioni con qualsiasi piano, anche gratuito.
       </p>
       <a href="#moduli" class="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-sm font-semibold text-secondary hover:underline">
         Scopri i moduli
@@ -226,7 +291,7 @@ const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" v
     </div>
 
     <p class="mx-auto mt-8 max-w-2xl text-center text-xs text-on-surface-variant">
-      Prezzi IVA esclusa. L'app è gratuita da scaricare; l'attivazione del servizio avviene su richiesta.
+      Prezzi IVA esclusa. Pagamento con carta e fattura elettronica; gli abbonamenti si rinnovano automaticamente e puoi disdirli quando vuoi, con effetto a fine periodo. L'app è gratuita da scaricare.
     </p>
   </div>
 </section>

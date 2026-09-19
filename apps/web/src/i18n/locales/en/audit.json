@@ -30,7 +30,8 @@
     "exports": "Exports",
     "documents": "Documents",
     "settings": "Settings",
-    "api": "API"
+    "api": "API",
+    "billing": "Subscription"
   },
   "action": {
     "user": {
@@ -117,7 +118,8 @@
     "tenant": {
       "update": "Company settings updated",
       "export_recipient_add": "Export recipient added",
-      "export_recipient_remove": "Export recipient removed"
+      "export_recipient_remove": "Export recipient removed",
+      "self_signup": "Company registered from the website"
     },
     "cantiere": {
       "create": "Work site created",
@@ -146,6 +148,18 @@
       "create": "API key created",
       "update": "API key updated",
       "revoke": "API key revoked"
+    },
+    "billing": {
+      "profile_update": "Billing details changed",
+      "checkout_started": "Payment started",
+      "plan_started": "Plan activated",
+      "plan_changed": "Plan changed",
+      "plan_ended": "Plan ended",
+      "module_activated": "Module activated",
+      "module_cancel_scheduled": "Module switch-off scheduled",
+      "module_resumed": "Module switch-off cancelled",
+      "module_ended": "Module switched off",
+      "payment_failed": "Payment failed"
     }
   },
   "detail": {

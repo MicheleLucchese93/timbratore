@@ -29,6 +29,14 @@ const TOC_IT = `
       <a href="#partner-crea" class="sub">Creare un partner</a>
       <a href="#partner-caps" class="sub">Limiti del partner</a>
       <a href="#partner-stato" class="sub">Attivare e disattivare</a>
+      <a href="#selfservice">Aziende self-service</a>
+      <a href="#selfservice-colonne" class="sub">Colonne e filtri</a>
+      <a href="#selfservice-abbonamento" class="sub">Finestra Abbonamento</a>
+      <a href="#selfservice-override" class="sub">Override dei limiti</a>
+      <a href="#selfservice-manuale" class="sub">Gestione manuale</a>
+      <a href="#registrazioni">Registrazioni</a>
+      <a href="#pagamenti">Pagamenti</a>
+      <a href="#pagamenti-differita" class="sub">Fattura differita</a>
       <a href="#audit">Registro attività</a>
       <a href="#impostazioni">Impostazioni e profilo</a>
 
@@ -73,7 +81,9 @@ const MAIN_IT = `
             <tr><td><strong>Azienda</strong></td><td>Il cliente finale (in inglese <em>tenant</em>): un'organizzazione con i propri utenti, sedi e dati, completamente separata dalle altre.</td></tr>
             <tr><td><strong>Partner</strong></td><td>Il rivenditore che crea e gestisce le proprie aziende. Vede solo le aziende che ha creato ed è soggetto ai limiti (caps) assegnati dall'amministratore di piattaforma.</td></tr>
             <tr><td><strong>Amministratore di piattaforma</strong></td><td>Ruolo <em>admin</em> della console: vede tutte le aziende, gestisce i partner e può riassegnare un'azienda a un partner diverso.</td></tr>
-            <tr><td><strong>Super-utente</strong></td><td>L'unico account abilitato all'eliminazione definitiva di un'azienda. È un amministratore con un privilegio aggiuntivo.</td></tr>
+            <tr><td><strong>Super-utente</strong></td><td>L'unico account abilitato all'eliminazione definitiva di un'azienda e alla gestione di abbonamenti, registrazioni e pagamenti delle aziende self-service. È un amministratore con privilegi aggiuntivi.</td></tr>
+            <tr><td><strong>Azienda self-service</strong></td><td>Un'azienda che si è registrata da sola dal sito, sul piano gratuito o su un piano a pagamento con carta (Stripe). Non appartiene a nessun partner.</td></tr>
+            <tr><td><strong>Modalità di fatturazione</strong></td><td><em>Stripe</em>: limiti e moduli derivano da ciò che l'azienda paga. <em>Gestione manuale</em>: si impostano a mano, come per le aziende dei partner.</td></tr>
             <tr><td><strong>Limiti (azienda)</strong></td><td>I massimali del piano di un'azienda: numero massimo di utenti, amministratori, documentali e sedi.</td></tr>
             <tr><td><strong>Caps (partner)</strong></td><td>I massimali di un partner: quante aziende può creare e quali limiti massimi può assegnare a ciascuna. Vuoto = illimitato.</td></tr>
             <tr><td><strong>Documentale</strong></td><td>Capacità aggiuntiva di un utente dell'azienda: gli permette di caricare e consultare i documenti di tutti i dipendenti. Qui se ne imposta solo il numero massimo per azienda.</td></tr>
@@ -116,7 +126,7 @@ const MAIN_IT = `
       </div>
 
       <div class="callout callout-info">
-        <strong>Super-utente:</strong> tra gli amministratori, un solo account è designato <em>super-utente</em>. È l'unico a vedere l'azione <strong>Elimina</strong> su un'azienda (operazione irreversibile). Tutti gli altri amministratori e i partner non vedono questo pulsante.
+        <strong>Super-utente:</strong> tra gli amministratori, un solo account è designato <em>super-utente</em>. È l'unico a vedere l'azione <strong>Elimina</strong> su un'azienda (operazione irreversibile), l'azione <strong>Abbonamento</strong> e le pagine <strong>Registrazioni</strong> e <strong>Pagamenti</strong> (vedi <em>Aziende self-service</em>). Tutti gli altri amministratori e i partner non li vedono.
       </div>
     </section>
 
@@ -182,6 +192,8 @@ const MAIN_IT = `
         <div class="grid-2">
           <div class="mini-card"><div class="mini-title">Aziende</div><div class="mini-desc">Elenco e gestione delle aziende</div></div>
           <div class="mini-card"><div class="mini-title">Partner <span class="badge badge-admin">admin</span></div><div class="mini-desc">Solo amministratore: gestione dei rivenditori</div></div>
+          <div class="mini-card"><div class="mini-title">Registrazioni <span class="badge badge-admin">super-utente</span></div><div class="mini-desc">Le richieste di registrazione dal sito e il loro funnel</div></div>
+          <div class="mini-card"><div class="mini-title">Pagamenti <span class="badge badge-admin">super-utente</span></div><div class="mini-desc">Gli incassi Stripe da fatturare</div></div>
           <div class="mini-card"><div class="mini-title">Registro attività</div><div class="mini-desc">Storico di ogni operazione in console</div></div>
           <div class="mini-card"><div class="mini-title">Impostazioni</div><div class="mini-desc">Lingua e sicurezza dell'account</div></div>
           <div class="mini-card"><div class="mini-title">Manuale</div><div class="mini-desc">Questa guida</div></div>
@@ -204,7 +216,8 @@ const MAIN_IT = `
           <li><strong>Utenti</strong>, <strong>Admin</strong>, <strong>Documentali</strong>, <strong>Sedi</strong> — utilizzo attuale / massimo (es. <code>4/20</code>). <strong>Clicca su un contatore</strong> per aprire l'elenco: Utenti mostra tutti i membri (con nome, email e ruolo), Documentali e Sedi il relativo dettaglio, Admin apre la gestione amministratori.</li>
           <li><strong>Stato</strong> — <span class="pill pill-ok">Attiva</span> o <span class="pill pill-warn">Sospesa</span>.</li>
           <li><strong>Note</strong> — annotazione libera.</li>
-          <li><strong>Azioni</strong> — modifica, sospendi/riattiva, amministratori e (solo super-utente) elimina.</li>
+          <li><strong>Origine</strong>, <strong>Piano</strong>, <strong>Abbonamento</strong> <span class="badge badge-admin">admin</span> e <strong>P.IVA</strong> — da dove viene l'azienda, il suo piano e il controllo VIES della P.IVA: vedi <em>Aziende self-service</em>.</li>
+          <li><strong>Azioni</strong> — modifica, sospendi/riattiva, amministratori e (solo super-utente) abbonamento ed elimina.</li>
         </ul>
       </div>
 
@@ -240,8 +253,9 @@ const MAIN_IT = `
         <ul class="tidy">
           <li>Aggiorna i <strong>limiti</strong> (max utenti, admin, documentali, sedi) entro i tuoi caps e non sotto l'utilizzo attuale.</li>
           <li>Aggiungi o modifica una <strong>nota</strong>.</li>
-          <li><strong>Partner assegnato</strong> <span class="badge badge-admin">admin</span> — solo l'amministratore può riassegnare l'azienda a un partner diverso o riportarla alla <em>Piattaforma</em>.</li>
+          <li><strong>Partner assegnato</strong> <span class="badge badge-admin">admin</span> — solo l'amministratore può riassegnare l'azienda a un partner diverso o riportarla alla <em>Piattaforma</em>. Un'azienda fatturata con Stripe che ha abbonamenti attivi non si può assegnare a un partner: annullali prima (vedi <em>Aziende self-service</em>).</li>
         </ul>
+        <p>Su un'azienda fatturata con Stripe i limiti sono in sola lettura: derivano dall'abbonamento (vedi <em>Aziende self-service</em>).</p>
       </div>
 
       <div class="feature" id="aziende-stato">
@@ -303,6 +317,7 @@ const MAIN_IT = `
         <div class="callout callout-danger">
           Operazione senza ritorno. Usa <em>Sospendi</em> se vuoi solo bloccare temporaneamente l'accesso senza perdere i dati.
         </div>
+        <p>Un'azienda con abbonamenti Stripe attivi non si può eliminare: annullali prima da <strong>Abbonamento → Passa a gestione manuale</strong>.</p>
       </div>
     </section>
 
@@ -395,6 +410,163 @@ const MAIN_IT = `
       </div>
     </section>
 
+    <section class="chapter" id="selfservice">
+      <h2><span class="chapter-num">07a</span>Aziende self-service <span class="badge badge-admin">super-utente</span></h2>
+      <p class="lead">Le aziende possono registrarsi da sole dal sito sonoQui, partire dal piano <strong>Gratuito</strong> e passare a un piano a pagamento, o acquistare un modulo, pagando con carta su Stripe. Questo capitolo e i due successivi spiegano come il <strong>super-utente</strong> le segue dalla console.</p>
+
+      <div class="feature">
+        <h3>Chi vede cosa</h3>
+        <ul class="tidy">
+          <li><strong>Partner</strong> — non vedono <strong>mai</strong> le aziende self-service: vedono solo le aziende che hanno creato, e un'azienda registrata dal sito non appartiene a nessun partner.</li>
+          <li><strong>Amministratori di piattaforma</strong> — vedono le aziende self-service in <em>Aziende</em>, con le colonne Origine, Piano e Abbonamento, ma non possono toccarne abbonamenti e pagamenti.</li>
+          <li><strong>Super-utente</strong> — l'unico con l'azione <strong>Abbonamento</strong> e con le voci <strong>Registrazioni</strong> e <strong>Pagamenti</strong> nel menu. Il server rifiuta queste operazioni a chiunque altro.</li>
+        </ul>
+      </div>
+
+      <div class="feature" id="selfservice-colonne">
+        <h3>Colonne e filtri in Aziende</h3>
+        <p>Per gli amministratori di piattaforma la tabella Aziende mostra anche:</p>
+        <ul class="tidy">
+          <li><strong>Origine</strong> — <span class="pill pill-info">Self-service</span> se l'azienda si è registrata dal sito, <em>Partner</em> se è stata creata dalla console (da un partner o dalla piattaforma).</li>
+          <li><strong>Piano</strong> — <em>Gratuito</em>, <em>Piccola</em>, <em>Media</em> o <em>Personalizzato</em> (le aziende in gestione manuale). <em>→ Piccola in attesa</em> indica un piano scelto ma non ancora pagato; <span class="pill pill-err">Oltre i limiti</span> un'azienda tornata al piano gratuito con più utenti o sedi di quelli consentiti.</li>
+          <li><strong>Abbonamento</strong> — lo stato dell'abbonamento del piano su Stripe: <span class="pill pill-ok">Attivo</span>, <span class="pill pill-warn">Pagamento in sospeso</span> (la carta è stata rifiutata e Stripe riprova: nel frattempo l'azienda conserva il piano), <em>Terminato</em>, oppure — se non c'è un abbonamento.</li>
+          <li><strong>P.IVA</strong> — con l'esito del controllo sul VIES: <span class="pill pill-ok">verificata</span>; <span class="pill pill-warn">non nel VIES</span> (molte micro-imprese italiane non sono iscritte al VIES: la registrazione è accettata ma va rivista); <em>da verificare</em> (VIES non raggiungibile al momento della registrazione); <em>rivista</em> quando la P.IVA è stata controllata a mano.</li>
+        </ul>
+        <p>Sopra la tabella i filtri <strong>Tutte</strong>, <strong>Self-service</strong>, <strong>Partner</strong> e <strong>P.IVA da verificare</strong> — la coda delle P.IVA non nel VIES o non verificabili e non ancora riviste — ognuno con il suo conteggio. Il campo di ricerca filtra per ragione sociale, email admin, P.IVA, partner e note.</p>
+        <div class="callout callout-info">
+          Su un'azienda fatturata con Stripe limiti e moduli <strong>derivano da ciò che paga</strong>: nella modifica (icona matita) i limiti sono in sola lettura e l'icona moduli è disattivata, con l'avviso «Gestito dall'abbonamento Stripe — usa Abbonamento». Note e partner assegnato restano modificabili.
+        </div>
+      </div>
+
+      <div class="feature" id="selfservice-abbonamento">
+        <h3>La finestra Abbonamento</h3>
+        <p>L'icona <strong>carta di credito</strong> sulla riga dell'azienda apre la finestra <strong>Abbonamento</strong>:</p>
+        <ul class="tidy">
+          <li><strong>Riepilogo</strong> — origine, piano, modalità di fatturazione, limiti in vigore e il link <strong>Apri in Stripe</strong> alla scheda del cliente nella dashboard Stripe.</li>
+          <li><strong>Abbonamenti Stripe</strong> — uno per voce (piano, modulo Cantieri, modulo API), con lo stato e la data di rinnovo o di chiusura.</li>
+          <li><strong>Pagamenti</strong> — quanti incassi, per quale totale e quanti restano da fatturare. <em>Vedi in Pagamenti</em> apre il registro filtrato su questa azienda.</li>
+          <li><strong>Dati di fatturazione</strong> — quelli inseriti dal cliente per la fattura elettronica: ragione sociale, P.IVA, codice fiscale, indirizzo, codice SDI o PEC, email amministrazione, con il numero di consultazione VIES.</li>
+          <li><strong>Registrazione</strong> — chi si è registrato, quando, con quale piano scelto e da quale campagna (UTM).</li>
+        </ul>
+        <p>E i comandi:</p>
+        <ul class="tidy">
+          <li><strong>Verifica P.IVA</strong> — segna la P.IVA come rivista a mano, e la toglie dal filtro <em>P.IVA da verificare</em>. Spunta <em>Ripeti prima il controllo sul VIES</em> per interrogare di nuovo il VIES.</li>
+          <li><strong>Override dei limiti</strong> e <strong>Modalità di fatturazione</strong> — vedi sotto.</li>
+          <li><strong>Sincronizza con Stripe</strong> — rilegge da Stripe abbonamenti e stato e ricalcola limiti e moduli. Serve se un aggiornamento da Stripe non è arrivato; di notte lo fa anche un controllo automatico.</li>
+        </ul>
+      </div>
+
+      <div class="feature" id="selfservice-override">
+        <h3>Override dei limiti</h3>
+        <p>Gli override sono <strong>omaggi</strong> che si aggiungono a quanto l'azienda paga, senza toglierla da Stripe. Per ogni limite (utenti, sedi, admin, documentali) vale il valore più alto tra piano e override; un modulo spuntato (Cantieri, API) resta attivo anche senza abbonamento.</p>
+        <ol class="steps">
+          <li>Apri <strong>Abbonamento</strong> sulla riga dell'azienda.</li>
+          <li>In <strong>Override dei limiti</strong> compila solo i limiti da aumentare (il segnaposto mostra il valore del piano) e spunta i moduli da regalare.</li>
+          <li>Premi <strong>Salva override</strong>. <strong>Rimuovi override</strong> li toglie tutti.</li>
+        </ol>
+        <p>Un override non toglie mai nulla di quello che il cliente ha pagato. Vale solo con la fatturazione Stripe: in gestione manuale i campi sono disattivati.</p>
+      </div>
+
+      <div class="feature" id="selfservice-manuale">
+        <h3>Gestione manuale</h3>
+        <p>Per un accordo su misura, o per affidare l'azienda a un partner, passala in <strong>gestione manuale</strong>: da quel momento limiti e moduli si modificano a mano come per ogni altra azienda e Stripe non li tocca più.</p>
+        <ol class="steps">
+          <li>Nella finestra Abbonamento premi <strong>Passa a gestione manuale</strong>.</li>
+          <li>Se l'azienda ha abbonamenti attivi, scegli cosa farne: <strong>Lasciali attivi</strong> (Stripe continua ad addebitare), <strong>Annulla a fine periodo</strong> (restano attivi fino alla fine del periodo già pagato) o <strong>Annulla subito</strong> (senza rimborso, irreversibile).</li>
+          <li>Conferma. Limiti e moduli restano quelli attuali finché non li cambi con l'icona matita e l'icona moduli.</li>
+        </ol>
+        <p><strong>Passa a fatturazione Stripe</strong> fa il contrario: limiti e moduli vengono ricalcolati dagli abbonamenti (più gli override) e i valori impostati a mano vengono sostituiti. Senza abbonamenti attivi l'azienda torna ai limiti del piano gratuito.</p>
+        <div class="callout callout-warn">
+          Un'azienda con abbonamenti Stripe attivi <strong>non si può eliminare</strong> e, finché è fatturata con Stripe, <strong>non si può assegnare a un partner</strong>: Stripe continuerebbe ad addebitare un cliente che non gestiamo più. Annullali prima con <em>Passa a gestione manuale</em>.
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter" id="registrazioni">
+      <h2><span class="chapter-num">07b</span>Registrazioni <span class="badge badge-admin">super-utente</span></h2>
+      <p class="lead">Ogni richiesta inviata dal modulo di registrazione del sito, dalla conferma dell'email fino all'azienda che timbra e paga.</p>
+
+      <div class="feature">
+        <h3>Il funnel</h3>
+        <p>In alto cinque contatori sugli <strong>ultimi 90 giorni</strong>: <strong>Richieste</strong>, <strong>Email confermate</strong>, <strong>Aziende create</strong>, <strong>Con timbrature</strong> (aziende con almeno una timbratura) e <strong>Paganti</strong> (con almeno un pagamento), ognuno con la percentuale sulle richieste. Non seguono i filtri della tabella: misurano il canale, non la pagina.</p>
+      </div>
+
+      <div class="feature">
+        <h3>La tabella</h3>
+        <p>Per ogni richiesta: data, nome, email, telefono, <strong>piano scelto</strong> sul sito, <strong>stato</strong>, l'azienda creata con P.IVA ed esito VIES (il numero di consultazione compare passando sul badge), i dipendenti dichiarati, l'ultima timbratura e la provenienza (UTM).</p>
+        <ul class="tidy">
+          <li><strong>Email da confermare</strong> — il link di conferma è partito e non è ancora stato usato.</li>
+          <li><strong>Email confermata</strong> — l'account esiste, l'azienda non ancora.</li>
+          <li><strong>Azienda creata</strong> — l'azienda è attiva; <span class="pill pill-ok">Pagante</span> se ha almeno un pagamento.</li>
+          <li><strong>Scaduta</strong> — il link non è stato usato in tempo.</li>
+          <li><strong>Rifiutata</strong> — chiusa dal super-utente; il motivo compare passando sul badge.</li>
+        </ul>
+        <p>I filtri in alto selezionano lo stato; la ricerca trova nome, email, azienda e P.IVA.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Azioni</h3>
+        <ul class="tidy">
+          <li><strong>Reinvia email</strong> (icona busta) — solo per le richieste da confermare o scadute: invia un nuovo link di conferma e quello precedente smette di funzionare.</li>
+          <li><strong>Rifiuta</strong> (icona divieto) — chiude una richiesta che non ha ancora creato un'azienda, con un motivo facoltativo: il link smette di funzionare e il richiedente non riceve alcuna email.</li>
+          <li><strong>Apri azienda</strong> (icona edificio) — porta in <em>Aziende</em> già filtrata su quell'azienda.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="chapter" id="pagamenti">
+      <h2><span class="chapter-num">07c</span>Pagamenti <span class="badge badge-admin">super-utente</span></h2>
+      <p class="lead">Il registro degli incassi da fatturare. Stripe incassa ma <strong>non emette fatture</strong>: la fattura elettronica la emette il venditore dal proprio software di fatturazione, fuori da sonoQui, e questa pagina tiene il conto di cosa manca.</p>
+
+      <div class="callout callout-warn">
+        Se in alto compare l'avviso <strong>modalità SANDBOX</strong>, Stripe sta girando in prova: l'elenco mostra solo pagamenti fatti con carte di test e <strong>non va fatturato</strong>. I pagamenti reali restano registrati e ricompaiono quando si torna in modalità live.
+      </div>
+
+      <div class="feature">
+        <h3>Il flusso</h3>
+        <ol class="steps">
+          <li>Il cliente paga con carta un piano o un modulo: Stripe incassa.</li>
+          <li>Il pagamento compare qui come <span class="pill pill-warn">Da fatturare</span>, con una <strong>copia dei dati di fatturazione</strong> del cliente com'erano al momento dell'incasso.</li>
+          <li>Emetti la fattura elettronica dal tuo software di fatturazione, fuori da sonoQui, con i dati del <strong>dettaglio</strong>.</li>
+          <li>Premi <strong>Segna come fatturato</strong> e riporta numero e data della fattura: la riga diventa <span class="pill pill-ok">Fatturato n. … del …</span>.</li>
+        </ol>
+      </div>
+
+      <div class="feature">
+        <h3>Filtri, totali e colonne</h3>
+        <p>I filtri <strong>Da fatturare</strong>, <strong>Fatturati</strong> e <strong>Tutti</strong>, il <strong>mese di incasso</strong> (all'apertura il mese corrente; <em>Tutti i mesi</em> per vederli tutti) e la ricerca per azienda, P.IVA o numero di fattura. Se restano incassi da fatturare in altri mesi, un avviso lo segnala con il pulsante <em>Mostra tutti i mesi</em>.</p>
+        <p>La striscia dei totali riporta imponibile, IVA, totale incassato, commissioni Stripe e quanti pagamenti restano da fatturare. Per ogni pagamento: data di incasso (ora italiana), azienda, P.IVA, codice SDI o PEC, voci con il periodo, importi, commissione Stripe, stato ed <strong>Emetti entro</strong>.</p>
+        <ul class="tidy">
+          <li><strong>Emetti entro</strong> — <em>immediata</em>: entro 12 giorni dall'incasso; <em>differita</em>: entro il 15 del mese successivo (DPR 633/72, art. 21 c.4). La data diventa rossa quando è passata. Verifica sempre con il commercialista.</li>
+          <li><span class="pill pill-err">Rimborsato</span> e <span class="pill pill-err">Contestato</span> — un rimborso o una contestazione arrivati da Stripe: per un pagamento già fatturato serve una nota di credito.</li>
+          <li><strong>Test</strong> — un pagamento dell'ambiente di prova di Stripe: non va fatturato.</li>
+        </ul>
+      </div>
+
+      <div class="feature" id="pagamenti-differita">
+        <h3>Fattura differita: raggruppa per azienda e mese</h3>
+        <p>Con l'interruttore <strong>Raggruppa per azienda e mese</strong> la tabella mostra una riga per azienda e per mese, con i totali e la scadenza della fattura differita. Una sola fattura differita può comprendere tutti gli incassi del mese di un'azienda:</p>
+        <ol class="steps">
+          <li>Attiva <strong>Raggruppa per azienda e mese</strong>.</li>
+          <li>Apri il dettaglio del mese (icona occhio) per controllare gli incassi compresi.</li>
+          <li>Emetti la fattura differita con i totali del gruppo.</li>
+          <li>Premi <strong>Segna … pagamenti come fatturati</strong>: lo stesso numero e la stessa data vengono registrati su tutti.</li>
+        </ol>
+      </div>
+
+      <div class="feature">
+        <h3>Dettaglio, annullamento, export</h3>
+        <ul class="tidy">
+          <li><strong>Dettaglio</strong> (icona occhio) — tutti i dati per scrivere la fattura, ognuno con il pulsante <strong>copia</strong> (e <em>Copia tutto</em>), le voci con il periodo, gli importi, la commissione Stripe e il netto accreditato, gli identificativi Stripe.</li>
+          <li><strong>Annulla fatturazione</strong> (freccia indietro) — riporta un pagamento a <em>da fatturare</em>, per esempio dopo un numero sbagliato. Una fattura già emessa va stornata con una nota di credito nel tuo software.</li>
+          <li><strong>Esporta CSV</strong> (icona download in alto) — scarica i pagamenti dei filtri correnti in un file separato da punto e virgola, con gli importi in formato italiano, pronto per Excel o per il commercialista.</li>
+        </ul>
+        <div class="callout callout-info">
+          Ogni segnatura e ogni annullamento finiscono nel <strong>Registro attività</strong> della console, con l'importo e il numero di fattura.
+        </div>
+      </div>
+    </section>
+
     <section class="chapter" id="audit">
       <h2><span class="chapter-num">08</span>Registro attività</h2>
       <p class="lead">Lo storico, in sola lettura, di ogni operazione effettuata nella console.</p>
@@ -405,6 +577,7 @@ const MAIN_IT = `
         <ul class="tidy">
           <li>Aziende: creazione, modifica limiti, sospensione, riattivazione, modifica note, assegnazione a partner, aggiunta/rimozione/reinvito di amministratori, eliminazione.</li>
           <li>Partner: creazione, modifica caps, modifica anagrafica, attivazione, disattivazione, reinvito.</li>
+          <li>Aziende self-service (super-utente): cambio della modalità di fatturazione, override dei limiti, revisione della P.IVA, annullamento degli abbonamenti Stripe, reinvio e rifiuto delle registrazioni, segnatura e annullamento della fatturazione dei pagamenti.</li>
           <li>Richieste di assistenza: cambio di stato, assegnazione, risposta al cliente, modifica della nota interna. L'oggetto è il riferimento della richiesta (es. <em>SQ-20260824-0431</em>) e non l'oggetto scritto dal cliente, che potrebbe portare il nome di un dipendente in un registro che non si cancella.</li>
         </ul>
         <p>Il pulsante <strong>Aggiorna</strong> ricarica l'elenco. Su mobile le voci sono mostrate come schede.</p>
@@ -450,6 +623,9 @@ const MAIN_IT = `
             <tr><td><strong>Documentale</strong></td><td>Capacità d'azienda per consultare i documenti di tutti i dipendenti; qui se ne fissa il numero massimo.</td></tr>
             <tr><td><strong>Email di accesso</strong></td><td>Invito (prima password), accesso all'azienda (account già esistente) o reset password (al reinvio).</td></tr>
             <tr><td><strong>Sospensione</strong></td><td>Blocco temporaneo dell'accesso degli utenti di un'azienda; i dati restano.</td></tr>
+            <tr><td><strong>Self-service</strong></td><td>Azienda registrata da sola dal sito; piano gratuito o a pagamento con carta (Stripe).</td></tr>
+            <tr><td><strong>Override</strong></td><td>Limite o modulo in omaggio sopra quanto l'azienda paga; vale il valore più alto.</td></tr>
+            <tr><td><strong>Fattura differita</strong></td><td>Una sola fattura per tutti gli incassi del mese di un'azienda, da emettere entro il 15 del mese successivo.</td></tr>
           </tbody>
         </table>
       </div>
@@ -482,6 +658,16 @@ const MAIN_IT = `
       <div class="feature">
         <h3>Un partner vede le aziende di altri partner?</h3>
         <p>No. Ogni partner vede <strong>solo</strong> le aziende che ha creato. La visione completa è riservata all'amministratore di piattaforma.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Un partner vede le aziende registrate dal sito?</h3>
+        <p>No, mai. Le aziende self-service non appartengono a nessun partner: le vedono gli amministratori di piattaforma, e solo il super-utente ne gestisce abbonamenti e pagamenti. Se un'azienda self-service deve passare a un partner, il super-utente la mette prima in gestione manuale (annullando gli abbonamenti Stripe) e poi la assegna.</p>
+      </div>
+
+      <div class="feature">
+        <h3>Chi emette le fatture dei pagamenti con carta?</h3>
+        <p>Non Stripe e non sonoQui: la fattura elettronica la emette il venditore dal proprio software di fatturazione. La pagina <strong>Pagamenti</strong> elenca gli incassi con i dati per la fattura e tiene il conto di cosa è già stato fatturato.</p>
       </div>
 
       <div class="feature">

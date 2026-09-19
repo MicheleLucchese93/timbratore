@@ -1,3 +1,4 @@
+import type { PoolClient } from 'pg';
 import { adminPool } from './admin-db.js';
 import { env } from '../env.js';
 import { createLogger } from './logger.js';
@@ -24,6 +25,17 @@ export interface ProvisionTenantParams {
   // Partner who provisioned this tenant (null = created by a platform admin / the
   // old internal route). Drives the partner's "see only my own tenants" scope.
   createdByPartner?: string | null;
+  // Self-service signup (Specs/SELF_SERVICE_BILLING.md). Omitted by every
+  // partner/internal caller, so their tenants keep the column defaults
+  // (signup_source 'partner', billing_mode 'managed', plan 'custom').
+  selfService?: {
+    partitaIva: string;
+    plan: 'free';
+    pendingPlan?: 'piccola' | 'media' | null;
+  };
+  // Runs inside the provisioning transaction, after the admin membership, so
+  // whatever it writes commits or rolls back together with the tenant.
+  extra?: (client: PoolClient, ctx: { tenantId: string; adminUserId: string }) => Promise<void>;
 }
 
 export interface ProvisionTenantResult {
@@ -56,8 +68,10 @@ export async function provisionTenant(p: ProvisionTenantParams): Promise<Provisi
     const t = await client.query(
       `INSERT INTO tenants
          (ragione_sociale, language, max_admins, max_users, max_branches, max_documentali,
-          cantieri_enabled, api_enabled, created_by_partner)
-       VALUES ($1, $2, COALESCE($3, 2), COALESCE($4, 20), COALESCE($5, 3), COALESCE($6, 1), $7, $8, $9)
+          cantieri_enabled, api_enabled, created_by_partner,
+          signup_source, billing_mode, plan, partita_iva, pending_plan)
+       VALUES ($1, $2, COALESCE($3, 2), COALESCE($4, 20), COALESCE($5, 3), COALESCE($6, 1), $7, $8, $9,
+               COALESCE($10, 'partner'), COALESCE($11, 'managed'), COALESCE($12, 'custom'), $13, $14)
        RETURNING id, max_admins, max_users, max_branches, max_documentali`,
       [
         p.ragioneSociale,
@@ -69,6 +83,11 @@ export async function provisionTenant(p: ProvisionTenantParams): Promise<Provisi
         p.cantieriEnabled ?? false,
         p.apiEnabled ?? false,
         p.createdByPartner ?? null,
+        p.selfService ? 'self_service' : null,
+        p.selfService ? 'stripe' : null,
+        p.selfService ? p.selfService.plan : null,
+        p.selfService ? p.selfService.partitaIva : null,
+        p.selfService?.pendingPlan ?? null,
       ]
     );
     const tenantId = t.rows[0].id as string;
@@ -91,6 +110,10 @@ export async function provisionTenant(p: ProvisionTenantParams): Promise<Provisi
        RETURNING id`,
       [tenantId, u.userId]
     );
+
+    if (p.extra) {
+      await p.extra(client, { tenantId, adminUserId: u.userId });
+    }
 
     await client.query('COMMIT');
     logger.info(

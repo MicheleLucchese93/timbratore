@@ -92,7 +92,21 @@ export type AuditAction =
   // settings
   | 'tenant.update'
   | 'tenant.export_recipient_add'
-  | 'tenant.export_recipient_remove';
+  | 'tenant.export_recipient_remove'
+  // self-service registration + billing (Specs/SELF_SERVICE_BILLING.md). The
+  // billing.* rows written from Stripe webhooks carry a NULL actor when nobody
+  // in the company acted (a renewal, a failed payment, a period ending).
+  | 'tenant.self_signup'
+  | 'billing.profile_update'
+  | 'billing.checkout_started'
+  | 'billing.plan_started'
+  | 'billing.plan_changed'
+  | 'billing.plan_ended'
+  | 'billing.module_activated'
+  | 'billing.module_cancel_scheduled'
+  | 'billing.module_resumed'
+  | 'billing.module_ended'
+  | 'billing.payment_failed';
 
 export interface AuditEntry {
   action: AuditAction;
@@ -138,7 +152,7 @@ export async function logAudit(client: PoolClient, entry: AuditEntry): Promise<v
 export async function logAuditAs(
   db: Pick<PoolClient, 'query'>,
   tenantId: string,
-  actorUserId: string,
+  actorUserId: string | null,
   entry: AuditEntry
 ): Promise<void> {
   await db.query(

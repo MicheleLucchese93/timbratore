@@ -145,6 +145,16 @@ const QUERIES = {
     where event in ('form_contatto_inviato', 'form_contatto_errore') and ${WINDOW} and ${EXCLUDE}
     group by event, motivo order by event, n desc`,
 
+  // /it/registrazione (consent-gated, so a floor, not a census). The rest of
+  // the funnel is measured server-side (partner console → Registrazioni).
+  signupForm: `
+    select event, properties.motivo as motivo, count() as n
+    from events
+    where event in ('registrazione_iniziata', 'registrazione_inviata', 'registrazione_errore',
+                    'registrazione_reinvio', 'registrazione_non_disponibile')
+      and ${WINDOW} and ${EXCLUDE}
+    group by event, motivo order by event, n desc`,
+
   seoLandingPages: `
     select properties.$pathname as path, uniqIf(distinct_id, event = '$pageview') as visitors, count() as views
     from events
@@ -204,6 +214,7 @@ section("Referrers", "referrers");
 section("UTM campaigns", "utm");
 section("Devices", "devices");
 section("Contact form — inviato / errore by motivo", "contactForm");
+section("Registration form — /it/registrazione events by motivo", "signupForm");
 section("SEO landing pages (should not be empty)", "seoLandingPages");
 section("Frustration signals (rage / dead clicks)", "frustration");
 section("Contamination check — hosts that are not sonoqui.pro (should be empty)", "contamination");

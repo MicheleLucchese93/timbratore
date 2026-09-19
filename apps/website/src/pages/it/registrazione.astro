@@ -1,0 +1,994 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getLangFromUrl, useTranslations } from "../../i18n/utils";
+import { signupMeta, buildSignupSchemas, SIGNUP_PATH, WEB_APP_URL } from "../../data/seo";
+
+// Step 1 of the self-service signup (Specs/SELF_SERVICE_BILLING.md §3.2). The
+// website only collects the PERSON — name, email, optional phone, consents.
+// The backend emails a confirmation link; the password, the company (P.IVA +
+// VIES) and any payment all happen in the web app. Nothing is created until
+// the email is confirmed.
+//
+// Signup ships dark. The form is shown only when GET /api/v1/signup/config
+// answers JSON 200 with data.enabled === true. Anything else — the static
+// server's 404 before Caddy routes /api/v1/signup*, a 503, a network error, a
+// body that is not JSON — shows the "not available yet" fallback, and so does
+// a POST that comes back 503 SIGNUP_DISABLED.
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const meta = signupMeta[lang];
+
+// Same production key as the footer's contact form; PUBLIC_TURNSTILE_SITE_KEY
+// overrides it for local dev (see env.d.ts).
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || "0x4AAAAAADYNGw6MCmH7jyON";
+
+const check = `<svg class="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`;
+
+const reassurance = [
+  "Gratis per sempre fino a 3 utenti, te compreso",
+  "Nessuna carta di credito richiesta",
+  "Passi a un piano a pagamento solo quando ti serve",
+];
+
+const steps = [
+  {
+    title: "Lasci nome ed email",
+    desc: "Compili questo modulo: niente dati aziendali e niente carta di credito.",
+  },
+  {
+    title: "Confermi l'email e scegli la password",
+    desc: "Ti inviamo un link di conferma: aprilo per creare il tuo accesso a sonoQui.",
+  },
+  {
+    title: "Inserisci la Partita IVA e sei operativo",
+    desc: "Nell'app recuperiamo ragione sociale e indirizzo dal VIES e parti con il piano gratuito. Se hai scelto Piccola o Media, lo attivi con carta.",
+  },
+];
+
+const inputClass =
+  "mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-base text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none aria-[invalid=true]:border-danger aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-danger";
+const labelClass = "block text-sm font-medium text-on-surface";
+const errorClass = "mt-1.5 hidden text-sm text-danger";
+const checkboxClass = "mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-primary";
+const legalLinkClass = "font-semibold text-primary underline hover:no-underline";
+---
+
+<BaseLayout
+  title={meta.title}
+  description={meta.description}
+  alternatePaths={{ it: SIGNUP_PATH }}
+  schema={buildSignupSchemas(lang)}
+>
+  <section class="relative overflow-hidden bg-gradient-to-b from-surface to-white pt-28 pb-16 sm:pt-36 sm:pb-24">
+    <div class="pointer-events-none absolute inset-0 overflow-hidden">
+      <div class="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/5 blur-3xl"></div>
+      <div class="absolute -bottom-20 -left-20 h-60 w-60 rounded-full bg-secondary/5 blur-3xl"></div>
+    </div>
+
+    {/* Three blocks, in reading order intro → form → steps, so on phones the
+        form comes right after the headline. At lg the form card moves to its
+        own column spanning both rows; the 1fr row soaks up its extra height. */}
+    <div class="relative mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] lg:grid-rows-[auto_1fr] lg:gap-x-16">
+      <div class="lg:col-start-1 lg:row-start-1">
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-secondary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-secondary">
+          Registrazione gratuita
+        </span>
+        <h1 class="mt-4 text-3xl font-extrabold leading-tight tracking-tight text-on-surface text-balance sm:text-5xl">
+          Inizia gratis con sonoQui
+        </h1>
+        <p class="mt-5 text-lg leading-relaxed text-on-surface-variant">
+          Registra la tua azienda in pochi minuti. Il piano gratuito resta gratuito per sempre fino a
+          3 utenti, te compreso, e 1 sede: ti basta per partire e per capire se sonoQui fa per te.
+        </p>
+        <ul class="mt-6 space-y-3">
+          {reassurance.map((item) => (
+            <li class="flex items-start gap-2.5 text-base text-on-surface">
+              <Fragment set:html={check} />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div class="lg:col-start-2 lg:row-span-2 lg:row-start-1">
+        <div id="signup-card" aria-busy="true" class="rounded-3xl border border-gray-200 bg-white p-5 shadow-xl sm:p-8">
+          <!-- 1. Checking whether signup is open. Never the form first: it would
+               flash and then vanish whenever signup is still switched off. -->
+          <div id="signup-loading" data-testid="signup-loading">
+            <div class="flex min-h-[20rem] flex-col items-center justify-center gap-3 text-center" role="status">
+              <span class="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary motion-reduce:animate-none" aria-hidden="true"></span>
+              <p class="text-sm text-on-surface-variant">{t("signup.loading")}</p>
+            </div>
+          </div>
+          <noscript>
+            <p class="rounded-xl bg-warning-tint px-4 py-3 text-sm text-on-surface">
+              {t("signup.noscript")}
+            </p>
+          </noscript>
+
+          <!-- 2. Signup not open (yet): send people to the contact form. -->
+          <div id="signup-unavailable" data-testid="signup-unavailable" class="hidden">
+            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <h2 id="signup-unavailable-title" tabindex="-1" class="mt-4 text-2xl font-bold text-on-surface focus:outline-none">
+              {t("signup.unavailable.title")}
+            </h2>
+            <p class="mt-3 text-base leading-relaxed text-on-surface-variant">
+              {t("signup.unavailable.text")}
+            </p>
+            <a
+              href="#contact"
+              id="signup-unavailable-cta"
+              data-subject={t("signup.unavailable.subject")}
+              class="btn-lift mt-6 inline-flex w-full items-center justify-center rounded-full bg-primary px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-primary-container"
+            >
+              {t("signup.unavailable.cta")}
+            </a>
+            <p class="mt-4 text-center text-sm text-on-surface-variant">
+              {t("signup.haveAccount")} <a href={WEB_APP_URL} class="font-semibold text-primary hover:underline">{t("nav.login")}</a>
+            </p>
+          </div>
+
+          <!-- 3. The form. -->
+          <div id="signup-form-view" data-testid="signup-form-view" class="hidden">
+            <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <h2 class="text-xl font-bold text-on-surface">Crea il tuo account</h2>
+              <p class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary" data-testid="signup-plan">
+                Piano scelto: <span id="signup-plan-name">Gratuito</span>
+                <span aria-hidden="true">·</span>
+                <a href="/it/#pricing" aria-label="Cambia piano" class="underline hover:no-underline">cambia</a>
+              </p>
+            </div>
+            <p id="signup-plan-note" class="mt-2 text-sm text-on-surface-variant">
+              Gratis per sempre: 3 utenti, te compreso, e 1 sede. Nessuna carta richiesta.
+            </p>
+
+            <form id="signup-form" method="post" novalidate class="relative mt-6 space-y-4" data-testid="signup-form">
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label for="signup-first-name" class={labelClass}>Nome</label>
+                  <input id="signup-first-name" name="first_name" type="text" required maxlength="80" autocomplete="given-name" class={inputClass} />
+                  <p id="signup-first-name-error" class={errorClass}></p>
+                </div>
+                <div>
+                  <label for="signup-last-name" class={labelClass}>Cognome</label>
+                  <input id="signup-last-name" name="last_name" type="text" required maxlength="80" autocomplete="family-name" class={inputClass} />
+                  <p id="signup-last-name-error" class={errorClass}></p>
+                </div>
+              </div>
+
+              <div>
+                <label for="signup-email" class={labelClass}>Email</label>
+                <input id="signup-email" name="email" type="email" required maxlength="254" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" class={inputClass} />
+                <p id="signup-email-error" class={errorClass}></p>
+              </div>
+
+              <div>
+                <label for="signup-phone" class={labelClass}>
+                  Telefono <span class="font-normal text-on-surface-variant">(facoltativo)</span>
+                </label>
+                <input id="signup-phone" name="phone" type="tel" maxlength="30" autocomplete="tel" inputmode="tel" class={inputClass} />
+                <p id="signup-phone-error" class={errorClass}></p>
+              </div>
+
+              <div class="space-y-3 pt-1">
+                <div>
+                  <div class="flex items-start gap-3">
+                    <input id="signup-tos" name="accept_tos" type="checkbox" required class={checkboxClass} />
+                    <label for="signup-tos" class="text-sm leading-relaxed text-on-surface">
+                      Accetto i <a href="/it/termini-e-condizioni/" target="_blank" rel="noopener" class={legalLinkClass}>Termini e condizioni</a> del servizio
+                    </label>
+                  </div>
+                  <p id="signup-tos-error" class={`${errorClass} pl-8`}></p>
+                </div>
+                <div>
+                  <div class="flex items-start gap-3">
+                    <input id="signup-privacy" name="accept_privacy" type="checkbox" required class={checkboxClass} />
+                    <label for="signup-privacy" class="text-sm leading-relaxed text-on-surface">
+                      Ho letto l'<a href="/it/privacy-policy/" target="_blank" rel="noopener" class={legalLinkClass}>informativa privacy</a>
+                    </label>
+                  </div>
+                  <p id="signup-privacy-error" class={`${errorClass} pl-8`}></p>
+                </div>
+                <div class="flex items-start gap-3">
+                  <input id="signup-marketing" name="marketing" type="checkbox" class={checkboxClass} />
+                  <label for="signup-marketing" class="text-sm leading-relaxed text-on-surface-variant">
+                    Voglio ricevere via email novità, consigli d'uso e offerte su sonoQui. Facoltativo: puoi
+                    disiscriverti in qualsiasi momento.
+                  </label>
+                </div>
+              </div>
+
+              {/* Honeypot. Off-screen and out of the tab order, so people never
+                  fill it; bots filling every field get a silent 202 and nothing
+                  is sent. */}
+              <div class="absolute -left-[10000px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
+                <label for="signup-company-website">Lascia vuoto questo campo</label>
+                <input id="signup-company-website" type="text" name="company_website" tabindex="-1" autocomplete="off" />
+              </div>
+
+              <div>
+                <div id="signup-turnstile" data-turnstile-sitekey={turnstileSiteKey} class="min-h-[65px]"></div>
+                <p id="signup-turnstile-error" class={errorClass} role="status"></p>
+              </div>
+
+              <div id="signup-form-error" role="alert" class="hidden rounded-lg border border-danger/30 bg-error-tint px-4 py-3 text-sm text-danger"></div>
+
+              <button
+                type="submit"
+                id="signup-submit"
+                data-testid="signup-submit"
+                class="inline-flex w-full items-center justify-center rounded-full bg-primary px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Crea il tuo account
+              </button>
+              <p class="text-center text-xs leading-relaxed text-on-surface-variant">
+                Registrarti è gratis e non serve la carta di credito. sonoQui è riservato ad aziende e
+                professionisti con Partita IVA.
+              </p>
+            </form>
+          </div>
+
+          <!-- 4. Sent. Same message whatever the address: the API never says
+               whether an email already has an account. -->
+          <div id="signup-success" data-testid="signup-success" class="hidden">
+            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-success-tint text-success">
+              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            </div>
+            <h2 id="signup-success-title" tabindex="-1" class="mt-4 text-2xl font-bold text-on-surface focus:outline-none">
+              Controlla la tua email
+            </h2>
+            <p class="mt-3 text-base leading-relaxed text-on-surface-variant">
+              Abbiamo inviato a <strong id="signup-success-email" class="break-all font-semibold text-on-surface"></strong>{" "}
+              un link per confermare l'indirizzo e scegliere la password. Poi inserisci i dati della tua azienda
+              direttamente nell'app.
+            </p>
+            <div class="mt-5 rounded-xl bg-surface p-4 text-sm leading-relaxed text-on-surface-variant">
+              L'email può richiedere qualche minuto, specie con le caselle Microsoft/Outlook aziendali:
+              controlla anche la cartella spam o posta indesiderata. Se l'indirizzo ha già un account sonoQui,
+              l'email ti spiega come aggiungere la nuova azienda.
+            </div>
+
+            <div id="signup-resend-turnstile" data-turnstile-sitekey={turnstileSiteKey} class="mt-5"></div>
+            <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                id="signup-resend"
+                data-testid="signup-resend"
+                disabled
+                class="inline-flex shrink-0 items-center justify-center rounded-full border border-primary px-5 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Reinvia email
+              </button>
+              <p id="signup-resend-hint" class="text-sm text-on-surface-variant"></p>
+            </div>
+            <p id="signup-resend-status" class="mt-3 hidden text-sm" role="status"></p>
+
+            <p class="mt-6 text-sm text-on-surface-variant">
+              Hai sbagliato indirizzo?{" "}
+              <button type="button" id="signup-edit" data-testid="signup-edit" class="font-semibold text-primary underline hover:no-underline">
+                Correggilo e registrati di nuovo
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="lg:col-start-1 lg:row-start-2">
+        <h2 class="text-2xl font-bold tracking-tight text-on-surface">Come funziona</h2>
+        <ol class="mt-6 space-y-5">
+          {steps.map((step, i) => (
+            <li class="flex gap-4">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white" aria-hidden="true">
+                {i + 1}
+              </span>
+              <div>
+                <h3 class="text-base font-semibold text-on-surface">{step.title}</h3>
+                <p class="mt-1 text-sm leading-relaxed text-on-surface-variant">{step.desc}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <p class="mt-8 text-sm leading-relaxed text-on-surface-variant">
+          {t("signup.haveAccount")} <a href={WEB_APP_URL} class="font-semibold text-primary hover:underline">{t("nav.login")}</a>.
+          Più di 20 dipendenti o esigenze particolari?{" "}
+          <a href="#contact" class="font-semibold text-primary hover:underline">Contattaci</a> per un piano su misura.
+        </p>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* No JavaScript means no availability check: don't leave a spinner turning
+     next to the <noscript> message. BaseLayout adds `js` to <html> first thing. */
+  :global(html:not(.js)) #signup-loading {
+    display: none;
+  }
+</style>
+
+<script>
+  type PlanKey = "free" | "piccola" | "media";
+  type View = "loading" | "unavailable" | "form" | "success";
+  type FieldName = "first_name" | "last_name" | "email" | "phone" | "accept_tos" | "accept_privacy";
+  type Captcha = { token(): string; reset(): void; remove(): void };
+  type TurnstileApi = {
+    render(container: HTMLElement, params: Record<string, unknown>): string | undefined;
+    reset(widgetId?: string): void;
+    remove(widgetId?: string): void;
+    getResponse(widgetId?: string): string | undefined;
+  };
+  type Failure = { code: string | null; fieldErrors: Record<string, unknown> };
+
+  const CONFIG_URL = "/api/v1/signup/config";
+  const SIGNUP_URL = "/api/v1/signup";
+  const RESEND_URL = "/api/v1/signup/resend";
+  const TURNSTILE_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+  const RESEND_COOLDOWN_MS = 120_000; // the API accepts one resend per 2 minutes
+  const CONFIG_TIMEOUT_MS = 8_000;
+  const REQUEST_TIMEOUT_MS = 20_000;
+  const CAMPAIGN_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid"];
+  const FIELDS: FieldName[] = ["first_name", "last_name", "email", "phone", "accept_tos", "accept_privacy"];
+
+  const PLANS: Record<PlanKey, { name: string; note: string }> = {
+    free: {
+      name: "Gratuito",
+      note: "Gratis per sempre: 3 utenti, te compreso, e 1 sede. Nessuna carta richiesta.",
+    },
+    piccola: {
+      name: "Piccola",
+      note: "24,99 €/mese + IVA, fino a 10 dipendenti e 3 sedi. Registrarti è gratis: il piano lo attivi con carta nell'app, dopo aver inserito i dati dell'azienda.",
+    },
+    media: {
+      name: "Media",
+      note: "39,99 €/mese + IVA, fino a 20 dipendenti e 5 sedi. Registrarti è gratis: il piano lo attivi con carta nell'app, dopo aver inserito i dati dell'azienda.",
+    },
+  };
+
+  // Italian copy per API error code. The API's own messages are English and
+  // must never reach the visitor.
+  const ERRORS: Record<string, string> = {
+    VALIDATION: "Alcuni dati non sono validi: controlla i campi evidenziati.",
+    CAPTCHA_REQUIRED: "Completa la verifica di sicurezza e riprova.",
+    CAPTCHA_FAILED: "La verifica di sicurezza non è andata a buon fine. Riprova.",
+    CAPTCHA_UNAVAILABLE: "Il servizio di verifica di sicurezza non risponde. Riprova tra qualche minuto.",
+    RATE_LIMITED: "Troppe richieste in poco tempo da questa connessione. Riprova più tardi.",
+  };
+  const GENERIC_ERROR = "Si è verificato un errore imprevisto. Riprova tra qualche minuto.";
+  const NETWORK_ERROR = "Errore di rete: controlla la connessione e riprova.";
+  const CAPTCHA_WAITING = "Verifica di sicurezza in corso: la registrazione parte appena è completata.";
+  const CAPTCHA_STALLED =
+    "La verifica di sicurezza non è ancora completata: completala qui sopra, poi premi di nuovo «Crea il tuo account».";
+  const CAPTCHA_WAIT_MS = 30_000;
+  const CAPTCHA_BROKEN =
+    "La verifica di sicurezza non si è caricata. Ricarica la pagina o disattiva eventuali blocchi dei contenuti, poi riprova.";
+
+  // Shown when the API rejects a field the browser-side checks accepted.
+  const SERVER_FIELD_ERRORS: Record<FieldName, string> = {
+    first_name: "Controlla il nome: massimo 80 caratteri, senza i simboli < e >.",
+    last_name: "Controlla il cognome: massimo 80 caratteri, senza i simboli < e >.",
+    email: "Questo indirizzo email non è valido: controllalo e riprova.",
+    phone: "Controlla il numero di telefono, oppure lascia vuoto il campo.",
+    accept_tos: "Per registrarti devi accettare i Termini e condizioni.",
+    accept_privacy: "Conferma di aver letto l'informativa privacy.",
+  };
+
+  function byId<T extends HTMLElement = HTMLElement>(id: string): T {
+    const element = document.getElementById(id);
+    if (!element) throw new Error(`registrazione: #${id} is missing`);
+    return element as T;
+  }
+
+  // ---- Turnstile ------------------------------------------------------------
+  // Loaded on demand, like the footer's contact form, and only once the form is
+  // actually shown. Footer.astro may inject the same script for its own widget
+  // further down this page: whoever comes first injects it, the other reuses the
+  // tag (a second copy of api.js makes Turnstile warn and misbehave). Implicit
+  // mode — no render=explicit — so the footer's `.cf-turnstile` still
+  // auto-renders; this page renders its widgets explicitly and keeps their ids,
+  // because a page with several widgets must never reset "whichever is first".
+  type TurnstileWaiter = (api: TurnstileApi | null) => void;
+  const turnstileWaiters: TurnstileWaiter[] = [];
+  let turnstileRequested = false;
+  let turnstileFailed = false;
+
+  function loadedTurnstile(): TurnstileApi | null {
+    return (window as unknown as { turnstile?: TurnstileApi }).turnstile ?? null;
+  }
+
+  function withTurnstile(waiter: TurnstileWaiter): void {
+    const ready = loadedTurnstile();
+    if (ready) return waiter(ready);
+    if (turnstileFailed) return waiter(null);
+    turnstileWaiters.push(waiter);
+    if (turnstileRequested) return;
+    turnstileRequested = true;
+
+    let script = document.querySelector<HTMLScriptElement>(`script[src^="${TURNSTILE_SRC}"]`);
+    if (!script) {
+      script = document.createElement("script");
+      script.src = TURNSTILE_SRC;
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+    const startedAt = Date.now();
+    let settled = false;
+    let poll = 0;
+    const settle = (api: TurnstileApi | null) => {
+      if (settled) return;
+      settled = true;
+      window.clearInterval(poll);
+      if (!api) turnstileFailed = true;
+      turnstileWaiters.splice(0).forEach((fn) => fn(api));
+    };
+    script.addEventListener("load", () => settle(loadedTurnstile()));
+    script.addEventListener("error", () => settle(null));
+    // A tag the footer injected may have loaded (or failed) before these
+    // listeners existed, so also watch for the global, with a deadline.
+    poll = window.setInterval(() => {
+      const api = loadedTurnstile();
+      if (api) settle(api);
+      else if (Date.now() - startedAt > 20_000) settle(null);
+    }, 250);
+  }
+
+  // onStatus(null): a fresh token is ready. onStatus(message): a problem to show.
+  function mountCaptcha(
+    container: HTMLElement,
+    appearance: "always" | "interaction-only",
+    onStatus: (problem: string | null) => void,
+  ): Captcha {
+    let api: TurnstileApi | null = null;
+    let widgetId: string | undefined;
+    let token = "";
+    let removed = false;
+    withTurnstile((loaded) => {
+      if (removed) return;
+      if (!loaded) {
+        onStatus(CAPTCHA_BROKEN);
+        return;
+      }
+      api = loaded;
+      try {
+        widgetId = loaded.render(container, {
+          sitekey: container.dataset.turnstileSitekey,
+          theme: "light",
+          language: "it",
+          appearance,
+          // Full width of the form; "compact" where 300px would not fit.
+          size: container.clientWidth > 0 && container.clientWidth < 300 ? "compact" : "flexible",
+          callback: (value: string) => {
+            token = value;
+            onStatus(null);
+          },
+          "expired-callback": () => {
+            token = "";
+          },
+          "timeout-callback": () => {
+            token = "";
+          },
+          // Returning true marks the error as handled; Turnstile retries on its own.
+          "error-callback": () => {
+            token = "";
+            onStatus(CAPTCHA_BROKEN);
+            return true;
+          },
+        });
+      } catch {
+        onStatus(CAPTCHA_BROKEN);
+      }
+    });
+    return {
+      token() {
+        if (api && widgetId) {
+          try {
+            return api.getResponse(widgetId) || "";
+          } catch {
+            return token;
+          }
+        }
+        return token;
+      },
+      reset() {
+        token = "";
+        if (api && widgetId) {
+          try {
+            api.reset(widgetId);
+          } catch {
+            // widget already gone
+          }
+        }
+      },
+      remove() {
+        removed = true;
+        token = "";
+        if (api && widgetId) {
+          try {
+            api.remove(widgetId);
+          } catch {
+            // widget already gone
+          }
+        }
+        widgetId = undefined;
+      },
+    };
+  }
+
+  // ---- Page -------------------------------------------------------------------
+  function init(): void {
+    const card = byId("signup-card");
+    const views: Record<View, HTMLElement> = {
+      loading: byId("signup-loading"),
+      unavailable: byId("signup-unavailable"),
+      form: byId("signup-form-view"),
+      success: byId("signup-success"),
+    };
+    const form = byId<HTMLFormElement>("signup-form");
+    const submit = byId<HTMLButtonElement>("signup-submit");
+    const formError = byId("signup-form-error");
+    const captchaBox = byId("signup-turnstile");
+    const captchaError = byId("signup-turnstile-error");
+    const honeypot = byId<HTMLInputElement>("signup-company-website");
+    const marketing = byId<HTMLInputElement>("signup-marketing");
+    const unavailableTitle = byId("signup-unavailable-title");
+    const unavailableCta = byId<HTMLAnchorElement>("signup-unavailable-cta");
+    const successEmail = byId("signup-success-email");
+    const successTitle = byId("signup-success-title");
+    const resendBox = byId("signup-resend-turnstile");
+    const resendBtn = byId<HTMLButtonElement>("signup-resend");
+    const resendHint = byId("signup-resend-hint");
+    const resendStatus = byId("signup-resend-status");
+    const editBtn = byId<HTMLButtonElement>("signup-edit");
+    const inputs: Record<FieldName, HTMLInputElement> = {
+      first_name: byId<HTMLInputElement>("signup-first-name"),
+      last_name: byId<HTMLInputElement>("signup-last-name"),
+      email: byId<HTMLInputElement>("signup-email"),
+      phone: byId<HTMLInputElement>("signup-phone"),
+      accept_tos: byId<HTMLInputElement>("signup-tos"),
+      accept_privacy: byId<HTMLInputElement>("signup-privacy"),
+    };
+    const errors: Record<FieldName, HTMLElement> = {
+      first_name: byId("signup-first-name-error"),
+      last_name: byId("signup-last-name-error"),
+      email: byId("signup-email-error"),
+      phone: byId("signup-phone-error"),
+      accept_tos: byId("signup-tos-error"),
+      accept_privacy: byId("signup-privacy-error"),
+    };
+    const submitLabel = submit.textContent?.trim() || "Crea il tuo account";
+    const resendLabel = resendBtn.textContent?.trim() || "Reinvia email";
+
+    // ?piano= from the pricing CTAs → the plan hint the API stores; anything
+    // unknown falls back to the free plan.
+    const params = new URLSearchParams(window.location.search);
+    const requested = (params.get("piano") ?? "").toLowerCase();
+    const plan: PlanKey = requested === "piccola" || requested === "media" ? requested : "free";
+    byId("signup-plan-name").textContent = PLANS[plan].name;
+    byId("signup-plan-note").textContent = PLANS[plan].note;
+
+    // Campaign attribution, from this URL only (BaseLayout copies the landing
+    // page's parameters onto every "Inizia gratis" link). Nothing is stored.
+    const utm: Record<string, string> = {};
+    for (const key of CAMPAIGN_KEYS) {
+      const value = params.get(key)?.trim();
+      if (value) utm[key] = value.slice(0, 200);
+    }
+
+    // Consent-gated: window.__sqTrack only exists once analytics was accepted.
+    // Field names may be reported, field values never.
+    const track = (event: string, properties: Record<string, unknown> = {}) => {
+      try {
+        window.__sqTrack?.(event, { piano: plan, ...properties });
+      } catch {
+        // analytics must never break the form
+      }
+    };
+
+    const show = (view: View) => {
+      (Object.keys(views) as View[]).forEach((key) => views[key].classList.toggle("hidden", key !== view));
+      card.setAttribute("aria-busy", view === "loading" ? "true" : "false");
+    };
+
+    async function request(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+      const controller = new AbortController();
+      const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetch(url, {
+          ...init,
+          headers: init.body
+            ? { Accept: "application/json", "Content-Type": "application/json" }
+            : { Accept: "application/json" },
+          signal: controller.signal,
+        });
+      } finally {
+        window.clearTimeout(timer);
+      }
+    }
+
+    async function readFailure(res: Response): Promise<Failure> {
+      // The API's global limiter answers 429 in plain text, not JSON.
+      let code: string | null = res.status === 429 ? "RATE_LIMITED" : null;
+      let fieldErrors: Record<string, unknown> = {};
+      try {
+        const body = (await res.json()) as { error?: { code?: unknown; details?: { fieldErrors?: unknown } } };
+        if (typeof body?.error?.code === "string") code = body.error.code;
+        const reported = body?.error?.details?.fieldErrors;
+        if (reported && typeof reported === "object") fieldErrors = reported as Record<string, unknown>;
+      } catch {
+        // Not JSON — a proxy or CDN error page: the HTTP status is all there is.
+      }
+      return { code, fieldErrors };
+    }
+
+    // ---- Availability ---------------------------------------------------------
+    function closeSignup(reason: string | null, moveFocus: boolean) {
+      show("unavailable");
+      if (reason) track("registrazione_non_disponibile", { motivo: reason });
+      if (moveFocus) unavailableTitle.focus();
+    }
+
+    async function checkAvailability() {
+      let reason = "disabilitata";
+      try {
+        const res = await request(CONFIG_URL, { method: "GET", cache: "no-store" }, CONFIG_TIMEOUT_MS);
+        if (res.status === 200) {
+          try {
+            const body = (await res.json()) as { ok?: unknown; data?: { enabled?: unknown } };
+            if (body?.ok === true && body.data?.enabled === true) {
+              openForm();
+              return;
+            }
+          } catch {
+            reason = "risposta_non_json";
+          }
+        } else {
+          // e.g. 404: the static site answering before Caddy routes the path.
+          reason = `http_${res.status}`;
+        }
+      } catch {
+        reason = "rete";
+      }
+      closeSignup(reason, false);
+    }
+
+    unavailableCta.addEventListener("click", () => {
+      // Label the contact request, like the module and partner CTAs do.
+      const subject = document.querySelector<HTMLInputElement>('#contact-form input[name="subject"]');
+      if (subject && !subject.value) {
+        const base = unavailableCta.dataset.subject ?? "";
+        subject.value = plan === "free" ? base : `${base} (piano ${PLANS[plan].name})`;
+      }
+    });
+
+    // ---- Form -----------------------------------------------------------------
+    let formCaptcha: Captcha | null = null;
+    let sending = false;
+    let submittedEmail = "";
+
+    const setCaptchaMessage = (message: string | null, isError = true) => {
+      captchaError.textContent = message ?? "";
+      captchaError.classList.toggle("hidden", !message);
+      captchaError.classList.toggle("text-danger", isError);
+      captchaError.classList.toggle("text-on-surface-variant", !isError);
+    };
+
+    // A submit that arrives while the check is still running (slow network, or
+    // Cloudflare wants a click) waits for the token and then carries on alone.
+    // Never longer than CAPTCHA_WAIT_MS, though: a check that goes quiet must
+    // not leave the button stuck on "Verifica in corso…".
+    let submitWhenReady = false;
+    let waitTimer = 0;
+    const stopWaiting = () => {
+      submitWhenReady = false;
+      window.clearTimeout(waitTimer);
+      setSending(false);
+    };
+    const onFormCaptcha = (problem: string | null) => {
+      setCaptchaMessage(problem);
+      if (!submitWhenReady) return;
+      stopWaiting();
+      if (problem !== null) return;
+      if (typeof form.requestSubmit === "function") form.requestSubmit();
+      else submit.click();
+    };
+
+    const ensureFormCaptcha = () => {
+      if (!formCaptcha) formCaptcha = mountCaptcha(captchaBox, "always", onFormCaptcha);
+    };
+
+    function openForm() {
+      show("form");
+      if ("IntersectionObserver" in window) {
+        const io = new IntersectionObserver(
+          (entries) => {
+            if (entries.some((entry) => entry.isIntersecting)) {
+              io.disconnect();
+              ensureFormCaptcha();
+            }
+          },
+          { rootMargin: "200px 0px" },
+        );
+        io.observe(form);
+      } else {
+        ensureFormCaptcha();
+      }
+      form.addEventListener("focusin", ensureFormCaptcha, { once: true });
+    }
+
+    const NAME_FORBIDDEN = /[\r\n<>]/;
+    const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const PHONE_CHARS = /^[0-9+()./\s-]+$/;
+
+    function validate(name: FieldName): string | null {
+      const input = inputs[name];
+      const value = input.value.trim();
+      switch (name) {
+        case "first_name":
+        case "last_name": {
+          const noun = name === "first_name" ? "nome" : "cognome";
+          if (!value) return `Inserisci il ${noun}.`;
+          if (value.length > 80) return `Il ${noun} può avere al massimo 80 caratteri.`;
+          if (NAME_FORBIDDEN.test(value)) return `Il ${noun} non può contenere i simboli < e >.`;
+          return null;
+        }
+        case "email":
+          if (!value) return "Inserisci il tuo indirizzo email.";
+          if (value.length > 254 || !EMAIL_SHAPE.test(value)) {
+            return "Inserisci un indirizzo email valido, ad esempio nome@azienda.it.";
+          }
+          return null;
+        case "phone":
+          if (!value) return null;
+          if (value.length > 30 || !PHONE_CHARS.test(value) || value.replace(/\D/g, "").length < 6) {
+            return "Inserisci un numero valido (cifre, spazi e + ( ) . / -), oppure lascia vuoto il campo.";
+          }
+          return null;
+        case "accept_tos":
+          return input.checked ? null : "Per registrarti devi accettare i Termini e condizioni.";
+        case "accept_privacy":
+          return input.checked ? null : "Conferma di aver letto l'informativa privacy.";
+        default:
+          return null;
+      }
+    }
+
+    function setFieldError(name: FieldName, message: string | null) {
+      const input = inputs[name];
+      const error = errors[name];
+      error.textContent = message ?? "";
+      error.classList.toggle("hidden", !message);
+      if (message) {
+        input.setAttribute("aria-invalid", "true");
+        input.setAttribute("aria-describedby", error.id);
+      } else {
+        input.removeAttribute("aria-invalid");
+        input.removeAttribute("aria-describedby");
+      }
+    }
+
+    const showFormError = (message: string | null) => {
+      formError.textContent = message ?? "";
+      formError.classList.toggle("hidden", !message);
+    };
+
+    // Inline validation: a field is judged once the visitor has typed in it
+    // (or it was already flagged), and cleared as soon as it is fixed.
+    FIELDS.forEach((name) => {
+      const input = inputs[name];
+      const recheck = () => setFieldError(name, validate(name));
+      if (input.type === "checkbox") {
+        input.addEventListener("change", () => {
+          if (input.hasAttribute("aria-invalid")) recheck();
+        });
+      } else {
+        input.addEventListener("blur", () => {
+          if (input.value.trim() || input.hasAttribute("aria-invalid")) recheck();
+        });
+        input.addEventListener("input", () => {
+          if (input.hasAttribute("aria-invalid")) recheck();
+        });
+      }
+    });
+
+    form.addEventListener("focusin", () => track("registrazione_iniziata"), { once: true });
+
+    const setSending = (on: boolean) => {
+      sending = on;
+      submit.disabled = on;
+      submit.textContent = on ? "Invio in corso…" : submitLabel;
+      form.setAttribute("aria-busy", on ? "true" : "false");
+    };
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (sending) return;
+      showFormError(null);
+
+      const invalid = FIELDS.filter((name) => {
+        const message = validate(name);
+        setFieldError(name, message);
+        return message !== null;
+      });
+      if (invalid.length) {
+        inputs[invalid[0]].focus();
+        track("registrazione_errore", { motivo: "validazione", campi: invalid.join(",") });
+        return;
+      }
+
+      ensureFormCaptcha();
+      const token = formCaptcha?.token() ?? "";
+      if (!token) {
+        if (turnstileFailed) {
+          setCaptchaMessage(CAPTCHA_BROKEN);
+          track("registrazione_errore", { motivo: "captcha_mancante" });
+          return;
+        }
+        submitWhenReady = true;
+        setCaptchaMessage(CAPTCHA_WAITING, false);
+        submit.disabled = true;
+        submit.textContent = "Verifica in corso…";
+        waitTimer = window.setTimeout(() => {
+          if (!submitWhenReady) return;
+          stopWaiting();
+          setCaptchaMessage(CAPTCHA_STALLED);
+        }, CAPTCHA_WAIT_MS);
+        return;
+      }
+
+      const email = inputs.email.value.trim();
+      const payload: Record<string, unknown> = {
+        first_name: inputs.first_name.value.trim(),
+        last_name: inputs.last_name.value.trim(),
+        email,
+        phone: inputs.phone.value.trim() || null,
+        plan,
+        language: "it",
+        accept_tos: inputs.accept_tos.checked,
+        accept_privacy: inputs.accept_privacy.checked,
+        marketing: marketing.checked,
+        turnstileToken: token,
+        company_website: honeypot.value,
+      };
+      if (Object.keys(utm).length) payload.utm = utm;
+
+      setSending(true);
+      try {
+        const res = await request(SIGNUP_URL, { method: "POST", body: JSON.stringify(payload) }, REQUEST_TIMEOUT_MS);
+        if (res.ok) {
+          submittedEmail = email;
+          showSuccess(email);
+          track("registrazione_inviata");
+          return;
+        }
+        const failure = await readFailure(res);
+        track("registrazione_errore", { motivo: failure.code ?? `http_${res.status}` });
+        if (failure.code === "SIGNUP_DISABLED") {
+          closeSignup(null, true);
+          return;
+        }
+        if (failure.code === "VALIDATION") {
+          const rejected = FIELDS.filter((name) => name in failure.fieldErrors);
+          rejected.forEach((name) => setFieldError(name, validate(name) ?? SERVER_FIELD_ERRORS[name]));
+          showFormError(rejected.length ? ERRORS.VALIDATION : GENERIC_ERROR);
+          if (rejected.length) inputs[rejected[0]].focus();
+          return;
+        }
+        showFormError((failure.code && ERRORS[failure.code]) || GENERIC_ERROR);
+      } catch {
+        showFormError(NETWORK_ERROR);
+        track("registrazione_errore", { motivo: "rete" });
+      } finally {
+        setSending(false);
+        // Turnstile tokens are single-use: whatever happened, fetch a fresh one.
+        formCaptcha?.reset();
+      }
+    });
+
+    // ---- Sent: resend + fix the address ----------------------------------------
+    let resendCaptcha: Captcha | null = null;
+    let cooldownTimer = 0;
+
+    const setResendStatus = (message: string | null, isError = false) => {
+      resendStatus.textContent = message ?? "";
+      resendStatus.classList.toggle("hidden", !message);
+      resendStatus.classList.toggle("text-danger", Boolean(message) && isError);
+      resendStatus.classList.toggle("text-success", Boolean(message) && !isError);
+    };
+
+    function startCooldown() {
+      const until = Date.now() + RESEND_COOLDOWN_MS;
+      resendBtn.disabled = true;
+      window.clearInterval(cooldownTimer);
+      const tick = () => {
+        const left = Math.ceil((until - Date.now()) / 1000);
+        if (left <= 0) {
+          window.clearInterval(cooldownTimer);
+          resendBtn.disabled = false;
+          resendHint.textContent = "Non è arrivata? Puoi chiederne un'altra.";
+          return;
+        }
+        const seconds = String(left % 60).padStart(2, "0");
+        resendHint.textContent = `Potrai chiedere un nuovo invio tra ${Math.floor(left / 60)}:${seconds}.`;
+      };
+      tick();
+      cooldownTimer = window.setInterval(tick, 1000);
+    }
+
+    function showSuccess(email: string) {
+      successEmail.textContent = email;
+      setResendStatus(null);
+      show("success");
+      successTitle.focus();
+      // The resend needs its own fresh token. "interaction-only": invisible
+      // unless Cloudflare actually wants the visitor to click something.
+      resendCaptcha?.remove();
+      resendCaptcha = mountCaptcha(resendBox, "interaction-only", (message) => {
+        if (message) setResendStatus(message, true);
+      });
+      startCooldown();
+    }
+
+    resendBtn.addEventListener("click", async () => {
+      if (resendBtn.disabled || !submittedEmail) return;
+      const token = resendCaptcha?.token() ?? "";
+      if (!token) {
+        setResendStatus(
+          turnstileFailed ? CAPTCHA_BROKEN : "Attendi qualche secondo che la verifica di sicurezza sia completata, poi riprova.",
+          true,
+        );
+        return;
+      }
+      resendBtn.disabled = true;
+      resendBtn.textContent = "Invio in corso…";
+      try {
+        const res = await request(
+          RESEND_URL,
+          { method: "POST", body: JSON.stringify({ email: submittedEmail, turnstileToken: token }) },
+          REQUEST_TIMEOUT_MS,
+        );
+        if (res.ok) {
+          // Always 202, whether or not anything was sent — hence the "se".
+          setResendStatus(
+            "Fatto: se la registrazione è ancora in attesa di conferma, ti abbiamo inviato un nuovo link. Usa quello dell'email più recente: i link precedenti non funzionano più.",
+          );
+          track("registrazione_reinvio");
+          startCooldown();
+          return;
+        }
+        const failure = await readFailure(res);
+        track("registrazione_errore", { motivo: failure.code ?? `http_${res.status}`, fase: "reinvio" });
+        if (failure.code === "SIGNUP_DISABLED") {
+          closeSignup(null, true);
+          return;
+        }
+        setResendStatus((failure.code && ERRORS[failure.code]) || GENERIC_ERROR, true);
+        if (failure.code === "RATE_LIMITED") startCooldown();
+        else resendBtn.disabled = false;
+      } catch {
+        setResendStatus(NETWORK_ERROR, true);
+        track("registrazione_errore", { motivo: "rete", fase: "reinvio" });
+        resendBtn.disabled = false;
+      } finally {
+        resendBtn.textContent = resendLabel;
+        resendCaptcha?.reset();
+      }
+    });
+
+    editBtn.addEventListener("click", () => {
+      window.clearInterval(cooldownTimer);
+      resendCaptcha?.remove();
+      resendCaptcha = null;
+      setResendStatus(null);
+      show("form");
+      inputs.email.focus();
+      inputs.email.select();
+    });
+
+    void checkAvailability();
+  }
+
+  init();
+</script>

@@ -10,6 +10,7 @@ import { PageHeader } from '../components/PageHeader.tsx';
 import { BachecaSection } from '../components/BachecaSection.tsx';
 import { EmptyState } from '../components/EmptyState.tsx';
 import { fmtDate, fmtDateTime, fmtTime, fmtNumber, localeTag } from '../i18n/format.ts';
+import { OnboardingChecklist } from '../components/billing/OnboardingChecklist.tsx';
 
 interface Usage {
   active_users: string | number;
@@ -233,6 +234,14 @@ export function Dashboard() {
 
       {err && (
         <div className="text-sm" style={{ color: 'var(--color-error)' }}>{err}</div>
+      )}
+
+      {summary && (
+        <OnboardingChecklist
+          branches={Number(summary.usage.branches_count ?? 0)}
+          users={Number(summary.usage.active_users ?? 0)}
+          anyStamp={cards.some((c) => c.last_event_at != null)}
+        />
       )}
 
       <section className="dash-stat-grid">

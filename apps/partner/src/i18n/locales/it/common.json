@@ -21,7 +21,9 @@
     "manual": "Manuale",
     "logout": "Esci",
     "openMenu": "Apri menu",
-    "closeMenu": "Chiudi menu"
+    "closeMenu": "Chiudi menu",
+    "signups": "Registrazioni",
+    "payments": "Pagamenti"
   },
   "settings": {
     "title": "Impostazioni",
@@ -104,7 +106,10 @@
     "no": "No",
     "of": "di",
     "saving": "Salvataggio…",
-    "empty": "Nessun risultato"
+    "empty": "Nessun risultato",
+    "prev": "Precedenti",
+    "next": "Successivi",
+    "range": "{{from}}–{{to}} di {{total}}"
   },
   "login": {
     "tagline": "Console partner",
@@ -153,7 +158,11 @@
       "note": "Note",
       "status": "Stato",
       "created": "Creata",
-      "actions": "Azioni"
+      "actions": "Azioni",
+      "origin": "Origine",
+      "plan": "Piano",
+      "subscription": "Abbonamento",
+      "piva": "P.IVA"
     },
     "status": {
       "active": "Attiva",
@@ -222,7 +231,18 @@
       "done": "Azienda eliminata. Utenti cancellati: {{deleted}}, scollegati: {{unlinked}}."
     },
     "empty": "Nessuna azienda",
-    "emptyHint": "Crea la prima azienda: da qui gestisci utenti, limiti e moduli dei tuoi clienti."
+    "emptyHint": "Crea la prima azienda: da qui gestisci utenti, limiti e moduli dei tuoi clienti.",
+    "filter": {
+      "all": "Tutte",
+      "self_service": "Self-service",
+      "partner": "Partner",
+      "vat_review": "P.IVA da verificare"
+    },
+    "searchPlaceholder": "Cerca ragione sociale, email, P.IVA…",
+    "emptyFiltered": "Nessuna azienda con questi filtri",
+    "emptyFilteredHint": "Cambia filtro o testo cercato per vedere le altre.",
+    "stripeManaged": "Gestito dall'abbonamento Stripe — usa Abbonamento",
+    "stripeManagedNoSuper": "Gestito dall'abbonamento Stripe — lo modifica solo il super-utente"
   },
   "partners": {
     "title": "Partner",
@@ -367,7 +387,15 @@
       "ticket.status": "Stato richiesta modificato",
       "ticket.assign": "Richiesta assegnata",
       "ticket.reply": "Risposta inviata al cliente",
-      "ticket.note": "Nota interna modificata"
+      "ticket.note": "Nota interna modificata",
+      "tenant.billing_mode_change": "Modalità di fatturazione cambiata",
+      "tenant.entitlement_override": "Override dei limiti modificati",
+      "tenant.vat_review": "P.IVA rivista",
+      "tenant.stripe_cancel": "Abbonamenti Stripe annullati",
+      "billing.payment_invoiced": "Pagamento segnato come fatturato",
+      "billing.payment_uninvoiced": "Fatturazione di un pagamento annullata",
+      "signup.resend": "Email di registrazione reinviata",
+      "signup.reject": "Registrazione rifiutata"
     },
     "empty": "Nessuna attività registrata",
     "emptyHint": "Ogni operazione effettuata nella console viene registrata qui."
@@ -383,10 +411,18 @@
     "LAST_ADMIN": "Non puoi rimuovere l'ultimo amministratore.",
     "TENANT_NOT_OWNED": "Questa azienda non è tua.",
     "CANTIERI_NOT_ALLOWED": "Non sei abilitato a gestire il modulo Cantieri. Contatta l'amministratore di piattaforma.",
+    "API_NOT_ALLOWED": "Non sei abilitato a gestire il modulo API. Contatta l'amministratore di piattaforma.",
     "SUPPORT_NOT_ALLOWED": "Non sei abilitato all'accesso in sola lettura. Contatta l'amministratore di piattaforma.",
-    "SUPER_ADMIN_REQUIRED": "Solo il super-utente può eliminare un'azienda.",
+    "SUPER_ADMIN_REQUIRED": "Operazione riservata al super-utente.",
     "NAME_MISMATCH": "La ragione sociale digitata non corrisponde.",
-    "default": "Operazione non riuscita. Riprova."
+    "default": "Operazione non riuscita. Riprova.",
+    "BILLING_MODE_STRIPE": "Limiti e moduli di questa azienda sono gestiti dall'abbonamento Stripe: usa Abbonamento (override) o passa a gestione manuale.",
+    "STRIPE_SUBSCRIPTIONS_ACTIVE": "L'azienda ha abbonamenti Stripe attivi: prima annullali (Abbonamento → Passa a gestione manuale).",
+    "SIGNUP_NOT_PENDING": "L'email è già stata confermata: non serve reinviarla.",
+    "SIGNUP_NOT_REJECTABLE": "Non si può rifiutare: da questa registrazione è già stata creata un'azienda.",
+    "NO_CUSTOMER": "L'azienda non ha ancora un cliente Stripe: non c'è niente da sincronizzare.",
+    "BILLING_DISABLED": "La fatturazione Stripe è disattivata su questo server.",
+    "STRIPE_MODE_MISMATCH": "L'azienda è fatturata nell'altra modalità Stripe: per annullarne gli abbonamenti porta STRIPE_MODE su quella modalità."
   },
   "tickets": {
     "title": "Richieste",
@@ -476,5 +512,341 @@
     "emptyHint": "Le richieste di assistenza aperte dai clienti arrivano qui.",
     "emptyFiltered": "Nessuna richiesta con questi filtri",
     "emptyFilteredHint": "Cambia stato, assegnazione o testo cercato per vedere le altre."
+  },
+  "billing": {
+    "action": "Abbonamento",
+    "title": "Abbonamento",
+    "plan": {
+      "free": "Gratuito",
+      "piccola": "Piccola",
+      "media": "Media",
+      "custom": "Personalizzato"
+    },
+    "pendingPlan": "→ {{plan}} in attesa",
+    "pendingPlanTitle": "Ha scelto il piano {{plan}} ma non ha completato il pagamento",
+    "overLimit": "Oltre i limiti",
+    "overLimitSince": "Oltre i limiti del piano dal {{date}}",
+    "origin": {
+      "partner": "Partner",
+      "self_service": "Self-service",
+      "partnerTitle": "Creata dalla console (partner o piattaforma)",
+      "self_serviceTitle": "Registrata in autonomia dal sito"
+    },
+    "subStatus": {
+      "active": "Attivo",
+      "trialing": "In prova",
+      "past_due": "Pagamento in sospeso",
+      "unpaid": "Non pagato",
+      "canceled": "Terminato",
+      "incomplete": "Pagamento non completato",
+      "incomplete_expired": "Terminato",
+      "paused": "In pausa"
+    },
+    "vat": {
+      "valid": "verificata",
+      "not_in_vies": "non nel VIES",
+      "unavailable": "da verificare",
+      "reviewed": "rivista",
+      "reviewedTitle": "Rivista a mano il {{date}}",
+      "title": "Controllo della P.IVA sul VIES",
+      "requestId": "n. consultazione {{id}}"
+    },
+    "subs": {
+      "title": "Abbonamenti Stripe",
+      "empty": "Nessun abbonamento.",
+      "plan": "Piano {{plan}}",
+      "planGeneric": "Piano",
+      "module": "Modulo {{module}}",
+      "interval": {
+        "month": "mensile",
+        "year": "annuale"
+      },
+      "renews": "Si rinnova il {{date}}",
+      "endsOn": "Disdetto: termina il {{date}}",
+      "ended": "Terminato il {{date}}"
+    },
+    "dialog": {
+      "summary": "Riepilogo",
+      "origin": "Origine",
+      "plan": "Piano",
+      "mode": "Fatturazione",
+      "limits": "Limiti in vigore",
+      "limitsValue": "Utenti {{users}} · Sedi {{branches}} · Admin {{admins}} · Documentali {{documentali}}",
+      "created": "Creata il",
+      "stripeCustomer": "Cliente Stripe",
+      "openStripe": "Apri in Stripe",
+      "noCustomer": "Nessun cliente Stripe: non ha ancora avviato un pagamento.",
+      "billingDisabled": "La fatturazione Stripe è disattivata su questo server: sincronizzazione e annullamento degli abbonamenti non sono disponibili.",
+      "paymentsTitle": "Pagamenti",
+      "paymentsNone": "Nessun pagamento registrato.",
+      "paymentsSummary_one": "1 pagamento · totale {{total}}",
+      "paymentsSummary_other": "{{count}} pagamenti · totale {{total}}",
+      "paymentsToInvoice": "{{count}} da fatturare",
+      "paymentsOpen": "Vedi in Pagamenti",
+      "sandbox": "Stripe è in modalità SANDBOX: abbonamenti e pagamenti mostrati sono di prova, nessun addebito reale."
+    },
+    "profile": {
+      "title": "Dati di fatturazione",
+      "empty": "L'azienda non ha ancora inserito i dati di fatturazione.",
+      "legal_name": "Ragione sociale",
+      "partita_iva": "P.IVA",
+      "codice_fiscale": "Codice fiscale",
+      "address": "Indirizzo",
+      "cap": "CAP",
+      "city": "Comune",
+      "province": "Provincia",
+      "country": "Paese",
+      "sdi_code": "Codice SDI",
+      "pec": "PEC",
+      "billing_email": "Email amministrazione",
+      "vies_request_id": "N. consultazione VIES",
+      "vies_checked_at": "Controllo VIES del",
+      "headcount_band": "Dipendenti dichiarati"
+    },
+    "vatReview": {
+      "recheck": "Ripeti prima il controllo sul VIES",
+      "submit": "Verifica P.IVA",
+      "hint": "Segna la P.IVA come controllata a mano. Serve per quelle non presenti nel VIES o non verificabili: restano nel filtro «P.IVA da verificare» finché non le rivedi.",
+      "done": "P.IVA rivista: {{status}}."
+    },
+    "signup": {
+      "title": "Registrazione",
+      "none": "Nessuna registrazione dal sito: l'azienda è stata creata dalla console.",
+      "name": "Nome",
+      "email": "Email",
+      "phone": "Telefono",
+      "planHint": "Piano scelto",
+      "utm": "Provenienza (UTM)",
+      "requested": "Richiesta il",
+      "companyCreated": "Azienda creata il"
+    },
+    "overrides": {
+      "title": "Override dei limiti",
+      "hint": "Omaggi che si aggiungono a quanto pagato: vale il valore più alto tra piano e override, e un modulo spuntato resta attivo anche senza abbonamento. Lascia vuoto per nessun override.",
+      "managedHint": "In gestione manuale gli override non si applicano: modifica i limiti dall'icona matita e i moduli dall'icona moduli.",
+      "max_users": "Utenti",
+      "max_branches": "Sedi",
+      "max_admins": "Admin",
+      "max_documentali": "Documentali",
+      "fromPlan": "piano: {{n}}",
+      "none": "nessuno",
+      "module": "Modulo {{module}} sempre attivo",
+      "invalid": "Gli override devono essere numeri interi da 1 in su.",
+      "save": "Salva override",
+      "clear": "Rimuovi override",
+      "clearConfirm": "Rimuovere tutti gli override? L'azienda torna ai limiti e ai moduli che paga.",
+      "saved": "Override salvati.",
+      "cleared": "Override rimossi."
+    },
+    "mode": {
+      "managed": "Gestione manuale",
+      "stripe": "Stripe (self-service)",
+      "title": "Modalità di fatturazione",
+      "stripeDesc": "Stripe: limiti e moduli derivano dagli abbonamenti pagati (più gli override) e si aggiornano da soli.",
+      "managedDesc": "Gestione manuale: limiti e moduli si modificano a mano, come per le aziende dei partner. Stripe non tocca più l'azienda.",
+      "toManaged": "Passa a gestione manuale",
+      "toStripe": "Passa a fatturazione Stripe",
+      "confirmTitle": "Cambia modalità di fatturazione",
+      "toManagedText": "Da ora limiti e moduli si modificano a mano (icona matita e icona moduli) e restano quelli attuali finché non li cambi. Serve per un accordo su misura o per affidare l'azienda a un partner.",
+      "toStripeText": "Limiti e moduli verranno ricalcolati dagli abbonamenti Stripe (più gli override) e i valori impostati a mano verranno sostituiti. Senza abbonamenti attivi l'azienda torna ai limiti del piano gratuito.",
+      "liveSubs_one": "L'azienda ha 1 abbonamento attivo su Stripe. Cosa vuoi farne?",
+      "liveSubs_other": "L'azienda ha {{count}} abbonamenti attivi su Stripe. Cosa vuoi farne?",
+      "subs": {
+        "keep": "Lasciali attivi",
+        "keep_hint": "Stripe continua ad addebitare: scegli solo se il cliente continua a pagare così.",
+        "cancel_at_period_end": "Annulla a fine periodo",
+        "cancel_at_period_end_hint": "Restano attivi fino alla fine del periodo già pagato, poi si chiudono senza altri addebiti.",
+        "cancel_now": "Annulla subito",
+        "cancel_now_hint": "Si chiudono ora, senza rimborso del periodo in corso. Operazione irreversibile."
+      },
+      "cancelDisabled": "La fatturazione Stripe è disattivata su questo server: da qui gli abbonamenti non si possono annullare.",
+      "done": "Modalità di fatturazione aggiornata."
+    },
+    "sync": {
+      "title": "Sincronizzazione con Stripe",
+      "hint": "Rilegge da Stripe abbonamenti e stato e ricalcola limiti e moduli. Serve se un aggiornamento da Stripe non è arrivato.",
+      "submit": "Sincronizza con Stripe",
+      "done": "Sincronizzazione completata."
+    }
+  },
+  "signups": {
+    "title": "Registrazioni",
+    "subtitle": "Richieste di registrazione dal sito — {{count}} nel filtro corrente",
+    "funnel": {
+      "title": "Funnel delle registrazioni negli ultimi 90 giorni",
+      "requested": "Richieste",
+      "confirmed": "Email confermate",
+      "companies": "Aziende create",
+      "stamping": "Con timbrature",
+      "paying": "Paganti",
+      "window": "ultimi 90 giorni",
+      "ofRequested": "{{pct}}% delle richieste"
+    },
+    "filter": {
+      "all": "Tutte",
+      "pending": "Da confermare",
+      "email_confirmed": "Email confermate",
+      "company_created": "Aziende create",
+      "expired": "Scadute",
+      "rejected": "Rifiutate"
+    },
+    "status": {
+      "pending": "Email da confermare",
+      "email_confirmed": "Email confermata",
+      "company_created": "Azienda creata",
+      "expired": "Scaduta",
+      "rejected": "Rifiutata"
+    },
+    "searchPlaceholder": "Cerca nome, email, azienda, P.IVA…",
+    "col": {
+      "created": "Richiesta",
+      "name": "Nome",
+      "email": "Email",
+      "phone": "Telefono",
+      "plan": "Piano scelto",
+      "status": "Stato",
+      "company": "Azienda",
+      "stamps": "Ultima timbratura",
+      "utm": "Provenienza"
+    },
+    "paying": "Pagante",
+    "existingAccount": "account già esistente",
+    "expiresOn": "link valido fino al {{date}}",
+    "sentTimes_one": "email inviata 1 volta",
+    "sentTimes_other": "email inviata {{count}} volte",
+    "headcount": "{{band}} dipendenti",
+    "lastStamp": "Ultima timbratura: {{date}}",
+    "rejectedBecause": "Motivo: {{reason}}",
+    "openCompany": "Apri azienda",
+    "resend": {
+      "label": "Reinvia email",
+      "confirm": "Reinviare a {{email}} l'email per confermare la registrazione? Il link precedente smette di funzionare.",
+      "done": "Email di conferma reinviata a {{email}}.",
+      "notSent": "Link rigenerato, ma l'email non è partita: controlla la configurazione SMTP."
+    },
+    "reject": {
+      "label": "Rifiuta",
+      "title": "Rifiuta registrazione",
+      "intro": "La richiesta viene chiusa: il link di conferma smette di funzionare e da qui non si potrà più creare un'azienda. Il richiedente non riceve alcuna email.",
+      "reason": "Motivo (facoltativo)",
+      "reasonPh": "Es. registrazione di prova, dati falsi",
+      "submit": "Rifiuta registrazione",
+      "done": "Registrazione di {{email}} rifiutata."
+    },
+    "empty": "Nessuna registrazione",
+    "emptyHint": "Le richieste inviate dal modulo di registrazione del sito compaiono qui.",
+    "emptyFiltered": "Nessuna registrazione con questi filtri",
+    "emptyFilteredHint": "Cambia stato o testo cercato per vedere le altre."
+  },
+  "payments": {
+    "title": "Pagamenti",
+    "subtitle": "Incassi Stripe da fatturare: la fattura elettronica si emette fuori da sonoQui, poi si segna qui.",
+    "export": "Esporta CSV",
+    "filter": {
+      "to_invoice": "Da fatturare",
+      "invoiced": "Fatturati",
+      "all": "Tutti"
+    },
+    "month": "Mese di incasso",
+    "allMonths": "Tutti i mesi",
+    "searchPlaceholder": "Cerca azienda, P.IVA, n. fattura…",
+    "tenantFilter": "Azienda: {{name}}",
+    "tenantFilterClear": "Rimuovi il filtro azienda",
+    "otherMonths_one": "C'è 1 pagamento da fatturare in altri mesi.",
+    "otherMonths_other": "Ci sono {{count}} pagamenti da fatturare in altri mesi.",
+    "showAllMonths": "Mostra tutti i mesi",
+    "rule": "Fattura immediata entro 12 giorni dall'incasso, oppure una fattura differita per azienda entro il 15 del mese successivo (DPR 633/72, art. 21 c.4). Verifica con il commercialista.",
+    "totals": {
+      "net": "Imponibile",
+      "tax": "IVA",
+      "total": "Totale incassato",
+      "fee": "Commissioni Stripe",
+      "toInvoice": "Da fatturare",
+      "ofCount_one": "su 1 pagamento",
+      "ofCount_other": "su {{count}} pagamenti"
+    },
+    "col": {
+      "paidAt": "Incassato il",
+      "company": "Azienda",
+      "piva": "P.IVA",
+      "recipient": "SDI / PEC",
+      "lines": "Voci",
+      "net": "Imponibile",
+      "tax": "IVA",
+      "total": "Totale",
+      "fee": "Commissione",
+      "status": "Stato",
+      "due": "Emetti entro",
+      "month": "Mese",
+      "count": "Incassi"
+    },
+    "status": {
+      "to_invoice": "Da fatturare",
+      "invoiced": "Fatturato n. {{number}} del {{date}}",
+      "refunded": "Rimborsato",
+      "refundedPartial": "Rimborsati {{amount}}",
+      "disputed": "Contestato"
+    },
+    "test": "Test",
+    "proration": "pro rata",
+    "due": {
+      "immediate": "immediata {{date}}",
+      "deferred": "differita {{date}}"
+    },
+    "group": {
+      "toggle": "Raggruppa per azienda e mese",
+      "open": "Dettaglio del mese",
+      "mark_one": "Segna come fatturato",
+      "mark_other": "Segna {{count}} pagamenti come fatturati",
+      "toInvoice": "{{count}} da fatturare",
+      "allInvoiced": "Tutto fatturato",
+      "hint": "Una fattura differita può comprendere tutti gli incassi del mese di questa azienda: emettila, poi segnali tutti con lo stesso numero."
+    },
+    "detail": {
+      "open": "Dettaglio",
+      "title": "Pagamento",
+      "invoiceData": "Dati per la fattura",
+      "copyAll": "Copia tutto",
+      "copy": "Copia {{field}}",
+      "copied": "Copiato negli appunti.",
+      "copyFailed": "Copia non riuscita: seleziona il testo a mano.",
+      "copyLines": "Copia voci",
+      "vatAtPayment": "P.IVA al momento dell'incasso: {{status}}.",
+      "amounts": "Importi",
+      "netReceived": "Netto accreditato",
+      "period": "Periodo",
+      "invoicing": "Fatturazione",
+      "markedAt": "Segnato il",
+      "stripeInvoice": "Invoice Stripe (interna)",
+      "stripeCharge": "Addebito Stripe",
+      "mode": "Ambiente",
+      "live": "Live"
+    },
+    "mark": {
+      "label": "Segna come fatturato",
+      "title": "Segna come fatturato",
+      "titleMany": "Segna {{count}} pagamenti come fatturati",
+      "intro": "Emetti prima la fattura elettronica dal tuo software di fatturazione, poi riporta qui numero e data.",
+      "introMany": "Stesso numero e stessa data su tutti: sono le righe di un'unica fattura differita.",
+      "number": "Numero fattura",
+      "numberPh": "Es. 2026/123",
+      "numberRequired": "Il numero della fattura è obbligatorio.",
+      "date": "Data fattura",
+      "note": "Nota (facoltativa)",
+      "submit": "Segna come fatturato",
+      "done": "Pagamento segnato come fatturato (n. {{number}}).",
+      "doneMany": "{{count}} pagamenti segnati come fatturati (n. {{number}}).",
+      "partial": "{{failed}} pagamenti su {{count}} non aggiornati: riprova."
+    },
+    "unmark": {
+      "label": "Annulla fatturazione",
+      "confirm": "Annullare la fatturazione n. {{number}}? Il pagamento torna «da fatturare». Una fattura già emessa va stornata con una nota di credito nel tuo software di fatturazione.",
+      "done": "Fatturazione annullata: il pagamento è di nuovo da fatturare."
+    },
+    "empty": "Nessun pagamento da fatturare",
+    "emptyHint": "I pagamenti con carta compaiono qui appena Stripe li incassa.",
+    "emptyFiltered": "Nessun pagamento con questi filtri",
+    "emptyFilteredHint": "Cambia stato, mese o testo cercato per vedere gli altri.",
+    "sandboxNotice": "Stripe è in modalità SANDBOX: qui vedi solo pagamenti di prova, fatti con carte di test. Non emettere fatture per questi importi."
   }
 }

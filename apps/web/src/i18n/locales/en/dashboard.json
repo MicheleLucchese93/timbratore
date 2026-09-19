@@ -56,5 +56,32 @@
     "correctionTitle": "Reject correction",
     "leaveLabel": "Reason for rejection",
     "correctionLabel": "Rejection note (optional)"
+  },
+  "onboarding": {
+    "title": "Get started with sonoQui",
+    "subtitle": "{{done}} of {{total}} steps done.",
+    "dismiss": "Hide",
+    "steps": {
+      "branch": {
+        "title": "Create your site",
+        "hint": "Address and radius within which clocking in is allowed.",
+        "cta": "Create the site"
+      },
+      "users": {
+        "title": "Invite your colleagues",
+        "hint": "The Free plan includes 3 users, you included.",
+        "cta": "Invite"
+      },
+      "shifts": {
+        "title": "Set the working hours",
+        "hint": "Needed for late arrivals, overtime and anomalies.",
+        "cta": "Set the hours"
+      },
+      "app": {
+        "title": "Get the app installed",
+        "hint": "Colleagues clock in from the sonoQui app (App Store and Google Play).",
+        "cta": "How it works"
+      }
+    }
   }
 }

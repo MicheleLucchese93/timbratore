@@ -4,14 +4,16 @@
 
 ## Chi siamo
 
-sonoQui è un servizio SaaS italiano dedicato alla rilevazione presenze. Il prodotto è disponibile come app mobile (iOS e Android) e come dashboard web per gli amministratori. Il contatto avviene tramite il modulo presente sul sito sonoqui.pro; non esiste una registrazione pubblica self-service.
+sonoQui è un servizio SaaS italiano dedicato alla rilevazione presenze, commercializzato da Idealcopy S.r.l. (Verona). Il prodotto è disponibile come app mobile (iOS e Android) e come dashboard web per gli amministratori. Le aziende si registrano da sole, gratis, su https://sonoqui.pro/it/registrazione/ e partono con il piano gratuito; per domande, piani su misura e il programma partner c'è il modulo di contatto sul sito.
 
 ## Modello commerciale
 
-- Nessuna registrazione pubblica: l'azienda viene attivata su richiesta e il primo account amministratore è creato dal team sonoQui.
-- Prezzi pubblici, per fascia di dipendenti (IVA esclusa): 24,99 €/mese fino a 10 dipendenti e 3 sedi; 39,99 €/mese fino a 20 dipendenti e 5 sedi. Tutta la rilevazione presenze è inclusa in entrambi i piani. Oltre i limiti del piano: 1,99 €/mese per dipendente aggiuntivo, 2,99 €/mese per sede aggiuntiva. Con la fatturazione annuale 1 mese è gratis.
-- I moduli aggiuntivi (Cantieri, API) sono opzionali, si attivano su richiesta e si pagano a consumo mensile con prezzo su richiesta.
-- L'app è gratuita da scaricare dagli store; il servizio è destinato alle aziende clienti.
+- Registrazione self-service e gratuita: nome ed email sul sito, conferma dell'indirizzo con scelta della password, poi nell'app la Partita IVA dell'azienda (verificata sul VIES). Nessuna carta di credito richiesta per il piano gratuito.
+- Piano Gratuito, senza scadenza: 3 utenti in totale (amministratore compreso) e 1 sede, con tutta la rilevazione presenze inclusa.
+- Piani a pagamento, per fascia di dipendenti (IVA esclusa): Piccola 24,99 €/mese fino a 10 dipendenti e 3 sedi; Media 39,99 €/mese fino a 20 dipendenti e 5 sedi. Con la fatturazione annuale 1 mese è gratis (annuale = 11 mensilità). Enterprise (oltre 20 dipendenti) su misura, tramite il modulo di contatto. Dipendenti (1,99 €/mese) e sedi (2,99 €/mese) oltre i limiti del piano si concordano su richiesta.
+- Moduli aggiuntivi Cantieri e API: 50 €/mese + IVA ciascuno, attivabili in autonomia da Impostazioni con qualsiasi piano, anche gratuito; per le aziende seguite da un partner li attiva il partner.
+- Pagamento con carta tramite Stripe, dall'app; gli abbonamenti si rinnovano automaticamente e la disdetta ha effetto a fine periodo (mensile o annuale), dopodiché l'azienda torna al piano gratuito. Fattura elettronica emessa via SdI da Idealcopy S.r.l.
+- Il servizio è riservato ad aziende e professionisti con Partita IVA; l'app è gratuita da scaricare dagli store.
 
 ## Caratteristiche chiave
 
@@ -27,11 +29,11 @@ sonoQui è un servizio SaaS italiano dedicato alla rilevazione presenze. Il prod
 
 ## Moduli aggiuntivi (opzionali)
 
-I moduli si aggiungono all'abbonamento base, si attivano su richiesta per singola azienda e si pagano a consumo mensile, con prezzo su richiesta.
+I moduli si aggiungono a qualsiasi piano, anche a quello gratuito: costano 50 €/mese + IVA ciascuno, si attivano e si disattivano in autonomia da Impostazioni (la disattivazione ha effetto a fine mese) e si rinnovano ogni mese.
 
 - Cantieri: gli addetti registrano dal telefono le attività di cantiere (tempo di viaggio, ore di lavoro, mezzo utilizzato, campi personalizzati definiti dall'azienda); l'azienda ottiene un riepilogo mensile per cantiere e un report PDF scaricabile o inviato via email.
 - API: l'azienda crea chiavi di accesso con cui i propri sistemi (gestionale del personale, tornelli e lettori badge, strumenti di analisi) leggono e scrivono i dati di sonoQui senza inserimenti manuali. Ogni chiave ha permessi separati per tipo di dato (sola lettura o lettura e scrittura), un tetto di richieste al minuto e una scadenza facoltativa; è revocabile in qualsiasi momento e ogni operazione compare nel registro attività dell'azienda. I documenti del personale e l'approvazione delle assenze restano deliberatamente esclusi dall'API.
-- Su richiesta è possibile sviluppare moduli su misura per settori specifici.
+- Moduli su misura per settori specifici: si progettano insieme, partendo dal modulo di contatto.
 
 ## Conformità e sicurezza
 
@@ -45,9 +47,13 @@ I moduli si aggiungono all'abbonamento base, si attivano su richiesta per singol
 ## Link utili
 
 - [Sito principale](https://sonoqui.pro/it/)
+- [Registrazione gratuita](https://sonoqui.pro/it/registrazione/)
+- [Prezzi](https://sonoqui.pro/it/#pricing)
 - [Web app amministratori](https://app.sonoqui.pro/)
 - [Domande frequenti (FAQ)](https://sonoqui.pro/it/#faq)
+- [Programma partner](https://sonoqui.pro/it/partner/)
 - [Informativa Privacy](https://sonoqui.pro/it/privacy-policy/)
 - [Cookie Policy](https://sonoqui.pro/it/cookie-policy/)
 - [Termini e Condizioni](https://sonoqui.pro/it/termini-e-condizioni/)
+- [Accordo sul trattamento dei dati (DPA)](https://sonoqui.pro/it/dpa/)
 - [EULA](https://sonoqui.pro/it/eula/)

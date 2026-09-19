@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { randomUUID, timingSafeEqual } from 'node:crypto';
+import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { adminPool } from '../lib/admin-db.js';
 import { env } from '../env.js';
 import { ForbiddenError, ValidationError } from '../errors/index.js';
@@ -8,6 +8,7 @@ import { createLogger } from '../lib/logger.js';
 import { asyncHandler } from '../lib/route-helpers.js';
 import { createUserWithPassword } from '../lib/gotrue-admin.js';
 import { storageDelete } from '../lib/storage.js';
+import { hashSignupToken } from './signup.js';
 
 const logger = createLogger('internal-e2e');
 
@@ -206,6 +207,44 @@ internalE2eRouter.post(
         `DELETE FROM partnership_members WHERE user_id ${inE2eUsers}`,
         argsU
       );
+      // Self-service signup + billing fixtures (migration 067). The signup
+      // specs register companies named 'e2e-…' with e2e-*@e2e.local admins, so
+      // the rows below hang off either a fixture tenant or a fixture user —
+      // and legal_acceptances.user_id would otherwise block the auth_users
+      // delete further down. Billing mirror rows go too: the Stripe objects
+      // they point at live in the SANDBOX only (no live keys on e2e runs).
+      const e2eTenantIds = `IN (SELECT id FROM tenants WHERE ragione_sociale LIKE 'e2e-%' AND id <> $2)`;
+      const selfService = await client.query(
+        `WITH la AS (
+           DELETE FROM legal_acceptances WHERE user_id ${inE2eUsers} OR tenant_id ${e2eTenantIds} RETURNING 1
+         ), sr AS (
+           DELETE FROM signup_requests
+            WHERE email LIKE $1 OR user_id ${inE2eUsers} OR tenant_id ${e2eTenantIds} RETURNING 1
+         ), bp AS (
+           DELETE FROM billing_payments WHERE tenant_id ${e2eTenantIds} RETURNING 1
+         ), bs AS (
+           DELETE FROM billing_subscriptions WHERE tenant_id ${e2eTenantIds} RETURNING 1
+         ), bc AS (
+           DELETE FROM billing_customers WHERE tenant_id ${e2eTenantIds} RETURNING 1
+         ), tbp AS (
+           DELETE FROM tenant_billing_profiles WHERE tenant_id ${e2eTenantIds} RETURNING 1
+         ), al AS (
+           DELETE FROM audit_log WHERE tenant_id ${e2eTenantIds} RETURNING 1
+         )
+         SELECT (SELECT count(*) FROM la)::int AS legal_acceptances,
+                (SELECT count(*) FROM sr)::int AS signup_requests,
+                (SELECT count(*) FROM bp)::int + (SELECT count(*) FROM bs)::int
+                  + (SELECT count(*) FROM bc)::int + (SELECT count(*) FROM tbp)::int AS billing_rows,
+                (SELECT count(*) FROM al)::int AS audit_rows`,
+        argsT
+      );
+      // Fixture companies also get a sede in the onboarding specs.
+      const e2eTenantIdsOnly = `IN (SELECT id FROM tenants WHERE ragione_sociale LIKE 'e2e-%' AND id <> $1)`;
+      await client.query(
+        `DELETE FROM branch_memberships WHERE branch_id IN (SELECT id FROM branches WHERE tenant_id ${e2eTenantIdsOnly})`,
+        [TEST_TENANT_ID]
+      );
+      await client.query(`DELETE FROM branches WHERE tenant_id ${e2eTenantIdsOnly}`, [TEST_TENANT_ID]);
       const e2eTenantsDeleted = await client.query(
         `DELETE FROM tenants WHERE ragione_sociale LIKE 'e2e-%' AND id <> $1`,
         [TEST_TENANT_ID]
@@ -403,6 +442,7 @@ internalE2eRouter.post(
           support_sessions: ssess.rowCount,
           partnership_members: pmembers.rowCount,
           partnership_audit_log: palog.rowCount,
+          self_service: selfService.rows[0],
           partnership_tenants: e2eTenantsDeleted.rowCount,
           partnership_tenant_memberships: e2eTenantMemberships.rowCount,
         },
@@ -437,6 +477,7 @@ internalE2eRouter.post(
         support_sessions_deleted: ssess.rowCount,
         partnership_members_deleted: pmembers.rowCount,
         partnership_audit_log_deleted: palog.rowCount,
+        self_service_deleted: selfService.rows[0],
         partnership_tenants_deleted: e2eTenantsDeleted.rowCount,
         partnership_tenant_memberships_deleted: e2eTenantMemberships.rowCount,
       });
@@ -643,5 +684,34 @@ internalE2eRouter.post(
     } finally {
       client.release();
     }
+  })
+);
+
+// ---- POST /signup-token — self-service signup specs --------------------------
+// The confirmation link travels by email, which the suite cannot read. For an
+// e2e-*@e2e.local address only, rotate the pending request's token and hand the
+// raw value back, exactly what the email would have carried. Same bearer as the
+// purge; a non-fixture address is refused before any lookup.
+internalE2eRouter.post(
+  '/signup-token',
+  asyncHandler(async (req, res) => {
+    const secret = env.E2E_PURGE_SECRET;
+    if (!secret || !bearerMatches(req.header('authorization'), secret)) {
+      throw new ForbiddenError('invalid purge token');
+    }
+    const email = String(req.body?.email ?? '').trim().toLowerCase();
+    if (!E2E_EMAIL_REGEX.test(email)) throw new ValidationError('not an e2e fixture email');
+    const token = randomBytes(32).toString('base64url');
+    const r = await adminPool.query(
+      `UPDATE signup_requests
+          SET token_hash = $2, expires_at = now() + interval '2 hours'
+        WHERE id = (SELECT id FROM signup_requests
+                     WHERE lower(email) = $1 AND status = 'pending'
+                     ORDER BY created_at DESC LIMIT 1)
+        RETURNING mode`,
+      [email, hashSignupToken(token)]
+    );
+    if (!r.rowCount) throw new ValidationError('no pending signup for this email');
+    ok(res, { token, mode: r.rows[0].mode });
   })
 );

@@ -10,6 +10,7 @@ import { readExportFile, deleteExportFile } from '../services/export-service.js'
 import { safeFileName, fileTimestamp } from '../lib/filename.js';
 import { DEFAULT_TZ } from '../lib/tz.js';
 import { env } from '../env.js';
+import { assertExportsAllowed } from '../lib/billing.js';
 
 /** period_from/to come back as a DATE string or a Date depending on the driver. */
 function isoDay(v: string | Date): string {
@@ -48,6 +49,9 @@ exportsRouter.post(
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     const b = parse.data;
     if (b.format === 'centro') assertSingleCalendarMonth(b.period_from, b.period_to);
+    // A self-service company still above its plan caps 14 days after a downgrade
+    // cannot export (D7) — stamping keeps working, only the payroll hand-off stops.
+    await assertExportsAllowed(req.user!.tenantId);
     const r = await client.query(
       `INSERT INTO export_jobs(tenant_id, requested_by, format, period_from, period_to, filters)
        VALUES (current_setting('app.current_tenant_id')::uuid, current_setting('app.current_user_id')::uuid,

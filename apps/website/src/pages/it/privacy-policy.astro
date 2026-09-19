@@ -1,5 +1,6 @@
 ---
 import LegalLayout from "../../layouts/LegalLayout.astro";
+import { SELLER, SELLER_ADDRESS } from "../../data/seo";
 ---
 
 <LegalLayout
@@ -7,22 +8,26 @@ import LegalLayout from "../../layouts/LegalLayout.astro";
   slug="privacy-policy"
   alternatePaths={{ it: "/it/privacy-policy/" }}
 >
+  <!-- REVIEW(legal): v2.0 — titolare Idealcopy S.r.l.; nuovi trattamenti per registrazione online, dati azienda/VIES, fatturazione e pagamenti (Stripe), email (Brevo), anti-bot (Cloudflare Turnstile), marketing facoltativo; nuove voci di conservazione (§ 9.5-9.7). Da far rivedere al legale, insieme ai ruoli (l'eventuale società che sviluppa o gestisce la piattaforma va indicata come sub-responsabile). -->
   <h2>1. Titolare del trattamento</h2>
-  <p>Il Titolare del trattamento dei dati personali raccolti tramite l'applicazione mobile sonoQui, la dashboard web e il sito sonoqui.pro è:</p>
+  <p>Il Titolare del trattamento dei dati personali raccolti tramite il sito sonoqui.pro, l'applicazione mobile sonoQui e la dashboard web è la società che offre il servizio con il marchio sonoQui:</p>
+  <!-- TODO(legal): CAP, Partita IVA, codice fiscale e PEC di Idealcopy S.r.l. sono segnaposto visibili: compilarli in SELLER (src/data/seo.ts). -->
   <ul>
-    <li><strong>sonoQui</strong></li>
+    <li><strong>{SELLER.name}</strong>, con sede legale in {SELLER_ADDRESS}</li>
+    <li>Partita IVA {SELLER.vatNumber} — Codice fiscale {SELLER.taxCode}</li>
+    <li>PEC: {SELLER.pec}</li>
     <li>Contatto: tramite il <a href="#contact">modulo di contatto</a> sul sito sonoqui.pro</li>
   </ul>
-  <p>sonoQui non ha designato un Responsabile della Protezione dei Dati (DPO) poiché il trattamento non rientra nelle soglie dell'art. 37 GDPR. Per qualsiasi richiesta in materia di protezione dei dati, contatta l'indirizzo sopra indicato.</p>
+  <p>{SELLER.name} non ha designato un Responsabile della Protezione dei Dati (DPO) poiché il trattamento non rientra nelle soglie dell'art. 37 GDPR. Per qualsiasi richiesta in materia di protezione dei dati, usa i contatti sopra indicati.</p>
 
   <h2>2. Introduzione</h2>
-  <p>sonoQui ("noi" o "nostro") è un servizio di rilevazione presenze rivolto principalmente alle piccole imprese italiane. Questa Informativa spiega come raccogliamo, utilizziamo, conserviamo e proteggiamo le informazioni personali quando utilizzi l'applicazione mobile sonoQui e i servizi correlati, nel rispetto del Regolamento (UE) 2016/679 ("GDPR"), del D.Lgs. 196/2003 come modificato e dell'art. 4 della Legge 300/1970 (Statuto dei Lavoratori).</p>
+  <p>sonoQui ("noi" o "nostro") è un servizio di rilevazione presenze rivolto principalmente alle piccole imprese italiane. Questa Informativa spiega come raccogliamo, utilizziamo, conserviamo e proteggiamo le informazioni personali quando visiti il sito, registri un'azienda, acquisti un abbonamento o utilizzi l'applicazione mobile sonoQui e i servizi correlati, nel rispetto del Regolamento (UE) 2016/679 ("GDPR"), del D.Lgs. 196/2003 come modificato e dell'art. 4 della Legge 300/1970 (Statuto dei Lavoratori).</p>
 
   <h2>3. Modello di responsabilità: Titolare vs Responsabile</h2>
   <div class="highlight-box">
-    <p><strong>Importante:</strong> nei rapporti con i dipendenti che utilizzano sonoQui, il <strong>datore di lavoro</strong> (l'azienda cliente) agisce come Titolare del trattamento dei dati dei propri dipendenti, mentre noi agiamo come <strong>Responsabile del trattamento</strong> (art. 28 GDPR) sulla base del Data Processing Agreement sottoscritto al momento dell'attivazione del servizio.</p>
+    <p><strong>Importante:</strong> nei rapporti con i dipendenti che utilizzano sonoQui, il <strong>datore di lavoro</strong> (l'azienda cliente) agisce come Titolare del trattamento dei dati dei propri dipendenti, mentre noi agiamo come <strong>Responsabile del trattamento</strong> (art. 28 GDPR) sulla base dell'<a href="/it/dpa/">Accordo sul trattamento dei dati</a>, accettato online al momento della creazione dell'azienda.</p>
   </div>
-  <p>Per il sito sonoqui.pro, per le richieste di contatto e per il rapporto contrattuale con l'azienda cliente, agiamo invece come Titolare autonomo.</p>
+  <p>Per il sito sonoqui.pro, per la registrazione online, per le richieste di contatto e per il rapporto contrattuale con l'azienda cliente, compresi abbonamenti, pagamenti e fatturazione, agiamo invece come Titolare autonomo.</p>
 
   <h2>4. Informazioni che raccogliamo</h2>
 
@@ -62,12 +67,48 @@ import LegalLayout from "../../layouts/LegalLayout.astro";
     <li><strong>Metadati di richiesta</strong> — indirizzo IP e log minimi conservati temporaneamente per finalità di sicurezza (rate-limiting, prevenzione abusi)</li>
   </ul>
 
+  <h3>4.5 Registrazione online e account dell'amministratore</h3>
+  <ul>
+    <li><strong>Dati di contatto</strong> — nome, cognome, indirizzo email e, se lo indichi, numero di telefono, inseriti nel modulo di registrazione su sonoqui.pro</li>
+    <li><strong>Piano scelto e provenienza</strong> — il piano indicato al momento della registrazione e gli eventuali parametri della campagna da cui arrivi (ad esempio <em>utm_source</em> o <em>gclid</em>), letti dall'indirizzo della pagina e non da cookie</li>
+    <li><strong>Accettazioni e consensi</strong> — accettazione dei Termini e condizioni, presa visione di questa Informativa ed eventuale consenso alle comunicazioni commerciali, con data, ora, indirizzo IP e tipo di browser</li>
+    <li><strong>Password</strong> — scelta dopo la conferma dell'indirizzo email, sottoposta ad hashing e mai conservata in chiaro</li>
+  </ul>
+
+  <h3>4.6 Dati dell'azienda e verifica della Partita IVA</h3>
+  <ul>
+    <li>Partita IVA, ragione sociale, sede legale e fascia di numero di addetti dell'azienda cliente</li>
+    <li>Esito della verifica della Partita IVA sul servizio VIES della Commissione europea, con il numero di consultazione restituito</li>
+    <li>Accettazione dell'Accordo sul trattamento dei dati, approvazione specifica delle clausole dei Termini e dichiarazione dei poteri di rappresentanza, con data, ora, indirizzo IP e tipo di browser</li>
+  </ul>
+  <p>Per le ditte individuali e i liberi professionisti, Partita IVA e ragione sociale possono coincidere con dati personali del titolare dell'attività.</p>
+
+  <h3>4.7 Fatturazione e pagamenti</h3>
+  <ul>
+    <li><strong>Dati di fatturazione</strong> — ragione sociale, Partita IVA, codice fiscale, indirizzo, codice destinatario SDI o PEC, email per la fatturazione</li>
+    <li><strong>Dati dei pagamenti</strong> — piano o modulo acquistato, importi, date ed esito dei pagamenti, identificativi delle transazioni ricevuti da Stripe</li>
+    <li><strong>Dati della carta di pagamento</strong> — raccolti e trattati direttamente da Stripe (vedi § 7): non li riceviamo e non li conserviamo</li>
+  </ul>
+
+  <h3>4.8 Comunicazioni commerciali (facoltative)</h3>
+  <ul>
+    <li>Solo se lo acconsenti durante la registrazione, usiamo nome e indirizzo email per inviarti novità, consigli d'uso e offerte su sonoQui. Il consenso è facoltativo, non condiziona la registrazione ed è revocabile in qualsiasi momento, con il link presente in ogni email o tramite il modulo di contatto</li>
+  </ul>
+
+  <h3>4.9 Protezione dei moduli dai bot</h3>
+  <ul>
+    <li>I moduli di registrazione e di contatto sono protetti da <strong>Cloudflare Turnstile</strong>, che analizza segnali tecnici del browser e del dispositivo (ad esempio l'indirizzo IP e le caratteristiche del browser) per distinguere le persone dai programmi automatici, di norma senza chiederti alcuna azione</li>
+  </ul>
+
   <h2>5. Base giuridica (art. 6 GDPR)</h2>
   <ul>
     <li><strong>Esecuzione del contratto di lavoro (art. 6(1)(b)):</strong> rilevazione presenze, gestione ferie e permessi, retribuzione</li>
     <li><strong>Obbligo legale (art. 6(1)(c)):</strong> conservazione delle registrazioni di presenza per finalità fiscali e previdenziali</li>
     <li><strong>Legittimo interesse del datore di lavoro (art. 6(1)(f)):</strong> verifica della prestazione lavorativa entro i limiti dell'art. 4 SdL</li>
-    <li><strong>Legittimo interesse del fornitore (art. 6(1)(f)):</strong> logging di sicurezza, prevenzione frodi, stabilità del servizio</li>
+    <li><strong>Legittimo interesse del fornitore (art. 6(1)(f)):</strong> logging di sicurezza, prevenzione frodi, stabilità del servizio; verifica della Partita IVA, protezione dei moduli del sito da abusi e registrazioni automatiche, prova delle accettazioni contrattuali, promemoria per completare una registrazione avviata</li>
+    <li><strong>Esecuzione del contratto con l'azienda cliente e misure precontrattuali (art. 6(1)(b)):</strong> registrazione online, creazione e gestione dell'account e dell'azienda, abbonamenti, pagamenti e assistenza</li>
+    <li><strong>Obbligo legale del fornitore (art. 6(1)(c)):</strong> fatturazione elettronica, tenuta delle scritture contabili e conservazione dei documenti fiscali</li>
+    <li><strong>Consenso (art. 6(1)(a)):</strong> comunicazioni commerciali via email, revocabile in qualsiasi momento senza pregiudicare la liceità dei trattamenti precedenti</li>
   </ul>
 
   <h2>6. Come utilizziamo le tue informazioni</h2>
@@ -77,6 +118,10 @@ import LegalLayout from "../../layouts/LegalLayout.astro";
     <li>Gestire il flusso di approvazione di ferie, permessi e correzioni</li>
     <li>Inviare notifiche push su esiti di approvazioni</li>
     <li>Generare report e export per l'amministrazione e il commercialista</li>
+    <li>Gestire la registrazione online: inviarti il link di conferma e, se non completi la registrazione, al massimo due promemoria</li>
+    <li>Verificare la Partita IVA e creare l'azienda cliente</li>
+    <li>Gestire abbonamenti e pagamenti ed emettere la fattura elettronica</li>
+    <li>Inviarti comunicazioni commerciali, solo se hai dato il consenso</li>
     <li>Rispettare gli obblighi legali e proteggere i nostri diritti</li>
   </ul>
 
@@ -86,16 +131,24 @@ import LegalLayout from "../../layouts/LegalLayout.astro";
     <li><strong>Infrastruttura di hosting e database</strong> — fornitore di infrastruttura cloud con sede nell'Unione Europea</li>
     <li><strong>Object storage</strong> — servizio di archiviazione oggetti per gli allegati delle richieste, con Clausole Contrattuali Standard (SCC)</li>
     <li><strong>Servizio di autenticazione</strong> — gestione delle credenziali ospitata sulla nostra infrastruttura nell'Unione Europea</li>
+    <li><strong>Invio delle email</strong> — <strong>Brevo</strong> (Sendinblue SAS, Francia), per le email del servizio — conferma della registrazione, inviti, notifiche, avvisi relativi ai pagamenti — e per le eventuali comunicazioni commerciali</li>
     <li><strong>Servizi di consegna delle notifiche push</strong> — gestiti dai fornitori dei sistemi operativi mobili (iOS Apple Inc., Android Google LLC)</li>
-    <li><strong>Reverse proxy e DNS</strong> — fornitore di servizi di rete (reverse proxy e DNS)</li>
+    <li><strong>Reverse proxy, DNS e protezione anti-bot</strong> — <strong>Cloudflare, Inc.</strong>, fornitore di servizi di rete (reverse proxy e DNS) e del servizio Turnstile per i moduli del sito</li>
     <li><strong>Analisi del sito web</strong> — <strong>PostHog, Inc.</strong>, limitatamente alle statistiche di navigazione delle pagine pubbliche di sonoqui.pro e <strong>solo previo consenso</strong> ai cookie analitici. I dati sono raccolti e conservati sull'infrastruttura europea del fornitore (Francoforte, Germania). Dettagli su cosa viene raccolto, inclusa la registrazione della sessione, nella <a href="/it/cookie-policy/">Cookie Policy</a></li>
   </ul>
+  <p>Comunichiamo inoltre alcuni dati, che li trattano come <strong>titolari autonomi</strong>, a:</p>
+  <ul>
+    <li><strong>Stripe Payments Europe Ltd.</strong> (Irlanda), che gestisce i pagamenti con carta e tratta i dati della carta e dei pagamenti secondo la propria <a href="https://stripe.com/it/privacy" target="_blank" rel="noopener">informativa privacy</a>. Da Stripe riceviamo solo l'esito, l'importo e gli identificativi dei pagamenti</li>
+    <li><strong>Commissione europea</strong>, servizio <strong>VIES</strong>, che verifica la Partita IVA interrogando le banche dati fiscali degli Stati membri</li>
+    <li><strong>Agenzia delle Entrate</strong>, tramite il Sistema di Interscambio (SdI), per la trasmissione delle fatture elettroniche, e i professionisti che ci assistono in materia contabile e fiscale</li>
+  </ul>
   <p><strong>Ambito:</strong> il fornitore di analisi del sito web tratta esclusivamente dati di navigazione dei visitatori di sonoqui.pro, per i quali agiamo come Titolare autonomo (vedi § 3). Non ha accesso ai dati di timbratura, alle richieste di ferie e permessi né agli account dei dipendenti: tali dati non lasciano in alcun caso l'infrastruttura del servizio.</p>
-  <p>L'elenco completo e aggiornato dei sub-responsabili nominativi è disponibile su richiesta tramite il <a href="#contact">modulo di contatto</a> sul sito.</p>
+  <p>Le categorie di sub-responsabili che trattano i dati dei dipendenti per conto delle aziende clienti sono elencate nell'<a href="/it/dpa/">Accordo sul trattamento dei dati</a>. L'elenco completo e aggiornato dei sub-responsabili nominativi è disponibile su richiesta tramite il <a href="#contact">modulo di contatto</a> sul sito.</p>
   <p>Non vendiamo le tue informazioni personali. I dati di un dipendente sono visibili solo al proprio datore di lavoro e agli amministratori da questi designati.</p>
 
   <h2>8. Trasferimenti internazionali</h2>
-  <p>I dati primari sono trattati esclusivamente nell'Unione Europea. Alcuni servizi accessori (notifiche push tramite APNs/FCM, reverse proxy Cloudflare) possono comportare trasferimenti negli Stati Uniti. In tali casi, i trasferimenti sono protetti dalle Clausole Contrattuali Standard della Commissione Europea (Decisione 2021/914) e, ove applicabile, dalla decisione di adeguatezza EU-US Data Privacy Framework.</p>
+  <p>I dati primari sono trattati esclusivamente nell'Unione Europea. Alcuni servizi accessori (notifiche push tramite APNs/FCM, reverse proxy e protezione anti-bot Cloudflare) possono comportare trasferimenti negli Stati Uniti. In tali casi, i trasferimenti sono protetti dalle Clausole Contrattuali Standard della Commissione Europea (Decisione 2021/914) e, ove applicabile, dalla decisione di adeguatezza EU-US Data Privacy Framework.</p>
+  <p>Stripe può trasferire i dati dei pagamenti alla propria capogruppo negli Stati Uniti, sulla base delle medesime garanzie e di quanto indicato nella sua informativa privacy.</p>
   <p>Le statistiche di navigazione del sito sonoqui.pro sono raccolte e conservate sull'infrastruttura europea del fornitore di analisi (Francoforte, Germania). Il fornitore è una società statunitense: eventuali accessi di supporto dagli Stati Uniti sono disciplinati dalle medesime Clausole Contrattuali Standard.</p>
 
   <h2>9. Conservazione dei dati</h2>
@@ -124,6 +177,24 @@ import LegalLayout from "../../layouts/LegalLayout.astro";
     <li>I log di richiesta contenenti indirizzi IP sono conservati fino a <strong>30 giorni</strong> per finalità di sicurezza, poi cancellati</li>
   </ul>
 
+  <h3>9.5 Registrazione e account</h3>
+  <!-- REVIEW(legal): la cancellazione a 90 giorni degli account senza azienda è eseguita dal job signup-maintenance solo con SIGNUP_ORPHAN_PURGE_ENABLED attivo in produzione. -->
+  <ul>
+    <li>Le richieste di registrazione non confermate scadono dopo 48 ore e vengono cancellate entro 30 giorni dalla richiesta</li>
+    <li>Se confermi l'email ma non crei un'azienda, ti ricordiamo al massimo due volte di completare la registrazione; dopo 90 giorni, previo avviso via email, l'account viene cancellato</li>
+    <li>La prova delle accettazioni contrattuali (data, ora, indirizzo IP, versione dei documenti) è conservata per la durata del contratto e per i 10 anni successivi alla sua cessazione; per un account cancellato senza aver creato un'azienda, viene cancellata insieme all'account</li>
+  </ul>
+
+  <h3>9.6 Fatturazione e pagamenti</h3>
+  <ul>
+    <li>I dati di fatturazione, le fatture e le registrazioni dei pagamenti sono conservati per <strong>10 anni</strong>, come previsto per le scritture contabili (art. 2220 c.c.)</li>
+  </ul>
+
+  <h3>9.7 Comunicazioni commerciali</h3>
+  <ul>
+    <li>Nome e indirizzo email sono usati a questo fine fino alla revoca del consenso</li>
+  </ul>
+
   <h2>10. Archiviazione e sicurezza</h2>
   <p>Adottiamo misure tecniche e organizzative adeguate per proteggere i dati personali da accessi non autorizzati, perdita, alterazione o divulgazione, tra cui:</p>
   <ul>
@@ -144,6 +215,7 @@ import LegalLayout from "../../layouts/LegalLayout.astro";
     <li><strong>Limitazione</strong> (art. 18) — limitare il trattamento dei tuoi dati</li>
     <li><strong>Portabilità</strong> (art. 20) — ricevere i tuoi dati in formato leggibile da macchina</li>
     <li><strong>Opposizione</strong> (art. 21) — opporti al trattamento basato sul legittimo interesse</li>
+    <li><strong>Revoca del consenso</strong> (art. 7(3)) — revocare in qualsiasi momento il consenso alle comunicazioni commerciali</li>
     <li><strong>Non essere sottoposto a decisioni automatizzate</strong> (art. 22) — sonoQui non effettua decisioni automatizzate con effetti giuridici</li>
   </ul>
   <p>Per esercitare un diritto rispetto ai dati raccolti per conto del tuo datore di lavoro, contatta in primo luogo il tuo datore di lavoro (Titolare del trattamento). Per richieste tecniche o relative al servizio, utilizza il <a href="#contact">modulo di contatto</a> sul sito. Rispondiamo entro 30 giorni (art. 12(3)).</p>
@@ -158,13 +230,13 @@ import LegalLayout from "../../layouts/LegalLayout.astro";
   <p>Hai inoltre il diritto di proporre reclamo all'Autorità di controllo del Paese UE in cui risiedi (art. 77 GDPR).</p>
 
   <h2>13. Privacy dei minori</h2>
-  <p>Il servizio è destinato esclusivamente a lavoratori adulti nell'ambito di un rapporto di lavoro. Non raccogliamo consapevolmente informazioni personali da minori di 16 anni.</p>
+  <p>Il servizio è destinato esclusivamente a lavoratori adulti nell'ambito di un rapporto di lavoro e ad aziende e professionisti con Partita IVA. Non raccogliamo consapevolmente informazioni personali da minori di 16 anni.</p>
 
   <h2>14. Modifiche a questa Informativa</h2>
   <p>Potremmo aggiornare questa Informativa di tanto in tanto. Ti informeremo di eventuali modifiche pubblicandola su questa pagina e aggiornando la data di "Ultimo aggiornamento". Per modifiche che riguardano la base giuridica o i destinatari del trattamento, informeremo gli utenti anche via email o messaggio in-app.</p>
 
   <div class="contact-box">
     <h3>Contattaci</h3>
-    <p>Per domande o per esercitare i tuoi diritti, usa il <a href="#contact">modulo di contatto</a> sul sito.</p>
+    <p>Per domande o per esercitare i tuoi diritti, usa il <a href="#contact">modulo di contatto</a> sul sito o scrivi alla PEC {SELLER.pec}.</p>
   </div>
 </LegalLayout>

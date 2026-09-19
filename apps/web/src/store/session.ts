@@ -50,6 +50,20 @@ export interface MeResponse {
     // API module, same mechanism. Gates the Impostazioni → API section; there
     // is no per-user module role, so the tenant admins are the ones who see it.
     api_enabled: boolean;
+    // Self-service billing (migration 067). billing_mode 'stripe' = caps and
+    // modules follow what the company pays for; 'managed' = set by a partner.
+    plan?: 'free' | 'piccola' | 'media' | 'custom';
+    billing_mode?: 'managed' | 'stripe';
+    signup_source?: 'partner' | 'self_service';
+    /** Paid plan picked on the website but not paid yet ("completa l'attivazione"). */
+    pending_plan?: 'piccola' | 'media' | null;
+    over_limit_since?: string | null;
+    over_limit?: {
+      since: string | null;
+      deadline: string | null;
+      locked: boolean;
+      kinds: Array<'users' | 'branches' | 'admins'>;
+    } | null;
   };
   branches: Array<{
     id: string;
@@ -79,15 +93,41 @@ export interface MeResponse {
   };
 }
 
+/** A confirmed self-service account that has not created its company yet. */
+export interface OnboardingState {
+  step: 'company' | 'done';
+  email: string;
+  first_name: string;
+  last_name: string;
+  plan_hint: 'piccola' | 'media' | null;
+  language: 'it' | 'en';
+  tenant_id: string | null;
+}
+
+async function loadOnboarding(): Promise<OnboardingState | null> {
+  try {
+    const o = await api<OnboardingState>('/api/v1/onboarding', { noTenant: true, noAutoLogout: true });
+    return o.step === 'company' ? o : null;
+  } catch {
+    return null;
+  }
+}
+
 interface SessionState {
   loading: boolean;
   me: MeResponse | null;
+  /** Set when the signed-in account still has to create its company (wizard). */
+  onboarding: OnboardingState | null;
   /** Every company the logged-in user belongs to (≥1 once authenticated). */
   tenants: TenantOption[];
   /** The chosen company, or null while the chooser must be shown. */
   activeTenantId: string | null;
   error: string | null;
   refresh: () => Promise<void>;
+  /** Re-read /me without the full-screen skeleton (plan/module changes). */
+  refreshQuiet: () => Promise<void>;
+  /** Leave the wizard: select the new company and load the app for it. */
+  finishOnboarding: (tenantId: string) => Promise<void>;
   chooseTenant: (tenantId: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -95,6 +135,7 @@ interface SessionState {
 export const useSession = create<SessionState>((set, get) => ({
   loading: !!getToken(),
   me: null,
+  onboarding: null,
   tenants: [],
   activeTenantId: null,
   error: null,
@@ -126,10 +167,31 @@ export const useSession = create<SessionState>((set, get) => ({
       }
       // Tenant-agnostic on purpose (see api noTenant): a stale stored tenant id
       // must not block reading our own company list.
-      const { tenants } = await api<{ tenants: TenantOption[] }>('/api/v1/me/tenants', {
-        noTenant: true,
-      });
+      let tenants: TenantOption[];
+      try {
+        ({ tenants } = await api<{ tenants: TenantOption[] }>('/api/v1/me/tenants', {
+          noTenant: true,
+          noAutoLogout: true,
+        }));
+      } catch (err) {
+        // No company at all. A self-service registration that stopped before
+        // step 3 resumes in the wizard; anyone else falls through to the
+        // generic "invalid credentials" below, exactly as before.
+        if ((err as { code?: string } | null)?.code === 'NO_ACTIVE_TENANT') {
+          const onboarding = await loadOnboarding();
+          if (onboarding) {
+            set({ loading: false, me: null, tenants: [], activeTenantId: null, onboarding, error: null });
+            return;
+          }
+        }
+        throw err;
+      }
       if (tenants.length === 0) {
+        const onboarding = await loadOnboarding();
+        if (onboarding) {
+          set({ loading: false, me: null, tenants: [], activeTenantId: null, onboarding, error: null });
+          return;
+        }
         // Valid token but no active membership — nothing to show; sign out and
         // surface a generic, non-enumerating error so the login screen explains
         // why instead of silently returning to it.
@@ -155,7 +217,7 @@ export const useSession = create<SessionState>((set, get) => ({
         return;
       }
       const me = await api<MeResponse>('/api/v1/me');
-      set({ loading: false, me, tenants, activeTenantId: active });
+      set({ loading: false, me, tenants, activeTenantId: active, onboarding: null });
     } catch (err) {
       // A valid GoTrue token that resolves no company (403 NO_ACTIVE_TENANT /
       // TENANT_NOT_ALLOWED — e.g. a partner not assigned to any tenant, or a
@@ -180,6 +242,20 @@ export const useSession = create<SessionState>((set, get) => ({
       set({ loading: false, me: null, tenants: [], activeTenantId: null, error });
     }
   },
+  async refreshQuiet() {
+    if (!get().me) return;
+    try {
+      const me = await api<MeResponse>('/api/v1/me');
+      set({ me });
+    } catch {
+      /* keep the current session; the next full refresh reports errors */
+    }
+  },
+  async finishOnboarding(tenantId) {
+    setTenantId(tenantId);
+    set({ onboarding: null, activeTenantId: tenantId });
+    await get().refresh();
+  },
   async chooseTenant(tenantId) {
     setTenantId(tenantId);
     set({ activeTenantId: tenantId });
@@ -196,6 +272,6 @@ export const useSession = create<SessionState>((set, get) => ({
       return;
     }
     await logoutAuth();
-    set({ me: null, tenants: [], activeTenantId: null, error: null });
+    set({ me: null, tenants: [], activeTenantId: null, onboarding: null, error: null });
   },
 }));

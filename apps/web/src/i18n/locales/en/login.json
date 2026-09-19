@@ -15,5 +15,7 @@
     "over_request_rate_limit": "Too many attempts. Please try again in a few minutes.",
     "user_banned": "Account suspended. Please contact support.",
     "default": "Sign-in failed. Please try again."
-  }
+  },
+  "signupLink": "Don't have an account?",
+  "signupCta": "Register your company for free"
 }
