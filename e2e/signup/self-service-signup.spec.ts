@@ -139,7 +139,6 @@ test.describe('self-service signup', () => {
       cap: '37121',
       city: 'Verona',
       province: 'VR',
-      headcount_band: '1-3',
       accept_dpa: true,
       accept_art1341: true,
       accept_powers: true,

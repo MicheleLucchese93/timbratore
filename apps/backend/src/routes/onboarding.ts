@@ -3,7 +3,6 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { z } from 'zod';
 import {
   DEFAULT_SDI_CODE,
-  HEADCOUNT_BANDS,
   LEGAL_VERSIONS,
   PLAN_CAPS,
   isValidCap,
@@ -176,7 +175,6 @@ const Company = z.object({
     .trim()
     .toUpperCase()
     .refine(isValidProvincia, 'province'),
-  headcount_band: z.enum(HEADCOUNT_BANDS),
   accept_dpa: z.literal(true),
   accept_art1341: z.literal(true),
   accept_powers: z.literal(true),
@@ -244,8 +242,8 @@ onboardingRouter.post(
             `INSERT INTO tenant_billing_profiles
                (tenant_id, legal_name, partita_iva, codice_fiscale, address, cap, city, province,
                 sdi_code, billing_email, vat_status, vies_name, vies_address, vies_request_id, vies_checked_at,
-                headcount_band, updated_by)
-             VALUES ($1, $2, $3, NULL, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+                updated_by)
+             VALUES ($1, $2, $3, NULL, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
             [
               tenantId,
               b.ragione_sociale,
@@ -261,7 +259,6 @@ onboardingRouter.post(
               vies.address,
               vies.requestIdentifier,
               vies.checkedAt,
-              b.headcount_band,
               account.id,
             ]
           );
@@ -321,7 +318,7 @@ onboardingRouter.post(
         companyName: b.ragione_sociale,
         partitaIva: piva,
         vatStatus: vies.status,
-        headcountBand: b.headcount_band,
+        headcountBand: null,
         planHint: signup.plan_hint,
         adminName: `${signup.first_name} ${signup.last_name}`.trim(),
         adminEmail: signup.email,

@@ -1,7 +1,6 @@
 import { type FormEvent, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import {
-  HEADCOUNT_BANDS,
   isValidPartitaIva,
   normalizePartitaIva,
   type BillingInterval,
@@ -97,7 +96,6 @@ function CompanyStep({ onCreated }: { onCreated: (tenantId: string) => void }) {
   const [vat, setVat] = useState<VatCheck | null>(null);
   const [vatState, setVatState] = useState<'idle' | 'checking' | 'invalid'>('idle');
   const [f, setF] = useState({ ragione_sociale: '', address: '', cap: '', city: '', province: '' });
-  const [band, setBand] = useState<(typeof HEADCOUNT_BANDS)[number] | ''>('');
   const [consent, setConsent] = useState({ dpa: false, art1341: false, powers: false });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -152,7 +150,6 @@ function CompanyStep({ onCreated }: { onCreated: (tenantId: string) => void }) {
           cap: f.cap.trim(),
           city: f.city.trim(),
           province: f.province.trim().toUpperCase(),
-          headcount_band: band,
           accept_dpa: consent.dpa,
           accept_art1341: consent.art1341,
           accept_powers: consent.powers,
@@ -181,7 +178,6 @@ function CompanyStep({ onCreated }: { onCreated: (tenantId: string) => void }) {
     /^\d{5}$/.test(f.cap.trim()) &&
     f.city.trim().length >= 2 &&
     /^[A-Za-z]{2}$/.test(f.province.trim()) &&
-    band !== '' &&
     consent.dpa &&
     consent.art1341 &&
     consent.powers;
@@ -253,18 +249,6 @@ function CompanyStep({ onCreated }: { onCreated: (tenantId: string) => void }) {
           </div>
         </div>
       </div>
-      <fieldset>
-        <legend className="label">{t('wizard.company.headcount')}</legend>
-        <div className="flex flex-wrap gap-2" role="radiogroup">
-          {HEADCOUNT_BANDS.map((b) => (
-            <label key={b} className={`chip-radio${band === b ? ' is-active' : ''}`}>
-              <input type="radio" name="band" value={b} checked={band === b} onChange={() => setBand(b)} data-testid={`wz-band-${b}`} />
-              {t(`wizard.company.headcountOpts.${b}`)}
-            </label>
-          ))}
-        </div>
-        <p className="field-hint">{t('wizard.company.headcountHint')}</p>
-      </fieldset>
       <div className="space-y-2 consent-list">
         <label className="consent">
           <input type="checkbox" checked={consent.dpa} onChange={(e) => setConsent((c) => ({ ...c, dpa: e.target.checked }))} data-testid="wz-dpa" />

@@ -49,14 +49,6 @@
       "cap": "Postcode",
       "city": "City",
       "province": "Province",
-      "headcount": "How many people work in the company?",
-      "headcountOpts": {
-        "1-3": "1–3",
-        "4-10": "4–10",
-        "11-20": "11–20",
-        "20+": "More than 20"
-      },
-      "headcountHint": "The Free plan includes 3 users, you included. You can move to a paid plan any time.",
       "dpa": "I accept the <a>data processing agreement</a> (appointment as data processor, art. 28 GDPR).",
       "art1341": "I specifically approve, under articles 1341 and 1342 of the Italian Civil Code, the clauses of the <a>Terms</a> marked as onerous (limitation of liability, suspension, withdrawal, automatic renewal, jurisdiction).",
       "powers": "I declare I am authorised to represent the company and accept these documents on its behalf.",

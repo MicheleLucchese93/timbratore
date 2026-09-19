@@ -49,14 +49,6 @@
       "cap": "CAP",
       "city": "Comune",
       "province": "Provincia",
-      "headcount": "Quante persone lavorano in azienda?",
-      "headcountOpts": {
-        "1-3": "1–3",
-        "4-10": "4–10",
-        "11-20": "11–20",
-        "20+": "Più di 20"
-      },
-      "headcountHint": "Il piano gratuito include 3 utenti, te compreso. Puoi passare a un piano a pagamento quando vuoi.",
       "dpa": "Accetto l'<a>accordo sul trattamento dei dati</a> (nomina a responsabile del trattamento, art. 28 GDPR).",
       "art1341": "Approvo specificamente, ai sensi degli artt. 1341 e 1342 c.c., le clausole dei <a>Termini</a> indicate come vessatorie (limitazione di responsabilità, sospensione del servizio, recesso, rinnovo automatico, foro competente).",
       "powers": "Dichiaro di avere i poteri per rappresentare l'azienda e accettare questi documenti per suo conto.",
