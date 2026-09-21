@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "astro build && node scripts/csp-hashes.mjs",
     "preview": "astro preview",
     "analytics:report": "node scripts/posthog-report.mjs",
     "images:hero": "node scripts/hero-variants.mjs",

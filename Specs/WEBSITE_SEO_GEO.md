@@ -91,15 +91,30 @@ Re-score only with evidence (GSC impressions, Googlebot fetches, PostHog
 
 ### Owner: routine (weekly SEO step, code-only)
 
-- [ ] `Content-Security-Policy-Report-Only` in `nginx.conf`. Needed sources:
-      `default-src 'self'`; `script-src 'self' https://challenges.cloudflare.com`
-      (Turnstile) + the inline `document.documentElement.classList.add("js")`
-      snippet (hash it or move to a file); `connect-src 'self'
-      https://sonoqui.pro/relay https://challenges.cloudflare.com`;
-      `frame-src https://challenges.cloudflare.com https://player.vimeo.com`;
-      `img-src 'self' data:`; `font-src 'self'`; `style-src 'self'
-      'unsafe-inline'` (Tailwind inline styles). Ship Report-Only first, read
-      the website container logs for a week, then enforce.
+- [x] `Content-Security-Policy-Report-Only` in `nginx.conf`. — 2026-09-21.
+      Shipped Report-Only with a violation sink at `/csp-report`: nginx only
+      fills `$request_body` in a proxying location, so that location proxies to
+      an internal `/csp-sink` (204) purely to get the body read, then logs it
+      with `log_format csp` — one JSON line per report in the website
+      container log, body included. Read them for a week before enforcing.
+      Three corrections to the plan above, from what the build actually emits:
+      Astro inlines **ten** module scripts (mobile menu, Turnstile loader,
+      contact form, carousels, lightbox…), not just the `classList.add("js")`
+      one-liner, and their hashes change with the components — so
+      `scripts/csp-hashes.mjs` regenerates `csp/script-hashes.conf`
+      (`set $csp_script_hashes …`, gitignored, copied into the image by the
+      Dockerfile) on every `npm run build`. There is no Vimeo frame: the promo
+      and cantieri videos are `<video>` elements on the R2 public bucket, so
+      the policy needs `media-src`, not `frame-src player.vimeo.com`.
+      `<script type="application/ld+json">` needs no hash — data blocks are
+      never executed and `script-src` does not apply to them (verified in
+      Chromium: an inline classic script next to a JSON-LD block is reported,
+      the JSON-LD is not). Verified with `nginx -t` and a throwaway container
+      on the box, and by browsing the built `dist` locally behind the real
+      header: zero violations on `/it/`, `/it/registrazione/`, `/it/partner/`.
+      Not yet exercised under consent-accepted PostHog (the relay is
+      same-origin in production, so `connect-src 'self'` should cover it) —
+      that is exactly what the report log is for.
 - [x] Homepage heading hierarchy: feature cards are `h3` under an `h2` — fine;
       but `Moduli` / `Pricing` / `FAQ` sub-blocks mix `h3`/`p.font-bold`.
       Normalise to `h3`. — 2026-09-14: FAQ questions are now `h3` inside
