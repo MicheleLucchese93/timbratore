@@ -2,6 +2,7 @@ import { createApp } from './app.js';
 import { env } from './env.js';
 import { pool } from './lib/db.js';
 import { createLogger } from './lib/logger.js';
+import { closeMailer } from './lib/mailer.js';
 import { schedulerService } from './services/scheduler-service.js';
 
 const logger = createLogger('server');
@@ -20,6 +21,7 @@ const server = app.listen(env.PORT, async () => {
 
 const shutdown = (): void => {
   schedulerService.stop();
+  closeMailer();
   server.close(() => {
     logger.info('server stopped');
     process.exit(0);

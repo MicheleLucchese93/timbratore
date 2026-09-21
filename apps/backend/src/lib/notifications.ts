@@ -110,7 +110,12 @@ export async function loadLeaveApproverIds(
   return admins.filter((id) => id !== requesterId);
 }
 
-async function loadCorrectionApproverIds(
+/**
+ * Who has to be told about a correction request. A tenant-RLS read, so it must
+ * run on the request's own client, inside its transaction — unlike the sending,
+ * which must not (see notifyCorrectionSubmitted).
+ */
+export async function loadCorrectionApproverIds(
   client: PoolClient,
   requesterId: string
 ): Promise<string[]> {
@@ -688,12 +693,17 @@ interface CorrectionContext {
   requester_id: string;
 }
 
+/**
+ * Takes the approver ids rather than a client, exactly like notifyLeaveSubmitted:
+ * the caller resolves them inside its transaction and calls this after COMMIT,
+ * so Brevo SMTP and the fetch to exp.host never run while a pool connection and
+ * the correction request's FOR UPDATE lock are still held.
+ */
 export async function notifyCorrectionSubmitted(
   tenantId: string,
-  client: PoolClient,
+  approverIds: string[],
   ctx: CorrectionContext
 ): Promise<void> {
-  const approverIds = await loadCorrectionApproverIds(client, ctx.requester_id);
   if (approverIds.length === 0) return;
   const [requesterRow] = await loadRecipients([ctx.requester_id]);
   const approvers = await loadRecipients(approverIds);
@@ -727,7 +737,6 @@ export async function notifyCorrectionSubmitted(
 
 export async function notifyCorrectionDecided(
   tenantId: string,
-  _client: PoolClient,
   ctx: CorrectionContext,
   decision: 'approved' | 'rejected',
   approverId: string,

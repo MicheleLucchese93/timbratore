@@ -18,8 +18,28 @@ function transporter(): Transporter | null {
     port: env.SMTP_PORT,
     secure: false,
     auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
+    // Pooled: without it every single mail paid a fresh TCP + STARTTLS + EHLO
+    // + AUTH round trip to Brevo before the first byte of the message moved —
+    // the bulk of the cost of notifying one approver. Connections are reused
+    // and the surplus is queued in-process instead.
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    // And bounded: the nodemailer defaults let a half-open socket to Brevo sit
+    // for minutes. Nothing awaits a send on the request path any more, but an
+    // unbounded stall would still park a pooled connection and hold up every
+    // notification queued behind it.
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 30_000,
   });
   return cached;
+}
+
+/** Drop the pooled SMTP sockets on shutdown. Safe to call when unconfigured. */
+export function closeMailer(): void {
+  cached?.close();
+  cached = null;
 }
 
 export { escapeHtml, stripHeader };

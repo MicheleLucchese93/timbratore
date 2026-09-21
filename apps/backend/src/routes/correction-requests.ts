@@ -9,6 +9,7 @@ import { logAudit } from '../lib/audit.js';
 import { assertBreakStampAllowed } from '../services/stamp-service.js';
 import { stampColumns } from '../lib/stamp-columns.js';
 import {
+  loadCorrectionApproverIds,
   notifyCorrectionSubmitted,
   notifyCorrectionDecided,
 } from '../lib/notifications.js';
@@ -26,7 +27,7 @@ const CreateBody = z.object({
 
 correctionRequestsRouter.post(
   '/',
-  tenantHandler(async (req, res, client) => {
+  tenantHandler(async (req, res, client, afterCommit) => {
     const parse = CreateBody.safeParse(req.body);
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     const b = parse.data;
@@ -62,14 +63,24 @@ correctionRequestsRouter.post(
        ))`,
       [req.user!.tenantId, JSON.stringify(r.rows[0])]
     );
-    await notifyCorrectionSubmitted(req.user!.tenantId, client, {
-      requestId: r.rows[0].id,
-      event_type: b.claimed_event_type,
-      occurred_at: b.claimed_occurred_at,
-      is_edit: !!b.original_stamp_id,
-      justification: b.justification,
-      requester_id: req.user!.id,
-    });
+    // Who to tell is a tenant-RLS read, so it happens here, on this client. The
+    // sending is not: one deliver() per approver is an Expo round trip plus a
+    // full Brevo SMTP handshake, and awaiting that here held a pool connection
+    // — and the response — for the length of the slowest mailbox.
+    const approverIds = await loadCorrectionApproverIds(client, req.user!.id);
+    const tenantId = req.user!.tenantId;
+    const requesterId = req.user!.id;
+    const requestId = r.rows[0].id as string;
+    afterCommit(() =>
+      notifyCorrectionSubmitted(tenantId, approverIds, {
+        requestId,
+        event_type: b.claimed_event_type,
+        occurred_at: b.claimed_occurred_at,
+        is_edit: !!b.original_stamp_id,
+        justification: b.justification,
+        requester_id: requesterId,
+      })
+    );
     ok(res, r.rows[0], 201);
   })
 );
@@ -166,7 +177,7 @@ const ApproveBody = z.object({
 
 correctionRequestsRouter.post(
   '/:id/approve',
-  tenantHandler(async (req, res, client) => {
+  tenantHandler(async (req, res, client, afterCommit) => {
     const parse = ApproveBody.safeParse(req.body ?? {});
     if (!parse.success) throw new ValidationError('invalid body', parse.error.flatten());
     // FOR UPDATE so concurrent approvers serialise on the row — first-to-commit wins.
@@ -225,20 +236,28 @@ correctionRequestsRouter.post(
       },
       req,
     });
-    await notifyCorrectionDecided(
-      req.user!.tenantId,
-      client,
-      {
-        requestId: String(req.params.id),
-        event_type: eventType,
-        occurred_at: occurredAt,
-        is_edit: !!row.original_stamp_id,
-        justification: row.justification,
-        requester_id: row.user_id,
-      },
-      'approved',
-      req.user!.id,
-      parse.data.resolution_note ?? undefined
+    // After COMMIT: the row above is still SELECT ... FOR UPDATE-locked here, and
+    // a second approver must not queue behind an SMTP socket to find out the
+    // request was already resolved.
+    const tenantId = req.user!.tenantId;
+    const approverId = req.user!.id;
+    const requestId = String(req.params.id);
+    const note = parse.data.resolution_note ?? undefined;
+    afterCommit(() =>
+      notifyCorrectionDecided(
+        tenantId,
+        {
+          requestId,
+          event_type: eventType,
+          occurred_at: occurredAt,
+          is_edit: !!row.original_stamp_id,
+          justification: row.justification,
+          requester_id: row.user_id,
+        },
+        'approved',
+        approverId,
+        note
+      )
     );
     ok(res, { stamp });
   })
@@ -246,7 +265,7 @@ correctionRequestsRouter.post(
 
 correctionRequestsRouter.post(
   '/:id/reject',
-  tenantHandler(async (req, res, client) => {
+  tenantHandler(async (req, res, client, afterCommit) => {
     const note = z.object({ resolution_note: z.string().max(500).optional() }).safeParse(req.body ?? {});
     if (!note.success) throw new ValidationError('invalid body', note.error.flatten());
 
@@ -282,20 +301,24 @@ correctionRequestsRouter.post(
       },
       req,
     });
-    await notifyCorrectionDecided(
-      req.user!.tenantId,
-      client,
-      {
-        requestId: row.id,
-        event_type: row.claimed_event_type,
-        occurred_at: row.claimed_occurred_at,
-        is_edit: !!row.original_stamp_id,
-        justification: row.justification,
-        requester_id: row.user_id,
-      },
-      'rejected',
-      req.user!.id,
-      note.data.resolution_note ?? undefined
+    const tenantId = req.user!.tenantId;
+    const approverId = req.user!.id;
+    const resolutionNote = note.data.resolution_note ?? undefined;
+    afterCommit(() =>
+      notifyCorrectionDecided(
+        tenantId,
+        {
+          requestId: row.id,
+          event_type: row.claimed_event_type,
+          occurred_at: row.claimed_occurred_at,
+          is_edit: !!row.original_stamp_id,
+          justification: row.justification,
+          requester_id: row.user_id,
+        },
+        'rejected',
+        approverId,
+        resolutionNote
+      )
     );
     ok(res, row);
   })
