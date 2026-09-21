@@ -2,8 +2,6 @@ import { adminPool } from '../../lib/admin-db.js';
 import { createLogger } from '../../lib/logger.js';
 import { closedBuckets, dropBucket, type MetricRow } from '../../lib/metrics.js';
 import { env } from '../../env.js';
-import { sendMail } from '../../lib/mailer.js';
-import { escapeHtml } from '../../lib/mailer.js';
 
 const logger = createLogger('metrics_flush');
 
@@ -12,13 +10,13 @@ const logger = createLogger('metrics_flush');
  *  a table nobody prunes. */
 const RETAIN_DAYS = 90;
 
-/** Per-route cooldown between alert mails, so a route that stays slow reports
- *  once every 6h rather than every hour. In-memory: a deploy resets it, which at
- *  worst costs one extra mail. */
+/** Per-route cooldown, so a route that stays slow reports once every 6h rather
+ *  than every hour. In-memory: a deploy resets it, which at worst costs one
+ *  extra line. */
 const ALERT_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 const lastAlert = new Map<string, number>();
 
-/** Requests needed in the hour before a p95 is worth alerting on — two slow
+/** Requests needed in the hour before a p95 is worth reporting on — two slow
  *  calls are noise, not a trend. */
 const ALERT_MIN_N = 5;
 
@@ -68,7 +66,7 @@ export async function flushRequestMetrics(now: number = Date.now()): Promise<voi
     // Only now: an unpersisted bucket must stay in memory for the next attempt.
     dropBucket(hour);
     logger.info({ hour: new Date(hour * 3_600_000).toISOString(), routes: rows.length }, 'metrics flushed');
-    await alertOnBreaches(rows, now);
+    logBreaches(rows, now);
   }
 
   const purged = await adminPool.query(
@@ -79,14 +77,19 @@ export async function flushRequestMetrics(now: number = Date.now()): Promise<voi
 }
 
 /**
- * Mail the routes whose p95 crossed the threshold in the hour just closed.
+ * Record the routes whose p95 crossed the threshold in the hour just closed.
  *
- * Failures are logged and swallowed: an alert that cannot be delivered must not
- * make the flush retry and re-alert the following hour.
+ * This used to mail them. It was the last thing perf monitoring sent, and it
+ * pushed an hourly interrupt at a threshold nobody was tuning — the 1391ms
+ * correction-requests bug sat just under it for weeks without ever firing. The
+ * signal is kept, as a `warn` on the route's own line: the daily triage routine
+ * reads the API log anyway and greps for exactly this, so a breach is still
+ * surfaced, one morning later, next to the errors that explain it.
+ *
+ * Synchronous now — there is nothing left to await.
  */
-async function alertOnBreaches(rows: MetricRow[], now: number): Promise<void> {
+function logBreaches(rows: MetricRow[], now: number): void {
   if (env.PERF_ALERT_P95_MS <= 0) return;
-  const to = env.PERF_DIGEST_TO || env.SUPER_ADMIN_EMAIL;
   const breaches = rows
     .filter((r) => r.n >= ALERT_MIN_N && r.durP95 >= env.PERF_ALERT_P95_MS)
     .filter((r) => now - (lastAlert.get(`${r.method} ${r.route}`) ?? 0) >= ALERT_COOLDOWN_MS)
@@ -94,29 +97,19 @@ async function alertOnBreaches(rows: MetricRow[], now: number): Promise<void> {
   if (breaches.length === 0) return;
 
   const hour = rows[0]!.bucketStart.toISOString().slice(0, 16).replace('T', ' ');
-  const lines = breaches.map(
-    (r) => `${r.method} ${r.route} — p95 ${r.durP95}ms (db ${r.dbP95}ms), max ${r.durMax}ms, n=${r.n}`
-  );
-  const ok = await sendMail({
-    to,
-    subject: `[sonoQui] ${breaches.length} slow route${breaches.length > 1 ? 's' : ''} at ${hour}Z`,
-    text: `Routes over ${env.PERF_ALERT_P95_MS}ms p95 in the hour starting ${hour}Z:\n\n${lines.join('\n')}\n`,
-    html:
-      `<p>Routes over ${env.PERF_ALERT_P95_MS}ms p95 in the hour starting ${escapeHtml(hour)}Z:</p><ul>` +
-      breaches
-        .map(
-          (r) =>
-            `<li><code>${escapeHtml(`${r.method} ${r.route}`)}</code> — p95 <b>${r.durP95}ms</b> ` +
-            `(db ${r.dbP95}ms), max ${r.durMax}ms, n=${r.n}</li>`
-        )
-        .join('') +
-      `</ul>`,
-  }).catch((err) => {
-    logger.error({ err }, 'perf alert mail failed');
-    return false;
-  });
-  // Mark regardless of delivery: a broken SMTP must not turn into an hourly
-  // retry loop against Brevo.
-  for (const r of breaches) lastAlert.set(`${r.method} ${r.route}`, now);
-  logger.warn({ routes: breaches.length, mailed: ok }, 'perf threshold breached');
+  for (const r of breaches) {
+    lastAlert.set(`${r.method} ${r.route}`, now);
+    logger.warn(
+      {
+        hour: `${hour}Z`,
+        route: `${r.method} ${r.route}`,
+        durP95: r.durP95,
+        dbP95: r.dbP95,
+        durMax: r.durMax,
+        n: r.n,
+        thresholdMs: env.PERF_ALERT_P95_MS,
+      },
+      'perf threshold breached'
+    );
+  }
 }

@@ -61,14 +61,11 @@ const Env = z.object({
   // with the statement text (never the parameters — see lib/request-perf.ts).
   SLOW_REQUEST_MS: z.coerce.number().default(500),
   SLOW_QUERY_MS: z.coerce.number().default(150),
-  // Hourly alert: a route whose p95 crosses this (with enough calls in the hour)
-  // is mailed to PERF_DIGEST_TO. 0 disables the alert. This is now the only
-  // thing perf monitoring mails — the periodic digest is pulled on demand by
-  // scripts/perf-digest.ts instead of being sent.
+  // A route whose p95 crosses this in a closed hour (with enough calls) gets a
+  // `perf threshold breached` warn line from metrics_flush. 0 disables it.
+  // Perf monitoring sends no mail at all now: the breach is a log line the daily
+  // triage routine greps for, and the digest is pulled by scripts/perf-digest.ts.
   PERF_ALERT_P95_MS: z.coerce.number().default(1500),
-  // Recipient for the hourly perf alert. Defaults to SUPER_ADMIN_EMAIL when
-  // unset. Name kept for continuity with the prod .env.
-  PERF_DIGEST_TO: z.string().email().optional(),
   DEV_AUTH_ENABLED: z
     .string()
     .transform((v) => v === 'true')
