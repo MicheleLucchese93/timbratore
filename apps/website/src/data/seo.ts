@@ -32,7 +32,6 @@ export const SELLER = {
   sdi: 'T04ZHR3',
   phone: '+39 045 504399',
   email: 'info@idealcopy.it',
-  emailSegreteria: 'segreteria@idealcopy.it',
 } as const;
 export const SELLER_PHONE_TEL = SELLER.phone.replace(/[^\d+]/g, '');
 export const SELLER_ADDRESS = `${SELLER.street}, ${SELLER.cap} ${SELLER.city} (${SELLER.province})`;
