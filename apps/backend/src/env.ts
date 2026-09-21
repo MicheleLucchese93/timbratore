@@ -62,11 +62,12 @@ const Env = z.object({
   SLOW_REQUEST_MS: z.coerce.number().default(500),
   SLOW_QUERY_MS: z.coerce.number().default(150),
   // Hourly alert: a route whose p95 crosses this (with enough calls in the hour)
-  // is mailed to PERF_DIGEST_TO. 0 disables the alert; the weekly digest is
-  // unaffected either way.
+  // is mailed to PERF_DIGEST_TO. 0 disables the alert. This is now the only
+  // thing perf monitoring mails — the periodic digest is pulled on demand by
+  // scripts/perf-digest.ts instead of being sent.
   PERF_ALERT_P95_MS: z.coerce.number().default(1500),
-  // Recipient for the perf alert and the weekly digest. Defaults to
-  // SUPER_ADMIN_EMAIL when unset.
+  // Recipient for the hourly perf alert. Defaults to SUPER_ADMIN_EMAIL when
+  // unset. Name kept for continuity with the prod .env.
   PERF_DIGEST_TO: z.string().email().optional(),
   DEV_AUTH_ENABLED: z
     .string()

@@ -14,7 +14,6 @@ import { documentsRetention } from './jobs/documents-retention.js';
 import { cleanupReadNotifications } from './jobs/cleanup-read-notifications.js';
 import { bulletinActivation } from './jobs/bulletin-activation.js';
 import { flushRequestMetrics } from './jobs/metrics-flush.js';
-import { perfDigest } from './jobs/perf-digest.js';
 import { signupMaintenance } from './jobs/signup-maintenance.js';
 import { billingReconcile, rederiveStripeTenants } from './jobs/billing-reconcile.js';
 import { billingOverLimit } from './jobs/billing-over-limit.js';
@@ -144,15 +143,9 @@ class SchedulerService {
     this.jobs.push(
       cron.schedule('2 * * * *', () => safeRun('metrics_flush', flushRequestMetrics))
     );
-    // Mondays 07:00 Europe/Rome — last 7 days of request_metrics against the 7
-    // before, so a regression introduced by a deploy surfaces without being asked.
-    this.jobs.push(
-      cron.schedule(
-        '0 7 * * 1',
-        () => safeRun('perf_digest', perfDigest),
-        { timezone: 'Europe/Rome' }
-      )
-    );
+    // No perf_digest cron: the weekly digest is no longer mailed. The daily prod
+    // triage routine pulls it instead (scripts/perf-digest.ts, run in this
+    // container), in the same pass that reads the logs — see the script header.
     // Self-service signup + billing (Specs/SELF_SERVICE_BILLING.md).
     // Hourly: expire links, purge abandoned requests, reminders.
     this.jobs.push(

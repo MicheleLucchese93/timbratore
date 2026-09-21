@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "migrate": "tsx scripts/migrate.ts",
+    "perf:digest": "tsx scripts/perf-digest.ts",
     "seed": "tsx scripts/seed.ts",
     "test": "node --import tsx --test --test-concurrency=1 --test-timeout=120000 src/**/*.test.ts"
   },
