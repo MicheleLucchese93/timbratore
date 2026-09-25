@@ -37,7 +37,7 @@
     "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.63.0",
     "@types/node": "^24.13.3",
-    "expo-router": "~56.2.20",
+    "expo-router": "~56.2.21",
     "typescript": "^5.6.3"
   },
   "engines": {
