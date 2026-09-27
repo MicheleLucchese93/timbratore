@@ -12,8 +12,15 @@ dashboardRouter.use(requireAdmin);
 dashboardRouter.get(
   '/cards',
   tenantHandler(async (_req, res, client) => {
+    // MATERIALIZED is load-bearing, here and in /summary. Served by
+    // stamps_tenant_user_time_idx (mig 068) the CTE plans as an Incremental
+    // Sort, which — unlike a plain Sort — re-runs its whole input on every
+    // rescan. memberships is estimated at one row, so the planner puts the CTE
+    // on the inner side of a nested loop and re-executes it once per employee:
+    // O(employees × the tenant's stamp history), 3x slower on prod the day the
+    // index landed. Materialized, it runs exactly once.
     const r = await client.query(
-      `WITH last_stamp AS (
+      `WITH last_stamp AS MATERIALIZED (
          SELECT DISTINCT ON (user_id)
            user_id, event_type, occurred_at, branch_id
          FROM stamps
@@ -71,8 +78,9 @@ dashboardRouter.get(
               AND deleted_at IS NULL) AS branches_count`
     );
 
+    // MATERIALIZED: see /cards — the same CTE, the same rescan trap.
     const p = await client.query(
-      `WITH last_stamp AS (
+      `WITH last_stamp AS MATERIALIZED (
          SELECT DISTINCT ON (user_id) user_id, event_type
          FROM stamps
          WHERE deleted_at IS NULL
