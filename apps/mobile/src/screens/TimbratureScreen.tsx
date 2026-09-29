@@ -237,6 +237,10 @@ export function TimbratureScreen() {
           }
         } else {
           alertCross(t('alert.stampFailedTitle'), humanError(e, t));
+          // The server answered, so its state is the truth: a refusal such as
+          // INVALID_TRANSITION means the screen was stale — resync it so the
+          // next tap offers the action that actually applies.
+          await fetchAll();
         }
       }
     } catch (err) {

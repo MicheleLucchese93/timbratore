@@ -134,25 +134,30 @@ async function fieldCantiereIds(
   return r.rows.map((x) => x.cantiere_id as string);
 }
 
-// Full-replace a field's cantiere association set (entry scope only). Validates
-// every id is a live site of the tenant. Runs on the given client so callers can
-// share a transaction. Dedupes the input.
+// Full-replace a field's cantiere association set (entry scope only). Every id
+// must be a site of the tenant; ids of sites deleted since the association was
+// made are dropped rather than rejected. The association rows outlive the site's
+// soft-delete and the web editor only lists live sites, so it sends the stale id
+// straight back — refusing it would make the field uneditable. Runs on the given
+// client so callers can share a transaction. Dedupes the input.
 async function replaceFieldCantieri(
   client: Pick<PoolClient, 'query'>,
   tenantId: string,
   fieldDefId: string,
   cantiereIds: string[]
 ): Promise<string[]> {
-  const ids = Array.from(new Set(cantiereIds));
+  let ids = Array.from(new Set(cantiereIds));
   if (ids.length > 0) {
-    const valid = await client.query(
-      `SELECT id FROM cantieri
-        WHERE id = ANY($1::uuid[]) AND tenant_id = $2 AND deleted_at IS NULL`,
+    const known = await client.query<{ id: string; deleted: boolean }>(
+      `SELECT id, deleted_at IS NOT NULL AS deleted FROM cantieri
+        WHERE id = ANY($1::uuid[]) AND tenant_id = $2`,
       [ids, tenantId]
     );
-    if (valid.rowCount !== ids.length) {
+    if (known.rowCount !== ids.length) {
       throw new ValidationError('one or more cantiere_ids are not valid sites');
     }
+    const live = new Set(known.rows.filter((r) => !r.deleted).map((r) => r.id));
+    ids = ids.filter((id) => live.has(id));
   }
   await client.query(
     `DELETE FROM cantiere_field_cantieri WHERE field_def_id = $1 AND tenant_id = $2`,

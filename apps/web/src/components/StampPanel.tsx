@@ -134,6 +134,9 @@ export function StampPanel({ onStamped }: { onStamped?: () => void }) {
       onStamped?.();
     } catch (e) {
       setErr(humanError(e, t));
+      // A refusal (e.g. INVALID_TRANSITION) means the panel was stale — resync
+      // so the buttons offer what the server will actually accept.
+      await fetchAll();
     } finally {
       setWorking(null);
     }

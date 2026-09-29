@@ -9,6 +9,21 @@ import type { StampEventType, MockLocationAction, StampMode } from '@sonoqui/sha
 import { ConflictError, ValidationError, ForbiddenError } from '../errors/index.js';
 import { TENANT_TZ_SQL } from '../lib/tz.js';
 
+// Largest gap tolerated between a device's occurred_at and the server clock.
+const MAX_CLOCK_SKEW_SECONDS = 300;
+
+// "This stamp has already happened" for live-state purposes. A future-dated row
+// entered by an admin (a planned clock_out) must not flip the state yet, but an
+// app stamp carries the phone's clock: a phone a fraction of a second ahead
+// stores an occurred_at still in the future when the client refetches its
+// state right after the 201, so a strict `<= now()` hid the punch just made and
+// left the button on the previous state (Time System, Sept 2026). App stamps
+// get the same tolerance the POST already accepts.
+function stampHasHappenedSql(alias?: string): string {
+  const p = alias ? `${alias}.` : '';
+  return `(${p}occurred_at <= now() OR (${p}source = 'employee_app' AND ${p}occurred_at <= now() + interval '${MAX_CLOCK_SKEW_SECONDS} seconds'))`;
+}
+
 export interface StampInputBody {
   event_type: StampEventType;
   occurred_at: string;
@@ -113,7 +128,7 @@ async function openShiftBranch(client: PoolClient, userId: string): Promise<Bran
        FROM stamps s
        JOIN branches b ON b.id = s.branch_id
       WHERE s.user_id = $1 AND s.deleted_at IS NULL
-        AND s.event_type = 'clock_in' AND s.occurred_at <= now()
+        AND s.event_type = 'clock_in' AND ${stampHasHappenedSql('s')}
       ORDER BY s.occurred_at DESC, s.created_at DESC
       LIMIT 1`,
     [userId]
@@ -199,7 +214,7 @@ export async function evaluateStamp(
   if (input.source !== 'admin_manual') {
     const occurredAt = new Date(body.occurred_at).getTime();
     const skewSeconds = Math.abs(occurredAt - now.getTime()) / 1000;
-    if (skewSeconds > 300) {
+    if (skewSeconds > MAX_CLOCK_SKEW_SECONDS) {
       throw new ValidationError('Clock skew too large', { code: 'CLOCK_SKEW', seconds: skewSeconds });
     }
   }
@@ -334,7 +349,7 @@ export async function evaluateStamp(
       // must not be treated as the "last" event, or it would let duplicate
       // clock_ins slip past the transition check.
       `SELECT event_type, occurred_at FROM stamps
-       WHERE user_id = $1 AND deleted_at IS NULL AND occurred_at <= now()
+       WHERE user_id = $1 AND deleted_at IS NULL AND ${stampHasHappenedSql()}
        ORDER BY occurred_at DESC, created_at DESC LIMIT 1`,
       [input.userId]
     );
@@ -381,7 +396,7 @@ export async function computeCurrentState(
     // Live state reflects only events up to now; a future-dated stamp (e.g. a
     // planned clock_out entered ahead of time) must not flip the button.
     `SELECT event_type, occurred_at FROM stamps
-     WHERE user_id = $1 AND deleted_at IS NULL AND occurred_at <= now()
+     WHERE user_id = $1 AND deleted_at IS NULL AND ${stampHasHappenedSql()}
      ORDER BY occurred_at DESC, created_at DESC LIMIT 1`,
     [userId]
   );
