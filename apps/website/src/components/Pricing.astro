@@ -11,6 +11,10 @@ import { SIGNUP_PATH } from "../data/seo";
 // Prices must match PLAN_PRICES_CENTS / PLAN_CAPS in packages/shared/src/billing
 // (what Stripe actually charges). They are repeated here rather than imported:
 // the website's Docker build context only carries packages/shared's tokens.css.
+//
+// Every price is net, and every price says so right next to it ("+ IVA"),
+// in full-contrast bold: a footnote alone was too easy to miss when choosing
+// a plan. The web app's plan picker follows the same convention.
 type Plan = {
   name: string;
   tagline: string;
@@ -90,6 +94,8 @@ const addons = [
     icon: `<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2M5 21H3m4-8h2m-2 4h2m-2-8h2m4 8h2m-2-4h2m-2-4h2"/></svg>`,
   },
 ];
+
+const vat = "whitespace-nowrap font-bold text-on-surface";
 ---
 
 <section id="pricing" class="relative overflow-hidden bg-surface py-20 sm:py-28 scroll-mt-20">
@@ -108,7 +114,7 @@ const addons = [
         Prezzi chiari, senza sorprese
       </h2>
       <p class="mx-auto mt-4 max-w-2xl text-lg text-on-surface-variant">
-        Fino a 3 utenti è <strong class="font-semibold text-on-surface">gratis per sempre</strong>; poi paghi in base ai <strong class="font-semibold text-on-surface">tuoi dipendenti</strong>. Ogni piano include tutta la rilevazione presenze, senza costi nascosti, e cambi piano quando cresci. I <a href="#moduli" class="font-semibold text-primary hover:underline">moduli aggiuntivi</a> sono opzionali: 50 €/mese ciascuno.
+        Fino a 3 utenti è <strong class="font-semibold text-on-surface">gratis per sempre</strong>; poi paghi in base ai <strong class="font-semibold text-on-surface">tuoi dipendenti</strong>. Ogni piano include tutta la rilevazione presenze, senza costi nascosti, e cambi piano quando cresci. I <a href="#moduli" class="font-semibold text-primary hover:underline">moduli aggiuntivi</a> sono opzionali: 50 €/mese + IVA ciascuno.
       </p>
 
       <div class="mt-8 flex flex-col items-center gap-3">
@@ -144,12 +150,12 @@ const addons = [
           <p class="mt-1 text-sm text-on-surface-variant">{p.tagline}</p>
 
           {p.custom ? (
-            <div class="mt-6 flex min-h-[5.5rem] flex-col justify-center">
+            <div class="mt-6 flex min-h-[6rem] flex-col justify-center">
               <span class="text-4xl font-extrabold tracking-tight text-on-surface">Su misura</span>
               <p class="mt-2 text-sm text-on-surface-variant">Prezzo dedicato per te</p>
             </div>
           ) : p.free ? (
-            <div class="mt-6 min-h-[5.5rem]">
+            <div class="mt-6 min-h-[6rem]">
               <div class="flex items-baseline gap-1.5">
                 <span class="text-5xl font-extrabold tracking-tight text-on-surface">0</span>
                 <span class="text-xl font-bold text-on-surface">€</span>
@@ -158,12 +164,17 @@ const addons = [
               <p class="mt-2 text-sm text-on-surface-variant">Nessuna carta richiesta</p>
             </div>
           ) : (
-            <div class="mt-6 min-h-[5.5rem]">
+            <div class="mt-6 min-h-[6rem]">
+              {/* "/mese" and "+ IVA" stacked beside the amount: on one line they
+                  would not fit the ~210px of an xl card. */}
               <div data-billing-view="monthly">
                 <div class="flex items-baseline gap-1.5">
                   <span class="text-5xl font-extrabold tracking-tight text-on-surface">{p.monthly}</span>
                   <span class="text-xl font-bold text-on-surface">€</span>
-                  <span class="text-sm font-medium text-on-surface-variant">/mese</span>
+                  <span class="flex flex-col self-center text-sm leading-tight">
+                    <span class="font-medium text-on-surface-variant">/mese</span>
+                    <span class={vat}>+ IVA</span>
+                  </span>
                 </div>
                 <p class="mt-2 text-sm text-on-surface-variant">Fatturazione mensile</p>
               </div>
@@ -171,10 +182,17 @@ const addons = [
                 <div class="flex items-baseline gap-1.5">
                   <span class="text-5xl font-extrabold tracking-tight text-on-surface">{p.annualPerMonth}</span>
                   <span class="text-xl font-bold text-on-surface">€</span>
-                  <span class="text-sm font-medium text-on-surface-variant">/mese</span>
+                  <span class="flex flex-col self-center text-sm leading-tight">
+                    <span class="font-medium text-on-surface-variant">/mese</span>
+                    <span class={vat}>+ IVA</span>
+                  </span>
                 </div>
+                {/* Two lines at every width: the saving on its own line never
+                    wraps mid-phrase, and min-h-[6rem] keeps the card height
+                    steady when the toggle swaps views. */}
                 <p class="mt-2 text-sm text-on-surface-variant">
-                  {p.annualTotal} €/anno · <span class="font-semibold text-success">risparmi {p.annualSave} €</span>
+                  {p.annualTotal} €/anno <span class={vat}>+ IVA</span>
+                  <span class="block font-semibold text-success">risparmi {p.annualSave} €</span>
                 </p>
               </div>
             </div>
@@ -224,7 +242,7 @@ const addons = [
               <h4 class="text-sm font-semibold text-on-surface">{a.title}</h4>
               <div class="mt-0.5 text-on-surface-variant">
                 <span class="text-xl font-bold text-on-surface">+{a.price} €</span>
-                <span class="text-sm"> / {a.per} / mese</span>
+                <span class="text-sm"> / {a.per} / mese <span class={vat}>+ IVA</span></span>
               </div>
             </div>
           </div>
@@ -235,7 +253,7 @@ const addons = [
     <div class="mx-auto mt-6 flex max-w-4xl flex-col items-center justify-between gap-3 rounded-2xl bg-secondary/5 px-6 py-4 text-center sm:flex-row sm:text-left">
       <p class="text-sm text-on-surface-variant">
         <span class="font-semibold text-on-surface">Moduli Cantieri e API:</span>{" "}
-        50 €/mese + IVA ciascuno, attivabili da Impostazioni con qualsiasi piano, anche gratuito.
+        50 €/mese <span class={vat}>+ IVA</span> ciascuno, attivabili da Impostazioni con qualsiasi piano, anche gratuito.
       </p>
       <a href="#moduli" class="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-sm font-semibold text-secondary hover:underline">
         Scopri i moduli
@@ -243,8 +261,9 @@ const addons = [
       </a>
     </div>
 
-    <p class="mx-auto mt-8 max-w-2xl text-center text-xs text-on-surface-variant">
-      Prezzi IVA esclusa. Pagamento con carta e fattura elettronica; gli abbonamenti si rinnovano automaticamente e puoi disdirli quando vuoi, con effetto a fine periodo. L'app è gratuita da scaricare.
+    <p class="mx-auto mt-8 max-w-2xl text-center text-sm text-on-surface-variant">
+      <strong class="font-bold text-on-surface">Tutti i prezzi sono IVA esclusa: l'IVA al 22% si aggiunge al pagamento.</strong>{" "}
+      Pagamento con carta e fattura elettronica; gli abbonamenti si rinnovano automaticamente e puoi disdirli quando vuoi, con effetto a fine periodo. L'app è gratuita da scaricare.
     </p>
   </div>
 </section>

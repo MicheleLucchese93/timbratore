@@ -141,6 +141,7 @@ const legalLinkClass = "font-semibold text-primary underline hover:no-underline"
                 <a href="/it/#pricing" aria-label="Cambia piano" class="underline hover:no-underline">cambia</a>
               </p>
             </div>
+            <p id="signup-plan-price" data-testid="signup-plan-price" class="mt-3 hidden text-lg font-bold text-on-surface"></p>
             <p id="signup-plan-note" class="mt-2 text-sm text-on-surface-variant">
               Gratis per sempre: 3 utenti, te compreso, e 1 sede. Nessuna carta richiesta.
             </p>
@@ -317,18 +318,22 @@ const legalLinkClass = "font-semibold text-primary underline hover:no-underline"
   const CAMPAIGN_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid"];
   const FIELDS: FieldName[] = ["first_name", "last_name", "email", "accept_tos", "accept_privacy"];
 
-  const PLANS: Record<PlanKey, { name: string; note: string }> = {
+  // Paid plans show their net price on a line of its own, "+ IVA" included,
+  // like the pricing cards: never folded into the grey note below it.
+  const PLANS: Record<PlanKey, { name: string; price?: string; note: string }> = {
     free: {
       name: "Gratuito",
       note: "Gratis per sempre: 3 utenti, te compreso, e 1 sede. Nessuna carta richiesta.",
     },
     piccola: {
       name: "Piccola",
-      note: "24,99 €/mese + IVA, fino a 10 dipendenti e 3 sedi. Registrarti è gratis: il piano lo attivi con carta nell'app, dopo aver inserito i dati dell'azienda.",
+      price: "24,99 €/mese + IVA",
+      note: "Fino a 10 dipendenti e 3 sedi. Registrarti è gratis: il piano lo attivi con carta nell'app, dopo aver inserito i dati dell'azienda.",
     },
     media: {
       name: "Media",
-      note: "39,99 €/mese + IVA, fino a 20 dipendenti e 5 sedi. Registrarti è gratis: il piano lo attivi con carta nell'app, dopo aver inserito i dati dell'azienda.",
+      price: "39,99 €/mese + IVA",
+      note: "Fino a 20 dipendenti e 5 sedi. Registrarti è gratis: il piano lo attivi con carta nell'app, dopo aver inserito i dati dell'azienda.",
     },
   };
 
@@ -548,6 +553,9 @@ const legalLinkClass = "font-semibold text-primary underline hover:no-underline"
     const requested = (params.get("piano") ?? "").toLowerCase();
     const plan: PlanKey = requested === "piccola" || requested === "media" ? requested : "free";
     byId("signup-plan-name").textContent = PLANS[plan].name;
+    const planPrice = byId("signup-plan-price");
+    planPrice.textContent = PLANS[plan].price ?? "";
+    planPrice.classList.toggle("hidden", !PLANS[plan].price);
     byId("signup-plan-note").textContent = PLANS[plan].note;
 
     // Campaign attribution, from this URL only (BaseLayout copies the landing

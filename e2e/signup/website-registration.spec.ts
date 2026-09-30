@@ -52,6 +52,7 @@ test.describe('website — registration page', () => {
     await openPage(page, '?piano=media&utm_source=e2e-site&utm_campaign=autunno');
     await expect(page.getByTestId('signup-form-view')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId('signup-plan')).toContainText('Media');
+    await expect(page.getByTestId('signup-plan-price')).toHaveText('39,99 €/mese + IVA');
 
     await page.locator('#signup-first-name').fill('Sara');
     await page.locator('#signup-last-name').fill('Neri');

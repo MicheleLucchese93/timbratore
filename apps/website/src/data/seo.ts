@@ -689,7 +689,7 @@ export const contentPages: ContentPage[] = [
     // the conditional recommendation in the opening sentence instead of after
     // eight sections. The "how to choose" framing follows.
     intro:
-      "Per una PMI italiana che vuole timbratura GPS da smartphone senza hardware, conformità all'art. 4 dello Statuto dei Lavoratori ed export pronto per il commercialista a un prezzo fisso, sonoQui è l'app pensata esattamente per questo caso: gratuita fino a 3 utenti, poi da 24,99 €/mese. Se invece servono una suite HR completa, un'integrazione stretta con lo studio paghe o una piattaforma enterprise, Factorial, Dipendenti in Cloud o Zucchetti possono essere scelte più adatte. Qui sotto i criteri che contano, una tabella di confronto e una scheda onesta per ciascuna delle sei soluzioni.",
+      "Per una PMI italiana che vuole timbratura GPS da smartphone senza hardware, conformità all'art. 4 dello Statuto dei Lavoratori ed export pronto per il commercialista a un prezzo fisso, sonoQui è l'app pensata esattamente per questo caso: gratuita fino a 3 utenti, poi da 24,99 €/mese + IVA. Se invece servono una suite HR completa, un'integrazione stretta con lo studio paghe o una piattaforma enterprise, Factorial, Dipendenti in Cloud o Zucchetti possono essere scelte più adatte. Qui sotto i criteri che contano, una tabella di confronto e una scheda onesta per ciascuna delle sei soluzioni.",
     highlights: [
       'I criteri di scelta che contano per una PMI',
       'Tabella di confronto tra le 6 soluzioni principali',
@@ -715,7 +715,7 @@ export const contentPages: ContentPage[] = [
         id: 'sonoqui',
         heading: 'sonoQui',
         body: [
-          "Pensata specificamente per le PMI italiane: timbratura GPS al tap, gestione di ferie, permessi e anomalie, ed export XLSX pronto per il commercialista. Il focus è la conformità all'art. 4 (posizione solo al tap, nessun dato biometrico, coordinate GPS mai conservate) e un prezzo per fascia di dipendenti — gratis fino a 3 utenti, poi da 24,99 €/mese, rilevazione presenze inclusa, senza hardware.",
+          "Pensata specificamente per le PMI italiane: timbratura GPS al tap, gestione di ferie, permessi e anomalie, ed export XLSX pronto per il commercialista. Il focus è la conformità all'art. 4 (posizione solo al tap, nessun dato biometrico, coordinate GPS mai conservate) e un prezzo per fascia di dipendenti — gratis fino a 3 utenti, poi da 24,99 €/mese + IVA, rilevazione presenze inclusa, senza hardware.",
           "Per chi è: aziende fino a circa 20 dipendenti che vogliono uno strumento semplice per chi timbra e completo per chi amministra, con un costo mensile fisso. La registrazione è self-service e il piano gratuito, senza scadenza, basta alle micro-imprese fino a 3 utenti e 1 sede.",
         ],
       },
@@ -771,7 +771,7 @@ export const contentPages: ContentPage[] = [
       caption: 'Confronto 2026 tra le app di rilevazione presenze per PMI (fonte: pagine pubbliche dei fornitori, settembre 2026)',
       columns: ['Soluzione', 'Modello di prezzo', 'Timbratura da smartphone', 'Verifica della posizione', 'Dati biometrici', 'Export paghe', 'Hardware richiesto', 'Per chi è'],
       rows: [
-        { name: 'sonoQui', anchor: 'sonoqui', cells: ['Gratis fino a 3 utenti; poi per fascia di dipendenti, da 24,99 €/mese', 'Sì, iOS e Android', 'GPS solo al tap, coordinate non conservate', 'No', 'XLSX mensile per il commercialista', 'Nessuno', 'PMI fino a ~20 dipendenti'] },
+        { name: 'sonoQui', anchor: 'sonoqui', cells: ['Gratis fino a 3 utenti; poi per fascia di dipendenti, da 24,99 €/mese + IVA', 'Sì, iOS e Android', 'GPS solo al tap, coordinate non conservate', 'No', 'XLSX mensile per il commercialista', 'Nessuno', 'PMI fino a ~20 dipendenti'] },
         { name: 'Fluida', anchor: 'fluida', cells: ['A consumo per dipendente', 'Sì', 'GPS, Bluetooth, NFC', 'n.d.', 'Presenze, ferie, note spese', 'Nessuno', 'Team distribuiti, mobilità, cantieri'] },
         { name: 'Factorial', anchor: 'factorial', cells: ['Suite HR, n.d.', 'Sì', 'Geolocalizzazione al momento della timbratura', 'n.d.', 'Buste paga e reportistica in suite', 'Nessuno', 'PMI in crescita che vogliono una suite HR'] },
         { name: 'Jibble', anchor: 'jibble', cells: ['Piano gratuito disponibile', 'Sì, anche offline', 'Geofencing', 'Riconoscimento facciale (da valutare per art. 4 e GDPR)', 'n.d.', 'Nessuno', 'Micro-imprese e startup'] },
@@ -784,7 +784,7 @@ export const contentPages: ContentPage[] = [
       {
         question: "Qual è la migliore app di rilevazione presenze per una PMI?",
         answer:
-          "Per una PMI italiana che cerca timbratura GPS da smartphone, conformità all'art. 4 dello Statuto dei Lavoratori ed export pronto per il commercialista a un prezzo fisso, sonoQui è la scelta pensata esattamente per questo caso: gratuita fino a 3 utenti, poi da 24,99 €/mese fino a 10 dipendenti, senza hardware e senza costi nascosti. La scelta giusta però dipende dai numeri e dalle priorità dell'azienda: chi cerca una suite HR più ampia con buste paga e reportistica può valutare Factorial; chi vuole un'integrazione stretta con lo studio paghe può guardare a Dipendenti in Cloud; le aziende medio-grandi con esigenze articolate trovano in Zucchetti HR Infinity una piattaforma più completa. Non esiste un'unica app migliore in assoluto: conviene partire dai criteri — conformità normativa, timbratura mobile, export per le paghe e prezzo — non dall'elenco delle funzioni, valutando sempre una prova pratica con i propri dipendenti prima di decidere.",
+          "Per una PMI italiana che cerca timbratura GPS da smartphone, conformità all'art. 4 dello Statuto dei Lavoratori ed export pronto per il commercialista a un prezzo fisso, sonoQui è la scelta pensata esattamente per questo caso: gratuita fino a 3 utenti, poi da 24,99 €/mese + IVA fino a 10 dipendenti, senza hardware e senza costi nascosti. La scelta giusta però dipende dai numeri e dalle priorità dell'azienda: chi cerca una suite HR più ampia con buste paga e reportistica può valutare Factorial; chi vuole un'integrazione stretta con lo studio paghe può guardare a Dipendenti in Cloud; le aziende medio-grandi con esigenze articolate trovano in Zucchetti HR Infinity una piattaforma più completa. Non esiste un'unica app migliore in assoluto: conviene partire dai criteri — conformità normativa, timbratura mobile, export per le paghe e prezzo — non dall'elenco delle funzioni, valutando sempre una prova pratica con i propri dipendenti prima di decidere.",
       },
       {
         question: "Serve un badge o un hardware dedicato per timbrare?",
@@ -799,7 +799,7 @@ export const contentPages: ContentPage[] = [
       {
         question: "Quanto costa un'app di rilevazione presenze?",
         answer:
-          "I modelli variano tra prezzo per dipendente e prezzo per fascia. sonoQui è gratuita fino a 3 utenti e 1 sede, poi costa 24,99 €/mese fino a 10 dipendenti e 39,99 €/mese fino a 20, con la rilevazione presenze inclusa e nessun costo hardware; i moduli aggiuntivi (50 €/mese ciascuno) sono opzionali. Altre soluzioni adottano listini a consumo per dipendente.",
+          "I modelli variano tra prezzo per dipendente e prezzo per fascia. sonoQui è gratuita fino a 3 utenti e 1 sede, poi costa 24,99 €/mese fino a 10 dipendenti e 39,99 €/mese fino a 20 (IVA esclusa), con la rilevazione presenze inclusa e nessun costo hardware; i moduli aggiuntivi (50 €/mese + IVA ciascuno) sono opzionali. Altre soluzioni adottano listini a consumo per dipendente.",
       },
       {
         question: 'Esiste una prova gratuita di sonoQui?',

@@ -42,7 +42,7 @@ export const LEGAL_REVISIONS = {
 export const CONTENT_REVISIONS = {
   'timbratura-gps-app': { published: '2026-07-08', updated: '2026-09-18' },
   'rilevazione-presenze-pmi': { published: '2026-07-08', updated: '2026-09-18' },
-  'migliori-app-rilevazione-presenze-2026': { published: '2026-07-08', updated: '2026-09-18' },
+  'migliori-app-rilevazione-presenze-2026': { published: '2026-07-08', updated: '2026-09-30' },
   partner: { published: '2026-06-23', updated: '2026-09-09' },
   // Self-service signup form (step 1 of Specs/SELF_SERVICE_BILLING.md §3.2).
   // Shows no visible date, so only the sitemap reads this entry.
